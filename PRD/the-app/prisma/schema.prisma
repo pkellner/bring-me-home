@@ -1,0 +1,345 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User Authentication and Authorization
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String?  @unique
+  password    String
+  firstName   String?
+  lastName    String?
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  
+  // Role relationships
+  userRoles   UserRole[]
+  
+  // Access relationships
+  townAccess  TownAccess[]
+  personAccess PersonAccess[]
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("users")
+}
+
+// Role definitions
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String   @db.Text // JSON string of permissions
+  
+  // Relationships
+  userRoles   UserRole[]
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("roles")
+}
+
+// Many-to-many relationship between Users and Roles
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Town model
+model Town {
+  id          String   @id @default(cuid())
+  name        String
+  state       String
+  county      String?
+  zipCode     String?
+  fullAddress String   @db.Text
+  description String?  @db.Text
+  
+  // Geography
+  latitude    Float?
+  longitude   Float?
+  
+  // Customization
+  defaultLayoutId String?
+  defaultThemeId  String?
+  
+  // Relationships
+  persons     Person[]
+  townAccess  TownAccess[]
+  layout      Layout?  @relation(fields: [defaultLayoutId], references: [id])
+  theme       Theme?   @relation(fields: [defaultThemeId], references: [id])
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("towns")
+}
+
+// Person model - the core entity
+model Person {
+  id              String   @id @default(cuid())
+  firstName       String
+  middleName      String?
+  lastName        String
+  
+  // Identification
+  alienIdNumber   String?
+  ssn             String?  // Should be encrypted
+  dateOfBirth     DateTime?
+  placeOfBirth    String?
+  
+  // Physical characteristics
+  height          String?
+  weight          String?
+  eyeColor        String?
+  hairColor       String?
+  
+  // Address information
+  lastKnownAddress String @db.Text
+  currentAddress   String? @db.Text
+  
+  // Contact information
+  phoneNumber     String?
+  emailAddress    String?
+  
+  // Images - stored as file paths or URLs
+  primaryPicture  String?
+  secondaryPic1   String?
+  secondaryPic2   String?
+  secondaryPic3   String?
+  
+  // Story and description
+  story           String?  @db.Text
+  circumstances   String?  @db.Text
+  lastSeenDate    DateTime?
+  lastSeenLocation String?
+  
+  // Status
+  isActive        Boolean  @default(true)
+  isFound         Boolean  @default(false)
+  status          String   @default("missing") // missing, found, deceased, etc.
+  
+  // Customization
+  layoutId        String?
+  themeId         String?
+  
+  // Relationships
+  townId          String
+  town            Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
+  layout          Layout?  @relation(fields: [layoutId], references: [id])
+  theme           Theme?   @relation(fields: [themeId], references: [id])
+  
+  // Related entities
+  comments        Comment[]
+  personAccess    PersonAccess[]
+  attachments     Attachment[]
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([townId])
+  @@index([firstName, lastName])
+  @@index([status])
+  @@map("persons")
+}
+
+// Comment model for community engagement
+model Comment {
+  id              String   @id @default(cuid())
+  content         String   @db.Text
+  
+  // Submitter information (optional for anonymous)
+  submitterName   String?
+  submitterEmail  String?
+  submitterPhone  String?
+  isAnonymous     Boolean  @default(false)
+  
+  // Privacy controls
+  privacyLevel    String   @default("public") // public, family, officials
+  
+  // Verification and moderation
+  isVerified      Boolean  @default(false)
+  isApproved      Boolean  @default(false)
+  moderatorNotes  String?  @db.Text
+  
+  // Relationships
+  personId        String
+  person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Attachments
+  attachments     Attachment[]
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([personId])
+  @@index([privacyLevel])
+  @@index([isApproved])
+  @@map("comments")
+}
+
+// File attachments for comments and persons
+model Attachment {
+  id          String   @id @default(cuid())
+  fileName    String
+  originalName String
+  mimeType    String
+  fileSize    Int
+  filePath    String
+  
+  // Metadata
+  description String?
+  isPublic    Boolean  @default(true)
+  
+  // Relationships (either comment or person, not both)
+  commentId   String?
+  personId    String?
+  comment     Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  person      Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([commentId])
+  @@index([personId])
+  @@map("attachments")
+}
+
+// Town access control
+model TownAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  townId      String
+  accessLevel String   @default("read") // read, write, admin
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  town        Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, townId])
+  @@map("town_access")
+}
+
+// Person access control
+model PersonAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  personId    String
+  accessLevel String   @default("read") // read, write, admin
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, personId])
+  @@map("person_access")
+}
+
+// Layout templates
+model Layout {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  cssClasses  String?  @db.Text
+  template    String   @db.Text // JSON or HTML template
+  isActive    Boolean  @default(true)
+  
+  // Relationships
+  towns       Town[]
+  persons     Person[]
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("layouts")
+}
+
+// Color themes
+model Theme {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  colors      String   @db.Text // JSON object with color definitions
+  cssVars     String?  @db.Text // CSS custom properties
+  isActive    Boolean  @default(true)
+  
+  // Relationships
+  towns       Town[]
+  persons     Person[]
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("themes")
+}
+
+// System configuration
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  dataType    String   @default("string") // string, number, boolean, json
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("system_config")
+}
+
+// Audit log for sensitive operations
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String?
+  oldValues   String?  @db.Text
+  newValues   String?  @db.Text
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
