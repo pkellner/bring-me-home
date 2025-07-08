@@ -8,7 +8,9 @@ export const CreateUserSchema = z.object({
   lastName: z.string().min(1, 'Last name is required').max(100).optional(),
 });
 
-export const UpdateUserSchema = CreateUserSchema.partial().omit({ password: true });
+export const UpdateUserSchema = CreateUserSchema.partial().omit({
+  password: true,
+});
 
 export const LoginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
