@@ -75,6 +75,45 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.session-token'
+          : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    callbackUrl: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.callback-url'
+          : 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    csrfToken: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Host-next-auth.csrf-token'
+          : 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
+  useSecureCookies: process.env.NODE_ENV === 'production',
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -94,13 +133,40 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
-        session.user.roles = token.roles as any[];
-        session.user.townAccess = token.townAccess as any[];
-        session.user.personAccess = token.personAccess as any[];
+        session.user.roles = token.roles as Array<{
+          id: string;
+          name: string;
+          description?: string;
+          permissions: string;
+        }>;
+        session.user.townAccess = token.townAccess as Array<{
+          id: string;
+          townId: string;
+          accessLevel: string;
+          town: {
+            id: string;
+            name: string;
+            state: string;
+          };
+        }>;
+        session.user.personAccess = token.personAccess as Array<{
+          id: string;
+          personId: string;
+          accessLevel: string;
+          person: {
+            id: string;
+            firstName: string;
+            lastName: string;
+          };
+        }>;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
+      // Handle signout redirect - always go to home
+      if (url === '/auth/signout' || url.includes('signout')) {
+        return baseUrl;
+      }
       // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
@@ -110,7 +176,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
-    signOut: '/auth/signout',
     error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,

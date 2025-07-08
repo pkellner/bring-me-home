@@ -46,7 +46,7 @@ export default function RegisterPage() {
           '/auth/signin?message=Registration successful. Please sign in.'
         );
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

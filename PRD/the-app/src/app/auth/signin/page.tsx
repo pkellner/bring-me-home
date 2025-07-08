@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { signIn, getSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { performSignOut } from '@/lib/signout';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -12,7 +13,26 @@ export default function SignInPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Check if user is admin
+  const isAdmin = session?.user?.roles?.some(role =>
+    ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
+  );
+
+  // Redirect non-admin users directly to home page
+  useEffect(() => {
+    if (status === 'authenticated' && session && !isAdmin) {
+      router.push('/');
+    }
+  }, [status, session, isAdmin, router]);
+
+  // Handle signout with forced redirect
+  const handleSignOut = () => {
+    setIsLoading(true);
+    performSignOut();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,23 +49,10 @@ export default function SignInPage() {
       if (result?.error) {
         setError('Invalid username or password');
       } else {
-        // Get the session to determine redirect
-        const session = await getSession();
-        if (session?.user?.roles?.some(role => role.name === 'site-admin')) {
-          router.push('/admin');
-        } else if (
-          session?.user?.roles?.some(role => role.name === 'town-admin')
-        ) {
-          router.push('/admin/towns');
-        } else if (
-          session?.user?.roles?.some(role => role.name === 'person-admin')
-        ) {
-          router.push('/admin/persons');
-        } else {
-          router.push('/');
-        }
+        // Reload the page to trigger session check
+        window.location.reload();
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -58,6 +65,72 @@ export default function SignInPage() {
       [e.target.name]: e.target.value,
     });
   };
+
+  // If admin user is already signed in, show admin options
+  if (status === 'authenticated' && session && isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+              Already Signed In
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Welcome back, {session.user.firstName || session.user.username}!
+            </p>
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                You are currently signed in with the following roles:
+              </p>
+              <p className="text-sm font-medium text-blue-900 mt-1">
+                {session.user.roles?.map(role => role.name).join(', ')}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {session.user.roles?.some(role =>
+              ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
+            ) && (
+              <Link
+                href="/admin"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                Go to Admin Panel
+              </Link>
+            )}
+
+            <Link
+              href="/"
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Go to Home Page
+            </Link>
+
+            <button
+              onClick={handleSignOut}
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -123,7 +196,7 @@ export default function SignInPage() {
               href="/auth/register"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              Don't have an account? Register here
+              Don&apos;t have an account? Register here
             </Link>
           </div>
         </form>

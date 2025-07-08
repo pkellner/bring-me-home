@@ -6,6 +6,17 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
+    // Enforce HTTPS in production
+    if (
+      process.env.NODE_ENV === 'production' &&
+      req.headers.get('x-forwarded-proto') !== 'https'
+    ) {
+      return NextResponse.redirect(
+        `https://${req.headers.get('host')}${req.nextUrl.pathname}${req.nextUrl.search}`,
+        301
+      );
+    }
+
     // Public routes that don't require authentication
     const publicRoutes = ['/', '/auth/signin', '/auth/register', '/auth/error'];
 
@@ -14,9 +25,13 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // Allow access to town/person public pages (format: /townname/personname)
+    // Allow access to town pages (format: /townname) and person pages (format: /townname/personname)
+    const townRegex = /^\/[^\/]+\/?$/;
     const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
-    if (townPersonRegex.test(pathname) && !pathname.startsWith('/admin')) {
+    if (
+      (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
+      !pathname.startsWith('/admin')
+    ) {
       return NextResponse.next();
     }
 
@@ -27,7 +42,13 @@ export default withAuth(
 
     // Admin routes protection
     if (pathname.startsWith('/admin')) {
-      const roles = (token.roles as any[]) || [];
+      const roles =
+        (token.roles as Array<{
+          id: string;
+          name: string;
+          description?: string;
+          permissions: string;
+        }>) || [];
       const hasAdminRole = roles.some(role =>
         ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
       );
@@ -85,9 +106,13 @@ export default withAuth(
           return true;
         }
 
-        // Allow access to town/person public pages without auth
+        // Allow access to town pages and person pages without auth
+        const townRegex = /^\/[^\/]+\/?$/;
         const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
-        if (townPersonRegex.test(pathname) && !pathname.startsWith('/admin')) {
+        if (
+          (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
+          !pathname.startsWith('/admin')
+        ) {
           return true;
         }
 

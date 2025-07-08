@@ -1,21 +1,35 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import {
+  UsersIcon,
+  BuildingOfficeIcon,
+  UserIcon,
+  ChatBubbleLeftRightIcon,
+} from '@heroicons/react/24/outline';
+
+const iconMap = {
+  users: UsersIcon,
+  buildings: BuildingOfficeIcon,
+  user: UserIcon,
+  chat: ChatBubbleLeftRightIcon,
+};
 
 interface DashboardCardProps {
   name: string;
   value: number;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: keyof typeof iconMap;
   href: string;
 }
 
 export default function DashboardCard({
   name,
   value,
-  icon: Icon,
+  icon,
   href,
 }: DashboardCardProps) {
   const router = useRouter();
+  const Icon = iconMap[icon];
 
   return (
     <div

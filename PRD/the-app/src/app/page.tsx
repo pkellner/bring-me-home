@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import HeaderNavigation from '@/components/HeaderNavigation';
 
 async function getPublicData() {
   const [towns, recentPersons] = await Promise.all([
@@ -68,42 +69,7 @@ export default async function HomePage() {
                 Bring Me Home
               </h1>
             </div>
-            <nav className="flex items-center space-x-4">
-              {session ? (
-                <>
-                  <span className="text-sm text-gray-700">
-                    Welcome, {session.user.firstName || session.user.username}
-                  </span>
-                  {session.user.roles?.some(role =>
-                    ['site-admin', 'town-admin', 'person-admin'].includes(
-                      role.name
-                    )
-                  ) && (
-                    <Link
-                      href="/admin"
-                      className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-                </>
-              ) : (
-                <div className="space-x-2">
-                  <Link
-                    href="/auth/signin"
-                    className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/register"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                  >
-                    Register
-                  </Link>
-                </div>
-              )}
-            </nav>
+            <HeaderNavigation user={session?.user || null} />
           </div>
         </div>
       </header>
@@ -211,8 +177,8 @@ export default async function HomePage() {
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Every piece of information matters. If you have seen any of these
-            individuals or have any information that could help, please don't
-            hesitate to contribute to their profiles.
+            individuals or have any information that could help, please
+            don&apos;t hesitate to contribute to their profiles.
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
             <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">

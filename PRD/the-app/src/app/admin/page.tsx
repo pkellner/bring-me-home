@@ -1,14 +1,13 @@
-'use client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasRole, hasPermission } from '@/lib/permissions';
 import DashboardCard from '@/components/admin/DashboardCard';
+import Link from 'next/link';
 import {
   UsersIcon,
   BuildingOfficeIcon,
   UserIcon,
-  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
 async function getDashboardStats() {
@@ -35,28 +34,28 @@ export default async function AdminDashboard() {
     {
       name: 'Total Users',
       value: stats.userCount,
-      icon: UsersIcon,
+      icon: 'users' as const,
       show: hasPermission(session, 'users', 'read'),
       href: '/admin/users',
     },
     {
       name: 'Towns',
       value: stats.townCount,
-      icon: BuildingOfficeIcon,
+      icon: 'buildings' as const,
       show: hasPermission(session, 'towns', 'read'),
       href: '/admin/towns',
     },
     {
       name: 'Missing Persons',
       value: stats.personCount,
-      icon: UserIcon,
+      icon: 'user' as const,
       show: hasPermission(session, 'persons', 'read'),
       href: '/admin/persons',
     },
     {
       name: 'Comments',
       value: stats.commentCount,
-      icon: ChatBubbleLeftRightIcon,
+      icon: 'chat' as const,
       show: hasPermission(session, 'comments', 'read'),
       href: '/admin/comments',
     },
@@ -76,35 +75,44 @@ export default async function AdminDashboard() {
       {/* Role Information */}
       <div className="bg-white overflow-hidden shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Your Access</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Your Access
+          </h3>
           <div className="space-y-2">
             <div>
               <span className="font-medium">Roles:</span>{' '}
               {session?.user?.roles?.map(role => role.name).join(', ')}
             </div>
-            {session?.user?.townAccess && session.user.townAccess.length > 0 && (
-              <div>
-                <span className="font-medium">Town Access:</span>{' '}
-                {session.user.townAccess.map(access =>
-                  `${access.town.name} (${access.accessLevel})`
-                ).join(', ')}
-              </div>
-            )}
-            {session?.user?.personAccess && session.user.personAccess.length > 0 && (
-              <div>
-                <span className="font-medium">Person Access:</span>{' '}
-                {session.user.personAccess.map(access =>
-                  `${access.person.firstName} ${access.person.lastName} (${access.accessLevel})`
-                ).join(', ')}
-              </div>
-            )}
+            {session?.user?.townAccess &&
+              session.user.townAccess.length > 0 && (
+                <div>
+                  <span className="font-medium">Town Access:</span>{' '}
+                  {session.user.townAccess
+                    .map(
+                      access => `${access.town.name} (${access.accessLevel})`
+                    )
+                    .join(', ')}
+                </div>
+              )}
+            {session?.user?.personAccess &&
+              session.user.personAccess.length > 0 && (
+                <div>
+                  <span className="font-medium">Person Access:</span>{' '}
+                  {session.user.personAccess
+                    .map(
+                      access =>
+                        `${access.person.firstName} ${access.person.lastName} (${access.accessLevel})`
+                    )
+                    .join(', ')}
+                </div>
+              )}
           </div>
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {visibleCards.map((card) => (
+        {visibleCards.map(card => (
           <DashboardCard
             key={card.name}
             name={card.name}
@@ -118,34 +126,36 @@ export default async function AdminDashboard() {
       {/* Quick Actions */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Quick Actions
+          </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hasPermission(session, 'users', 'create') && (
-              <a
+              <Link
                 href="/admin/users/new"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <UsersIcon className="h-4 w-4 mr-2" />
                 Create New User
-              </a>
+              </Link>
             )}
             {hasPermission(session, 'towns', 'create') && (
-              <a
+              <Link
                 href="/admin/towns/new"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <BuildingOfficeIcon className="h-4 w-4 mr-2" />
                 Add New Town
-              </a>
+              </Link>
             )}
             {hasPermission(session, 'persons', 'create') && (
-              <a
+              <Link
                 href="/admin/persons/new"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <UserIcon className="h-4 w-4 mr-2" />
                 Add Missing Person
-              </a>
+              </Link>
             )}
           </div>
         </div>
@@ -155,9 +165,12 @@ export default async function AdminDashboard() {
       {hasRole(session, 'site-admin') && (
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Recent Activity
+            </h3>
             <p className="text-sm text-gray-500">
-              Recent activity log would be displayed here. This feature will be implemented in a future phase.
+              Recent activity log would be displayed here. This feature will be
+              implemented in a future phase.
             </p>
           </div>
         </div>

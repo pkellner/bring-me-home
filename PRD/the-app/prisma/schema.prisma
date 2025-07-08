@@ -28,6 +28,10 @@ model User {
   townAccess  TownAccess[]
   personAccess PersonAccess[]
   
+  // Content relationships
+  comments     Comment[]
+  personImages PersonImage[]
+  
   // Audit fields
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -157,6 +161,7 @@ model Person {
   comments        Comment[]
   personAccess    PersonAccess[]
   attachments     Attachment[]
+  personImages    PersonImage[]
   
   // Audit fields
   createdAt       DateTime @default(now())
@@ -166,6 +171,28 @@ model Person {
   @@index([firstName, lastName])
   @@index([status])
   @@map("persons")
+}
+
+// PersonImage model for storing multiple images per person
+model PersonImage {
+  id            String   @id @default(cuid())
+  imageUrl      String
+  caption       String?
+  isPrimary     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  
+  // Relationships
+  personId      String
+  person        Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  uploadedById  String
+  uploadedBy    User     @relation(fields: [uploadedById], references: [id])
+  
+  // Audit fields
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([personId])
+  @@map("person_images")
 }
 
 // Comment model for community engagement
@@ -180,9 +207,10 @@ model Comment {
   isAnonymous     Boolean  @default(false)
   
   // Privacy controls
-  privacyLevel    String   @default("public") // public, family, officials
+  privacy         String   @default("public") // public, registered, authorized
   
-  // Verification and moderation
+  // Status and moderation
+  isActive        Boolean  @default(true)
   isVerified      Boolean  @default(false)
   isApproved      Boolean  @default(false)
   moderatorNotes  String?  @db.Text
@@ -190,6 +218,8 @@ model Comment {
   // Relationships
   personId        String
   person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  authorId        String?
+  author          User?    @relation(fields: [authorId], references: [id])
   
   // Attachments
   attachments     Attachment[]
@@ -199,8 +229,9 @@ model Comment {
   updatedAt       DateTime @updatedAt
   
   @@index([personId])
-  @@index([privacyLevel])
+  @@index([privacy])
   @@index([isApproved])
+  @@index([authorId])
   @@map("comments")
 }
 
