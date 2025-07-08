@@ -12,6 +12,7 @@ import {
   UserIcon,
   MapPinIcon,
 } from '@heroicons/react/24/outline';
+import { deleteTown } from '@/app/actions/towns';
 
 interface Town extends Record<string, unknown> {
   id: string;
@@ -92,38 +93,41 @@ export default function TownsGrid({
     setSortDirection(direction);
   }, []);
 
-  const handleDeleteTown = useCallback(async (town: Town) => {
-    if (town.persons.length > 0) {
-      alert(
-        `Cannot delete town "${town.name}" because it has ${town.persons.length} person(s) associated with it.`
-      );
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to delete the town "${town.name}"?`)) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`/api/admin/towns/${town.id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setTowns(prev => prev.filter(t => t.id !== town.id));
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to delete town');
+  const handleDeleteTown = useCallback(
+    async (town: Town) => {
+      if (town.persons.length > 0) {
+        alert(
+          `Cannot delete town "${town.name}" because it has ${town.persons.length} person(s) associated with it.`
+        );
+        return;
       }
-    } catch {
-      setError('Failed to delete town');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+      if (
+        !confirm(`Are you sure you want to delete the town "${town.name}"?`)
+      ) {
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const result = await deleteTown(town.id);
+
+        if (result.success) {
+          setTowns(prev => prev.filter(t => t.id !== town.id));
+          router.refresh();
+        } else {
+          setError(result.errors?._form?.[0] || 'Failed to delete town');
+        }
+      } catch {
+        setError('Failed to delete town');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
 
   const columns: GridColumn<Town>[] = [
     {

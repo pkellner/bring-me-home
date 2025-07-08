@@ -3,9 +3,8 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
 import { z } from 'zod';
+import { validateImageBuffer, saveImageWithThumbnail } from '@/lib/image-utils';
 
 const uploadSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -94,30 +93,28 @@ export async function uploadPersonImage(
       };
     }
 
-    // Create unique filename
-    const timestamp = Date.now();
-    const extension = file.name.split('.').pop();
-    const filename = `${personId}_${timestamp}.${extension}`;
+    // Convert file to buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Create upload directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'persons');
-
-    try {
-      await writeFile(
-        join(uploadDir, filename),
-        Buffer.from(await file.arrayBuffer())
-      );
-    } catch {
-      // If directory doesn't exist, create it and try again
-      const { mkdir } = await import('fs/promises');
-      await mkdir(uploadDir, { recursive: true });
-      await writeFile(
-        join(uploadDir, filename),
-        Buffer.from(await file.arrayBuffer())
-      );
+    // Validate image
+    const isValidImage = await validateImageBuffer(buffer);
+    if (!isValidImage) {
+      return {
+        success: false,
+        error: 'Invalid image file',
+      };
     }
 
-    const imageUrl = `/uploads/persons/${filename}`;
+    // Create unique filename with webp extension
+    const timestamp = Date.now();
+    const filename = `${personId}_${timestamp}.webp`;
+
+    // Save image with thumbnail
+    const { fullPath: imageUrl, thumbnailPath } = await saveImageWithThumbnail(
+      buffer,
+      personId,
+      filename
+    );
 
     // If this is set as primary, unset other primary images
     if (isPrimary) {
@@ -142,6 +139,7 @@ export async function uploadPersonImage(
     await prisma.personImage.create({
       data: {
         imageUrl,
+        thumbnailUrl: thumbnailPath,
         caption,
         isPrimary,
         personId,

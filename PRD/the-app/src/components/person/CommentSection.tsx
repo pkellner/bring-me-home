@@ -62,7 +62,7 @@ export default function CommentSection({
   };
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <div id="comments" className="bg-white shadow rounded-lg scroll-mt-20">
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">

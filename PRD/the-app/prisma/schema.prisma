@@ -76,11 +76,13 @@ model UserRole {
 model Town {
   id          String   @id @default(cuid())
   name        String
+  slug        String   @unique
   state       String
   county      String?
   zipCode     String?
   fullAddress String   @db.Text
   description String?  @db.Text
+  isActive    Boolean  @default(true)
   
   // Geography
   latitude    Float?
@@ -177,6 +179,7 @@ model Person {
 model PersonImage {
   id            String   @id @default(cuid())
   imageUrl      String
+  thumbnailUrl  String?
   caption       String?
   isPrimary     Boolean  @default(false)
   isActive      Boolean  @default(true)

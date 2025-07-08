@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import CommentSection from '@/components/person/CommentSection';
 import PersonGallery from '@/components/person/PersonGallery';
+import ShareButtons from '@/components/ShareButtons';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -301,9 +302,12 @@ export default async function PersonPage({ params }: PersonPageProps) {
                   share it below or contact local authorities.
                 </p>
                 <div className="space-y-3">
-                  <button className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
+                  <a
+                    href="#comments"
+                    className="block w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 text-center"
+                  >
                     Share Information
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -359,17 +363,11 @@ export default async function PersonPage({ params }: PersonPageProps) {
                   Help spread the word about {person.firstName} by sharing this
                   profile.
                 </p>
-                <div className="flex space-x-2">
-                  <button className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-xs font-medium hover:bg-blue-700">
-                    Facebook
-                  </button>
-                  <button className="flex-1 bg-blue-400 text-white px-3 py-2 rounded text-xs font-medium hover:bg-blue-500">
-                    Twitter
-                  </button>
-                  <button className="flex-1 bg-gray-600 text-white px-3 py-2 rounded text-xs font-medium hover:bg-gray-700">
-                    Copy Link
-                  </button>
-                </div>
+                <ShareButtons
+                  url={`${process.env.NEXT_PUBLIC_APP_URL || ''}/${townSlug}/${personSlug}`}
+                  title={`Help find ${person.firstName} ${person.lastName}`}
+                  description={`${person.firstName} ${person.lastName} from ${person.town.name}, ${person.town.state} needs your help. Share this profile to spread awareness.`}
+                />
               </div>
             </div>
           </div>

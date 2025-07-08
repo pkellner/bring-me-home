@@ -13,6 +13,7 @@ import {
   UsersIcon,
   PhotoIcon,
 } from '@heroicons/react/24/outline';
+import { deletePerson } from '@/app/actions/persons';
 
 interface Person extends Record<string, unknown> {
   id: string;
@@ -106,42 +107,43 @@ export default function PersonsGrid({
     setSortDirection(direction);
   }, []);
 
-  const handleDeletePerson = useCallback(async (person: Person) => {
-    if (person.comments.length > 0) {
-      alert(
-        `Cannot delete person "${person.firstName} ${person.lastName}" because they have ${person.comments.length} comment(s) associated with them.`
-      );
-      return;
-    }
-
-    if (
-      !confirm(
-        `Are you sure you want to delete the person "${person.firstName} ${person.lastName}"?`
-      )
-    ) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`/api/admin/persons/${person.id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setPersons(prev => prev.filter(p => p.id !== person.id));
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to delete person');
+  const handleDeletePerson = useCallback(
+    async (person: Person) => {
+      if (person.comments.length > 0) {
+        alert(
+          `Cannot delete person "${person.firstName} ${person.lastName}" because they have ${person.comments.length} comment(s) associated with them.`
+        );
+        return;
       }
-    } catch {
-      setError('Failed to delete person');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+      if (
+        !confirm(
+          `Are you sure you want to delete the person "${person.firstName} ${person.lastName}"?`
+        )
+      ) {
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const result = await deletePerson(person.id);
+
+        if (result.success) {
+          setPersons(prev => prev.filter(p => p.id !== person.id));
+          router.refresh();
+        } else {
+          setError(result.errors?._form?.[0] || 'Failed to delete person');
+        }
+      } catch {
+        setError('Failed to delete person');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
 
   const columns: GridColumn<Person>[] = [
     {

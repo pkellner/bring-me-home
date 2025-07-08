@@ -11,6 +11,7 @@ import {
   UsersIcon,
   KeyIcon,
 } from '@heroicons/react/24/outline';
+import { deleteRole } from '@/app/actions/roles';
 
 interface Role extends Record<string, unknown> {
   id: string;
@@ -76,31 +77,34 @@ export default function RolesGrid({ initialRoles }: RolesGridProps) {
     setSortDirection(direction);
   }, []);
 
-  const handleDeleteRole = useCallback(async (role: Role) => {
-    if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`/api/admin/roles/${role.id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setRoles(prev => prev.filter(r => r.id !== role.id));
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to delete role');
+  const handleDeleteRole = useCallback(
+    async (role: Role) => {
+      if (
+        !confirm(`Are you sure you want to delete the role "${role.name}"?`)
+      ) {
+        return;
       }
-    } catch {
-      setError('Failed to delete role');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const result = await deleteRole(role.id);
+
+        if (result.success) {
+          setRoles(prev => prev.filter(r => r.id !== role.id));
+          router.refresh();
+        } else {
+          setError(result.errors?._form?.[0] || 'Failed to delete role');
+        }
+      } catch {
+        setError('Failed to delete role');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
 
   const columns: GridColumn<Role>[] = [
     {

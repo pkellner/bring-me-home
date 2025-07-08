@@ -20,6 +20,7 @@
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.11.1",
     "@types/bcryptjs": "^2.4.6",
+    "@types/sharp": "^0.31.1",
     "bcryptjs": "^3.0.2",
     "mysql2": "^3.14.1",
     "next": "15.3.5",
@@ -27,6 +28,7 @@
     "prisma": "^6.11.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sharp": "^0.34.2",
     "tsx": "^4.20.3",
     "zod": "^3.25.75"
   },
