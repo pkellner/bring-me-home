@@ -1,0 +1,48 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
+import PersonsGrid from './PersonsGrid';
+
+export default async function PersonsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect('/auth/signin');
+  }
+
+  if (!hasPermission(session, 'persons', 'read')) {
+    redirect('/admin');
+  }
+
+  const persons = await prisma.person.findMany({
+    include: {
+      town: true,
+      comments: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+      personAccess: {
+        include: {
+          user: true,
+        },
+      },
+    },
+    orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+  });
+
+  const canCreate = hasPermission(session, 'persons', 'create');
+  const canEdit = hasPermission(session, 'persons', 'update');
+  const canDelete = hasPermission(session, 'persons', 'delete');
+
+  return (
+    <PersonsGrid
+      initialPersons={persons}
+      canCreate={canCreate}
+      canEdit={canEdit}
+      canDelete={canDelete}
+    />
+  );
+}

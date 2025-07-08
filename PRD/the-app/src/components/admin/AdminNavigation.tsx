@@ -86,7 +86,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
@@ -94,7 +94,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
                 Bring Me Home Admin
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
               {visibleItems.map(item => {
                 const isActive = pathname === item.href;
                 return (
@@ -119,11 +119,19 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-700">
-              Welcome, {session.user.firstName || session.user.username}
-            </div>
-            <div className="text-xs text-gray-500">
-              Roles: {session.user.roles.map(role => role.name).join(', ')}
+            <Link
+              href="/"
+              className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
+            >
+              View Main Site
+            </Link>
+            <div className="flex flex-col items-end">
+              <div className="text-sm text-gray-700">
+                Welcome, {session.user.firstName || session.user.username}
+              </div>
+              <div className="text-xs text-gray-500">
+                Roles: {session.user.roles.map(role => role.name).join(', ')}
+              </div>
             </div>
             <button
               onClick={handleSignOut}
