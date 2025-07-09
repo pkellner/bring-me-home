@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import HeaderNavigation from '@/components/HeaderNavigation';
+import Footer from '@/components/Footer';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -17,6 +18,18 @@ async function getTownData(townSlug: string) {
       name: townName,
     },
     include: {
+      layout: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      theme: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       persons: {
         where: {
           isActive: true,
@@ -229,15 +242,11 @@ export default async function TownPage({ params }: TownPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white">
-        <div className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-sm text-gray-400">
-              © 2024 Bring Me Home. Together, we can help families reunite.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer 
+        townLayout={town.layout?.name}
+        townTheme={town.theme?.name}
+        townName={town.name}
+      />
     </div>
   );
 }

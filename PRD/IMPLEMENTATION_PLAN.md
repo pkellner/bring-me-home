@@ -59,6 +59,7 @@ npm install bcryptjs @types/bcryptjs
 - [x] Create Comment model
 - [x] Set up Role and Permission models
 - [x] Configure Layout and Theme models
+- [x] Add layoutId and themeId to Town and Person models
 
 ### 3.2 Zod Validation Schemas*5
 - [x] Create validation schemas for all models
@@ -104,11 +105,15 @@ npm install bcryptjs @types/bcryptjs
 - [x] Set up comment display components
 
 ### 5.3 Theme and Layout System
-- [x] Create 10 layout templates
-- [x] Implement 10 color themes
-- [ ] Add theme switching functionality
+- [x] Create 10 layout templates (Grid, Stack, Hero, Sidebar Left/Right, Magazine, Card, Minimal, Gallery, Full Width)
+- [x] Implement 10 color themes with custom theme creator
+- [x] Add theme switching functionality
 - [x] Create responsive breakpoints
 - [x] Test mobile compatibility
+- [x] Build LayoutRenderer component for dynamic layout rendering
+- [x] Create ThemeEditor component with color picker
+- [x] Implement layout and theme preview components
+- [x] Add layout/theme assignment to towns and persons
 
 ## Phase 6: File Upload & Media Management (Week 7-8)
 
@@ -165,7 +170,20 @@ npm install bcryptjs @types/bcryptjs
 - [ ] Create user approval workflows
 - [x] Set up permission management
 
-### 8.4 Content Moderation
+### 8.4 Layout and Theme Management
+- [x] Create admin interface for layouts (CRUD operations)
+- [x] Create admin interface for themes (CRUD operations)
+- [x] Implement layout preview in admin grid
+- [x] Implement theme preview with color display
+- [x] Add layout/theme selection in town forms
+- [x] Add layout/theme selection in person forms
+- [ ] Add environment variables for system defaults (SYSTEM_DEFAULT_LAYOUT, SYSTEM_DEFAULT_THEME)
+- [ ] Create system config override interface for admins
+- [ ] Add layout/theme info to footer with admin edit capability
+- [ ] Display town-specific layout/theme in footer
+- [ ] Update configs page to show layout/theme environment variables
+
+### 8.5 Content Moderation
 - [x] Build comment moderation interface
 - [x] Create content approval workflows (approve/reject)
 - [ ] Implement spam detection

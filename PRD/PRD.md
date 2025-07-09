@@ -28,10 +28,13 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 - Anonymous participation options
 
 ### 4. Visual Customization
-- 10 selectable layout themes
+- 10 selectable layout templates
 - 10 color theme options
 - Town-specific and system-wide defaults
 - Responsive design for all screen sizes
+- Custom theme creation with color picker
+- Real-time layout and theme preview
+- Environment variable defaults for system-wide settings
 
 ### 5. Admin Interface
 - Grid-based management for all models
@@ -408,6 +411,170 @@ export const CommentSchema = z.object({
   verified: z.boolean().default(false),
 });
 ```
+
+## Layout and Theme System
+
+### Overview
+The application provides a flexible layout and theme system that allows for customization of how missing person profiles are displayed. Each town and person can have their own layout and theme, with system-wide defaults that can be overridden.
+
+### Layout System Requirements
+
+#### Available Layout Templates
+1. **Grid Layout** - Two or three column responsive grid
+2. **Stack Layout** - Vertical stacked sections
+3. **Hero Layout** - Large hero image with content below
+4. **Sidebar Left** - Main content with left sidebar
+5. **Sidebar Right** - Main content with right sidebar
+6. **Magazine Layout** - Magazine-style multi-column
+7. **Card Layout** - Card-based component layout
+8. **Minimal Layout** - Clean, minimal design
+9. **Gallery Layout** - Photo gallery focused
+10. **Full Width Layout** - Edge-to-edge content
+
+#### Layout Components
+- **hero-image** - Full-width hero image section
+- **image** - Standard image display
+- **info** - Person information details
+- **story** - Story/description content
+- **comments** - Comment section
+- **basic-info** - Name and location
+- **sidebar-info** - Condensed info for sidebars
+- **main-content** - Primary content area
+- **gallery-grid** - Multi-image gallery
+
+#### Layout Features
+- JSON-based template configuration
+- Drag-and-drop section ordering (future)
+- Responsive breakpoints for all layouts
+- Live preview in admin interface
+- Per-town and per-person assignment
+
+### Theme System Requirements
+
+#### Theme Components
+1. **Color Palette**
+   - Primary color
+   - Secondary color
+   - Accent color
+   - Background color
+   - Text color
+   - Additional custom colors
+
+2. **CSS Custom Properties**
+   - Generated CSS variables
+   - Real-time preview
+   - Theme inheritance system
+
+3. **Preset Themes**
+   - Default Blue
+   - Ocean
+   - Forest
+   - Sunset
+   - Night
+   - Warm
+   - Cool
+   - Earth
+   - Sky
+   - Custom themes
+
+#### Theme Features
+- Color picker interface
+- Live theme preview
+- CSS variable generation
+- Theme active/inactive states
+- Per-town and per-person assignment
+
+### System Configuration
+
+#### Environment Variables
+```
+SYSTEM_DEFAULT_LAYOUT=grid
+SYSTEM_DEFAULT_THEME=default
+```
+
+#### Admin Override Capability
+- System admins can override environment defaults
+- Runtime configuration without deployment
+- Stored in database configuration table
+
+#### Footer Display
+- Shows current layout and theme names
+- Editable inline by admins
+- Displays town-specific settings when applicable
+- Format: "Layout: [Name] | Theme: [Name] | Town: [Name]"
+
+### Implementation Architecture
+
+#### Database Schema Additions
+```prisma
+model Layout {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  template    String   // JSON configuration
+  previewImage String?
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+  towns       Town[]
+  persons     Person[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Theme {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  colors      String   // JSON color configuration
+  cssVars     String?  // Generated CSS
+  previewImage String?
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+  towns       Town[]
+  persons     Person[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  String // 'string', 'number', 'boolean', 'json'
+}
+```
+
+#### Layout Renderer Component
+- Dynamic component rendering based on template
+- Theme CSS injection
+- Responsive design support
+- Section-based architecture
+
+#### Admin Management
+- CRUD operations for layouts and themes
+- Grid-based listing with preview
+- Drag-and-drop template builder (future)
+- Import/export functionality (future)
+
+### User Experience
+
+#### Public Interface
+- Seamless theme application
+- Fast layout switching
+- Mobile-optimized rendering
+- Accessibility maintained across all layouts
+
+#### Admin Interface
+- Visual layout builder
+- Real-time preview
+- Theme color picker
+- Usage statistics per layout/theme
+
+### Security Considerations
+- Sanitize CSS input to prevent injection
+- Validate JSON template structure
+- Restrict file uploads for preview images
+- Audit trail for configuration changes
 
 ## Build Information and Configuration Management
 

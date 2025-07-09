@@ -13,6 +13,8 @@ import {
   ChatBubbleLeftRightIcon,
   CogIcon,
   ShieldCheckIcon,
+  Squares2X2Icon,
+  SwatchIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {
@@ -23,6 +25,8 @@ const iconMap = {
   chat: ChatBubbleLeftRightIcon,
   cog: CogIcon,
   shield: ShieldCheckIcon,
+  layouts: Squares2X2Icon,
+  themes: SwatchIcon,
 };
 
 interface AdminNavigationProps {
@@ -73,6 +77,18 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       href: '/admin/comments',
       icon: 'chat' as keyof typeof iconMap,
       show: hasPermission(session, 'comments', 'read'),
+    },
+    {
+      name: 'Layouts',
+      href: '/admin/layouts',
+      icon: 'layouts' as keyof typeof iconMap,
+      show: hasPermission(session, 'system', 'config'),
+    },
+    {
+      name: 'Themes',
+      href: '/admin/themes',
+      icon: 'themes' as keyof typeof iconMap,
+      show: hasPermission(session, 'system', 'config'),
     },
     {
       name: 'System',

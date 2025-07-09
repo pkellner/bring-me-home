@@ -1,10 +1,15 @@
 'use server';
 
+import { getSystemLayoutTheme } from './systemConfig';
+
 /**
  * Server function to provide public configuration information
  * This is specifically for the /configs page and contains no sensitive data
  */
 export async function getPublicConfig() {
+  // Get system config overrides if they exist
+  const systemOverrides = await getSystemLayoutTheme();
+  
   return {
     // Build information
     build: {
@@ -53,6 +58,20 @@ export async function getPublicConfig() {
         persons: '/api/persons',
         comments: '/api/comments',
       },
+    },
+
+    // Layout and Theme defaults (with system config override)
+    layoutTheme: {
+      systemDefaultLayout: systemOverrides.layout,
+      systemDefaultTheme: systemOverrides.theme,
+      availableLayouts: [
+        'grid', 'stack', 'hero', 'sidebar-left', 'sidebar-right',
+        'magazine', 'card', 'minimal', 'gallery', 'full-width'
+      ],
+      availableThemes: [
+        'default', 'ocean', 'forest', 'sunset', 'night',
+        'warm', 'cool', 'earth', 'sky', 'custom'
+      ],
     },
 
     // Application metadata

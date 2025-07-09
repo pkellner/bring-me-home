@@ -13,10 +13,20 @@ export default async function NewPersonPage() {
     redirect('/admin');
   }
 
-  const towns = await prisma.town.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  });
+  const [towns, layouts, themes] = await Promise.all([
+    prisma.town.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.layout.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.theme.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
 
   async function createPersonWithRedirect(formData: FormData) {
     'use server';
@@ -140,6 +150,48 @@ export default async function NewPersonPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 placeholder="123 Main St, City, State ZIP"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="layoutId"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Layout (Optional)
+              </label>
+              <select
+                id="layoutId"
+                name="layoutId"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
+                <option value="">Use town default</option>
+                {layouts.map(layout => (
+                  <option key={layout.id} value={layout.id}>
+                    {layout.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="themeId"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Theme (Optional)
+              </label>
+              <select
+                id="themeId"
+                name="themeId"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
+                <option value="">Use town default</option>
+                {themes.map(theme => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

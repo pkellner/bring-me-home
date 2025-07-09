@@ -16,6 +16,8 @@ const personSchema = z.object({
   dateOfBirth: z.string().optional(),
   lastKnownAddress: z.string().min(1, 'Last known address is required'),
   story: z.string().max(5000).optional(),
+  layoutId: z.string().optional(),
+  themeId: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -33,6 +35,8 @@ export async function createPerson(formData: FormData) {
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
     story: formData.get('story'),
+    layoutId: formData.get('layoutId') || undefined,
+    themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });
 
@@ -104,6 +108,8 @@ export async function updatePerson(id: string, formData: FormData) {
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
     story: formData.get('story'),
+    layoutId: formData.get('layoutId') || undefined,
+    themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });
 
@@ -114,7 +120,7 @@ export async function updatePerson(id: string, formData: FormData) {
   }
 
   try {
-    let updateData: any = {
+    let updateData: Parameters<typeof prisma.person.update>[0]['data'] = {
       ...validatedFields.data,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)

@@ -1,5 +1,9 @@
 import { getPublicConfig } from '@/app/actions/config';
 import { Metadata } from 'next';
+import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -8,19 +12,55 @@ export const metadata: Metadata = {
 
 export default async function ConfigsPage() {
   const config = await getPublicConfig();
+  const session = await getServerSession(authOptions);
+
+  // Check if user is admin
+  const isAdmin = session?.user?.roles?.some((role: any) => {
+    try {
+      const permissions = JSON.parse(role.permissions || '{}');
+      return permissions.system?.includes('config') || role.name === 'site-admin';
+    } catch {
+      return false;
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Navigation Buttons */}
+        <div className="mb-6 flex justify-between items-center">
+          <Link
+            href="/"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Main Site
+          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <CogIcon className="h-4 w-4 mr-2" />
+              Admin Dashboard
+            </Link>
+          )}
+        </div>
+
         <div className="bg-white shadow rounded-lg">
           {/* Header */}
           <div className="px-6 py-5 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">
-              System Configuration
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Public configuration values and build information
-            </p>
+            <div className="flex items-center">
+              <CogIcon className="h-8 w-8 text-gray-400 mr-3" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  System Configuration
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Public configuration values and build information
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="px-6 py-6 space-y-8">
@@ -141,6 +181,67 @@ export default async function ConfigsPage() {
                       </dd>
                     </div>
                   ))}
+                </dl>
+              </div>
+            </section>
+
+            {/* Layout and Theme Configuration */}
+            <section>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Layout & Theme Configuration
+              </h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      System Default Layout
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      {config.layoutTheme.systemDefaultLayout}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      System Default Theme
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      {config.layoutTheme.systemDefaultTheme}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">
+                      Available Layouts
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {config.layoutTheme.availableLayouts.map(layout => (
+                          <span
+                            key={layout}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            {layout}
+                          </span>
+                        ))}
+                      </div>
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">
+                      Available Themes
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {config.layoutTheme.availableThemes.map(theme => (
+                          <span
+                            key={theme}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                          >
+                            {theme}
+                          </span>
+                        ))}
+                      </div>
+                    </dd>
+                  </div>
                 </dl>
               </div>
             </section>
@@ -284,11 +385,32 @@ export default async function ConfigsPage() {
             </section>
 
             {/* Footer */}
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500 text-center">
-                Configuration generated at:{' '}
-                {new Date(config.generated).toLocaleString()}
-              </p>
+            <div className="pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-500">
+                  Configuration generated at:{' '}
+                  {new Date(config.generated).toLocaleString()}
+                </p>
+                <div className="flex space-x-3">
+                  <Link
+                    href="/"
+                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Main Site
+                  </Link>
+                  {isAdmin && (
+                    <>
+                      <span className="text-gray-300">|</span>
+                      <Link
+                        href="/admin"
+                        className="text-xs text-indigo-600 hover:text-indigo-700 transition-colors"
+                      >
+                        Admin Dashboard
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

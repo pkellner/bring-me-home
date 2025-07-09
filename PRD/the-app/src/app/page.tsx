@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import HeaderNavigation from '@/components/HeaderNavigation';
+import Footer from '@/components/Footer';
 
 async function getPublicData() {
   const [towns, recentPersons] = await Promise.all([
@@ -192,23 +193,7 @@ export default async function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white">
-        <div className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-sm text-gray-400">
-              © 2024 Bring Me Home. Together, we can help families reunite.
-            </p>
-            <div className="mt-4">
-              <Link
-                href="/configs"
-                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
-              >
-                System Configuration
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

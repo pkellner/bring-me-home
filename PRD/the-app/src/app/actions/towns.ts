@@ -10,6 +10,9 @@ import { z } from 'zod';
 const townSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   state: z.string().min(1, 'State is required').max(100),
+  county: z.string().max(100).optional(),
+  zipCode: z.string().max(20).optional(),
+  fullAddress: z.string().min(1, 'Full address is required'),
   slug: z
     .string()
     .min(1, 'Slug is required')
@@ -18,6 +21,8 @@ const townSchema = z.object({
   description: z.string().max(1000).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
+  defaultLayoutId: z.string().optional(),
+  defaultThemeId: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -27,21 +32,22 @@ export async function createTown(formData: FormData) {
     throw new Error('Unauthorized');
   }
 
-  const name = formData.get('name') as string;
-  const state = (formData.get('state') as string) || 'California';
-  const fullAddress = `${name}, ${state}, USA`;
-
   const validatedFields = townSchema.safeParse({
-    name,
-    state,
+    name: formData.get('name'),
+    state: formData.get('state'),
+    county: formData.get('county') || undefined,
+    zipCode: formData.get('zipCode') || undefined,
+    fullAddress: formData.get('fullAddress'),
     slug: formData.get('slug'),
-    description: formData.get('description'),
+    description: formData.get('description') || undefined,
     latitude: formData.get('latitude')
       ? parseFloat(formData.get('latitude') as string)
       : undefined,
     longitude: formData.get('longitude')
       ? parseFloat(formData.get('longitude') as string)
       : undefined,
+    defaultLayoutId: formData.get('defaultLayoutId') || undefined,
+    defaultThemeId: formData.get('defaultThemeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });
 
@@ -53,10 +59,7 @@ export async function createTown(formData: FormData) {
 
   try {
     await prisma.town.create({
-      data: {
-        ...validatedFields.data,
-        fullAddress,
-      },
+      data: validatedFields.data,
     });
 
     revalidatePath('/admin/towns');
@@ -75,21 +78,22 @@ export async function updateTown(id: string, formData: FormData) {
     throw new Error('Unauthorized');
   }
 
-  const name = formData.get('name') as string;
-  const state = (formData.get('state') as string) || 'California';
-  const fullAddress = `${name}, ${state}, USA`;
-
   const validatedFields = townSchema.safeParse({
-    name,
-    state,
+    name: formData.get('name'),
+    state: formData.get('state'),
+    county: formData.get('county') || undefined,
+    zipCode: formData.get('zipCode') || undefined,
+    fullAddress: formData.get('fullAddress'),
     slug: formData.get('slug'),
-    description: formData.get('description'),
+    description: formData.get('description') || undefined,
     latitude: formData.get('latitude')
       ? parseFloat(formData.get('latitude') as string)
       : undefined,
     longitude: formData.get('longitude')
       ? parseFloat(formData.get('longitude') as string)
       : undefined,
+    defaultLayoutId: formData.get('defaultLayoutId') || undefined,
+    defaultThemeId: formData.get('defaultThemeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });
 
@@ -102,10 +106,7 @@ export async function updateTown(id: string, formData: FormData) {
   try {
     await prisma.town.update({
       where: { id },
-      data: {
-        ...validatedFields.data,
-        fullAddress,
-      },
+      data: validatedFields.data,
     });
 
     revalidatePath('/admin/towns');

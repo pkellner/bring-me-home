@@ -1,10 +1,15 @@
 'use server';
 
+import { getSystemLayoutTheme } from './systemConfig';
+
 /**
  * Server function to securely provide environment variables to the client
  * Only non-sensitive variables are exposed through this function
  */
 export async function getEnvironmentConfig() {
+  // Get system config overrides if they exist
+  const systemOverrides = await getSystemLayoutTheme();
+  
   return {
     // Version information
     releaseVersion: process.env.RELEASEVERSION || '0',
@@ -22,6 +27,10 @@ export async function getEnvironmentConfig() {
     // Application info
     environment: process.env.NODE_ENV || 'development',
     debugMode: process.env.DEBUG_FLAG === 'true',
+
+    // Layout and Theme defaults (with system config override)
+    systemDefaultLayout: systemOverrides.layout,
+    systemDefaultTheme: systemOverrides.theme,
 
     // Feature flags (add more as needed)
     features: {
