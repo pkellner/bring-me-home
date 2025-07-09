@@ -26,6 +26,10 @@ model User {
   isActive    Boolean  @default(true)
   lastLogin   DateTime?
   
+  // Image upload limits (overrides system/town defaults)
+  imageUploadMaxSizeMB  Int?  // Max upload size in MB
+  imageStorageMaxSizeKB Int?  // Max storage size in KB
+  
   // Role relationships
   userRoles   UserRole[]
   
@@ -73,6 +77,37 @@ model UserRole {
   @@map("user_roles")
 }
 
+// Detention Center model
+model DetentionCenter {
+  id              String   @id @default(cuid())
+  name            String
+  address         String   @db.Text
+  city            String
+  state           String
+  zipCode         String
+  phone           String?
+  imageUrl        String?
+  capacity        Int?
+  currentCount    Int?     // Admin only field
+  facilityType    String?  // Federal, Contract, etc.
+  operatedBy      String?  // ICE, Private company name
+  
+  // Note: Images stored in /public/images/detention-centers/
+  // Format: [facility-slug].webp (max 50KB)
+  // Thumbnails: [facility-slug]-thumb.webp (max 20KB)
+  
+  // Relationships
+  detainees       Person[]
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([state])
+  @@index([city])
+  @@map("detention_centers")
+}
+
 // Town model
 model Town {
   id          String   @id @default(cuid())
@@ -86,6 +121,10 @@ model Town {
   // Geography
   latitude    Float?
   longitude   Float?
+  
+  // Image upload limits (overrides system defaults)
+  imageUploadMaxSizeMB  Int?  // Max upload size in MB
+  imageStorageMaxSizeKB Int?  // Max storage size in KB
   
   // Customization
   defaultLayoutId String?
@@ -124,29 +163,39 @@ model Person {
   hairColor       String?
   
   // Address information
-  lastKnownAddress String @db.Text
-  currentAddress   String? @db.Text
+  usAddress       String   @db.Text
+  homeCountryAddress String? @db.Text // e.g., address in Mexico
   
   // Contact information
   phoneNumber     String?
   emailAddress    String?
   
-  // Images - stored as file paths or URLs
+  // Detention information
+  detentionCenterId String?
+  detentionDate   DateTime?
+  caseNumber      String?
+  bondAmount      Decimal? @db.Decimal(10, 2)
+  legalRepName    String?
+  legalRepPhone   String?
+  
+  // Media - stored as file paths or URLs
   primaryPicture  String?
   secondaryPic1   String?
   secondaryPic2   String?
   secondaryPic3   String?
   
   // Story and description
-  story           String?  @db.Text
-  circumstances   String?  @db.Text
-  lastSeenDate    DateTime?
-  lastSeenLocation String?
+  storyHtml       String?  @db.Text // HTML from WYSIWYG editor
+  storyPlainText  String?  @db.Text // Plain text version for search
   
   // Status
   isActive        Boolean  @default(true)
-  isFound         Boolean  @default(false)
-  status          String   @default("missing") // missing, found, deceased, etc.
+  status          String   @default("detained") // detained, released, deported, in-proceedings
+  releaseDate     DateTime?
+  deportationDate DateTime?
+  
+  // Privacy settings (JSON object)
+  privacySettings String?  @db.Text
   
   // Customization
   layoutId        String?
@@ -155,6 +204,7 @@ model Person {
   // Relationships
   townId          String
   town            Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
+  detentionCenter DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
   layout          Layout?  @relation(fields: [layoutId], references: [id])
   theme           Theme?   @relation(fields: [themeId], references: [id])
   
@@ -170,6 +220,7 @@ model Person {
   @@index([townId])
   @@index([firstName, lastName])
   @@index([status])
+  @@index([detentionCenterId])
   @@map("persons")
 }
 
@@ -180,9 +231,15 @@ model Comment {
   
   // Submitter information (optional for anonymous)
   submitterName   String?
-  submitterEmail  String?
+  submitterEmail  String?  // Optional for all comments
   submitterPhone  String?
   isAnonymous     Boolean  @default(false)
+  
+  // reCAPTCHA validation
+  recaptchaToken  String?  // Token from client-side validation
+  
+  // Session reference for Redis storage (if available)
+  sessionId       String?  // Used for Redis key generation
   
   // Privacy controls
   privacyLevel    String   @default("public") // public, family, officials
@@ -362,6 +419,8 @@ export const CreateUserSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   firstName: z.string().min(1, 'First name is required').max(100).optional(),
   lastName: z.string().min(1, 'Last name is required').max(100).optional(),
+  imageUploadMaxSizeMB: z.number().int().positive().optional(),
+  imageStorageMaxSizeKB: z.number().int().positive().optional(),
 });
 
 export const UpdateUserSchema = CreateUserSchema.partial().omit({ password: true });
@@ -389,6 +448,8 @@ export const CreateTownSchema = z.object({
   description: z.string().max(2000).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  imageUploadMaxSizeMB: z.number().int().positive().optional(),
+  imageStorageMaxSizeKB: z.number().int().positive().optional(),
   defaultLayoutId: z.string().cuid().optional(),
   defaultThemeId: z.string().cuid().optional(),
 });
@@ -415,19 +476,38 @@ export const CreatePersonSchema = z.object({
   weight: z.string().max(20).optional(),
   eyeColor: z.string().max(20).optional(),
   hairColor: z.string().max(20).optional(),
-  lastKnownAddress: z.string().min(10, 'Last known address is required').max(500),
-  currentAddress: z.string().max(500).optional(),
+  usAddress: z.string().min(10, 'US address is required').max(500),
+  homeCountryAddress: z.string().max(500).optional(),
   phoneNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number').optional(),
   emailAddress: z.string().email('Invalid email format').optional(),
+  
+  // Detention information
+  detentionCenterId: z.string().cuid().optional(),
+  detentionDate: z.date().optional(),
+  caseNumber: z.string().max(50).optional(),
+  bondAmount: z.number().positive().optional(),
+  legalRepName: z.string().max(100).optional(),
+  legalRepPhone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number').optional(),
+  
+  // Media
   primaryPicture: z.string().url('Invalid image URL').optional(),
   secondaryPic1: z.string().url('Invalid image URL').optional(),
   secondaryPic2: z.string().url('Invalid image URL').optional(),
   secondaryPic3: z.string().url('Invalid image URL').optional(),
-  story: z.string().max(5000).optional(),
-  circumstances: z.string().max(5000).optional(),
-  lastSeenDate: z.date().optional(),
-  lastSeenLocation: z.string().max(500).optional(),
-  status: z.enum(['missing', 'found', 'deceased', 'other']).default('missing'),
+  
+  // Story
+  storyHtml: z.string().max(50000).optional(),
+  storyPlainText: z.string().max(50000).optional(),
+  
+  // Status
+  status: z.enum(['detained', 'released', 'deported', 'in-proceedings']).default('detained'),
+  releaseDate: z.date().optional(),
+  deportationDate: z.date().optional(),
+  
+  // Privacy
+  privacySettings: z.string().optional(), // JSON string
+  
+  // Relations
   townId: z.string().cuid('Invalid town ID'),
   layoutId: z.string().cuid().optional(),
   themeId: z.string().cuid().optional(),
@@ -452,7 +532,31 @@ export const CreateCommentSchema = z.object({
   privacyLevel: z.enum(['public', 'family', 'officials']).default('public'),
   personId: z.string().cuid('Invalid person ID'),
   attachments: z.array(z.string().url('Invalid attachment URL')).max(3).optional(),
+  recaptchaToken: z.string().optional(), // Required for anonymous comments on server
+  tempData: z.string().optional(), // For preserving comment during login
 });
+
+// schemas/detentionCenter.ts
+import { z } from 'zod';
+
+export const CreateDetentionCenterSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200),
+  address: z.string().min(1, 'Address is required').max(500),
+  city: z.string().min(1, 'City is required').max(100),
+  state: z.string().min(1, 'State is required').max(50),
+  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid zip code'),
+  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number').optional(),
+  imageUrl: z.string().url('Invalid image URL').optional(),
+  capacity: z.number().int().positive().optional(),
+  currentCount: z.number().int().min(0).optional(),
+  facilityType: z.string().max(50).optional(),
+  operatedBy: z.string().max(100).optional(),
+});
+
+export const UpdateDetentionCenterSchema = CreateDetentionCenterSchema.partial();
+
+export type CreateDetentionCenterInput = z.infer<typeof CreateDetentionCenterSchema>;
+export type UpdateDetentionCenterInput = z.infer<typeof UpdateDetentionCenterSchema>;
 
 export const UpdateCommentSchema = CreateCommentSchema.partial();
 
@@ -475,6 +579,12 @@ CREATE INDEX idx_comments_person_privacy ON comments(personId, privacyLevel);
 CREATE INDEX idx_attachments_type ON attachments(mimeType);
 CREATE INDEX idx_audit_log_date ON audit_log(createdAt);
 CREATE INDEX idx_users_active ON users(isActive);
+CREATE INDEX idx_temp_storage_expiry ON temp_storage(expiresAt);
+
+-- Cleanup job for expired temporary storage
+CREATE EVENT IF NOT EXISTS cleanup_temp_storage
+ON SCHEDULE EVERY 1 HOUR
+DO DELETE FROM temp_storage WHERE expiresAt < NOW();
 
 -- Full-text search indexes
 CREATE FULLTEXT INDEX idx_persons_search ON persons(firstName, lastName, story, circumstances);
@@ -511,6 +621,36 @@ export const seedTowns = [
   // ... 3 more towns
 ];
 
+// seed/detentionCenters.ts
+export const seedDetentionCenters = [
+  {
+    id: 'detention_1',
+    name: 'Adelanto ICE Processing Center',
+    address: '10250 Rancho Rd',
+    city: 'Adelanto',
+    state: 'California',
+    zipCode: '92301',
+    phone: '(760) 561-6300',
+    imageUrl: '/images/detention-centers/adelanto-ice-processing-center.webp',
+    capacity: 1940,
+    facilityType: 'Contract',
+    operatedBy: 'GEO Group',
+  },
+  {
+    id: 'detention_2',
+    name: 'Imperial Regional Detention Facility',
+    address: '1572 Gateway Rd',
+    city: 'Calexico',
+    state: 'California',
+    zipCode: '92231',
+    phone: '(760) 768-2137',
+    capacity: 704,
+    facilityType: 'Contract',
+    operatedBy: 'Management & Training Corporation',
+  },
+  // ... more Southern California facilities
+];
+
 // seed/persons.ts
 export const seedPersons = [
   {
@@ -519,11 +659,16 @@ export const seedPersons = [
     middleName: 'Antonio',
     lastName: 'Rodriguez',
     alienIdNumber: 'A123456789',
-    lastKnownAddress: '123 Desert View Dr, Borrego Springs, CA 92004',
-    story: 'Fidel was last seen at the local grocery store in Borrego Springs...',
+    usAddress: '123 Desert View Dr, Borrego Springs, CA 92004',
+    homeCountryAddress: 'Calle Principal 456, Tijuana, Baja California, Mexico',
+    detentionCenterId: 'detention_1',
+    detentionDate: new Date('2024-01-15'),
+    caseNumber: 'SD-2024-001234',
+    bondAmount: 15000,
+    storyHtml: '<p>Fidel was detained during a workplace raid in Borrego Springs...</p>',
     townId: 'town_1',
     primaryPicture: 'PERSON_PLACEHOLDER_001',
-    status: 'missing',
+    status: 'detained',
   },
   // ... more persons
 ];
@@ -532,8 +677,18 @@ export const seedPersons = [
 export const seedComments = [
   {
     id: 'comment_1',
-    content: 'I saw someone matching this description at the gas station last week...',
-    submitterName: 'Anonymous Helper',
+    content: 'Fidel is a valued member of our community who has lived here for 10 years...',
+    submitterName: 'Community Member',
+    submitterEmail: 'supporter@example.com',
+    isAnonymous: false,
+    privacyLevel: 'public',
+    personId: 'person_1',
+    isApproved: true,
+  },
+  {
+    id: 'comment_2',
+    content: 'I support Fidel\'s release. He has always been helpful to neighbors...',
+    submitterEmail: 'anonymous@example.com',
     isAnonymous: true,
     privacyLevel: 'public',
     personId: 'person_1',
@@ -546,16 +701,48 @@ export const seedComments = [
 ## Migration Strategy
 
 1. **Initial Migration**: Create all tables with proper relationships
-2. **Seed Migration**: Populate with initial data
-3. **Index Migration**: Add performance indexes
-4. **Constraint Migration**: Add additional constraints and triggers
-5. **Audit Migration**: Set up audit logging triggers
+2. **Detention Center Migration**: Add DetentionCenter table and relationships
+3. **Person Model Update**: 
+   - Add detention-specific fields
+   - Migrate address fields (lastKnownAddress → usAddress)
+   - Add HTML story fields
+   - Update status enum values
+4. **Comment Model Update**: Add anonymous comment support fields
+5. **Seed Migration**: 
+   - Import detention centers from ICE website
+   - Update person records with detention info
+   - Add support comments
+6. **Index Migration**: Add performance indexes for detention queries
+7. **Constraint Migration**: Add additional constraints and triggers
+8. **Audit Migration**: Set up audit logging triggers
 
 ## Security Considerations
 
 - **Password Hashing**: Use bcrypt with salt rounds >= 12
-- **Data Encryption**: Encrypt sensitive fields like SSN
-- **Access Control**: Implement row-level security where possible
-- **Audit Logging**: Track all sensitive operations
-- **Input Validation**: Validate all inputs on both client and server
+- **Data Encryption**: Encrypt sensitive fields like SSN, case numbers
+- **Access Control**: 
+  - Implement row-level security for detention data
+  - Town-based access restrictions for detainee information
+  - Admin-only fields (currentCount in detention centers)
+- **Privacy Controls**:
+  - Field-level privacy settings in Person model
+  - Anonymous comment protection via reCAPTCHA
+  - No browser localStorage for sensitive data
+  - Server-side temporary storage only
+- **Authentication Overrides**:
+  - Secure handling of SYSTEM_USERNAME_OVERRIDE
+  - Never store override credentials in database
+  - Hide from all UI displays
+- **Audit Logging**: 
+  - Track all detention record changes
+  - Log access to sensitive detainee information
+  - Monitor anonymous comment submissions
+- **Input Validation**: 
+  - Validate all inputs on both client and server
+  - Sanitize HTML from WYSIWYG editor
+  - Verify detention center data during import
 - **SQL Injection Prevention**: Use parameterized queries only
+- **Data Scraping Security**:
+  - Validate scraped detention center data
+  - Rate limit scraping operations
+  - Verify data integrity before import

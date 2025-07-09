@@ -1,7 +1,7 @@
-# Bring Me Home - Implementation Plan
+# Bring Them Home - Implementation Plan
 
 ## Overview
-This implementation plan outlines the step-by-step approach to building the "Bring Me Home" application, prioritizing core functionality first, then adding administrative features.
+This implementation plan outlines the step-by-step approach to building the "Bring Them Home" application for tracking and advocating for ICE detainees, prioritizing core functionality first, then adding administrative features.
 
 ## Phase 1: Project Foundation (Week 1-2)
 
@@ -60,6 +60,10 @@ npm install bcryptjs @types/bcryptjs
 - [x] Set up Role and Permission models
 - [x] Configure Layout and Theme models
 - [x] Add layoutId and themeId to Town and Person models
+- [ ] Create DetentionCenter model
+- [ ] Add detention-specific fields to Person model
+- [ ] Update Comment model for reCAPTCHA support
+- [ ] Add image size limit fields to User and Town models
 
 ### 3.2 Zod Validation Schemas*5
 - [x] Create validation schemas for all models
@@ -81,6 +85,10 @@ npm install bcryptjs @types/bcryptjs
 - [x] Create sample comments (5-15 per person)
 - [x] Set up image placeholder system*1
 - [x] Create admin user accounts
+- [ ] Scrape Southern California detention centers from ICE website
+- [ ] Create detention center seed data
+- [ ] Update person profiles with detention information
+- [ ] Add anonymous comment examples
 
 ### 4.2 Database Population
 - [x] Implement seeding scripts
@@ -103,6 +111,13 @@ npm install bcryptjs @types/bcryptjs
 - [x] Create privacy level controls
 - [x] Add form validation with useActionState
 - [x] Set up comment display components
+- [ ] Implement Google Invisible reCAPTCHA v2
+- [ ] Add reCAPTCHA validation for anonymous comments
+- [ ] Create optional login prompt
+- [ ] Implement React state for comment drafts (no Redis)
+- [ ] Add Redis storage for drafts (when available)
+- [ ] Server-side reCAPTCHA verification
+- [ ] Add session ID generation for Redis keys
 
 ### 5.3 Theme and Layout System
 - [x] Create 10 layout templates (Grid, Stack, Hero, Sidebar Left/Right, Magazine, Card, Minimal, Gallery, Full Width)
@@ -114,6 +129,9 @@ npm install bcryptjs @types/bcryptjs
 - [x] Create ThemeEditor component with color picker
 - [x] Implement layout and theme preview components
 - [x] Add layout/theme assignment to towns and persons
+- [ ] Add live theme editor UI on main pages
+- [ ] Implement town vs system theme persistence
+- [ ] Add theme editing permissions by role
 
 ## Phase 6: File Upload & Media Management (Week 7-8)
 
@@ -123,13 +141,33 @@ npm install bcryptjs @types/bcryptjs
 - [x] Set up file size validation
 - [x] Add image compression
 - [x] Create file storage organization
+- [ ] Add configurable upload size limits (IMAGE_UPLOAD_MAX_SIZE_MB)
+- [ ] Add configurable storage size limits (IMAGE_STORAGE_MAX_SIZE_KB)
+- [ ] Implement multi-level limit hierarchy (user > town > system)
+- [ ] Add automatic resizing to storage limit
+- [ ] Create image processing pipeline with WebP conversion
 
 ### 6.2 Media Display Components
 - [x] Build image gallery components
 - [x] Create thumbnail preview system
 - [x] Add full-size image modals
-- [ ] Implement video support
+- [x] Implement video support
 - [x] Create file size indicators
+
+## Phase 6.5: WYSIWYG Editor Integration (Week 8)
+
+### 6.5.1 Editor Implementation
+- [ ] Integrate TinyMCE editor
+- [ ] Configure editor toolbar and features
+- [ ] Implement HTML sanitization
+- [ ] Add direct HTML input mode
+- [ ] Create preview functionality
+
+### 6.5.2 Content Storage
+- [ ] Update Person model with HTML story field
+- [ ] Migrate existing plain text stories
+- [ ] Implement versioning system
+- [ ] Add auto-save functionality
 
 ## Phase 7: Advanced Features (Week 8-9)
 
@@ -183,6 +221,26 @@ npm install bcryptjs @types/bcryptjs
 - [ ] Display town-specific layout/theme in footer
 - [ ] Update configs page to show layout/theme environment variables
 
+### 8.6 Detention Center Management
+- [ ] Create detention center admin grid (CRUD)
+- [ ] Implement web scraping interface
+- [ ] Add state/all import options
+- [ ] Create progress indicators for import
+- [ ] Add "eye" icon to view detainees
+- [ ] Implement town-based access controls
+- [ ] Add facility image management with auto-resize to <50KB
+- [ ] Set up /public/images/detention-centers/ directory structure
+- [ ] Implement WebP conversion for images
+- [ ] Create thumbnail generation (max 20KB)
+- [ ] Create capacity tracking (admin only)
+
+### 8.7 Admin Help Documentation
+- [ ] Add "Notes" sections below each grid
+- [ ] Create icon legend documentation
+- [ ] Document clickable columns
+- [ ] Add keyboard shortcuts guide
+- [ ] Create tooltips for complex features
+
 ### 8.5 Content Moderation
 - [x] Build comment moderation interface
 - [x] Create content approval workflows (approve/reject)
@@ -199,6 +257,17 @@ npm install bcryptjs @types/bcryptjs
 - [x] Add environment-specific settings
 - [x] Create public configuration page (/configs)
 - [x] Implement build information tracking
+- [ ] Add SYSTEM_USERNAME_OVERRIDE and SYSTEM_PASSWORD_OVERRIDE
+- [ ] Implement SITE_BLOCK_USERNAME and SITE_BLOCK_PASSWORD
+- [ ] Add TOWN_DEFAULT and USER_DEFAULT
+- [ ] Configure GITHUB_REPO_URL display
+- [ ] Add GOOGLE_RECAPTCHA_SITE_KEY (display for admin only)
+- [ ] Add GOOGLE_RECAPTCHA_SECRET_KEY (never display)
+- [ ] Add REDIS_HOST and REDIS_PORT configuration
+- [ ] Show Redis connection status (admin only)
+- [ ] Add IMAGE_UPLOAD_MAX_SIZE_MB to configs
+- [ ] Add IMAGE_STORAGE_MAX_SIZE_KB to configs
+- [ ] Update configs page with admin-only sections
 
 ### 9.2 Docker Configuration*3
 - [x] Create Dockerfile
@@ -206,6 +275,12 @@ npm install bcryptjs @types/bcryptjs
 - [x] Configure production builds
 - [ ] Add health check endpoints
 - [ ] Set up container orchestration
+- [ ] Create single docker-compose.yml with all configuration
+- [ ] Embed all environment variables directly in compose file
+- [ ] Add optional Redis service configuration
+- [ ] Add volume mappings for uploads, images, and Redis data
+- [ ] Implement database and Redis readiness checks
+- [ ] Remove need for separate .env file
 
 ### 9.3 Production Deployment
 - [ ] Configure production database
@@ -213,6 +288,56 @@ npm install bcryptjs @types/bcryptjs
 - [ ] Implement security headers
 - [ ] Configure backup systems
 - [ ] Set up monitoring and logging
+
+## Phase 9.5: Enhanced Authentication (Week 13)
+
+### 9.5.1 System Override Authentication
+- [ ] Implement SYSTEM_USERNAME_OVERRIDE check
+- [ ] Add SYSTEM_PASSWORD_OVERRIDE validation
+- [ ] Create NextAuth custom provider
+- [ ] Ensure overrides bypass database
+- [ ] Hide override credentials from UI
+
+### 9.5.2 Site Protection
+- [ ] Implement SITE_BLOCK_USERNAME check
+- [ ] Add SITE_BLOCK_PASSWORD validation
+- [ ] Create middleware for site blocking
+- [ ] Design simple login UI for beta access
+- [ ] Add bypass for authenticated users
+
+### 9.5.3 Default Navigation
+- [ ] Implement TOWN_DEFAULT routing
+- [ ] Add USER_DEFAULT redirect
+- [ ] Create fallback for invalid defaults
+- [ ] Update home page navigation logic
+
+### 9.5.4 reCAPTCHA Integration
+- [ ] Install @google-recaptcha/react package
+- [ ] Create reCAPTCHA component wrapper
+- [ ] Implement invisible reCAPTCHA on comment forms
+- [ ] Add server-side verification endpoint
+- [ ] Configure site key and secret key
+- [ ] Add fallback for reCAPTCHA failures
+- [ ] Test with Google reCAPTCHA admin console
+
+### 9.5.5 Temporary Storage Implementation
+- [ ] Install ioredis package
+- [ ] Create Redis connection helper with lazy loading
+- [ ] Implement dual storage strategy (React state + Redis)
+- [ ] Add session ID generation for Redis keys
+- [ ] Configure 1-hour TTL for Redis entries
+- [ ] Create storage abstraction service
+- [ ] Implement manual deletion after data consumption
+- [ ] Test Redis failover to React state
+
+### 9.5.6 Image Configuration System
+- [ ] Add IMAGE_UPLOAD_MAX_SIZE_MB environment variable
+- [ ] Add IMAGE_STORAGE_MAX_SIZE_KB environment variable
+- [ ] Create image limit service with hierarchy logic
+- [ ] Add admin UI for town-level limits
+- [ ] Add admin UI for user-level limits
+- [ ] Implement most-restrictive limit calculation
+- [ ] Update /configs to show image limits
 
 ## Phase 10: Testing & Quality Assurance (Week 13-14)
 
@@ -304,7 +429,9 @@ npm install bcryptjs @types/bcryptjs
 - Clear and helpful error messages
 
 ### Business Metrics
-- Successful family connections
-- User engagement with comment system
-- Admin efficiency in content management
-- Community participation rates
+- Successful advocacy campaigns for detainees
+- Community support message volume
+- Admin efficiency in detention center management
+- Anonymous vs authenticated participation rates
+- Social media sharing metrics
+- Time to gather support threshold (e.g., 100 supporters)

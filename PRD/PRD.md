@@ -1,8 +1,8 @@
-# Bring Me Home - Product Requirements Document
+# Bring Them Home - Product Requirements Document
 
 ## Executive Summary
 
-The "Bring Me Home" application is a web-based platform designed to help families connect with missing persons and facilitate the process of reuniting families. The application will feature town-based organization, person profiles, community engagement through comments and photo sharing, and a comprehensive admin system for managing content and users.
+The "Bring Them Home" application is a web-based platform designed to bring attention to individuals detained by ICE (Immigration and Customs Enforcement), typically due to undocumented immigration status. The platform enables families and friends to create profiles for detained individuals, share their stories, gather community support through comments and testimonials, and organize advocacy efforts. The application features town-based organization, detention center management, person profiles with rich media, community engagement tools, and a comprehensive admin system for managing content and users.
 
 ## Core Features
 
@@ -15,34 +15,85 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 
 ### 2. Town & Person Management
 - Town-based organization with dedicated URLs (e.g., `/borrego-springs/fidel`)
-- Person profiles with detailed information
-- Image management (primary + up to 3 secondary photos)
-- Story and description content
-- Contact information and identification details
+- Person profiles with detailed information including detention status
+- Detention center assignment and tracking
+- Image and video management (primary + up to 3 secondary photos/videos)
+- Rich story content with WYSIWYG editor (HTML storage)
+- Contact information and identification details (including Alien ID#)
+- Privacy controls for sensitive information (family vs. public view)
 
 ### 3. Community Engagement
 - Public comment system with file upload capabilities
-- Form submission with identity verification options
+- Anonymous commenting with email verification
+- Support testimonials and advocacy messages
 - Photo and video attachment support
 - Privacy controls (public, family-only, officials-only)
-- Anonymous participation options
+- Login prompt for existing users during anonymous submission
+- Comment preservation during authentication flow
 
 ### 4. Visual Customization
 - 10 selectable layout templates
 - 10 color theme options
+- Live theme editing UI on main page (admin only)
 - Town-specific and system-wide defaults
 - Responsive design for all screen sizes
 - Custom theme creation with color picker
 - Real-time layout and theme preview
 - Environment variable defaults for system-wide settings
+- Theme persistence for town vs. system level
 
 ### 5. Admin Interface
-- Grid-based management for all models
+- Grid-based management for all models including detention centers
 - Sort, filter, edit, delete, and insert capabilities
 - Image thumbnail previews with full-size viewing
 - File size display in user-friendly format
 - Pagination with configurable row counts (default: 100)
 - Role-based section grouping
+- Detention center management with web scraping integration
+- "Eye" icon to view detainees at specific centers (town-admin restricted)
+- Help/notes sections below each admin grid explaining functionality
+- Config screen with public/private info based on admin level
+
+### 6. Detention Center Management
+- Comprehensive detention center database
+- Web scraping integration from ICE facility locator
+- Admin interface to import facilities by state or all
+- Detention center profiles with:
+  - Name, address, contact information
+  - Facility photos and capacity information
+  - Current detainee count (admin only)
+  - Link to view all detainees at facility
+- Seeding script for Southern California facilities
+- Town-based access restrictions for viewing detainees
+
+### 7. Story Editor & Content Management
+- TinyMCE WYSIWYG editor for person stories
+- HTML content storage in database
+- Direct HTML input option for advanced users
+- Rich media embedding support
+- Auto-save functionality
+- Content versioning for stories
+
+### 8. Enhanced Authentication & Security
+- System-level override credentials (SYSTEM_USERNAME_OVERRIDE, SYSTEM_PASSWORD_OVERRIDE)
+- Site-wide access control for beta testing (SITE_BLOCK_USERNAME, SITE_BLOCK_PASSWORD)
+- Environment-based authentication bypass for development
+- Secure credential storage separate from database
+- No display of override credentials in config screens
+
+### 9. Anonymous Participation
+- Anonymous comment submission with email verification
+- Intelligent user detection based on email
+- Login prompt for existing users without losing comment data
+- Seamless transition from anonymous to authenticated
+- Email notification options for anonymous commenters
+
+### 10. Docker & Deployment
+- Production-ready docker-compose configuration
+- Environment variable management through .env files
+- Default values for all non-sensitive configurations
+- Health checks and monitoring endpoints
+- Container orchestration support
 
 ## Technical Requirements
 
@@ -57,11 +108,13 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 ### Database Schema
 - **Users**: Authentication and role management
 - **Towns**: Geographic organization units
-- **Persons**: Individual profiles to be found
-- **Comments**: Community engagement records
+- **Persons**: Detained individual profiles with detention details
+- **DetentionCenters**: ICE facility information and management
+- **Comments**: Community support and testimonial records
 - **Roles**: Permission-based access control
 - **Layouts**: Visual theme templates
 - **Themes**: Color scheme definitions
+- **SystemConfig**: Environment variable overrides and settings
 
 ### Security & Compliance
 - React Server Functions for all database operations
@@ -125,10 +178,18 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 - Middle name
 - Last name
 - Alien ID number
+- Detention center (foreign key)
+- Detention date
+- Case number
+- Bond amount
+- Legal representative info
 - US Address (full)
-- Primary picture (image)
-- Secondary pictures (up to 3)
-- Story/description
+- International address (e.g., Mexico)
+- Primary picture/video
+- Secondary media (up to 3)
+- Story (HTML from WYSIWYG)
+- Detention status (detained/released/deported/in-proceedings)
+- Privacy settings per field
 - Associated town
 - Admin users
 - Created/updated timestamps
@@ -137,21 +198,28 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 - ID (string GUID)
 - Person ID (foreign key)
 - Submitter information (optional)
+- Submitter email (required for anonymous)
 - Comment text
-- Attached files (up to 3 images)
+- Support statement
+- Attached files (up to 3 images/videos)
 - Privacy level (public/family/officials)
 - Identity verification attachments
+- Anonymous flag
+- Temp data (for login flow preservation)
 - Approval status
 - Created/updated timestamps
 
 ## User Experience Requirements
 
 ### Public Interface
-- Clean, accessible design
+- Clean, accessible design focused on advocacy
 - Mobile-responsive layout
 - Fast loading times
 - Intuitive navigation
-- Clear call-to-action buttons
+- Clear call-to-action for support
+- Anonymous participation options
+- Multi-language support considerations
+- Share buttons for social media advocacy
 
 ### Admin Interface
 - Professional dashboard design
@@ -225,6 +293,20 @@ The "Bring Me Home" application is a web-based platform designed to help familie
 - Configuration management
 - Security key storage
 - Database connection strings
+- Authentication overrides:
+  - SYSTEM_USERNAME_OVERRIDE
+  - SYSTEM_PASSWORD_OVERRIDE
+- Site access control:
+  - SITE_BLOCK_USERNAME
+  - SITE_BLOCK_PASSWORD
+- Default navigation:
+  - TOWN_DEFAULT
+  - USER_DEFAULT
+- System defaults:
+  - SYSTEM_DEFAULT_LAYOUT
+  - SYSTEM_DEFAULT_THEME
+- External integrations:
+  - GITHUB_REPO_URL
 
 ### Docker Configuration*3
 - Version-aware builds
@@ -415,7 +497,7 @@ export const CommentSchema = z.object({
 ## Layout and Theme System
 
 ### Overview
-The application provides a flexible layout and theme system that allows for customization of how missing person profiles are displayed. Each town and person can have their own layout and theme, with system-wide defaults that can be overridden.
+The application provides a flexible layout and theme system that allows for customization of how detained person profiles are displayed. Each town and person can have their own layout and theme, with system-wide defaults that can be overridden. System and town administrators can modify themes in real-time through an on-page UI, with changes persisting at the appropriate level (system-wide or town-specific).
 
 ### Layout System Requirements
 
@@ -434,9 +516,11 @@ The application provides a flexible layout and theme system that allows for cust
 #### Layout Components
 - **hero-image** - Full-width hero image section
 - **image** - Standard image display
-- **info** - Person information details
-- **story** - Story/description content
-- **comments** - Comment section
+- **info** - Detained person information details
+- **detention-info** - Detention center and case details
+- **story** - Story/description content (HTML from WYSIWYG)
+- **comments** - Support messages and testimonials section
+- **advocacy-actions** - Call-to-action buttons for support
 - **basic-info** - Name and location
 - **sidebar-info** - Condensed info for sidebars
 - **main-content** - Primary content area
@@ -488,8 +572,28 @@ The application provides a flexible layout and theme system that allows for cust
 
 #### Environment Variables
 ```
+# Visual defaults
 SYSTEM_DEFAULT_LAYOUT=grid
 SYSTEM_DEFAULT_THEME=default
+
+# Navigation defaults
+TOWN_DEFAULT=borrego-springs
+USER_DEFAULT=fidel
+
+# Authentication overrides
+SYSTEM_USERNAME_OVERRIDE=admin
+SYSTEM_PASSWORD_OVERRIDE=secure_password
+
+# Beta site protection
+SITE_BLOCK_USERNAME=beta_user
+SITE_BLOCK_PASSWORD=beta_pass
+
+# External services
+GITHUB_REPO_URL=https://github.com/org/repo
+
+# Google reCAPTCHA
+GOOGLE_RECAPTCHA_SITE_KEY=your-site-key
+GOOGLE_RECAPTCHA_SECRET_KEY=your-secret-key
 ```
 
 #### Admin Override Capability
@@ -502,6 +606,14 @@ SYSTEM_DEFAULT_THEME=default
 - Editable inline by admins
 - Displays town-specific settings when applicable
 - Format: "Layout: [Name] | Theme: [Name] | Town: [Name]"
+
+#### Live Theme Editor
+- Accessible directly on main pages for admins
+- Real-time color updates without page refresh
+- Town admins can modify town-specific themes
+- System admins can modify default themes
+- Changes persist immediately to database
+- Non-admins see themes but cannot edit
 
 ### Implementation Architecture
 
@@ -653,10 +765,17 @@ export async function getPublicConfig() {
     
     // Feature flags
     features: {
-      videoSupport: false,
+      videoSupport: true,
       bulkOperations: true,
       advancedSearch: false,
+      anonymousComments: true,
+      wysiwygEditor: true,
+      detentionCenters: true,
+      liveThemeEditor: true,
     },
+    
+    // GitHub repository
+    githubRepo: process.env.GITHUB_REPO_URL || 'Not configured',
     
     // Public limits
     limits: {
@@ -697,3 +816,269 @@ export async function getPublicConfig() {
 2. **Support**: Users can report issues with specific version numbers
 3. **Monitoring**: External monitoring can check version endpoints
 4. **Compliance**: Transparent display of system configuration
+
+## Additional Features and Requirements
+
+### Admin Interface Documentation
+Each admin section must include:
+- **Help Section**: A clearly marked "Notes" box below each grid
+- **Icon Legend**: 
+  - 👁️ Eye icon: View details or related items
+  - 🗑️ Trash icon: Delete with confirmation
+  - ✏️ Edit icon: Navigate to edit form
+  - ➕ Plus icon: Add new item
+- **Interactive Elements**: Document which columns are clickable
+- **Tooltips**: Hover information for complex features
+
+### Anonymous Comment Flow
+1. **Initial Submission**:
+   - User enters comment without logging in
+   - Google Invisible reCAPTCHA v2 validates in background
+   - No email or personal information required
+   - Comment saved after CAPTCHA validation
+
+2. **Temporary Storage**:
+   - React state: Draft stored in component state (if Redis unavailable)
+   - Redis: Draft stored with session key and 1-hour TTL
+   - Key pattern: `session:${sessionId}:comment:${personId}:draft`
+   - Manual deletion after successful submission
+
+3. **Optional Authentication**:
+   - "Sign in for attribution" option shown
+   - Comment data preserved during login flow
+   - After login, comment posted with user attribution
+   - Temporary data deleted from Redis/cleared from state
+
+4. **Spam Prevention**:
+   - Invisible reCAPTCHA prevents bots
+   - No user interaction for legitimate users
+   - Falls back to challenge if suspicious
+
+### WYSIWYG Editor Requirements
+- **Editor**: TinyMCE
+- **Features**:
+  - Bold, italic, underline, strikethrough
+  - Headers (H1-H3)
+  - Lists (ordered/unordered)
+  - Links with target options
+  - Image embedding
+  - Video embedding (YouTube/Vimeo)
+  - Tables
+  - Code blocks
+- **HTML Mode**: Toggle to edit raw HTML
+- **Sanitization**: Clean HTML before storage
+- **Preview**: Side-by-side or toggle preview
+
+### Detention Center Web Scraping
+- **Source**: ICE Detention Facility Locator
+- **Admin Interface**:
+  - "Import Detention Centers" button
+  - State selection dropdown
+  - "Import All" option
+  - Progress bar during import
+  - Results summary (added/updated/skipped)
+- **Data Captured**:
+  - Facility name and type
+  - Complete address
+  - Phone numbers
+  - Operated by (ICE/Private)
+  - Facility images if available
+
+### Theme Editor UI
+- **Access**: Button on main page (admin only)
+- **Interface**:
+  - Color pickers for each theme color
+  - Live preview panel
+  - Save/Cancel buttons
+  - Reset to defaults option
+- **Scope Management**:
+  - Town admins edit town themes
+  - System admins edit default themes
+  - Clear indication of current scope
+
+### Environment Variable Priority
+1. **System Overrides** (highest priority):
+   - SYSTEM_USERNAME_OVERRIDE
+   - SYSTEM_PASSWORD_OVERRIDE
+2. **Site Protection**:
+   - SITE_BLOCK_USERNAME
+   - SITE_BLOCK_PASSWORD
+3. **Navigation Defaults**:
+   - TOWN_DEFAULT
+   - USER_DEFAULT
+4. **Visual Defaults**:
+   - SYSTEM_DEFAULT_LAYOUT
+   - SYSTEM_DEFAULT_THEME
+5. **Database Config** (lowest priority)
+
+### Security Implementation Notes
+- Override credentials never shown in UI
+- Site block presents before any other auth
+- All auth checks server-side
+- Environment variables take precedence over database
+
+### Temporary Storage Implementation
+
+#### Storage Strategy
+The application uses a dual approach for temporary data:
+
+1. **Default: React State**
+   - Used when Redis not configured
+   - In-memory storage during user session
+   - No persistence across page refreshes
+   - Suitable for draft comments and temporary forms
+
+2. **Preferred: Redis** (when available)
+   - Enabled when REDIS_HOST is provided
+   - Session ID-based keys for isolation
+   - 1-hour TTL (3600 seconds) for all temporary data
+   - Manual deletion when data is consumed
+   - No cleanup jobs needed - Redis handles expiration automatically
+
+#### Redis Connection Implementation
+```typescript
+import IORedis, { Redis } from "ioredis";
+
+let redisConnection: Redis | null = null;
+
+export default function getRedisConnectionLazy(
+  redisHost: string,
+  redisPort: number,
+): Redis {
+  if (!redisConnection) {
+    redisConnection = new IORedis({
+      host: redisHost,
+      port: redisPort,
+      lazyConnect: true,
+      maxRetriesPerRequest: null,
+      retryStrategy(times: number) {
+        if (times > 5) return null;
+        console.log("/get-redis-connection-lazy.ts: retrying in 500ms");
+        return 500;
+      },
+    });
+
+    redisConnection.on("error", (error) => {
+      console.error("Redis Error:", error);
+    });
+  }
+
+  return redisConnection;
+}
+```
+
+#### Environment Variables
+```bash
+# Redis Configuration (optional)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Image Upload Configuration
+IMAGE_UPLOAD_MAX_SIZE_MB=10
+IMAGE_STORAGE_MAX_SIZE_KB=200
+```
+
+### Image Upload Configuration
+
+#### Overview
+The application supports configurable image upload and storage limits at multiple levels, with environment variables providing system-wide defaults.
+
+#### Configuration Levels
+
+1. **System Level** (Environment Variables):
+   - `IMAGE_UPLOAD_MAX_SIZE_MB`: Maximum file size for uploads (default: 10MB)
+   - `IMAGE_STORAGE_MAX_SIZE_KB`: Maximum file size for storage (default: 200KB)
+   - Applied globally unless overridden
+
+2. **Town Level** (Database):
+   - Town-specific upload and storage limits
+   - Configured by system admins
+   - Overrides system defaults for users in that town
+
+3. **User Level** (Database):
+   - Individual user upload and storage limits
+   - Configured by system admins
+   - Can be more or less restrictive than town/system limits
+
+#### Limit Application
+When multiple limits exist, the **most restrictive** limit applies:
+```javascript
+const effectiveUploadLimit = Math.min(
+  systemLimit,
+  townLimit || Infinity,
+  userLimit || Infinity
+);
+```
+
+#### Image Processing Pipeline
+1. **Upload Validation**: 
+   - Check file size against effective upload limit
+   - Validate file type (JPEG, PNG, WebP)
+   - Reject if over limit
+
+2. **Temporary Storage**: 
+   - Save original to `/uploads/temp/`
+   - Generate unique filename
+
+3. **Processing**:
+   - If image exceeds storage limit, resize proportionally
+   - Convert to WebP for optimal compression
+   - Maintain aspect ratio
+   - Generate thumbnail (max 50KB)
+
+4. **Final Storage**:
+   - Move processed image to final location
+   - Update database with file paths
+
+5. **Cleanup**:
+   - Delete temporary files
+   - Log processing metrics
+
+#### Special Cases
+- **Detention Center Images**: Fixed 50KB limit (not configurable)
+- **Thumbnails**: Always max 50KB regardless of storage limit
+- **Profile Pictures**: Subject to configured limits
+
+#### Environment Variables
+```bash
+# Image Configuration
+IMAGE_UPLOAD_MAX_SIZE_MB=10     # Max upload size in MB
+IMAGE_STORAGE_MAX_SIZE_KB=200   # Max storage size in KB
+```
+
+#### Security Considerations
+- No browser localStorage usage
+- Session-scoped access only
+- Redis: Automatic expiration (1 hour)
+- React state: Cleared on navigation/refresh
+
+#### Redis Key Patterns
+```typescript
+// Comment draft storage
+const commentDraftKey = `session:${sessionId}:comment:${personId}:draft`;
+// Set with 1 hour expiration
+await redis.setex(commentDraftKey, 3600, JSON.stringify(draftData));
+
+// Login flow storage  
+const loginFlowKey = `session:${sessionId}:login_flow`;
+await redis.setex(loginFlowKey, 3600, JSON.stringify(flowData));
+
+// Manual deletion after successful submission
+await redis.del(commentDraftKey);
+```
+
+#### React State Example
+```typescript
+// When Redis not available
+const [commentDraft, setCommentDraft] = useState<CommentDraft | null>(null);
+
+// Save draft in state
+const saveDraft = (draft: CommentDraft) => {
+  setCommentDraft(draft);
+};
+
+// Clear after submission
+const clearDraft = () => {
+  setCommentDraft(null);
+};
+```
