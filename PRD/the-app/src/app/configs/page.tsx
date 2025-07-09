@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
+import HealthCheckSection from '@/components/configs/HealthCheckSection';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -383,6 +384,9 @@ export default async function ConfigsPage() {
                 </div>
               </div>
             </section>
+
+            {/* Health Checks */}
+            {isAdmin && <HealthCheckSection />}
 
             {/* Footer */}
             <div className="pt-6 border-t border-gray-200">

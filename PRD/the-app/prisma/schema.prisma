@@ -377,3 +377,14 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_log")
 }
+
+// Health check for testing database connectivity
+model HealthCheck {
+  id          String   @id @default(cuid())
+  testData    String
+  testNumber  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("health_checks")
+}
