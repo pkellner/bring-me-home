@@ -1,5 +1,35 @@
 # Bring Them Home - Product Requirements Document
 
+## Implementation Status
+
+### ✅ Implemented Features
+- User Authentication & Authorization (NextAuth, bcrypt, roles)
+- Town & Person Management with full CRUD operations
+- Basic Comment System with privacy levels and file uploads
+- Theme and Layout System (10 layouts, 10 themes, admin interfaces)
+- Admin Interface with comprehensive data grids
+- Build Information & Configuration Page (/configs)
+- Health Check System (Redis and database connectivity tests)
+- Core Database Models (User, Town, Person, Comment, Role, Theme, Layout)
+- Basic Seed Data
+
+### ❌ Not Yet Implemented
+- **Detention Center Management** - No DetentionCenter model or ICE facility features
+- **WYSIWYG Editor** - Story field is plain text, not HTML
+- **Google reCAPTCHA** - No spam protection on comment forms
+- **Enhanced Authentication** - No environment override credentials (SYSTEM_USERNAME_OVERRIDE, etc.)
+- **Site Protection** - No beta access control (SITE_BLOCK_USERNAME/PASSWORD)
+- **Configurable Image Limits** - No IMAGE_UPLOAD_MAX_SIZE_MB or IMAGE_STORAGE_MAX_SIZE_KB
+- **Live Theme Editor** - No on-page theme editing for admins
+- **Anonymous Comment Features** - No reCAPTCHA, no Redis draft storage
+- **Search Functionality** - No search implementation
+- **Comprehensive Docker Setup** - Basic Dockerfile exists but no full docker-compose
+
+### ⚠️ Partially Implemented
+- **Redis Infrastructure** - Connection exists but not used for drafts/temporary storage
+- **Environment Variables** - Layout/theme defaults work but no auth overrides
+- **Image Processing** - Pipeline exists but no configurable size limits
+
 ## Executive Summary
 
 The "Bring Them Home" application is a web-based platform designed to bring attention to individuals detained by ICE (Immigration and Customs Enforcement), typically due to undocumented immigration status. The platform enables families and friends to create profiles for detained individuals, share their stories, gather community support through comments and testimonials, and organize advocacy efforts. The application features town-based organization, detention center management, person profiles with rich media, community engagement tools, and a comprehensive admin system for managing content and users.
@@ -15,32 +45,32 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 
 ### 2. Town & Person Management
 - Town-based organization with dedicated URLs (e.g., `/borrego-springs/fidel`)
-- Person profiles with detailed information including detention status
-- Detention center assignment and tracking
+- Person profiles with detailed information including detention status *(detention fields not implemented)*
+- Detention center assignment and tracking *(not implemented)*
 - Image and video management (primary + up to 3 secondary photos/videos)
-- Rich story content with WYSIWYG editor (HTML storage)
+- Rich story content with WYSIWYG editor (HTML storage) *(plain text only, no WYSIWYG)*
 - Contact information and identification details (including Alien ID#)
 - Privacy controls for sensitive information (family vs. public view)
 
 ### 3. Community Engagement
 - Public comment system with file upload capabilities
-- Anonymous commenting with email verification
+- Anonymous commenting with email verification *(no reCAPTCHA protection)*
 - Support testimonials and advocacy messages
 - Photo and video attachment support
 - Privacy controls (public, family-only, officials-only)
-- Login prompt for existing users during anonymous submission
-- Comment preservation during authentication flow
+- Login prompt for existing users during anonymous submission *(not implemented)*
+- Comment preservation during authentication flow *(not implemented)*
 
 ### 4. Visual Customization
 - 10 selectable layout templates
 - 10 color theme options
-- Live theme editing UI on main page (admin only)
+- Live theme editing UI on main page (admin only) *(not implemented)*
 - Town-specific and system-wide defaults
 - Responsive design for all screen sizes
 - Custom theme creation with color picker
 - Real-time layout and theme preview
 - Environment variable defaults for system-wide settings
-- Theme persistence for town vs. system level
+- Theme persistence for town vs. system level *(partial - no live editing)*
 
 ### 5. Admin Interface
 - Grid-based management for all models including detention centers
@@ -54,7 +84,7 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Help/notes sections below each admin grid explaining functionality
 - Config screen with public/private info based on admin level
 
-### 6. Detention Center Management
+### 6. Detention Center Management *(NOT IMPLEMENTED)*
 - Comprehensive detention center database
 - Web scraping integration from ICE facility locator
 - Admin interface to import facilities by state or all
@@ -66,7 +96,7 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Seeding script for Southern California facilities
 - Town-based access restrictions for viewing detainees
 
-### 7. Story Editor & Content Management
+### 7. Story Editor & Content Management *(NOT IMPLEMENTED)*
 - TinyMCE WYSIWYG editor for person stories
 - HTML content storage in database
 - Direct HTML input option for advanced users
@@ -74,19 +104,19 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Auto-save functionality
 - Content versioning for stories
 
-### 8. Enhanced Authentication & Security
+### 8. Enhanced Authentication & Security *(NOT IMPLEMENTED)*
 - System-level override credentials (SYSTEM_USERNAME_OVERRIDE, SYSTEM_PASSWORD_OVERRIDE)
 - Site-wide access control for beta testing (SITE_BLOCK_USERNAME, SITE_BLOCK_PASSWORD)
 - Environment-based authentication bypass for development
 - Secure credential storage separate from database
 - No display of override credentials in config screens
 
-### 9. Anonymous Participation
-- Anonymous comment submission with email verification
-- Intelligent user detection based on email
-- Login prompt for existing users without losing comment data
-- Seamless transition from anonymous to authenticated
-- Email notification options for anonymous commenters
+### 9. Anonymous Participation *(PARTIALLY IMPLEMENTED)*
+- Anonymous comment submission with email verification *(no reCAPTCHA)*
+- Intelligent user detection based on email *(not implemented)*
+- Login prompt for existing users without losing comment data *(not implemented)*
+- Seamless transition from anonymous to authenticated *(not implemented)*
+- Email notification options for anonymous commenters *(not implemented)*
 
 ### 10. Docker & Deployment
 - Production-ready docker-compose configuration
@@ -106,15 +136,16 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - **File Storage**: Image and video upload support
 
 ### Database Schema
-- **Users**: Authentication and role management
-- **Towns**: Geographic organization units
-- **Persons**: Detained individual profiles with detention details
-- **DetentionCenters**: ICE facility information and management
-- **Comments**: Community support and testimonial records
-- **Roles**: Permission-based access control
-- **Layouts**: Visual theme templates
-- **Themes**: Color scheme definitions
-- **SystemConfig**: Environment variable overrides and settings
+- **Users**: Authentication and role management ✅
+- **Towns**: Geographic organization units ✅
+- **Persons**: Detained individual profiles with detention details *(basic fields only, no detention info)*
+- **DetentionCenters**: ICE facility information and management ❌ *(not implemented)*
+- **Comments**: Community support and testimonial records ✅
+- **Roles**: Permission-based access control ✅
+- **Layouts**: Visual theme templates ✅
+- **Themes**: Color scheme definitions ✅
+- **SystemConfig**: Environment variable overrides and settings *(partial - layout/theme only)*
+- **HealthCheck**: Connectivity testing table ✅
 
 ### Security & Compliance
 - React Server Functions for all database operations
@@ -173,26 +204,26 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Created/updated timestamps
 
 ### Person Model
-- ID (string GUID)
-- First name
-- Middle name
-- Last name
-- Alien ID number
-- Detention center (foreign key)
-- Detention date
-- Case number
-- Bond amount
-- Legal representative info
-- US Address (full)
-- International address (e.g., Mexico)
-- Primary picture/video
-- Secondary media (up to 3)
-- Story (HTML from WYSIWYG)
-- Detention status (detained/released/deported/in-proceedings)
-- Privacy settings per field
-- Associated town
-- Admin users
-- Created/updated timestamps
+- ID (string GUID) ✅
+- First name ✅
+- Middle name ✅
+- Last name ✅
+- Alien ID number ✅
+- Detention center (foreign key) ❌ *(not implemented)*
+- Detention date ❌ *(not implemented)*
+- Case number ❌ *(not implemented)*
+- Bond amount ❌ *(not implemented)*
+- Legal representative info ❌ *(not implemented)*
+- US Address (full) ✅
+- International address (e.g., Mexico) ✅
+- Primary picture/video ✅
+- Secondary media (up to 3) ✅
+- Story (HTML from WYSIWYG) *(plain text field only)*
+- Detention status (detained/released/deported/in-proceedings) ❌ *(not implemented)*
+- Privacy settings per field ❌ *(not implemented)*
+- Associated town ✅
+- Admin users ✅
+- Created/updated timestamps ✅
 
 ### Comment Model
 - ID (string GUID)
