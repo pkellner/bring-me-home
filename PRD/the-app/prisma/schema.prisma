@@ -29,6 +29,7 @@ model User {
   personAccess PersonAccess[]
 
   // Content relationships
+  supporters   Supporter[]
   comments     Comment[]
   personImages PersonImage[]
 
@@ -139,10 +140,11 @@ model Person {
   secondaryPic3  String?
 
   // Story and description
-  story            String?   @db.Text
-  circumstances    String?   @db.Text
-  lastSeenDate     DateTime?
-  lastSeenLocation String?
+  story            String?   @db.Text // Their story and background
+  detentionStory   String?   @db.Text // Circumstances of detention
+  familyMessage    String?   @db.Text // Message from family to supporters
+  lastSeenDate     DateTime? // When they were detained
+  lastSeenLocation String?   // Where they were detained
 
   // Status
   isActive Boolean @default(true)
@@ -182,10 +184,12 @@ model Person {
   detentionCenter DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
 
   // Related entities
+  supporters   Supporter[]
   comments     Comment[]
   personAccess PersonAccess[]
   attachments  Attachment[]
   personImages PersonImage[]
+  familySettings FamilyPrivacySettings?
 
   // Audit fields
   createdAt DateTime @default(now())
@@ -227,41 +231,84 @@ model PersonImage {
   @@map("person_images")
 }
 
-// Comment model for community engagement
+// Supporter model - people who support the detained person
+model Supporter {
+  id             String  @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  fullAddress    String? @db.Text // Including international addresses
+  country        String?
+  relationship   String? // friend, family, coworker, community member, etc.
+  
+  // Display preferences
+  displayName    String? // How they want their name displayed publicly
+  isPublic       Boolean @default(true) // Whether to show their support publicly
+  
+  // Support message
+  supportMessage String? @db.Text
+  
+  // Privacy settings (can be overridden by family)
+  shareEmail     Boolean @default(false)
+  sharePhone     Boolean @default(false)
+  shareAddress   Boolean @default(false)
+  
+  // Verification
+  isVerified     Boolean @default(false)
+  verificationToken String? @unique
+  verifiedAt     DateTime?
+  
+  // Relationships
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  userId   String? // If supporter has an account
+  user     User?   @relation(fields: [userId], references: [id])
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([personId])
+  @@index([email])
+  @@map("supporters")
+}
+
+// Comment model for community engagement and updates
 model Comment {
   id      String @id @default(cuid())
   content String @db.Text
-
-  // Submitter information (optional for anonymous)
-  submitterName  String?
-  submitterEmail String?
-  submitterPhone String?
-  isAnonymous    Boolean @default(false)
-
+  
+  // Comment type
+  type    String @default("general") // general, update, legal, family
+  
   // Privacy controls
-  privacy String @default("public") // public, registered, authorized
-
+  visibility String @default("public") // public, supporters, family, private
+  
+  // Family override settings
+  familyVisibilityOverride String? // If family wants different visibility
+  
   // Status and moderation
   isActive       Boolean @default(true)
-  isVerified     Boolean @default(false)
   isApproved     Boolean @default(false)
   moderatorNotes String? @db.Text
-
+  
   // Relationships
   personId String
   person   Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
   authorId String?
   author   User?   @relation(fields: [authorId], references: [id])
-
+  
   // Attachments
   attachments Attachment[]
-
+  
   // Audit fields
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  
   @@index([personId])
-  @@index([privacy])
+  @@index([visibility])
+  @@index([type])
   @@index([isApproved])
   @@index([authorId])
   @@map("comments")
@@ -472,6 +519,43 @@ model HealthCheck {
   updatedAt  DateTime @updatedAt
 
   @@map("health_checks")
+}
+
+// Family privacy settings - controls what information is shared
+model FamilyPrivacySettings {
+  id       String @id @default(cuid())
+  personId String @unique
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Contact information visibility
+  showDetaineeEmail    Boolean @default(false)
+  showDetaineePhone    Boolean @default(false)
+  showDetaineeAddress  Boolean @default(false)
+  showAlienId          Boolean @default(false)
+  showLegalInfo        Boolean @default(false)
+  
+  // Supporter information visibility
+  showSupporterEmails  Boolean @default(false)
+  showSupporterPhones  Boolean @default(false)
+  showSupporterAddresses Boolean @default(false)
+  
+  // Comment visibility overrides
+  defaultCommentVisibility String @default("public") // public, supporters, family, private
+  
+  // Update notifications
+  notifyFamilyEmail String? // Email to notify family of new supporters/comments
+  notifyOnNewSupporter Boolean @default(true)
+  notifyOnNewComment   Boolean @default(true)
+  
+  // Authorized family members who can manage settings
+  authorizedEmails String? @db.Text // JSON array of email addresses
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String? // User ID who last updated
+  
+  @@map("family_privacy_settings")
 }
 
 // Image storage in database

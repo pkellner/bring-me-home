@@ -11,8 +11,8 @@ const commentSchema = z.object({
     .string()
     .min(10, 'Comment must be at least 10 characters long')
     .max(2000, 'Comment must be less than 2000 characters'),
-  privacy: z.enum(['public', 'registered', 'authorized'], {
-    errorMap: () => ({ message: 'Invalid privacy level' }),
+  visibility: z.enum(['public', 'supporters', 'family', 'private'], {
+    errorMap: () => ({ message: 'Invalid visibility level' }),
   }),
 });
 
@@ -22,7 +22,7 @@ export async function submitComment(
     error?: string;
     errors?: {
       content?: string[];
-      privacy?: string[];
+      visibility?: string[];
     };
   },
   formData: FormData
@@ -40,7 +40,7 @@ export async function submitComment(
     const rawData = {
       personId: formData.get('personId') as string,
       content: formData.get('content') as string,
-      privacy: formData.get('privacy') as string,
+      visibility: formData.get('visibility') as string,
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -52,7 +52,7 @@ export async function submitComment(
       };
     }
 
-    const { personId, content, privacy } = validatedData.data;
+    const { personId, content, visibility } = validatedData.data;
 
     // Check if person exists and is active
     const person = await prisma.person.findFirst({
@@ -73,7 +73,7 @@ export async function submitComment(
     await prisma.comment.create({
       data: {
         content,
-        privacy,
+        visibility,
         personId,
         authorId: session.user.id,
         isActive: true,

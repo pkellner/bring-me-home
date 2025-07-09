@@ -23,6 +23,7 @@ export default async function CommentsPage() {
           town: true,
         },
       },
+      author: true,
     },
     orderBy: {
       createdAt: 'desc',

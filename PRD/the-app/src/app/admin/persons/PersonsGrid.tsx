@@ -51,6 +51,8 @@ interface PersonsGridProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  gridTitle?: string;
+  addButtonText?: string;
 }
 
 export default function PersonsGrid({
@@ -58,6 +60,8 @@ export default function PersonsGrid({
   canCreate,
   canEdit,
   canDelete,
+  gridTitle = 'Detained Persons',
+  addButtonText = 'Add Detained Person',
 }: PersonsGridProps) {
   const router = useRouter();
   const [persons, setPersons] = useState(initialPersons);
@@ -277,14 +281,14 @@ export default function PersonsGrid({
       data={sortedPersons}
       columns={columns}
       actions={actions}
-      title="Missing Persons"
+      title={gridTitle}
       loading={loading}
       error={error}
       onRefresh={handleRefresh}
       onSearch={handleSearch}
       onSort={handleSort}
       createUrl="/admin/persons/new"
-      createLabel="Add Person"
+      createLabel={addButtonText}
       showCreate={canCreate}
       searchQuery={searchQuery}
       sortKey={String(sortKey)}

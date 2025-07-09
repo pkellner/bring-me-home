@@ -30,6 +30,11 @@ export async function DELETE(
             lastName: true,
           },
         },
+        author: {
+          select: {
+            username: true,
+          },
+        },
       },
     });
 
@@ -52,7 +57,7 @@ export async function DELETE(
         newValues: JSON.stringify({
           commentId: id,
           personName: `${comment.person.firstName} ${comment.person.lastName}`,
-          submitterName: comment.submitterName,
+          authorUsername: comment.author?.username || 'System',
           content: comment.content.substring(0, 100) + '...',
         }),
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',

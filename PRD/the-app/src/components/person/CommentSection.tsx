@@ -26,7 +26,7 @@ interface CommentFormState {
   error?: string;
   errors?: {
     content?: string[];
-    privacy?: string[];
+    visibility?: string[];
   };
 }
 
@@ -108,24 +108,25 @@ export default function CommentSection({
 
               <div>
                 <label
-                  htmlFor="privacy"
+                  htmlFor="visibility"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Privacy Level
+                  Visibility Level
                 </label>
                 <select
-                  id="privacy"
-                  name="privacy"
+                  id="visibility"
+                  name="visibility"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   defaultValue="public"
                 >
                   <option value="public">Public - Visible to everyone</option>
-                  <option value="registered">Registered Users Only</option>
-                  <option value="authorized">Authorized Users Only</option>
+                  <option value="supporters">Supporters Only</option>
+                  <option value="family">Family Only</option>
+                  <option value="private">Private - Only visible to authorized users</option>
                 </select>
-                {state?.errors?.privacy && (
+                {state?.errors?.visibility && (
                   <p className="mt-2 text-sm text-red-600">
-                    {state.errors.privacy[0]}
+                    {state.errors.visibility[0]}
                   </p>
                 )}
               </div>

@@ -9,6 +9,7 @@ import {
   BuildingOfficeIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
+import { getSiteTextConfig } from '@/lib/config';
 
 async function getDashboardStats() {
   const [userCount, townCount, personCount, commentCount] = await Promise.all([
@@ -29,6 +30,7 @@ async function getDashboardStats() {
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
   const stats = await getDashboardStats();
+  const config = await getSiteTextConfig();
 
   const dashboardCards = [
     {
@@ -46,7 +48,7 @@ export default async function AdminDashboard() {
       href: '/admin/towns',
     },
     {
-      name: 'Missing Persons',
+      name: config.admin_detained_persons_title || 'Detained Persons',
       value: stats.personCount,
       icon: 'user' as const,
       show: hasPermission(session, 'persons', 'read'),
@@ -155,7 +157,7 @@ export default async function AdminDashboard() {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <UserIcon className="h-4 w-4 mr-2" />
-                Add Missing Person
+                {config.admin_add_person_button || 'Add Detained Person'}
               </Link>
             )}
           </div>

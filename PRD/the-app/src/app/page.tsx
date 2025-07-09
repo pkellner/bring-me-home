@@ -3,7 +3,8 @@ import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import HeaderNavigation from '@/components/HeaderNavigation';
-import Footer from '@/components/Footer';
+import FooterWrapper from '@/components/FooterWrapper';
+import { getSiteTextConfig } from '@/lib/config';
 
 async function getPublicData() {
   const [towns, recentPersons] = await Promise.all([
@@ -17,7 +18,7 @@ async function getPublicData() {
             persons: {
               where: {
                 isActive: true,
-                status: 'missing',
+                status: 'detained',
               },
             },
           },
@@ -30,7 +31,7 @@ async function getPublicData() {
     prisma.person.findMany({
       where: {
         isActive: true,
-        status: 'missing',
+        status: 'detained',
       },
       select: {
         id: true,
@@ -58,6 +59,7 @@ async function getPublicData() {
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   const { towns, recentPersons } = await getPublicData();
+  const config = await getSiteTextConfig();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,7 +69,7 @@ export default async function HomePage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <h1 className="text-3xl font-bold text-gray-900">
-                Bring Me Home
+                {config.site_title || 'Bring Me Home'}
               </h1>
             </div>
             <HeaderNavigation user={session?.user || null} />
@@ -80,11 +82,10 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
-              Help Bring Families Together
+              {config.site_tagline || 'Help Bring Families Together'}
             </h2>
             <p className="mt-4 text-xl text-indigo-200">
-              A platform dedicated to connecting missing persons with their
-              loved ones through community engagement and support.
+              {config.site_description || 'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.'}
             </p>
           </div>
         </div>
@@ -95,7 +96,7 @@ export default async function HomePage() {
         {/* Towns Section */}
         <section className="mb-16">
           <h3 className="text-2xl font-bold text-gray-900 mb-8">
-            Find by Location
+            {config.find_by_location_text || 'Find by Location'}
           </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {towns.map(town => (
@@ -109,7 +110,7 @@ export default async function HomePage() {
                 </h4>
                 <p className="text-sm text-gray-600">{town.state}</p>
                 <p className="text-sm text-indigo-600 mt-2">
-                  {town._count.persons} missing person
+                  {town._count.persons} detained person
                   {town._count.persons !== 1 ? 's' : ''}
                 </p>
               </Link>
@@ -120,7 +121,7 @@ export default async function HomePage() {
         {/* Recent Missing Persons */}
         <section>
           <h3 className="text-2xl font-bold text-gray-900 mb-8">
-            Recently Added
+            {config.recently_added_text || 'Recently Added'}
           </h3>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {recentPersons.map(person => (
@@ -156,7 +157,7 @@ export default async function HomePage() {
                   </p>
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-500 mt-1">
-                      Last seen: {person.lastSeenDate.toLocaleDateString()}
+                      {config.last_seen_label || 'Detained since'}: {person.lastSeenDate.toLocaleDateString()}
                     </p>
                   )}
                   <Link
@@ -174,16 +175,14 @@ export default async function HomePage() {
         {/* Call to Action */}
         <section className="mt-16 bg-white rounded-lg shadow p-8 text-center">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            How You Can Help
+            {config.homepage_cta_title || 'How You Can Help'}
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Every piece of information matters. If you have seen any of these
-            individuals or have any information that could help, please
-            don&apos;t hesitate to contribute to their profiles.
+            {config.homepage_cta_text || 'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.'}
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
             <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">
-              Submit Information
+              {config.homepage_cta_button || 'Show Your Support'}
             </button>
             <button className="w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50">
               Learn More
@@ -193,7 +192,7 @@ export default async function HomePage() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <FooterWrapper />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PersonsGrid from './PersonsGrid';
+import { getSiteTextConfig } from '@/lib/config';
 
 export default async function PersonsPage() {
   const session = await getServerSession(authOptions);
@@ -42,6 +43,8 @@ export default async function PersonsPage() {
   const canCreate = hasPermission(session, 'persons', 'create');
   const canEdit = hasPermission(session, 'persons', 'update');
   const canDelete = hasPermission(session, 'persons', 'delete');
+  
+  const config = await getSiteTextConfig();
 
   return (
     <PersonsGrid
@@ -49,6 +52,8 @@ export default async function PersonsPage() {
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
+      gridTitle={config.admin_detained_persons_title || 'Detained Persons'}
+      addButtonText={config.admin_add_person_button || 'Add Detained Person'}
     />
   );
 }

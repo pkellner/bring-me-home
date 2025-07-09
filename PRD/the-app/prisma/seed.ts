@@ -396,8 +396,9 @@ const generatePersons = () => {
           Math.floor(Math.random() * 10000)
         ).padStart(4, '0')}`,
         emailAddress: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${personId}@email.com`,
-        story: generateStory(firstName, lastName, town.name, lastSeenDate),
-        circumstances: generateCircumstances(firstName, town.name),
+        story: generateStory(firstName, lastName, town.name, detentionDate || lastSeenDate),
+        detentionStory: isDetained ? generateDetentionStory(firstName, town.name) : null,
+        familyMessage: isDetained ? generateFamilyMessage(firstName) : null,
         lastSeenDate,
         lastSeenLocation: `${randomElement([
           'Downtown',
@@ -416,7 +417,7 @@ const generatePersons = () => {
           Math.random() > 0.7
             ? `/api/images/${placeholderImageIds.get(((personId + 2) % 10) + 1)?.fullImageId}`
             : null,
-        status: isDetained ? 'detained' : 'missing',
+        status: 'detained', // All persons in this system are detained
         // Detention information
         detentionCenterId,
         detentionDate,
@@ -486,12 +487,12 @@ const generatePersons = () => {
   return persons;
 };
 
-// Generate story content
+// Generate story content for detained person
 function generateStory(
   firstName: string,
   lastName: string,
   townName: string,
-  lastSeenDate: Date
+  detentionDate: Date
 ): string {
   const professions = [
     'teacher',
@@ -501,187 +502,188 @@ function generateStory(
     'mechanic',
     'nurse',
     'chef',
-    'artist',
+    'restaurant worker',
+    'landscaper',
+    'house cleaner',
   ];
-  const hobbies = [
-    'hiking',
-    'fishing',
-    'painting',
-    'gardening',
-    'reading',
-    'cooking',
-    'music',
-    'volunteering',
+  const familyDetails = [
+    'parent of two young children',
+    'sole provider for their family',
+    'caring for elderly parents',
+    'parent of three US citizen children',
+    'supporting extended family',
   ];
 
   const profession = randomElement(professions);
-  const hobby = randomElement(hobbies);
+  const family = randomElement(familyDetails);
   const years = Math.floor(Math.random() * 20) + 5;
 
   return (
-    `${firstName} ${lastName} has been a beloved member of the ${townName} community for ${years} years, working as a ${profession}. ` +
-    `Known for their passion for ${hobby}, ${firstName} was always willing to help neighbors and participate in community events. ` +
-    `Friends describe ${firstName} as kind, hardworking, and reliable. The family moved to ${townName} seeking a better life and quickly became integral parts of the community. ` +
-    `${firstName} was last seen on ${lastSeenDate.toLocaleDateString()}, and the community continues to hope for their safe return.`
+    `${firstName} ${lastName} has lived in ${townName} for ${years} years, working as a ${profession} and ${family}. ` +
+    `${firstName} has been an active member of the community, contributing to local churches, schools, and neighborhood events. ` +
+    `They have no criminal record and have always been known as a hardworking, honest person who came to this country seeking a better life for their family. ` +
+    `${firstName} was detained by ICE on ${detentionDate.toLocaleDateString()} and is currently being held pending immigration proceedings.`
   );
 }
 
-// Generate circumstances
-function generateCircumstances(firstName: string, townName: string): string {
+// Generate detention circumstances
+function generateDetentionStory(firstName: string, townName: string): string {
   const locations = [
-    'grocery store',
-    'gas station',
-    'community center',
-    'local park',
-    'workplace',
-    'church',
-    'bus stop',
+    'their workplace',
+    'home during an early morning raid',
+    'dropping children at school',
+    'local courthouse for a routine check-in',
+    'traffic stop',
+    'workplace raid',
   ];
-  const times = [
-    'early morning',
-    'mid-morning',
-    'afternoon',
-    'evening',
-    'late evening',
-  ];
-  const activities = [
-    'going to work',
-    'running errands',
-    'visiting family',
-    'shopping',
-    'attending a community event',
-    'heading home',
+  const detentionReasons = [
+    'during a routine ICE enforcement action',
+    'following an expired visa',
+    'after missing an immigration court date they were never notified about',
+    'despite having pending asylum application',
+    'while their DACA renewal was being processed',
   ];
 
   const location = randomElement(locations);
-  const time = randomElement(times);
-  const activity = randomElement(activities);
+  const reason = randomElement(detentionReasons);
 
   return (
-    `${firstName} was last seen at the ${location} in ${townName} during the ${time} while ${activity}. ` +
-    `Witnesses report seeing them in good spirits and nothing seemed out of the ordinary. ` +
-    `Personal belongings were found nearby, suggesting they may have left unexpectedly. ` +
-    `Local authorities and family members continue to search for any information about their whereabouts.`
+    `${firstName} was detained at ${location} in ${townName} ${reason}. ` +
+    `The detention has caused significant hardship for their family, including potential loss of housing and income. ` +
+    `Community members have rallied to support the family during this difficult time, providing meals, childcare, and financial assistance. ` +
+    `We urgently need your support to help bring ${firstName} home to their family.`
   );
 }
 
-// Generate comprehensive comments
-const generateComments = (persons: any[]) => {
-  const commentTemplates = [
-    'I saw someone matching this description near {location} about {timeAgo}.',
-    'I remember seeing {firstName} at {location}. They seemed {mood}.',
-    '{firstName} helped me with {helpType} last year. Such a kind person.',
-    "My family and I are praying for {firstName}'s safe return.",
-    'I worked with {firstName} at {workplace}. They were always {trait}.',
-    'Please share this everywhere. Someone must have seen {firstName}.',
-    'I think I saw {firstName} near {location} {timeAgo}. They were wearing {clothing}.',
-    'Does anyone know if {firstName} had any medical conditions? This might help in the search.',
-    "{firstName} was a regular customer at my {business}. Haven't seen them in a while.",
-    "The whole community misses {firstName}. We're organizing a search party this weekend.",
-    "I've shared this on all my social media. Hoping someone recognizes {firstName}.",
-    "My kids went to school with {firstName}'s children. This is heartbreaking.",
-    'I saw the missing person flyers around town. Is there anything else we can do to help?',
-    'Has anyone checked the {location}? {firstName} used to go there often.',
-    'Sending prayers to the family. {firstName} will be found soon.',
+// Generate family message
+function generateFamilyMessage(firstName: string): string {
+  const messages = [
+    `We are devastated by ${firstName}'s detention. Our children cry every night asking when their parent will come home. We need ${firstName} back with us - they are the heart of our family and have never done anything wrong. Please help us by showing your support.`,
+    `${firstName} is a loving parent and hard worker who has always provided for our family. This detention has torn our family apart. We are struggling without them, both emotionally and financially. Your support means everything to us.`,
+    `Our family is incomplete without ${firstName}. They have always been there for us and for our community. We are asking for your help to bring them home where they belong. Every message of support helps our case.`,
+    `${firstName} came to this country seeking safety and a better life for our family. They have worked hard, paid taxes, and contributed to our community. Please stand with us in this difficult time.`,
   ];
 
-  const locations = [
-    'downtown area',
-    'shopping center',
-    'main street',
-    'park',
-    'church',
-    'community center',
-    'bus station',
-    'library',
+  return randomElement(messages);
+}
+
+// Generate supporters for detained persons
+const generateSupporters = (persons: any[]) => {
+  const relationships = [
+    'Friend',
+    'Coworker',
+    'Church member',
+    'Neighbor',
+    'Community member',
+    'Former student',
+    'Customer',
+    'Fellow parent',
   ];
-  const timeAgos = [
-    'a few days ago',
-    'last week',
-    'two weeks ago',
-    'last month',
-    'recently',
+
+  const supportMessages = [
+    '{firstName} is a pillar of our community. I stand with their family during this difficult time.',
+    'I have known {firstName} for years. They are honest, hardworking, and deserve to be with their family.',
+    '{firstName} helped me when I needed it most. Now it\'s our turn to help them.',
+    'Our children go to school together. {firstName} is a wonderful parent who should be home with their family.',
+    '{firstName} has always been there for our community. We need to bring them home.',
+    'I worked alongside {firstName} for many years. They are dedicated and trustworthy.',
+    '{firstName} is part of our church family. We pray for their swift return.',
+    'As a business owner, I can attest to {firstName}\'s character. They deserve to be free.',
   ];
-  const moods = ['happy', 'normal', 'tired', 'worried', 'in a hurry', 'calm'];
-  const helpTypes = [
-    'car trouble',
-    'moving furniture',
-    'yard work',
-    'translation',
-    'directions',
-  ];
-  const workplaces = [
-    'the factory',
-    'the restaurant',
-    'the farm',
-    'the store',
-    'the school',
-  ];
-  const traits = [
-    'reliable',
-    'helpful',
-    'friendly',
-    'hardworking',
-    'punctual',
-    'dedicated',
-  ];
-  const clothing = [
-    'blue jeans and a jacket',
-    'work uniform',
-    'casual clothes',
-    'a red shirt',
-    'dark clothing',
-  ];
-  const businesses = [
-    'restaurant',
-    'grocery store',
-    'hardware store',
-    'cafe',
-    'shop',
+
+  const supporters = [];
+  let supporterId = 1;
+
+  for (const person of persons) {
+    // Only detained persons get supporters
+    if (!person.detentionCenterId) continue;
+
+    // Generate 10-30 supporters per detained person
+    const supportersPerPerson = Math.floor(Math.random() * 21) + 10;
+    for (let i = 0; i < supportersPerPerson; i++) {
+      const firstName = randomElement([
+        'John', 'Maria', 'Robert', 'Linda', 'James', 'Patricia',
+        'Michael', 'Jennifer', 'David', 'Elizabeth', 'William', 'Susan',
+        'Richard', 'Jessica', 'Joseph', 'Sarah', 'Thomas', 'Karen',
+      ]);
+      const lastName = randomElement([
+        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia',
+        'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez',
+      ]);
+
+      const messageTemplate = randomElement(supportMessages);
+      const supportMessage = messageTemplate.replace('{firstName}', person.firstName);
+
+      supporters.push({
+        id: `supporter_${supporterId}`,
+        firstName,
+        lastName,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${supporterId}@email.com`,
+        phone: Math.random() > 0.5 ? `555-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}` : null,
+        country: 'USA',
+        relationship: randomElement(relationships),
+        displayName: `${firstName} ${lastName.charAt(0)}.`,
+        isPublic: Math.random() > 0.2, // 80% public
+        supportMessage,
+        shareEmail: Math.random() > 0.7, // 30% share email
+        sharePhone: Math.random() > 0.9, // 10% share phone
+        isVerified: Math.random() > 0.5, // 50% verified
+        verifiedAt: Math.random() > 0.5 ? randomDate(person.detentionDate, new Date()) : null,
+        personId: person.id,
+        createdAt: randomDate(person.detentionDate || person.lastSeenDate, new Date()),
+      });
+
+      supporterId++;
+    }
+  }
+
+  return supporters;
+};
+
+// Generate comments (updates and messages)
+const generateComments = (persons: any[]) => {
+  const commentTypes = ['general', 'update', 'legal', 'family'];
+  const visibilities = ['public', 'supporters', 'family'];
+
+  const updateTemplates = [
+    'Update: {firstName}\'s next court date has been scheduled for next month. Please keep them in your prayers.',
+    'The family has asked us to share that {firstName} is doing okay but misses everyone greatly.',
+    'Legal update: The attorney is working on filing a motion for bond reduction.',
+    'Thank you to everyone who has shown support. The family is overwhelmed by your kindness.',
+    'Urgent: We need more letters of support for {firstName}\'s upcoming hearing.',
+    'The children made drawings for {firstName}. They ask about their parent every day.',
   ];
 
   const comments = [];
   let commentId = 1;
 
   for (const person of persons) {
-    // Generate 5-15 comments per person
-    const commentsPerPerson = Math.floor(Math.random() * 11) + 5;
-    for (let i = 0; i < commentsPerPerson; i++) {
-      const template = randomElement(commentTemplates);
-      const content = template
-        .replace('{firstName}', person.firstName)
-        .replace('{location}', randomElement(locations))
-        .replace('{timeAgo}', randomElement(timeAgos))
-        .replace('{mood}', randomElement(moods))
-        .replace('{helpType}', randomElement(helpTypes))
-        .replace('{workplace}', randomElement(workplaces))
-        .replace('{trait}', randomElement(traits))
-        .replace('{clothing}', randomElement(clothing))
-        .replace('{business}', randomElement(businesses));
+    // Only detained persons get comments
+    if (!person.detentionCenterId) continue;
 
-      const isAnonymous = Math.random() > 0.7;
-      const submitterNames = [
-        'Local Resident',
-        'Concerned Neighbor',
-        'Community Member',
-        'Former Colleague',
-        'Family Friend',
-        'Store Owner',
-        'Anonymous Helper',
-        'Witness',
-      ];
+    // Generate 3-8 comments per person
+    const commentsPerPerson = Math.floor(Math.random() * 6) + 3;
+    for (let i = 0; i < commentsPerPerson; i++) {
+      const type = randomElement(commentTypes);
+      let content;
+      
+      if (type === 'update' || type === 'legal') {
+        const template = randomElement(updateTemplates);
+        content = template.replace('{firstName}', person.firstName);
+      } else if (type === 'family') {
+        content = `Message from the family: Thank you all for your continued support. Every message helps strengthen our case.`;
+      } else {
+        content = `Keeping ${person.firstName} and their family in our thoughts and prayers.`;
+      }
 
       comments.push({
         id: `comment_${commentId}`,
         content,
-        submitterName: isAnonymous ? null : randomElement(submitterNames),
-        submitterEmail: isAnonymous ? null : `commenter${commentId}@email.com`,
-        isAnonymous,
-        privacy: randomElement(['public', 'public', 'public', 'registered']), // Most comments are public
+        type,
+        visibility: randomElement(visibilities),
         personId: person.id,
         isApproved: Math.random() > 0.1, // 90% approved
-        isVerified: Math.random() > 0.8, // 20% verified
-        createdAt: randomDate(person.lastSeenDate, new Date()),
+        createdAt: randomDate(person.detentionDate || person.lastSeenDate, new Date()),
       });
 
       commentId++;
@@ -987,6 +989,8 @@ async function cleanDatabase() {
     await prisma.attachment.deleteMany();
     await prisma.personImage.deleteMany();
     await prisma.comment.deleteMany();
+    await prisma.supporter.deleteMany();
+    await prisma.familyPrivacySettings.deleteMany();
     await prisma.personAccess.deleteMany();
     await prisma.townAccess.deleteMany();
     await prisma.userRole.deleteMany();
@@ -1077,6 +1081,14 @@ async function main() {
   }
   console.log(`Created ${persons.length} persons.`);
 
+  // Generate and create supporters
+  console.log('Generating and creating supporters...');
+  const supporters = generateSupporters(persons);
+  for (const supporter of supporters) {
+    await prisma.supporter.create({ data: supporter });
+  }
+  console.log(`Created ${supporters.length} supporters.`);
+
   // Generate and create comments
   console.log('Generating and creating comments...');
   const comments = generateComments(persons);
@@ -1084,6 +1096,34 @@ async function main() {
     await prisma.comment.create({ data: comment });
   }
   console.log(`Created ${comments.length} comments.`);
+
+  // Create family privacy settings for detained persons
+  console.log('Creating family privacy settings...');
+  const detainedPersons = persons.filter(p => p.detentionCenterId);
+  for (const person of detainedPersons) {
+    await prisma.familyPrivacySettings.create({
+      data: {
+        personId: person.id,
+        showDetaineeEmail: Math.random() > 0.7, // 30% show email
+        showDetaineePhone: Math.random() > 0.8, // 20% show phone
+        showDetaineeAddress: false, // Never show address by default
+        showAlienId: false, // Never show alien ID by default
+        showLegalInfo: Math.random() > 0.5, // 50% show legal info
+        showSupporterEmails: Math.random() > 0.7, // 30% show supporter emails
+        showSupporterPhones: false, // Never show supporter phones by default
+        showSupporterAddresses: false, // Never show supporter addresses
+        defaultCommentVisibility: randomElement(['public', 'supporters', 'family']),
+        notifyFamilyEmail: `family.${person.id}@email.com`,
+        notifyOnNewSupporter: true,
+        notifyOnNewComment: true,
+        authorizedEmails: JSON.stringify([
+          `family.${person.id}@email.com`,
+          `spouse.${person.id}@email.com`
+        ]),
+      },
+    });
+  }
+  console.log(`Created ${detainedPersons.length} family privacy settings.`);
 
   // Create admin user
   console.log('Creating admin user...');
@@ -1188,12 +1228,171 @@ async function main() {
   // Create system config
   console.log('Creating system configuration...');
   const systemConfigs = [
+    // Site Identity
     {
       key: 'site_title',
-      value: 'Bring Me Home',
+      value: process.env.SITE_TITLE || 'Bring Me Home - Support for ICE Detainees',
       description: 'Main site title',
       dataType: 'string',
     },
+    {
+      key: 'site_tagline',
+      value: process.env.SITE_TAGLINE || 'Help Bring Families Together',
+      description: 'Site tagline shown on homepage',
+      dataType: 'string',
+    },
+    {
+      key: 'site_description',
+      value: process.env.SITE_DESCRIPTION || 'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.',
+      description: 'Site description for metadata and homepage',
+      dataType: 'string',
+    },
+    {
+      key: 'copyright_text',
+      value: process.env.COPYRIGHT_TEXT || 'Bring Me Home. Together, we can bring our loved ones home.',
+      description: 'Copyright text (year is added automatically)',
+      dataType: 'string',
+    },
+    
+    // Homepage Text
+    {
+      key: 'homepage_cta_title',
+      value: process.env.HOMEPAGE_CTA_TITLE || 'How You Can Help',
+      description: 'Call to action title on homepage',
+      dataType: 'string',
+    },
+    {
+      key: 'homepage_cta_text',
+      value: process.env.HOMEPAGE_CTA_TEXT || 'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.',
+      description: 'Call to action text on homepage',
+      dataType: 'string',
+    },
+    {
+      key: 'homepage_cta_button',
+      value: process.env.HOMEPAGE_CTA_BUTTON || 'Show Your Support',
+      description: 'Call to action button text',
+      dataType: 'string',
+    },
+    
+    // Town Page Text
+    {
+      key: 'town_page_title',
+      value: process.env.TOWN_PAGE_TITLE || 'Detained Community Members in {town}',
+      description: 'Title format for town pages ({town} is replaced)',
+      dataType: 'string',
+    },
+    {
+      key: 'town_page_subtitle',
+      value: process.env.TOWN_PAGE_SUBTITLE || '{count} community member(s) need your support',
+      description: 'Subtitle format for town pages',
+      dataType: 'string',
+    },
+    {
+      key: 'town_no_detainees_title',
+      value: process.env.TOWN_NO_DETAINEES_TITLE || 'No detained individuals reported',
+      description: 'Title when no detained persons in town',
+      dataType: 'string',
+    },
+    {
+      key: 'town_no_detainees_text',
+      value: process.env.TOWN_NO_DETAINEES_TEXT || 'There are currently no detained community members from {town} in the system.',
+      description: 'Text when no detained persons in town',
+      dataType: 'string',
+    },
+    {
+      key: 'town_info_title',
+      value: process.env.TOWN_INFO_TITLE || 'Want to Help?',
+      description: 'Information section title on town pages',
+      dataType: 'string',
+    },
+    {
+      key: 'town_info_text',
+      value: process.env.TOWN_INFO_TEXT || 'If you know someone who has been detained or want to show support for those already in the system, please add your voice. Community support can make a real difference in immigration proceedings.',
+      description: 'Information section text on town pages',
+      dataType: 'string',
+    },
+    {
+      key: 'town_info_button',
+      value: process.env.TOWN_INFO_BUTTON || 'Add Your Support',
+      description: 'Information section button text',
+      dataType: 'string',
+    },
+    
+    // Person Profile Text
+    {
+      key: 'detained_at_label',
+      value: process.env.DETAINED_AT_LABEL || 'Detained at',
+      description: 'Label for detention center',
+      dataType: 'string',
+    },
+    {
+      key: 'last_seen_label',
+      value: process.env.LAST_SEEN_LABEL || 'Detained since',
+      description: 'Label for detention date',
+      dataType: 'string',
+    },
+    {
+      key: 'view_profile_button',
+      value: process.env.VIEW_PROFILE_BUTTON || 'View Profile & Support',
+      description: 'Button text to view person profile',
+      dataType: 'string',
+    },
+    
+    // Support/Comment Section
+    {
+      key: 'submit_support_button',
+      value: process.env.SUBMIT_SUPPORT_BUTTON || 'Add Your Support',
+      description: 'Button text for submitting support',
+      dataType: 'string',
+    },
+    {
+      key: 'no_support_text',
+      value: process.env.NO_SUPPORT_TEXT || 'Be the first to show your support for this community member.',
+      description: 'Text when no supporters yet',
+      dataType: 'string',
+    },
+    
+    // Navigation
+    {
+      key: 'find_by_location_text',
+      value: process.env.FIND_BY_LOCATION_TEXT || 'Find by Location',
+      description: 'Navigation text for location search',
+      dataType: 'string',
+    },
+    {
+      key: 'recently_added_text',
+      value: process.env.RECENTLY_ADDED_TEXT || 'Recently Added',
+      description: 'Text for recently added section',
+      dataType: 'string',
+    },
+    {
+      key: 'back_to_home_text',
+      value: process.env.BACK_TO_HOME_TEXT || '← Back to Home',
+      description: 'Back to home navigation text',
+      dataType: 'string',
+    },
+    {
+      key: 'view_other_towns_text',
+      value: process.env.VIEW_OTHER_TOWNS_TEXT || 'View Other Towns',
+      description: 'Link text to view other towns',
+      dataType: 'string',
+    },
+    
+    // Admin Interface
+    {
+      key: 'admin_detained_persons_title',
+      value: process.env.ADMIN_DETAINED_PERSONS_TITLE || 'Detained Persons',
+      description: 'Title for detained persons in admin',
+      dataType: 'string',
+    },
+    {
+      key: 'admin_add_person_button',
+      value: process.env.ADMIN_ADD_PERSON_BUTTON || 'Add Detained Person',
+      description: 'Button text to add new detained person',
+      dataType: 'string',
+    },
+    
+    // System Settings (existing)
     {
       key: 'default_page_size',
       value: '100',
@@ -1236,8 +1435,10 @@ async function main() {
   console.log('Database seeding completed successfully!');
   console.log('\nCreated:');
   console.log(`- ${towns.length} towns`);
-  console.log(`- ${persons.length} persons (${detainedCount} detained)`);
-  console.log(`- ${comments.length} comments`);
+  console.log(`- ${persons.length} persons (${detainedCount} detained by ICE)`);
+  console.log(`- ${supporters.length} supporters`);
+  console.log(`- ${comments.length} comments and updates`);
+  console.log(`- ${detainedPersons.length} family privacy settings`);
   console.log(`- ${roles.length} roles`);
   console.log(`- ${themes.length} themes`);
   console.log(`- ${layouts.length} layouts`);

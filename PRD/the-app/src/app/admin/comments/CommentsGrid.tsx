@@ -11,12 +11,13 @@ import { UserIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 interface Comment extends Record<string, unknown> {
   id: string;
-  submitterName: string | null;
-  submitterEmail: string | null;
   content: string;
-  privacy: string;
-  isVerified: boolean;
+  type: string;
+  visibility: string;
+  familyVisibilityOverride: string | null;
+  isActive: boolean;
   isApproved: boolean;
+  moderatorNotes: string | null;
   person: {
     id: string;
     firstName: string;
@@ -26,6 +27,12 @@ interface Comment extends Record<string, unknown> {
       state: string;
     };
   };
+  authorId: string | null;
+  author?: {
+    id: string;
+    username: string;
+    email: string | null;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,12 +75,13 @@ function CommentsGrid({
     const searchLower = searchQuery.toLowerCase();
     return (
       comment.content.toLowerCase().includes(searchLower) ||
-      comment.submitterName?.toLowerCase().includes(searchLower) ||
-      comment.submitterEmail?.toLowerCase().includes(searchLower) ||
+      comment.author?.username?.toLowerCase().includes(searchLower) ||
+      comment.author?.email?.toLowerCase().includes(searchLower) ||
       comment.person.firstName.toLowerCase().includes(searchLower) ||
       comment.person.lastName.toLowerCase().includes(searchLower) ||
       comment.person.town.name.toLowerCase().includes(searchLower) ||
-      comment.privacy.toLowerCase().includes(searchLower)
+      comment.visibility.toLowerCase().includes(searchLower) ||
+      comment.type.toLowerCase().includes(searchLower)
     );
   });
 
@@ -146,18 +154,18 @@ function CommentsGrid({
 
   const columns: GridColumn<Comment>[] = [
     {
-      key: 'submitterName',
-      label: 'Submitter',
+      key: 'author',
+      label: 'Author',
       render: (value, record) => (
         <div className="flex items-center">
           <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
           <div>
             <div className="text-sm font-medium text-gray-900">
-              {(value as string) || 'Anonymous'}
+              {record.author?.username || 'System'}
             </div>
-            {record.submitterEmail && (
+            {record.author?.email && (
               <div className="text-sm text-gray-500">
-                {record.submitterEmail}
+                {record.author.email}
               </div>
             )}
           </div>
@@ -197,36 +205,40 @@ function CommentsGrid({
       ),
     },
     {
-      key: 'privacy',
-      label: 'Privacy',
+      key: 'type',
+      label: 'Type',
+      render: value => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            value === 'general'
+              ? 'bg-gray-100 text-gray-800'
+              : value === 'update'
+                ? 'bg-blue-100 text-blue-800'
+                : value === 'legal'
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'bg-yellow-100 text-yellow-800'
+          }`}
+        >
+          {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
+        </span>
+      ),
+    },
+    {
+      key: 'visibility',
+      label: 'Visibility',
       render: value => (
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             value === 'public'
               ? 'bg-green-100 text-green-800'
-              : value === 'family'
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-red-100 text-red-800'
+              : value === 'supporters'
+                ? 'bg-blue-100 text-blue-800'
+                : value === 'family'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
           }`}
         >
-          {value === 'public'
-            ? 'Public'
-            : value === 'family'
-              ? 'Family'
-              : 'Officials'}
-        </span>
-      ),
-    },
-    {
-      key: 'isVerified',
-      label: 'Verified',
-      render: value => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {value ? 'Yes' : 'No'}
+          {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
         </span>
       ),
     },

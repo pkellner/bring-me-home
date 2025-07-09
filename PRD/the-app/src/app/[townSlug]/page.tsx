@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import HeaderNavigation from '@/components/HeaderNavigation';
-import Footer from '@/components/Footer';
+import FooterWrapper from '@/components/FooterWrapper';
+import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -33,7 +34,7 @@ async function getTownData(townSlug: string) {
       persons: {
         where: {
           isActive: true,
-          status: 'missing',
+          status: 'detained',
         },
         select: {
           id: true,
@@ -81,6 +82,7 @@ export default async function TownPage({ params }: TownPageProps) {
   const { townSlug } = await params;
   const town = await getTownData(townSlug);
   const session = await getServerSession(authOptions);
+  const config = await getSiteTextConfig();
 
   if (!town) {
     notFound();
@@ -97,7 +99,7 @@ export default async function TownPage({ params }: TownPageProps) {
                 href="/"
                 className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
               >
-                ← Back to Home
+                {config.back_to_home_text || '← Back to Home'}
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">
                 {town.name}, {town.state}
@@ -113,12 +115,10 @@ export default async function TownPage({ params }: TownPageProps) {
         <div className="mx-auto max-w-7xl py-12 px-4 sm:py-16 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              Missing Persons in {town.name}
+              {replaceTextPlaceholders(config.town_page_title || 'Detained Community Members in {town}', { town: town.name })}
             </h2>
             <p className="mt-4 text-lg text-indigo-200">
-              {town.persons.length} missing person
-              {town.persons.length !== 1 ? 's' : ''}
-              {town.persons.length > 0 ? ' need your help' : ' in this area'}
+              {replaceTextPlaceholders(config.town_page_subtitle || '{count} community member(s) need your support', { count: town.persons.length })}
             </p>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default async function TownPage({ params }: TownPageProps) {
                       </h3>
                       {person.detentionCenter && (
                         <p className="text-sm font-bold text-red-600 mt-1">
-                          Detained at {person.detentionCenter.name} ({person.detentionCenter.city}, {person.detentionCenter.state})
+                          {config.detained_at_label || 'Detained at'} {person.detentionCenter.name} ({person.detentionCenter.city}, {person.detentionCenter.state})
                         </p>
                       )}
                     </div>
@@ -179,7 +179,7 @@ export default async function TownPage({ params }: TownPageProps) {
 
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-600 mb-3">
-                      <span className="font-medium">Last seen:</span>{' '}
+                      <span className="font-medium">{config.last_seen_label || 'Detained since'}:</span>{' '}
                       {new Date(person.lastSeenDate).toLocaleDateString()}
                     </p>
                   )}
@@ -200,7 +200,7 @@ export default async function TownPage({ params }: TownPageProps) {
                       href={`/${townSlug}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors"
                     >
-                      View Profile
+                      {config.view_profile_button || 'View Profile & Support'}
                     </Link>
                   </div>
                 </div>
@@ -225,10 +225,10 @@ export default async function TownPage({ params }: TownPageProps) {
               </svg>
             </div>
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No missing persons reported
+              {config.town_no_detainees_title || 'No detained individuals reported'}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              There are currently no active missing person cases in {town.name}.
+              {replaceTextPlaceholders(config.town_no_detainees_text || 'There are currently no detained community members from {town} in the system.', { town: town.name })}
             </p>
           </div>
         )}
@@ -236,29 +236,27 @@ export default async function TownPage({ params }: TownPageProps) {
         {/* Call to Action */}
         <div className="mt-16 bg-white rounded-lg shadow p-8 text-center">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Have Information?
+            {config.town_info_title || 'Want to Help?'}
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            If you have seen any of these individuals or have information that
-            could help, please contribute to their profiles. Every detail
-            matters.
+            {config.town_info_text || 'If you know someone who has been detained or want to show support for those already in the system, please add your voice. Community support can make a real difference in immigration proceedings.'}
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
             <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">
-              Report Information
+              {config.town_info_button || 'Add Your Support'}
             </button>
             <Link
               href="/"
               className="w-full sm:w-auto inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50"
             >
-              View Other Towns
+              {config.view_other_towns_text || 'View Other Towns'}
             </Link>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <Footer 
+      <FooterWrapper 
         townLayout={town.layout?.name}
         townTheme={town.theme?.name}
         townName={town.name}

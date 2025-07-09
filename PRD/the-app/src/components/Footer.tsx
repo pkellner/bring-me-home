@@ -12,6 +12,7 @@ interface FooterProps {
   townName?: string | null;
   personLayout?: string | null;
   personTheme?: string | null;
+  copyrightText?: string;
 }
 
 export default function Footer({
@@ -20,6 +21,7 @@ export default function Footer({
   townName,
   personLayout,
   personTheme,
+  copyrightText,
 }: FooterProps) {
   const { env } = useEnvironment();
   const { data: session } = useSession();
@@ -151,7 +153,7 @@ export default function Footer({
           {/* Copyright and Links */}
           <div className="text-center">
             <p className="text-sm text-gray-400">
-              © 2024 Bring Me Home. Together, we can help families reunite.
+              {copyrightText || '© 2024 Bring Me Home. Together, we can bring our loved ones home.'}
             </p>
             <div className="mt-4 space-x-4">
               <Link
