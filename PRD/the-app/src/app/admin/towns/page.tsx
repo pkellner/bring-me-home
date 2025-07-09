@@ -30,13 +30,22 @@ export default async function TownsPage() {
     },
   });
 
+  // Serialize Decimal fields in persons data
+  const serializedTowns = towns.map(town => ({
+    ...town,
+    persons: town.persons.map(person => ({
+      ...person,
+      bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+    })),
+  }));
+
   const canCreate = hasPermission(session, 'towns', 'create');
   const canEdit = hasPermission(session, 'towns', 'update');
   const canDelete = hasPermission(session, 'towns', 'delete');
 
   return (
     <TownsGrid
-      initialTowns={towns}
+      initialTowns={serializedTowns}
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}

@@ -66,6 +66,12 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   });
 
+  // Convert Decimal bondAmount to string for client components
+  const serializedPersons = persons.map(person => ({
+    ...person,
+    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -80,7 +86,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         user={user}
         roles={roles}
         towns={towns}
-        persons={persons}
+        persons={serializedPersons}
       />
     </div>
   );

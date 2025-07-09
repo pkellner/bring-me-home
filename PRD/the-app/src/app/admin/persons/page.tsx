@@ -33,13 +33,19 @@ export default async function PersonsPage() {
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   });
 
+  // Convert Decimal bondAmount to string for client components
+  const serializedPersons = persons.map(person => ({
+    ...person,
+    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+  }));
+
   const canCreate = hasPermission(session, 'persons', 'create');
   const canEdit = hasPermission(session, 'persons', 'update');
   const canDelete = hasPermission(session, 'persons', 'delete');
 
   return (
     <PersonsGrid
-      initialPersons={persons}
+      initialPersons={serializedPersons}
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}

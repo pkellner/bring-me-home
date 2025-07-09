@@ -4,7 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { validateImageBuffer, saveImageWithThumbnail } from '@/lib/image-utils';
+import { validateImageBuffer, processImageForStorage } from '@/lib/image-utils';
+import { processAndStoreImage } from '@/lib/image-storage';
 
 const uploadSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -105,23 +106,34 @@ export async function uploadPersonImage(
       };
     }
 
-    // Create unique filename with webp extension
-    const timestamp = Date.now();
-    const filename = `${personId}_${timestamp}.webp`;
-
-    // Save image with thumbnail
-    const { fullPath: imageUrl, thumbnailPath } = await saveImageWithThumbnail(
+    // Process and store images in database
+    const { fullImageId, thumbnailImageId } = await processAndStoreImage(
       buffer,
-      personId,
-      filename
+      file.type
     );
 
-    // If this is set as primary, unset other primary images
+    // Create the image record
+    const personImage = await prisma.personImage.create({
+      data: {
+        imageUrl: `/api/images/${fullImageId}`,
+        thumbnailUrl: `/api/images/${thumbnailImageId}`,
+        caption,
+        isPrimary,
+        personId,
+        uploadedById: session.user.id,
+        isActive: true,
+        fullImageId,
+        thumbnailImageId,
+      },
+    });
+
+    // If this is set as primary, update other images and person record
     if (isPrimary) {
       await prisma.personImage.updateMany({
         where: {
           personId,
           isPrimary: true,
+          id: { not: personImage.id },
         },
         data: {
           isPrimary: false,
@@ -131,26 +143,13 @@ export async function uploadPersonImage(
       // Also update person's primary picture
       await prisma.person.update({
         where: { id: personId },
-        data: { primaryPicture: imageUrl },
+        data: { primaryPicture: personImage.imageUrl },
       });
     }
 
-    // Create the image record
-    await prisma.personImage.create({
-      data: {
-        imageUrl,
-        thumbnailUrl: thumbnailPath,
-        caption,
-        isPrimary,
-        personId,
-        uploadedById: session.user.id,
-        isActive: true,
-      },
-    });
-
     return {
       success: true,
-      imageUrl,
+      imageUrl: personImage.imageUrl,
     };
   } catch (error) {
     console.error('Error uploading image:', error);

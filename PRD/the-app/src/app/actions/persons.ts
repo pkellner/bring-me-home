@@ -6,7 +6,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
-import { validateImageBuffer, saveImageWithThumbnail } from '@/lib/image-utils';
+import { validateImageBuffer } from '@/lib/image-utils';
+import { processAndStoreImage } from '@/lib/image-storage';
 
 const personSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -71,12 +72,11 @@ export async function createPerson(formData: FormData) {
         };
       }
 
-      const fileName = `primary-${Date.now()}.webp`;
-      const { fullPath } = await saveImageWithThumbnail(
+      const { fullImageId, thumbnailImageId } = await processAndStoreImage(
         buffer,
-        person.id,
-        fileName
+        primaryPicture.type
       );
+      const fullPath = `/api/images/${fullImageId}`;
 
       await prisma.person.update({
         where: { id: person.id },
@@ -140,8 +140,11 @@ export async function updatePerson(id: string, formData: FormData) {
         };
       }
 
-      const fileName = `primary-${Date.now()}.webp`;
-      const { fullPath } = await saveImageWithThumbnail(buffer, id, fileName);
+      const { fullImageId, thumbnailImageId } = await processAndStoreImage(
+        buffer,
+        primaryPicture.type
+      );
+      const fullPath = `/api/images/${fullImageId}`;
 
       updateData = { ...updateData, primaryPicture: fullPath };
     }

@@ -1,7 +1,4 @@
 import sharp from 'sharp';
-import { join } from 'path';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
 
 export interface ImageDimensions {
   width: number;
@@ -15,18 +12,23 @@ export interface ThumbnailOptions {
   format?: 'jpeg' | 'png' | 'webp';
 }
 
+export interface ProcessedImages {
+  fullImage: Buffer;
+  thumbnail: Buffer;
+}
+
 const DEFAULT_THUMBNAIL_OPTIONS: ThumbnailOptions = {
   width: 300,
   height: 300,
   quality: 80,
-  format: 'webp',
+  format: 'jpeg',
 };
 
 const DEFAULT_FULL_IMAGE_OPTIONS: ThumbnailOptions = {
   width: 1200,
   height: 1200,
   quality: 85,
-  format: 'webp',
+  format: 'jpeg',
 };
 
 export async function generateThumbnail(
@@ -78,45 +80,17 @@ export async function validateImageBuffer(buffer: Buffer): Promise<boolean> {
   }
 }
 
-export async function saveImageWithThumbnail(
-  buffer: Buffer,
-  personId: string,
-  filename: string
-): Promise<{ fullPath: string; thumbnailPath: string }> {
-  const uploadDir = join(
-    process.cwd(),
-    'public',
-    'uploads',
-    'persons',
-    personId
-  );
-  const thumbnailDir = join(uploadDir, 'thumbnails');
-
-  // Ensure directories exist
-  if (!existsSync(uploadDir)) {
-    await mkdir(uploadDir, { recursive: true });
-  }
-  if (!existsSync(thumbnailDir)) {
-    await mkdir(thumbnailDir, { recursive: true });
-  }
-
-  // Generate optimized full image
-  const fullImageBuffer = await optimizeImage(buffer);
-  const fullImagePath = join(uploadDir, filename);
-
-  // Generate thumbnail
-  const thumbnailBuffer = await generateThumbnail(buffer);
-  const thumbnailPath = join(thumbnailDir, filename);
-
-  // Import writeFile dynamically to avoid circular dependency
-  const { writeFile } = await import('fs/promises');
-
-  // Save both images
-  await writeFile(fullImagePath, fullImageBuffer);
-  await writeFile(thumbnailPath, thumbnailBuffer);
+export async function processImageForStorage(
+  buffer: Buffer
+): Promise<ProcessedImages> {
+  // Generate optimized full image (JPEG)
+  const fullImage = await optimizeImage(buffer, { format: 'jpeg' });
+  
+  // Generate thumbnail (JPEG)
+  const thumbnail = await generateThumbnail(buffer, { format: 'jpeg' });
 
   return {
-    fullPath: `/uploads/persons/${personId}/${filename}`,
-    thumbnailPath: `/uploads/persons/${personId}/thumbnails/${filename}`,
+    fullImage,
+    thumbnail,
   };
 }

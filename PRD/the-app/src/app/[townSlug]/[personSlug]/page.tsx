@@ -63,6 +63,14 @@ async function getPersonData(townSlug: string, personSlug: string) {
     },
   });
 
+  // Convert Decimal bondAmount to string for serialization
+  if (person && person.bondAmount) {
+    return {
+      ...person,
+      bondAmount: person.bondAmount.toString(),
+    };
+  }
+
   return person;
 }
 
@@ -76,8 +84,14 @@ export default async function PersonPage({ params }: PersonPageProps) {
     notFound();
   }
 
+  // Ensure bondAmount is serialized for client component
+  const serializedPerson = {
+    ...person,
+    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+  };
+
   // Determine which layout and theme to use
-  const layout = person.layout || person.town.layout || {
+  const layout = serializedPerson.layout || serializedPerson.town.layout || {
     id: 'default',
     name: 'Standard Profile',
     template: JSON.stringify({
@@ -87,7 +101,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
     }),
   };
 
-  const theme = person.theme || person.town.theme || {
+  const theme = serializedPerson.theme || serializedPerson.town.theme || {
     id: 'default',
     name: systemDefaults.theme || 'default',
     cssVars: null,
@@ -104,7 +118,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                 href={`/${townSlug}`}
                 className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
               >
-                ← Back to {person.town.name}
+                ← Back to {serializedPerson.town.name}
               </Link>
             </div>
             <nav className="flex items-center space-x-4">
@@ -149,16 +163,16 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-        <LayoutRenderer person={person} layout={layout} theme={theme} />
+        <LayoutRenderer person={serializedPerson} layout={layout} theme={theme} />
       </main>
 
       {/* Footer */}
       <Footer 
-        townLayout={person.town.layout?.name}
-        townTheme={person.town.theme?.name}
-        townName={person.town.name}
-        personLayout={person.layout?.name}
-        personTheme={person.theme?.name}
+        townLayout={serializedPerson.town.layout?.name}
+        townTheme={serializedPerson.town.theme?.name}
+        townName={serializedPerson.town.name}
+        personLayout={serializedPerson.layout?.name}
+        personTheme={serializedPerson.theme?.name}
       />
     </div>
   );

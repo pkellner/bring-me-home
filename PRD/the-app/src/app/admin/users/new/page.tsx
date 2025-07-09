@@ -34,6 +34,12 @@ export default async function NewUserPage() {
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   });
 
+  // Convert Decimal bondAmount to string for client components
+  const serializedPersons = persons.map(person => ({
+    ...person,
+    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -43,7 +49,7 @@ export default async function NewUserPage() {
         </p>
       </div>
 
-      <UserForm mode="create" roles={roles} towns={towns} persons={persons} />
+      <UserForm mode="create" roles={roles} towns={towns} persons={serializedPersons} />
     </div>
   );
 }

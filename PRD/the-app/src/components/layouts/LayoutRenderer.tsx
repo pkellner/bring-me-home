@@ -5,11 +5,14 @@ import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import CommentSection from '@/components/person/CommentSection';
 
+type SerializedPerson = Omit<Person, 'bondAmount'> & {
+  bondAmount: string | null;
+  town: Town;
+  comments: any[];
+};
+
 interface LayoutRendererProps {
-  person: Person & {
-    town: Town;
-    comments: any[];
-  };
+  person: SerializedPerson;
   layout: {
     id: string;
     name: string;
