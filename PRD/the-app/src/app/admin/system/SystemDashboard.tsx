@@ -13,6 +13,7 @@ import {
   ServerIcon,
   CircleStackIcon as DatabaseIcon,
 } from '@heroicons/react/24/outline';
+import { useEnvironment } from '@/contexts/EnvironmentContext';
 
 interface SystemStats {
   totalUsers: number;
@@ -51,6 +52,7 @@ export default function SystemDashboard({ systemStats }: SystemDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'performance' | 'settings'
   >('overview');
+  const { env } = useEnvironment();
 
   const statCards = [
     {
@@ -333,7 +335,14 @@ export default function SystemDashboard({ systemStats }: SystemDashboardProps) {
                       <dt className="text-sm font-medium text-gray-500">
                         Application Version
                       </dt>
-                      <dd className="mt-1 text-sm text-gray-900">v1.0.0</dd>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        v{env?.releaseVersion || '0'}
+                        {env?.releaseDate && (
+                          <span className="text-xs text-gray-500 block">
+                            Released: {env.releaseDate}
+                          </span>
+                        )}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">

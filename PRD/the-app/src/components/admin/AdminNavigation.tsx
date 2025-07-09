@@ -125,6 +125,12 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
             >
               View Main Site
             </Link>
+            <Link
+              href="/configs"
+              className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
+            >
+              Configs
+            </Link>
             <div className="flex flex-col items-end">
               <div className="text-sm text-gray-700">
                 Welcome, {session.user.firstName || session.user.username}

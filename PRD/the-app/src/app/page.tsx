@@ -198,6 +198,14 @@ export default async function HomePage() {
             <p className="text-sm text-gray-400">
               © 2024 Bring Me Home. Together, we can help families reunite.
             </p>
+            <div className="mt-4">
+              <Link
+                href="/configs"
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+              >
+                System Configuration
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

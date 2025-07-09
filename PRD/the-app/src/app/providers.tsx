@@ -2,6 +2,7 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { Session } from 'next-auth';
+import { EnvironmentProvider } from '@/contexts/EnvironmentContext';
 
 export default function Providers({
   children,
@@ -10,5 +11,9 @@ export default function Providers({
   children: React.ReactNode;
   session: Session | null;
 }) {
-  return <SessionProvider session={session}>{children}</SessionProvider>;
+  return (
+    <SessionProvider session={session}>
+      <EnvironmentProvider>{children}</EnvironmentProvider>
+    </SessionProvider>
+  );
 }

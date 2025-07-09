@@ -18,7 +18,13 @@ export default withAuth(
     }
 
     // Public routes that don't require authentication
-    const publicRoutes = ['/', '/auth/signin', '/auth/register', '/auth/error'];
+    const publicRoutes = [
+      '/',
+      '/auth/signin',
+      '/auth/register',
+      '/auth/error',
+      '/configs',
+    ];
 
     // Allow access to public routes
     if (publicRoutes.includes(pathname)) {
@@ -100,6 +106,7 @@ export default withAuth(
           '/auth/signin',
           '/auth/register',
           '/auth/error',
+          '/configs',
         ];
 
         if (publicRoutes.includes(pathname)) {

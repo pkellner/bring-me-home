@@ -408,3 +408,125 @@ export const CommentSchema = z.object({
   verified: z.boolean().default(false),
 });
 ```
+
+## Build Information and Configuration Management
+
+### Overview
+The application maintains build information and environment configuration that needs to be accessible for debugging, monitoring, and operational purposes. This includes version numbers, build dates, and other configuration values that should be transparently available.
+
+### Build Information Requirements
+
+1. **Version Tracking**
+   - Maintain a build version number that increments with each Docker build
+   - Store the build date in both human-readable and ISO formats
+   - Make version information available throughout the application
+
+2. **Public Configuration Page**
+   - Accessible at `/configs` without authentication
+   - Displays non-sensitive configuration values
+   - Shows current build version and date
+   - Lists feature flags and public configuration
+
+3. **Build Process Integration**
+   - Docker build process reads from `baseversion` file
+   - Automatically increments version number
+   - Generates timestamps at build time
+   - Injects values into environment
+
+### Implementation Details
+
+#### Configuration Display Page
+```typescript
+// src/app/configs/page.tsx
+export default async function ConfigsPage() {
+  const config = await getPublicConfig();
+  
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1>System Configuration</h1>
+      <section>
+        <h2>Build Information</h2>
+        <dl>
+          <dt>Version</dt>
+          <dd>{config.releaseVersion}</dd>
+          <dt>Build Date</dt>
+          <dd>{config.releaseDate}</dd>
+          <dt>Build Date ISO</dt>
+          <dd>{config.releaseDateISO}</dd>
+        </dl>
+      </section>
+      <section>
+        <h2>Feature Flags</h2>
+        {/* Display feature flags */}
+      </section>
+      <section>
+        <h2>Public Configuration</h2>
+        {/* Display public config values */}
+      </section>
+    </div>
+  );
+}
+```
+
+#### Server Function for Public Config
+```typescript
+// src/app/actions/config.ts
+'use server';
+
+export async function getPublicConfig() {
+  return {
+    // Build information
+    releaseVersion: process.env.RELEASEVERSION || '0',
+    releaseDate: process.env.RELEASEDATE || 'Not set',
+    releaseDateISO: process.env.RELEASEDATEISO || 'Not set',
+    publicReleaseDate: process.env.NEXT_PUBLIC_RELEASEDATE || 'Not set',
+    
+    // Environment info
+    environment: process.env.NODE_ENV || 'development',
+    
+    // Feature flags
+    features: {
+      videoSupport: false,
+      bulkOperations: true,
+      advancedSearch: false,
+    },
+    
+    // Public limits
+    limits: {
+      maxFileUploadSize: '5MB',
+      allowedImageTypes: ['JPEG', 'PNG', 'WebP'],
+      commentsPerPage: 10,
+      personsPerPage: 20,
+    },
+    
+    // System info
+    nodeVersion: process.version,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+}
+```
+
+### Security Considerations
+
+1. **No Sensitive Data**: The configs page must never display:
+   - Database connection strings
+   - API keys or secrets
+   - Authentication tokens
+   - Internal system paths
+
+2. **Public Access**: The page is publicly accessible but should:
+   - Not allow any modifications
+   - Rate limit requests to prevent abuse
+   - Cache responses for performance
+
+3. **Version Control**: The `baseversion` file should be:
+   - Committed to version control
+   - Updated manually for major releases
+   - Auto-incremented for builds
+
+### Operational Benefits
+
+1. **Debugging**: Quickly verify which version is deployed
+2. **Support**: Users can report issues with specific version numbers
+3. **Monitoring**: External monitoring can check version endpoints
+4. **Compliance**: Transparent display of system configuration

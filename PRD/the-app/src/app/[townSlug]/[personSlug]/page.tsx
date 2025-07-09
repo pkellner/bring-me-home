@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import CommentSection from '@/components/person/CommentSection';
 import PersonGallery from '@/components/person/PersonGallery';
-import ShareButtons from '@/components/ShareButtons';
+import ShareSection from '@/components/person/ShareSection';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -356,17 +356,13 @@ export default async function PersonPage({ params }: PersonPageProps) {
             {/* Share */}
             <div className="bg-white shadow rounded-lg">
               <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Share This Profile
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Help spread the word about {person.firstName} by sharing this
-                  profile.
-                </p>
-                <ShareButtons
-                  url={`${process.env.NEXT_PUBLIC_APP_URL || ''}/${townSlug}/${personSlug}`}
-                  title={`Help find ${person.firstName} ${person.lastName}`}
-                  description={`${person.firstName} ${person.lastName} from ${person.town.name}, ${person.town.state} needs your help. Share this profile to spread awareness.`}
+                <ShareSection
+                  townSlug={townSlug}
+                  personSlug={personSlug}
+                  personFirstName={person.firstName}
+                  personLastName={person.lastName}
+                  townName={person.town.name}
+                  townState={person.town.state}
                 />
               </div>
             </div>
