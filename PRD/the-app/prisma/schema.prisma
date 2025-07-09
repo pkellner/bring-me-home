@@ -435,9 +435,11 @@ model DetentionCenter {
   latitude  Float?
   longitude Float?
 
-  // Images
-  facilityImage  String? // Main facility image
-  thumbnailImage String? // Thumbnail version
+  // Images - stored in database
+  facilityImageId  String?
+  thumbnailImageId String?
+  facilityImage    ImageStorage? @relation("FacilityImage", fields: [facilityImageId], references: [id])
+  thumbnailImage   ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
 
   // Status
   isActive      Boolean @default(true)
@@ -484,6 +486,8 @@ model ImageStorage {
   // Relations
   fullImagePersonImages      PersonImage[] @relation("FullImage")
   thumbnailPersonImages      PersonImage[] @relation("ThumbnailImage")
+  facilityImageCenters       DetentionCenter[] @relation("FacilityImage")
+  thumbnailImageCenters      DetentionCenter[] @relation("ThumbnailImage")
   
   // Audit fields
   createdAt DateTime @default(now())

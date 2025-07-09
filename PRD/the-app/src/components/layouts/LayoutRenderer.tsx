@@ -9,6 +9,7 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
   bondAmount: string | null;
   town: Town;
   comments: any[];
+  detentionCenter?: any;
 };
 
 interface LayoutRendererProps {
@@ -114,6 +115,71 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
             </div>
           )}
         </div>
+        
+        {person.detentionCenter && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h3 className="text-lg font-bold text-red-800 mb-3">Detention Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div>
+                  <span className="font-semibold text-red-700">Detention Center:</span>{' '}
+                  <span className="text-red-800">{person.detentionCenter.name}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-red-700">Location:</span>{' '}
+                  <span className="text-red-800">
+                    {person.detentionCenter.address}, {person.detentionCenter.city}, {person.detentionCenter.state} {person.detentionCenter.zipCode}
+                  </span>
+                </div>
+                {person.detentionCenter.phoneNumber && (
+                  <div>
+                    <span className="font-semibold text-red-700">Phone:</span>{' '}
+                    <span className="text-red-800">{person.detentionCenter.phoneNumber}</span>
+                  </div>
+                )}
+                {person.detentionDate && (
+                  <div>
+                    <span className="font-semibold text-red-700">Detained Since:</span>{' '}
+                    <span className="text-red-800">{formatDate(person.detentionDate)}</span>
+                  </div>
+                )}
+                {person.detentionStatus && (
+                  <div>
+                    <span className="font-semibold text-red-700">Status:</span>{' '}
+                    <span className="text-red-800 capitalize">{person.detentionStatus.replace(/-/g, ' ')}</span>
+                  </div>
+                )}
+                {person.caseNumber && (
+                  <div>
+                    <span className="font-semibold text-red-700">Case Number:</span>{' '}
+                    <span className="text-red-800">{person.caseNumber}</span>
+                  </div>
+                )}
+                {person.bondAmount && (
+                  <div>
+                    <span className="font-semibold text-red-700">Bond Amount:</span>{' '}
+                    <span className="text-red-800">${person.bondAmount}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-center">
+                {person.detentionCenter.facilityImageId ? (
+                  <Image
+                    src={`/api/images/${person.detentionCenter.facilityImageId}`}
+                    alt={person.detentionCenter.name}
+                    width={300}
+                    height={200}
+                    className="rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-4xl text-gray-400">🏢</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     ),
     

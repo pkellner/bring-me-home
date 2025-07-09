@@ -15,6 +15,7 @@ import {
   ShieldCheckIcon,
   Squares2X2Icon,
   SwatchIcon,
+  BuildingLibraryIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {
@@ -27,6 +28,7 @@ const iconMap = {
   shield: ShieldCheckIcon,
   layouts: Squares2X2Icon,
   themes: SwatchIcon,
+  detentionCenters: BuildingLibraryIcon,
 };
 
 interface AdminNavigationProps {
@@ -71,6 +73,12 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       href: '/admin/persons',
       icon: 'user' as keyof typeof iconMap,
       show: hasPermission(session, 'persons', 'read'),
+    },
+    {
+      name: 'Detention Centers',
+      href: '/admin/detention-centers',
+      icon: 'detentionCenters' as keyof typeof iconMap,
+      show: hasPermission(session, 'detentionCenters', 'read'),
     },
     {
       name: 'Comments',

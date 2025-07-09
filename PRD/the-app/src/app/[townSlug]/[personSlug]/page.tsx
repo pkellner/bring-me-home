@@ -35,6 +35,7 @@ async function getPersonData(townSlug: string, personSlug: string) {
       },
       layout: true,
       theme: true,
+      detentionCenter: true,
       personImages: {
         where: {
           isActive: true,

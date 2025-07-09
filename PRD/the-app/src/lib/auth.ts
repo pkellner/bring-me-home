@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+import { serializePrismaObject } from './serialize-prisma';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -65,8 +66,8 @@ export const authOptions: NextAuthOptions = {
             ...ur.role,
             description: ur.role.description || undefined,
           })),
-          townAccess: user.townAccess,
-          personAccess: user.personAccess,
+          townAccess: serializePrismaObject(user.townAccess),
+          personAccess: serializePrismaObject(user.personAccess),
         };
       },
     }),

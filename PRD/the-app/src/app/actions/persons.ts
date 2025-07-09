@@ -20,6 +20,11 @@ const personSchema = z.object({
   layoutId: z.string().optional(),
   themeId: z.string().optional(),
   isActive: z.boolean().optional(),
+  detentionCenterId: z.string().optional(),
+  detentionDate: z.string().optional(),
+  detentionStatus: z.string().optional(),
+  caseNumber: z.string().optional(),
+  bondAmount: z.coerce.number().optional(),
 });
 
 export async function createPerson(formData: FormData) {
@@ -39,6 +44,11 @@ export async function createPerson(formData: FormData) {
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
+    detentionCenterId: formData.get('detentionCenterId') || undefined,
+    detentionDate: formData.get('detentionDate') || undefined,
+    detentionStatus: formData.get('detentionStatus') || undefined,
+    caseNumber: formData.get('caseNumber') || undefined,
+    bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
   });
 
   if (!validatedFields.success) {
@@ -48,13 +58,24 @@ export async function createPerson(formData: FormData) {
   }
 
   try {
+    // Process data for database
+    const data: any = {
+      ...validatedFields.data,
+      dateOfBirth: validatedFields.data.dateOfBirth
+        ? new Date(validatedFields.data.dateOfBirth)
+        : undefined,
+      detentionDate: validatedFields.data.detentionDate
+        ? new Date(validatedFields.data.detentionDate)
+        : undefined,
+    };
+
+    // Handle empty detentionCenterId
+    if (data.detentionCenterId === '') {
+      data.detentionCenterId = null;
+    }
+
     const person = await prisma.person.create({
-      data: {
-        ...validatedFields.data,
-        dateOfBirth: validatedFields.data.dateOfBirth
-          ? new Date(validatedFields.data.dateOfBirth)
-          : undefined,
-      },
+      data,
     });
 
     // Handle primary picture upload
@@ -111,6 +132,11 @@ export async function updatePerson(id: string, formData: FormData) {
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
+    detentionCenterId: formData.get('detentionCenterId') || undefined,
+    detentionDate: formData.get('detentionDate') || undefined,
+    detentionStatus: formData.get('detentionStatus') || undefined,
+    caseNumber: formData.get('caseNumber') || undefined,
+    bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
   });
 
   if (!validatedFields.success) {
@@ -120,12 +146,21 @@ export async function updatePerson(id: string, formData: FormData) {
   }
 
   try {
-    let updateData: Parameters<typeof prisma.person.update>[0]['data'] = {
+    // Process data for database
+    let updateData: any = {
       ...validatedFields.data,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
         : null,
+      detentionDate: validatedFields.data.detentionDate
+        ? new Date(validatedFields.data.detentionDate)
+        : null,
     };
+
+    // Handle empty detentionCenterId
+    if (updateData.detentionCenterId === '') {
+      updateData.detentionCenterId = null;
+    }
 
     // Handle primary picture upload
     const primaryPicture = formData.get('primaryPicture') as File;

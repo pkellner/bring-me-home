@@ -702,6 +702,7 @@ const roles = [
       roles: ['create', 'read', 'update', 'delete'],
       towns: ['create', 'read', 'update', 'delete'],
       persons: ['create', 'read', 'update', 'delete'],
+      detentionCenters: ['create', 'read', 'update', 'delete'],
       comments: ['create', 'read', 'update', 'delete', 'moderate'],
       system: ['config', 'audit', 'backup'],
     }),
@@ -1031,10 +1032,29 @@ async function main() {
     await prisma.layout.create({ data: layout });
   }
 
-  // Create detention centers
+  // Create detention centers with images
   console.log('Creating detention centers...');
-  for (const center of detentionCenters) {
-    await prisma.detentionCenter.create({ data: center });
+  for (let i = 0; i < detentionCenters.length; i++) {
+    const center = detentionCenters[i];
+    
+    // Use placeholder images for detention centers
+    // In production, use actual facility images
+    const imageNum = (i % 10) + 1;
+    const imagePath = join(process.cwd(), 'public', 'images', `placeholder-person-${imageNum}.jpg`);
+    const imageBuffer = await readFile(imagePath);
+    
+    const { fullImageId, thumbnailImageId } = await processAndStoreImage(
+      imageBuffer,
+      'image/jpeg'
+    );
+    
+    await prisma.detentionCenter.create({ 
+      data: {
+        ...center,
+        facilityImageId: fullImageId,
+        thumbnailImageId: thumbnailImageId,
+      }
+    });
   }
 
   // Create towns

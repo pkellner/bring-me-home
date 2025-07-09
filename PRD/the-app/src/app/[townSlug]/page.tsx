@@ -44,6 +44,15 @@ async function getTownData(townSlug: string) {
           dateOfBirth: true,
           story: true,
           createdAt: true,
+          detentionCenterId: true,
+          detentionCenter: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              state: true,
+            },
+          },
           _count: {
             select: {
               comments: {
@@ -146,9 +155,16 @@ export default async function TownPage({ params }: TownPageProps) {
 
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {person.firstName} {person.lastName}
-                    </h3>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {person.firstName} {person.lastName}
+                      </h3>
+                      {person.detentionCenter && (
+                        <p className="text-sm font-bold text-red-600 mt-1">
+                          Detained at {person.detentionCenter.name} ({person.detentionCenter.city}, {person.detentionCenter.state})
+                        </p>
+                      )}
+                    </div>
                     {person.dateOfBirth && (
                       <span className="bg-gray-100 text-gray-800 text-sm px-2 py-1 rounded">
                         Age{' '}
