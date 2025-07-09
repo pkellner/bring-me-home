@@ -705,6 +705,10 @@ The application maintains build information and environment configuration that n
    - Displays non-sensitive configuration values
    - Shows current build version and date
    - Lists feature flags and public configuration
+   - Shows GitHub repository URL
+   - Admin-only health check features:
+     - Redis connectivity and performance test
+     - Prisma database connectivity test
 
 3. **Build Process Integration**
    - Docker build process reads from `baseversion` file
@@ -742,6 +746,20 @@ export default async function ConfigsPage() {
         <h2>Public Configuration</h2>
         {/* Display public config values */}
       </section>
+      {isAdmin && (
+        <>
+          <section>
+            <h2>Redis Health Check</h2>
+            <button onClick={testRedis}>Test Redis Connection</button>
+            {/* Display Redis test results */}
+          </section>
+          <section>
+            <h2>Database Health Check</h2>
+            <button onClick={testDatabase}>Test Database Connection</button>
+            {/* Display database test results */}
+          </section>
+        </>
+      )}
     </div>
   );
 }
@@ -776,6 +794,15 @@ export async function getPublicConfig() {
     
     // GitHub repository
     githubRepo: process.env.GITHUB_REPO_URL || 'Not configured',
+    
+    // Redis configuration (admin only)
+    ...(isAdmin && {
+      redis: {
+        host: process.env.REDIS_HOST || 'Not configured',
+        port: process.env.REDIS_PORT || 'Not configured',
+        configured: !!process.env.REDIS_HOST,
+      },
+    }),
     
     // Public limits
     limits: {
@@ -816,6 +843,56 @@ export async function getPublicConfig() {
 2. **Support**: Users can report issues with specific version numbers
 3. **Monitoring**: External monitoring can check version endpoints
 4. **Compliance**: Transparent display of system configuration
+5. **Health Monitoring**: Admin-only connectivity tests for Redis and database
+
+## System Health Checks
+
+### Overview
+The application includes built-in health check functionality accessible through the `/configs` page for administrators, providing real-time connectivity and performance testing.
+
+### Redis Health Check
+**Purpose**: Verify Redis connectivity and measure performance
+
+**Test Operations**:
+1. Establish connection using lazy loading pattern
+2. Write 5 test keys with unique IDs and 60-second TTL
+3. Read all 5 keys back
+4. Delete all test keys
+5. Measure each operation's duration
+
+**Key Pattern**: `health:test:{timestamp}:{index}`
+
+**Metrics Displayed**:
+- Connection status (success/failure)
+- Write operation time (ms)
+- Read operation time (ms)
+- Delete operation time (ms)
+- Total operation time (ms)
+- Error details if connection fails
+
+### Database Health Check
+**Purpose**: Verify Prisma/MySQL connectivity and performance
+
+**Test Operations**:
+1. Create a record in HealthCheck table
+2. Read the record by ID
+3. Update the record with new timestamp
+4. Delete the record
+5. Measure each operation's duration
+
+**HealthCheck Table Structure**:
+- Minimal table used only for connectivity testing
+- Contains id, testData, and timestamps
+- Records are immediately deleted after testing
+
+**Metrics Displayed**:
+- Connection status (success/failure)
+- Create operation time (ms)
+- Read operation time (ms)
+- Update operation time (ms)
+- Delete operation time (ms)
+- Total operation time (ms)
+- Database type and version
 
 ## Additional Features and Requirements
 

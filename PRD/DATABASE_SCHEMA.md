@@ -405,6 +405,19 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_log")
 }
+
+// Health check table for database connectivity testing
+model HealthCheck {
+  id          String   @id @default(cuid())
+  testData    String   // Simple test data
+  testNumber  Int      // Test number for verification
+  
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("health_checks")
+}
 ```
 
 ## Zod Validation Schemas
