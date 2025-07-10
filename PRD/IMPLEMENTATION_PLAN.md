@@ -19,6 +19,7 @@ This document outlines the implementation plan for building the "Bring Them Home
 9. **Health Check System** - Redis and database connectivity tests
 10. **Build Configuration** - Version tracking and config display
 11. **Seed Data** - Multi-language examples (English, Spanish, French)
+12. **Detainee Tracking Fields** - Added detention-focused fields to Person model
 
 ### ❌ Not Yet Implemented
 1. **Detention Center Features** - Model exists but no UI/functionality
@@ -331,3 +332,33 @@ The town page person query should:
 - **Scope Creep**: Focus on detention center features next
 - **Timeline**: Core features completed, remaining are enhancements
 - **Data Privacy**: Anonymous system protects user privacy
+
+## Phase 11: Comprehensive Story Seeding
+
+### Goals
+- Create rich, authentic multi-language stories for all seeded persons
+- Implement comprehensive stories for Borrego Springs as the featured town
+- Support English and Spanish languages for all story types
+- Ensure cultural sensitivity and authentic narratives
+
+### 11.1 Story Content Requirements
+- **Personal Stories**: Background, family life, dreams, and aspirations before detention
+- **Detention Stories**: Circumstances of detention, current situation, legal challenges
+- **Family Messages**: Messages from family members expressing support and hope
+- **Language Coverage**: Full English and Spanish translations for all stories
+- **Authenticity**: Stories should reflect realistic experiences while being respectful
+
+### 11.2 Borrego Springs Focus
+As the featured town in the application, Borrego Springs should have:
+- More detailed and comprehensive stories for each person
+- All three story types (personal, detention, family) for each person
+- Rich narratives that showcase the human aspect of detention
+- Stories that connect to the local community and culture
+- Both English and Spanish versions to serve the bilingual community
+
+### 11.3 Implementation Notes
+- Update seed.ts to include comprehensive story data
+- Ensure stories are properly associated with persons
+- Maintain consistency between English and Spanish versions
+- Use appropriate formatting for multi-paragraph stories
+- Include emotional but respectful content that humanizes detainees

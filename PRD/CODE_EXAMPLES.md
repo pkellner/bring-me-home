@@ -13,6 +13,7 @@ This file contains code examples referenced in the Product Requirements Document
 8. [Multi-Language Story Implementation](#multi-language-story-implementation)
 9. [Person Visibility Management](#person-visibility-management)
 10. [Public Page Visibility Filtering](#public-page-visibility-filtering)
+11. [Comprehensive Story Seeding](#comprehensive-story-seeding)
 
 ---
 
@@ -1107,6 +1108,157 @@ async function getPersonData(townSlug: string, personSlug: string) {
 
 ---
 
+## Comprehensive Story Seeding
+
+### Multi-Language Story Creation for Seed Data
+
+```typescript
+// prisma/seed.ts - Comprehensive story seeding with focus on Borrego Springs
+async function createStoriesForPersons(persons: any[]) {
+  const borregoSpringsPersons = persons.filter(p => p.townId === 'town_1');
+  const otherPersons = persons.filter(p => p.townId !== 'town_1');
+  
+  // Create detailed stories for Borrego Springs persons
+  for (const person of borregoSpringsPersons) {
+    await createDetailedStoriesForPerson(person);
+  }
+  
+  // Create basic stories for other persons (migrate from old fields)
+  for (const person of otherPersons) {
+    await createBasicStoriesForPerson(person);
+  }
+  
+  const totalStories = await prisma.story.count();
+  console.log(`Created ${totalStories} stories in multiple languages.`);
+}
+
+// Create comprehensive bilingual stories for featured town
+async function createDetailedStoriesForPerson(person: any) {
+  const isDetained = !!person.detentionCenterId;
+  
+  // Personal Story - English & Spanish
+  await prisma.story.create({
+    data: {
+      personId: person.id,
+      language: 'en',
+      storyType: 'personal',
+      content: generateDetailedPersonalStory(person, 'en'),
+      isActive: true,
+    }
+  });
+  
+  await prisma.story.create({
+    data: {
+      personId: person.id,
+      language: 'es',
+      storyType: 'personal',
+      content: generateDetailedPersonalStory(person, 'es'),
+      isActive: true,
+    }
+  });
+  
+  if (isDetained) {
+    // Detention & Family stories in both languages
+    const storyTypes = ['detention', 'family'];
+    const languages = ['en', 'es'];
+    
+    for (const storyType of storyTypes) {
+      for (const language of languages) {
+        await prisma.story.create({
+          data: {
+            personId: person.id,
+            language,
+            storyType,
+            content: storyType === 'detention' 
+              ? generateDetailedDetentionStory(person, language)
+              : generateDetailedFamilyStory(person, language),
+            isActive: true,
+          }
+        });
+      }
+    }
+  }
+}
+```
+
+### Rich Story Content Generation
+
+```typescript
+// Generate culturally authentic personal stories
+function generateDetailedPersonalStory(person: any, language: string): string {
+  const firstName = person.firstName;
+  const detentionDate = person.detentionDate || person.lastSeenDate;
+  
+  if (language === 'es') {
+    return `${firstName} llegó a Borrego Springs hace 15 años con la esperanza de construir una vida mejor para su familia. Trabajando en los campos de dátiles y en la construcción, ${firstName} se convirtió en un miembro valioso de nuestra comunidad.
+
+Como padre de tres hijos nacidos aquí, ${firstName} siempre priorizó la educación de sus hijos. Cada mañana, antes del amanecer, preparaba el desayuno para su familia antes de dirigirse al trabajo. Los fines de semana, entrenaba al equipo de fútbol juvenil local y participaba activamente en la iglesia San Juan Bautista.
+
+${firstName} es conocido en Borrego Springs por su generosidad. Durante la pandemia, organizó entregas de alimentos para familias necesitadas y ayudó a vecinos ancianos con sus compras. Su pequeño negocio de jardinería empleaba a otros miembros de la comunidad y mantenía hermosos los espacios públicos de nuestro pueblo.
+
+La detención de ${firstName} el ${detentionDate.toLocaleDateString('es-ES')} ha dejado un vacío en nuestra comunidad. Sus hijos preguntan cada noche cuándo volverá papá a casa. Su esposa lucha por mantener a la familia unida mientras trabaja dos empleos. Necesitamos que ${firstName} regrese a casa donde pertenece.`;
+  } else {
+    return `${firstName} came to Borrego Springs 15 years ago with hopes of building a better life for their family. Working in the date palm fields and construction, ${firstName} became a valued member of our community.
+
+As a parent of three US-born children, ${firstName} always prioritized their education. Every morning before dawn, they would prepare breakfast for the family before heading to work. On weekends, ${firstName} coached the local youth soccer team and was active in St. John the Baptist Church.
+
+${firstName} is known throughout Borrego Springs for their generosity. During the pandemic, they organized food deliveries for families in need and helped elderly neighbors with their shopping. Their small landscaping business employed other community members and kept our town's public spaces beautiful.
+
+${firstName}'s detention on ${detentionDate.toLocaleDateString('en-US')} has left a void in our community. Their children ask every night when daddy will come home. Their spouse struggles to keep the family together while working two jobs. We need ${firstName} back home where they belong.`;
+  }
+}
+
+// Generate detention circumstances with local context
+function generateDetailedDetentionStory(person: any, language: string): string {
+  const firstName = person.firstName;
+  const detentionCenter = detentionCenters.find(dc => dc.id === person.detentionCenterId);
+  
+  if (language === 'es') {
+    return `La mañana del ${person.detentionDate.toLocaleDateString('es-ES')}, ${firstName} fue detenido mientras llevaba a sus hijos a la escuela. Los agentes de ICE esperaban afuera de su casa, traumatizando a los niños que vieron cómo se llevaban a su padre.
+
+${firstName} ahora está detenido en ${detentionCenter?.name || 'un centro de detención'}, a más de 200 millas de su familia. Las visitas son casi imposibles debido a la distancia y los horarios restrictivos. Solo puede hablar con sus hijos por teléfono durante 10 minutos al día, si puede pagar las costosas tarifas telefónicas.
+
+A pesar de no tener antecedentes penales y tener fuertes lazos comunitarios, se le ha negado la libertad bajo fianza. Su caso de asilo, basado en la persecución que sufrió en su país de origen, está pendiente desde hace años. Mientras tanto, su familia lucha por sobrevivir sin su principal sostén económico.
+
+La comunidad de Borrego Springs se ha unido para apoyar a la familia de ${firstName}, pero necesitamos su ayuda para traerlo de vuelta a casa. Cada carta de apoyo, cada llamada a los funcionarios electos, marca la diferencia en los procedimientos de inmigración.`;
+  } else {
+    return `On the morning of ${person.detentionDate.toLocaleDateString('en-US')}, ${firstName} was detained while taking their children to school. ICE agents waited outside their home, traumatizing the children who watched their parent being taken away.
+
+${firstName} is now held at ${detentionCenter?.name || 'a detention center'}, over 200 miles from their family. Visits are nearly impossible due to the distance and restrictive hours. They can only speak to their children by phone for 10 minutes a day, if they can afford the expensive phone charges.
+
+Despite having no criminal record and strong community ties, they have been denied bond. Their asylum case, based on persecution suffered in their home country, has been pending for years. Meanwhile, their family struggles to survive without their primary breadwinner.
+
+The Borrego Springs community has rallied to support ${firstName}'s family, but we need your help to bring them home. Every letter of support, every call to elected officials, makes a difference in immigration proceedings.`;
+  }
+}
+
+// Generate emotional family messages
+function generateDetailedFamilyStory(person: any, language: string): string {
+  const firstName = person.firstName;
+  const spouseName = person.id.includes('1') || person.id.includes('3') ? 'Maria' : 'Carlos';
+  
+  if (language === 'es') {
+    return `Mi nombre es ${spouseName}, esposa de ${firstName}. Escribo esto con lágrimas en los ojos y un peso insoportable en mi corazón.
+
+Nuestros tres hijos - Miguel de 12 años, Sofia de 9, y el pequeño Diego de 5 - preguntan por su papá todos los días. Diego dibuja tarjetas para ${firstName} que no podemos enviar. Sofia llora en las noches. Miguel trata de ser fuerte, pero veo cómo sus calificaciones han bajado desde que se llevaron a su padre.
+
+${firstName} no es solo mi esposo; es el pilar de nuestra familia. Trabajaba duro para darnos una vida digna. Los domingos cocinaba para toda la familia, y las tardes ayudaba a los niños con sus tareas. Ahora trabajo dos empleos solo para pagar el alquiler, y apenas veo a mis hijos.
+
+Por favor, ayúdennos. ${firstName} es un buen hombre que solo quería darle a su familia una vida mejor. No somos números o estadísticas - somos una familia que está siendo destruida. Cada día sin ${firstName} es una eternidad. Los niños necesitan a su padre, y yo necesito a mi esposo. Por favor, tráiganlo a casa.`;
+  } else {
+    return `My name is ${spouseName}, ${firstName}'s wife. I write this with tears in my eyes and an unbearable weight on my heart.
+
+Our three children - Miguel, 12, Sofia, 9, and little Diego, 5 - ask for their daddy every day. Diego draws cards for ${firstName} that we can't send. Sofia cries at night. Miguel tries to be strong, but I see how his grades have dropped since they took his father away.
+
+${firstName} is not just my husband; they're the pillar of our family. They worked hard to give us a dignified life. On Sundays, they cooked for the whole family, and in the evenings helped the children with homework. Now I work two jobs just to pay rent, and barely see my children.
+
+Please help us. ${firstName} is a good person who only wanted to give their family a better life. We're not numbers or statistics - we're a family being destroyed. Every day without ${firstName} is an eternity. The children need their parent, and I need my spouse. Please bring them home.`;
+  }
+}
+```
+
+---
+
 ## Notes
 
 - All code examples are simplified for clarity and may need additional error handling and validation in production
@@ -1116,3 +1268,4 @@ async function getPersonData(townSlug: string, personSlug: string) {
 - Authentication and permission checks are included in server actions
 - Optimistic UI updates are implemented for better user experience
 - Database queries include proper filtering for visibility and active status
+- Story content in seed data is designed to be culturally authentic and respectful while conveying the human impact of detention

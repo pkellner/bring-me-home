@@ -393,6 +393,14 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Complete profile information
 - Encoded image placeholders*1
 
+### Stories
+- Comprehensive multi-language stories for each person
+- All three story types (personal, detention, family) where applicable
+- Primary support for English and Spanish
+- Rich, authentic narratives that reflect real experiences
+- Stories should be culturally appropriate and respectful
+- Borrego Springs persons should have particularly detailed stories as the featured town
+
 ### Comments
 - 5-15 comments per person (50-375 total)
 - Varied privacy levels
