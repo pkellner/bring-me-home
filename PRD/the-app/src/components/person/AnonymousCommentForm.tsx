@@ -24,6 +24,7 @@ export default function AnonymousCommentForm({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [commentLength, setCommentLength] = useState(0);
+  const [displayNameOnly, setDisplayNameOnly] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Reset form and hide when submission is successful
@@ -31,6 +32,7 @@ export default function AnonymousCommentForm({
     if (state?.success) {
       setShowForm(false);
       setCommentLength(0);
+      setDisplayNameOnly(false);
       if (formRef.current) {
         formRef.current.reset();
       }
@@ -379,6 +381,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="displayNameOnly"
                 value="true"
+                checked={displayNameOnly}
+                onChange={(e) => setDisplayNameOnly(e.target.checked)}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <span className="ml-2 text-sm text-gray-700">
@@ -410,7 +414,9 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showOccupation"
                 value="true"
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                defaultChecked={!displayNameOnly}
+                disabled={displayNameOnly}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
                 Show my occupation publicly (if provided)
@@ -422,7 +428,9 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showBirthdate"
                 value="true"
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                defaultChecked={!displayNameOnly}
+                disabled={displayNameOnly}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
                 Show my birthdate publicly (if provided)
@@ -434,7 +442,9 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showCityState"
                 value="true"
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                checked={displayNameOnly ? false : undefined}
+                disabled={displayNameOnly}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
                 Show my city and state publicly (if provided)

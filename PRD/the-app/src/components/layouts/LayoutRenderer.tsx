@@ -308,7 +308,7 @@ export default function LayoutRenderer({
           <h2 className="text-2xl font-bold">Community Support</h2>
           {isAdmin && (
             <Link
-              href={`/admin/comments?personId=${person.id}`}
+              href={`/admin/comments/${person.town.name.toLowerCase().replace(/\s+/g, '-')}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
               className="text-sm text-indigo-600 hover:text-indigo-500"
             >
               [Manage Comments]

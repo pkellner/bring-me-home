@@ -157,11 +157,11 @@ function CommentsGrid({
   }, []);
 
   const handleStatusUpdate = useCallback(
-    (commentId: string, newStatus: boolean) => {
+    (commentId: string, newStatus: boolean, updatedData?: Partial<Comment>) => {
       setComments(prev =>
         prev.map(comment =>
           comment.id === commentId
-            ? { ...comment, isApproved: newStatus }
+            ? { ...comment, isApproved: newStatus, ...updatedData }
             : comment
         )
       );
@@ -293,7 +293,12 @@ function CommentsGrid({
               {record.email && (
                 <div className="flex items-center">
                   <EnvelopeIcon className="h-3 w-3 mr-1" />
-                  {record.email}
+                  <a 
+                    href={`mailto:${record.email}`}
+                    className="hover:text-indigo-600 hover:underline"
+                  >
+                    {record.email}
+                  </a>
                 </div>
               )}
               {record.phone && (

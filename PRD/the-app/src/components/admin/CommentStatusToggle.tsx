@@ -22,12 +22,11 @@ export default function CommentStatusToggle({
     
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/admin/comments/${commentId}`, {
-          method: 'PATCH',
+        const response = await fetch(`/api/admin/comments/${commentId}/approve`, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ isApproved: newStatus }),
         });
 
         if (response.ok) {

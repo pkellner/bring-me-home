@@ -8,7 +8,7 @@ import {
   updateCommentAndApprove,
 } from '@/app/actions/comments';
 
-interface Comment {
+interface Comment extends Record<string, unknown> {
   id: string;
   content: string | null;
   firstName: string | null;
@@ -17,27 +17,41 @@ interface Comment {
   phone: string | null;
   occupation: string | null;
   birthdate: Date | null;
+  streetAddress: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  showOccupation: boolean;
+  showBirthdate: boolean;
+  showCityState: boolean;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
   requiresFamilyApproval: boolean;
-  showOccupation: boolean;
-  showBirthdate: boolean;
   type: string;
   visibility: string;
+  familyVisibilityOverride: string | null;
+  isActive: boolean;
   isApproved: boolean;
   moderatorNotes: string | null;
   person: {
+    id: string;
     firstName: string;
     lastName: string;
+    town: {
+      name: string;
+      id: string;
+      state: string;
+    };
   };
   createdAt: Date;
+  updatedAt: Date;
 }
 
 interface CommentModerationModalProps {
   comment: Comment;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (commentId: string, approved: boolean) => void;
+  onUpdate: (commentId: string, approved: boolean, updatedData?: Partial<Comment>) => void;
 }
 
 export default function CommentModerationModal({
@@ -89,10 +103,18 @@ export default function CommentModerationModal({
             showBirthdate,
           }
         );
+        onUpdate(comment.id, true, {
+          content: editedContent,
+          occupation: editedOccupation || null,
+          birthdate: editedBirthdate ? new Date(editedBirthdate) : null,
+          showOccupation,
+          showBirthdate,
+          moderatorNotes,
+        });
       } else {
         await approveComment(comment.id, moderatorNotes);
+        onUpdate(comment.id, true, { moderatorNotes });
       }
-      onUpdate(comment.id, true);
       onClose();
     } catch (error) {
       console.error('Failed to approve comment:', error);
@@ -110,7 +132,7 @@ export default function CommentModerationModal({
     setIsSubmitting(true);
     try {
       await rejectComment(comment.id, moderatorNotes);
-      onUpdate(comment.id, false);
+      onUpdate(comment.id, false, { moderatorNotes });
       onClose();
     } catch (error) {
       console.error('Failed to reject comment:', error);

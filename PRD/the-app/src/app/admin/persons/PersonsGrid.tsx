@@ -362,7 +362,11 @@ export default function PersonsGrid({
     {
       type: 'view',
       label: 'View Person',
-      href: person => `/persons/${person.id}`,
+      href: person => {
+        const townSlug = person.town.name.toLowerCase().replace(/\s+/g, '-');
+        const personSlug = `${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`;
+        return `/${townSlug}/${personSlug}`;
+      },
     },
     {
       type: 'edit',
