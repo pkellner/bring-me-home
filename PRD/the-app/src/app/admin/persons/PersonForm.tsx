@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import RichTextEditor from '@/components/RichTextEditor';
 import Image from 'next/image';
 import { Person, Town, DetentionCenter } from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
@@ -26,8 +27,11 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
   const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<DetentionCenter | null>(
     person?.detentionCenter || null
   );
+  const [story, setStory] = useState(person?.story || '');
 
   async function handleSubmit(formData: FormData) {
+    // Add story content to form data
+    formData.set('story', story);
     // Add detention center ID to form data
     if (selectedDetentionCenterId) {
       formData.append('detentionCenterId', selectedDetentionCenterId);
@@ -295,13 +299,17 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           <label htmlFor="story" className="block text-sm font-medium text-gray-700">
             Story
           </label>
-          <textarea
-            id="story"
-            name="story"
-            rows={6}
-            defaultValue={person?.story || ''}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
+          <div className="mt-1">
+            <RichTextEditor
+              value={story}
+              onChange={setStory}
+              placeholder="Enter the person's story..."
+              height={300}
+            />
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Use the editor to format the story. This will be displayed on the person's profile page.
+          </p>
         </div>
 
         <div>

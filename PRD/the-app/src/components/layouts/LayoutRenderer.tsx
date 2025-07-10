@@ -183,14 +183,29 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
       </div>
     ),
     
-    'story': () => person.story && (
-      <div className="story-section">
-        <h2 className="mb-4 text-2xl font-bold">Story</h2>
-        <div className="prose max-w-none">
-          <p className="whitespace-pre-wrap">{person.story}</p>
+    'story': () => {
+      console.log('Story content:', person.story);
+      console.log('Story length:', person.story?.length);
+      
+      if (!person.story || person.story.trim() === '') {
+        return (
+          <div className="story-section">
+            <h2 className="mb-4 text-2xl font-bold">Story</h2>
+            <p className="text-gray-500 italic">No story has been added yet.</p>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="story-section">
+          <h2 className="mb-4 text-2xl font-bold">Story</h2>
+          <div 
+            className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-a:underline"
+            dangerouslySetInnerHTML={{ __html: person.story }}
+          />
         </div>
-      </div>
-    ),
+      );
+    },
     
     'comments': () => (
       <div className="comments-section">

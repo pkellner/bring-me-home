@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createUser, updateUser } from '@/app/actions/users';
@@ -206,9 +206,11 @@ export default function UserForm({
   };
 
   // Handle successful form submission
-  if (state.success) {
-    router.push('/admin/users');
-  }
+  useEffect(() => {
+    if (state.success) {
+      router.push('/admin/users');
+    }
+  }, [state.success, router]);
 
   return (
     <div className="max-w-4xl mx-auto">

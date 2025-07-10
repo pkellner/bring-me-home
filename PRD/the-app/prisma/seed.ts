@@ -1333,7 +1333,7 @@ async function main() {
     },
     {
       key: 'view_profile_button',
-      value: process.env.VIEW_PROFILE_BUTTON || 'View Profile & Support',
+      value: process.env.VIEW_PROFILE_BUTTON || 'View Full Story & Show Support',
       description: 'Button text to view person profile',
       dataType: 'string',
     },
