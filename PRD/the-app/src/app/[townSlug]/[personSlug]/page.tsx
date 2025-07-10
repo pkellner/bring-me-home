@@ -23,6 +23,7 @@ async function getPersonData(townSlug: string, personSlug: string) {
       lastName: lastName,
       town: {
         name: townName,
+        isActive: true, // Only show persons from visible towns
       },
       isActive: true,
     },

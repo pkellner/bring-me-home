@@ -7,8 +7,11 @@ import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig } from '@/lib/config';
 
 async function getPublicData() {
-  const [towns, recentPersons] = await Promise.all([
+  const [towns, recentPersons, totalDetained] = await Promise.all([
     prisma.town.findMany({
+      where: {
+        isActive: true, // Only show visible towns
+      },
       select: {
         id: true,
         name: true,
@@ -32,6 +35,9 @@ async function getPublicData() {
       where: {
         isActive: true,
         status: 'detained',
+        town: {
+          isActive: true, // Only from visible towns
+        },
       },
       select: {
         id: true,
@@ -51,14 +57,23 @@ async function getPublicData() {
       },
       take: 6,
     }),
+    prisma.person.count({
+      where: {
+        isActive: true,
+        status: 'detained',
+        town: {
+          isActive: true,
+        },
+      },
+    }),
   ]);
 
-  return { towns, recentPersons };
+  return { towns, recentPersons, totalDetained };
 }
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
-  const { towns, recentPersons } = await getPublicData();
+  const { towns, recentPersons, totalDetained } = await getPublicData();
   const config = await getSiteTextConfig();
 
   return (
@@ -87,6 +102,11 @@ export default async function HomePage() {
             <p className="mt-4 text-xl text-indigo-200">
               {config.site_description || 'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.'}
             </p>
+            {totalDetained > 0 && (
+              <p className="mt-6 text-lg text-indigo-100">
+                Currently supporting <span className="font-bold text-white">{totalDetained}</span> detained {totalDetained === 1 ? 'person' : 'people'} across {towns.length} {towns.length === 1 ? 'community' : 'communities'}
+              </p>
+            )}
           </div>
         </div>
       </div>

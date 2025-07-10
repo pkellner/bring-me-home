@@ -744,6 +744,128 @@ model Person {
 - Data migration
 - User training
 
+## Phase 10: Public Page Visibility Filtering
+
+### Goals
+- Implement visibility filtering on homepage for towns
+- Filter "Recently Added" section to show only visible persons from visible towns
+- Update detained person count to include only visible persons
+- Ensure consistent visibility control throughout public interface
+
+### 10.1 Homepage Visibility Filtering
+```typescript
+// app/page.tsx
+// Update the town query to filter by visibility
+const towns = await prisma.town.findMany({
+  where: {
+    isActive: true, // Only show active/visible towns
+  },
+  include: {
+    persons: {
+      where: {
+        isActive: true, // Count only visible persons
+      },
+      select: {
+        id: true,
+      },
+    },
+  },
+  orderBy: {
+    name: 'asc',
+  },
+});
+```
+
+### 10.2 Recently Added Section Update
+```typescript
+// Update recently added persons query
+const recentPersons = await prisma.person.findMany({
+  where: {
+    isActive: true, // Only visible persons
+    town: {
+      isActive: true, // Only from visible towns
+    },
+  },
+  include: {
+    town: true,
+    stories: {
+      where: {
+        storyType: 'personal',
+        isActive: true,
+      },
+    },
+    _count: {
+      select: {
+        comments: {
+          where: {
+            isApproved: true,
+            isActive: true,
+          },
+        },
+      },
+    },
+  },
+  orderBy: {
+    createdAt: 'desc',
+  },
+  take: 6, // Show 6 most recent
+});
+```
+
+### 10.3 Detained Person Count Update
+```typescript
+// Update the total count query
+const totalDetained = await prisma.person.count({
+  where: {
+    isActive: true,
+    town: {
+      isActive: true,
+    },
+  },
+});
+```
+
+### 10.4 Town Page Visibility
+```typescript
+// app/[townSlug]/page.tsx
+// Ensure town page only shows visible persons
+const persons = await prisma.person.findMany({
+  where: {
+    townId: town.id,
+    isActive: true, // Only show visible persons
+  },
+  include: {
+    detentionCenter: true,
+    stories: {
+      where: {
+        storyType: 'personal',
+        isActive: true,
+      },
+    },
+    _count: {
+      select: {
+        comments: {
+          where: {
+            isApproved: true,
+            isActive: true,
+          },
+        },
+      },
+    },
+  },
+  orderBy: {
+    createdAt: 'desc',
+  },
+});
+```
+
+### 10.5 Implementation Notes
+- All public-facing pages must respect the visibility settings
+- Admin pages show all items regardless of visibility (with visual indicators)
+- Visibility changes take effect immediately on public pages
+- Consider caching strategies for performance with visibility filters
+- Ensure SEO implications are considered for hidden content
+
 ## Success Metrics
 
 ### Technical Metrics

@@ -18,6 +18,7 @@ async function getTownData(townSlug: string) {
   const town = await prisma.town.findFirst({
     where: {
       name: townName,
+      isActive: true, // Only show visible towns
     },
     include: {
       layout: {

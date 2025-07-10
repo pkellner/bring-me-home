@@ -126,6 +126,12 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
   - Global bulk actions for all filtered comments
   - Maintains existing comment moderation features
   - Search functionality remains outside grouping
+- **Visibility Filtering on Public Pages**:
+  - Main site homepage only shows towns where isActive is true
+  - "Recently Added" section only shows persons from visible towns who are also visible (isActive)
+  - Detained person count only includes visible persons from visible towns
+  - Town pages only show visible persons
+  - Ensures consistent visibility control throughout the public interface
 
 ### 7. Detention Center Management *(NOT IMPLEMENTED)*
 - Comprehensive detention center database
