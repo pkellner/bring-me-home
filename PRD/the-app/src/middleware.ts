@@ -1,134 +1,177 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import {
+  checkSiteProtectionFromRequest,
+  checkSystemOverrideFromRequest,
+  SYSTEM_OVERRIDE_COOKIE,
+} from '@/lib/auth-protection-edge';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const pathname = req.nextUrl.pathname;
+export default function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
 
-    // Enforce HTTPS in production
-    if (
-      process.env.NODE_ENV === 'production' &&
-      req.headers.get('x-forwarded-proto') !== 'https'
-    ) {
-      return NextResponse.redirect(
-        `https://${req.headers.get('host')}${req.nextUrl.pathname}${req.nextUrl.search}`,
-        301
-      );
+  // Always allow access to protection pages and their APIs
+  const protectionRoutes = [
+    '/site-protection',
+    '/system-override',
+    '/api/site-protection',
+    '/api/system-override',
+  ];
+  if (protectionRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Check site protection (9.5.2)
+  const isSiteProtected = !checkSiteProtectionFromRequest(request);
+  if (isSiteProtected) {
+    return NextResponse.redirect(new URL('/site-protection', request.url));
+  }
+
+  // For admin routes, check system override (9.5.1)
+  if (pathname.startsWith('/admin')) {
+    const hasSystemOverride = checkSystemOverrideFromRequest(request);
+    if (hasSystemOverride) {
+      // User has system override, grant full admin access
+      const response = NextResponse.next();
+      // Set a flag that can be checked in the app
+      response.headers.set('x-system-override', 'true');
+      return response;
     }
+  }
 
-    // Public routes that don't require authentication
-    const publicRoutes = [
-      '/',
-      '/auth/signin',
-      '/auth/register',
-      '/auth/error',
-      '/configs',
-    ];
+  // Continue to NextAuth middleware for normal authentication
+  const authMiddleware = withAuth(
+    function middleware(req) {
+      const token = req.nextauth.token;
+      const pathname = req.nextUrl.pathname;
 
-    // Allow access to public routes
-    if (publicRoutes.includes(pathname)) {
-      return NextResponse.next();
-    }
-
-    // Allow access to town pages (format: /townname) and person pages (format: /townname/personname)
-    const townRegex = /^\/[^\/]+\/?$/;
-    const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
-    if (
-      (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
-      !pathname.startsWith('/admin')
-    ) {
-      return NextResponse.next();
-    }
-
-    // Require authentication for all other routes
-    if (!token) {
-      return NextResponse.redirect(new URL('/auth/signin', req.url));
-    }
-
-    // Admin routes protection
-    if (pathname.startsWith('/admin')) {
-      const roles =
-        (token.roles as Array<{
-          id: string;
-          name: string;
-          description?: string;
-          permissions: string;
-        }>) || [];
-      const hasAdminRole = roles.some(role =>
-        ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
-      );
-
-      if (!hasAdminRole) {
-        return NextResponse.redirect(new URL('/', req.url));
+      // Enforce HTTPS in production
+      if (
+        process.env.NODE_ENV === 'production' &&
+        req.headers.get('x-forwarded-proto') !== 'https'
+      ) {
+        return NextResponse.redirect(
+          `https://${req.headers.get('host')}${req.nextUrl.pathname}${
+            req.nextUrl.search
+          }`,
+          301
+        );
       }
 
-      // Site admin can access everything
-      const isSiteAdmin = roles.some(role => role.name === 'site-admin');
-      if (isSiteAdmin) {
+      // Public routes that don't require authentication
+      const publicRoutes = [
+        '/',
+        '/auth/signin',
+        '/auth/register',
+        '/auth/error',
+        '/configs',
+      ];
+
+      // Allow access to public routes
+      if (publicRoutes.includes(pathname)) {
         return NextResponse.next();
       }
 
-      // Town admin restrictions
+      // Allow access to town pages (format: /townname) and person pages (format: /townname/personname)
+      const townRegex = /^\/[^\/]+\/?$/;
+      const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
       if (
-        pathname.startsWith('/admin/users') ||
-        pathname.startsWith('/admin/roles') ||
-        pathname.startsWith('/admin/system')
+        (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
+        !pathname.startsWith('/admin')
       ) {
+        return NextResponse.next();
+      }
+
+      // Require authentication for all other routes
+      if (!token) {
+        return NextResponse.redirect(new URL('/auth/signin', req.url));
+      }
+
+      // Admin routes protection
+      if (pathname.startsWith('/admin')) {
+        const roles =
+          (token.roles as Array<{
+            id: string;
+            name: string;
+            description?: string;
+            permissions: string;
+          }>) || [];
+        const hasAdminRole = roles.some(role =>
+          ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
+        );
+
+        if (!hasAdminRole) {
+          return NextResponse.redirect(new URL('/', req.url));
+        }
+
+        // Site admin can access everything
         const isSiteAdmin = roles.some(role => role.name === 'site-admin');
-        if (!isSiteAdmin) {
-          return NextResponse.redirect(new URL('/admin', req.url));
-        }
-      }
-
-      // Person admin can only access persons and comments
-      const isPersonAdmin = roles.some(role => role.name === 'person-admin');
-      if (
-        isPersonAdmin &&
-        !pathname.startsWith('/admin/persons') &&
-        !pathname.startsWith('/admin/comments') &&
-        pathname !== '/admin'
-      ) {
-        return NextResponse.redirect(new URL('/admin/persons', req.url));
-      }
-    }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const pathname = req.nextUrl.pathname;
-
-        // Always allow access to public routes
-        const publicRoutes = [
-          '/',
-          '/auth/signin',
-          '/auth/register',
-          '/auth/error',
-          '/configs',
-        ];
-
-        if (publicRoutes.includes(pathname)) {
-          return true;
+        if (isSiteAdmin) {
+          return NextResponse.next();
         }
 
-        // Allow access to town pages and person pages without auth
-        const townRegex = /^\/[^\/]+\/?$/;
-        const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
+        // Town admin restrictions
         if (
-          (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
-          !pathname.startsWith('/admin')
+          pathname.startsWith('/admin/users') ||
+          pathname.startsWith('/admin/roles') ||
+          pathname.startsWith('/admin/system')
         ) {
-          return true;
+          if (!isSiteAdmin) {
+            return NextResponse.redirect(new URL('/admin', req.url));
+          }
         }
 
-        // Require token for all other routes
-        return !!token;
-      },
+        // Person admin can only access persons and comments
+        const isPersonAdmin = roles.some(role => role.name === 'person-admin');
+        if (
+          isPersonAdmin &&
+          !pathname.startsWith('/admin/persons') &&
+          !pathname.startsWith('/admin/comments') &&
+          pathname !== '/admin'
+        ) {
+          return NextResponse.redirect(new URL('/admin/persons', req.url));
+        }
+      }
+
+      return NextResponse.next();
     },
-  }
-);
+    {
+      callbacks: {
+        authorized: ({ token, req }) => {
+          const pathname = req.nextUrl.pathname;
+
+          // Always allow access to public routes
+          const publicRoutes = [
+            '/',
+            '/auth/signin',
+            '/auth/register',
+            '/auth/error',
+            '/configs',
+          ];
+
+          if (publicRoutes.includes(pathname)) {
+            return true;
+          }
+
+          // Allow access to town pages and person pages without auth
+          const townRegex = /^\/[^\/]+\/?$/;
+          const townPersonRegex = /^\/[^\/]+\/[^\/]+\/?$/;
+          if (
+            (townRegex.test(pathname) || townPersonRegex.test(pathname)) &&
+            !pathname.startsWith('/admin')
+          ) {
+            return true;
+          }
+
+          // Require token for all other routes
+          return !!token;
+        },
+      },
+    }
+  );
+
+  return authMiddleware(request as any, {} as any);
+}
 
 export const config = {
   matcher: [
@@ -139,7 +182,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
+     * - api/images (image serving routes)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|public/).*)',
+    '/((?!api/auth|api/images|_next/static|_next/image|favicon.ico|public/).*)',
   ],
 };
