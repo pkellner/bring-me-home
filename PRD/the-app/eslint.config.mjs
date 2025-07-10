@@ -17,7 +17,6 @@ const eslintConfig = [
       prettier: (await import("eslint-plugin-prettier")).default,
     },
     rules: {
-      "prettier/prettier": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
       "react/no-unescaped-entities": "warn",
