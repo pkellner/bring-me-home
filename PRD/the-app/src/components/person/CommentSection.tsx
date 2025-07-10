@@ -2,17 +2,16 @@
 
 import { useState, useActionState } from 'react';
 import { submitComment } from '@/app/actions/comments';
-import Link from 'next/link';
+import AnonymousCommentForm from './AnonymousCommentForm';
 
 interface Comment {
   id: string;
   content: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  displayNameOnly?: boolean;
   createdAt: Date;
-  author: {
-    firstName: string | null;
-    lastName: string | null;
-    username: string;
-  } | null;
+  isApproved: boolean;
 }
 
 interface CommentSectionProps {
@@ -24,10 +23,7 @@ interface CommentSectionProps {
 interface CommentFormState {
   success?: boolean;
   error?: string;
-  errors?: {
-    content?: string[];
-    visibility?: string[];
-  };
+  errors?: Record<string, string[]>;
 }
 
 export default function CommentSection({
@@ -35,7 +31,6 @@ export default function CommentSection({
   comments,
   isAuthenticated,
 }: CommentSectionProps) {
-  const [showForm, setShowForm] = useState(false);
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
     FormData
@@ -46,229 +41,73 @@ export default function CommentSection({
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
-  const getAuthorName = (author: Comment['author']) => {
-    if (!author) {
-      return 'Anonymous';
+  const getDisplayName = (comment: Comment) => {
+    if (!comment.firstName || !comment.lastName) {
+      return 'Anonymous Supporter';
     }
-    if (author.firstName && author.lastName) {
-      return `${author.firstName} ${author.lastName}`;
+    
+    if (comment.displayNameOnly) {
+      return `${comment.firstName} ${comment.lastName.charAt(0)}.`;
     }
-    return author.username;
+    
+    return `${comment.firstName} ${comment.lastName}`;
   };
+
+  // Filter to only show approved comments
+  const approvedComments = comments.filter(comment => comment.isApproved);
 
   return (
     <div id="comments" className="bg-white shadow rounded-lg scroll-mt-20">
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900">
-            Comments ({comments.length})
+            Community Support ({approvedComments.length})
           </h2>
-          {isAuthenticated && (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-            >
-              {showForm ? 'Cancel' : 'Add Comment'}
-            </button>
-          )}
+          <p className="mt-1 text-sm text-gray-600">
+            Messages of support from the community
+          </p>
         </div>
 
-        {/* Comment Form */}
-        {showForm && isAuthenticated && (
-          <div className="mb-8 border-b border-gray-200 pb-8">
-            <form action={formAction} className="space-y-4">
-              <input type="hidden" name="personId" value={personId} />
-
-              <div>
-                <label
-                  htmlFor="content"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Your Information
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="Share any information you have about this person. Please be respectful and accurate."
-                  required
-                />
-                {state?.errors?.content && (
-                  <p className="mt-2 text-sm text-red-600">
-                    {state.errors.content[0]}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="visibility"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Visibility Level
-                </label>
-                <select
-                  id="visibility"
-                  name="visibility"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  defaultValue="public"
-                >
-                  <option value="public">Public - Visible to everyone</option>
-                  <option value="supporters">Supporters Only</option>
-                  <option value="family">Family Only</option>
-                  <option value="private">Private - Only visible to authorized users</option>
-                </select>
-                {state?.errors?.visibility && (
-                  <p className="mt-2 text-sm text-red-600">
-                    {state.errors.visibility[0]}
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-yellow-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      Important Guidelines
-                    </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>
-                          Only share factual information you personally
-                          witnessed
-                        </li>
-                        <li>Do not share rumors or unverified information</li>
-                        <li>
-                          If you have critical information, also contact local
-                          authorities
-                        </li>
-                        <li>
-                          Be respectful and sensitive to the family&apos;s
-                          situation
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {state?.error && (
-                <div className="rounded-md bg-red-50 p-4">
-                  <div className="text-sm text-red-700">{state.error}</div>
-                </div>
-              )}
-
-              {state?.success && (
-                <div className="rounded-md bg-green-50 p-4">
-                  <div className="text-sm text-green-700">
-                    Thank you for your information. Your comment has been
-                    submitted and will be reviewed.
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {isPending ? 'Submitting...' : 'Submit Information'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Login prompt for non-authenticated users */}
-        {!isAuthenticated && (
-          <div className="mb-8 bg-gray-50 rounded-lg p-6 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Have Information to Share?
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Sign in or create an account to contribute information that could
-              help bring this person home.
-            </p>
-            <div className="space-x-3">
-              <Link
-                href="/auth/signin"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Create Account
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* Anonymous Comment Form - Always visible */}
+        <AnonymousCommentForm
+          personId={personId}
+          onSubmit={formAction}
+          isPending={isPending}
+          state={state}
+        />
 
         {/* Comments List */}
         <div className="space-y-6">
-          {comments.length > 0 ? (
-            comments.map(comment => (
+          {approvedComments.length > 0 ? (
+            approvedComments.map(comment => (
               <div
                 key={comment.id}
-                className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0"
+                className="border-l-4 border-blue-400 pl-4 py-4"
               >
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <svg
-                        className="h-5 w-5 text-gray-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center">
                       <p className="text-sm font-medium text-gray-900">
-                        {getAuthorName(comment.author)}
+                        {getDisplayName(comment)}
                       </p>
+                      <span className="mx-2 text-gray-400">•</span>
                       <p className="text-sm text-gray-500">
                         {formatDate(comment.createdAt)}
                       </p>
                     </div>
-                    <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
-                      {comment.content}
-                    </div>
+                    {comment.content && !comment.displayNameOnly && (
+                      <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
+                        {comment.content}
+                      </div>
+                    )}
+                    {comment.displayNameOnly && (
+                      <div className="mt-1 text-sm text-gray-500 italic">
+                        Showing support
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -285,14 +124,14 @@ export default function CommentSection({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
                 />
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No comments yet
+                No support messages yet
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Be the first to share information that could help.
+                Be the first to show your support for this person.
               </p>
             </div>
           )}

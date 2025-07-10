@@ -48,15 +48,6 @@ async function getPersonData(townSlug: string, personSlug: string) {
         where: {
           isActive: true,
         },
-        include: {
-          author: {
-            select: {
-              firstName: true,
-              lastName: true,
-              username: true,
-            },
-          },
-        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -102,6 +93,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const serializedPerson = {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+    stories: person.stories || [],
+    comments: person.comments || [],
   };
 
   // Determine which layout and theme to use

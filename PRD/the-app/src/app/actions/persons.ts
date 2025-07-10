@@ -277,3 +277,49 @@ export async function deletePerson(id: string) {
     };
   }
 }
+
+export async function togglePersonVisibility(
+  personId: string,
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'persons', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.person.update({
+      where: { id: personId },
+      data: { isActive },
+    });
+
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update person visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}
+
+export async function updateBulkPersonVisibility(
+  personIds: string[],
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'persons', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.person.updateMany({
+      where: { id: { in: personIds } },
+      data: { isActive },
+    });
+
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update bulk person visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}

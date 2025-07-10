@@ -142,3 +142,49 @@ export async function deleteTown(id: string) {
     };
   }
 }
+
+export async function toggleTownVisibility(
+  townId: string,
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'towns', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.town.update({
+      where: { id: townId },
+      data: { isActive },
+    });
+
+    revalidatePath('/admin/towns');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update town visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}
+
+export async function updateBulkTownVisibility(
+  townIds: string[],
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'towns', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.town.updateMany({
+      where: { id: { in: townIds } },
+      data: { isActive },
+    });
+
+    revalidatePath('/admin/towns');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update bulk town visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}

@@ -5,23 +5,24 @@
 ### ✅ Implemented Features
 - User Authentication & Authorization (NextAuth, bcrypt, roles)
 - Town & Person Management with full CRUD operations
-- Basic Comment System with privacy levels and file uploads
+- **Multi-Language Story Support** - Stories can be created and displayed in multiple languages with language toggle
+- **Anonymous Comment System** - Comments with required name fields, optional contact info, and support preferences
+- **Comment Moderation System** - Admin interface for approving/rejecting comments with editing capability
 - Theme and Layout System (10 layouts, 10 themes, admin interfaces)
 - Admin Interface with comprehensive data grids
 - Build Information & Configuration Page (/configs)
 - Health Check System (Redis and database connectivity tests)
-- Core Database Models (User, Town, Person, Comment, Role, Theme, Layout)
-- Basic Seed Data
+- Core Database Models (User, Town, Person, Story, Comment, Role, Theme, Layout)
+- Multi-language Seed Data (English, Spanish, French examples)
 
 ### ❌ Not Yet Implemented
 - **Detention Center Management** - No DetentionCenter model or ICE facility features
-- **WYSIWYG Editor** - Story field is plain text, not HTML
+- **WYSIWYG Editor** - Story content is plain text, not HTML
 - **Google reCAPTCHA** - No spam protection on comment forms
 - **Enhanced Authentication** - No environment override credentials (SYSTEM_USERNAME_OVERRIDE, etc.)
 - **Site Protection** - No beta access control (SITE_BLOCK_USERNAME/PASSWORD)
 - **Configurable Image Limits** - No IMAGE_UPLOAD_MAX_SIZE_MB or IMAGE_STORAGE_MAX_SIZE_KB
 - **Live Theme Editor** - No on-page theme editing for admins
-- **Anonymous Comment Features** - No reCAPTCHA, no Redis draft storage
 - **Search Functionality** - No search implementation
 - **Comprehensive Docker Setup** - Basic Dockerfile exists but no full docker-compose
 
@@ -29,6 +30,7 @@
 - **Redis Infrastructure** - Connection exists but not used for drafts/temporary storage
 - **Environment Variables** - Layout/theme defaults work but no auth overrides
 - **Image Processing** - Pipeline exists but no configurable size limits
+- **User Dependencies** - Comments no longer require user accounts but authentication system still exists
 
 ## Executive Summary
 
@@ -53,15 +55,31 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Privacy controls for sensitive information (family vs. public view)
 
 ### 3. Community Engagement
-- Public comment system with file upload capabilities
-- Anonymous commenting with email verification *(no reCAPTCHA protection)*
-- Support testimonials and advocacy messages
-- Photo and video attachment support
-- Privacy controls (public, family-only, officials-only)
-- Login prompt for existing users during anonymous submission *(not implemented)*
-- Comment preservation during authentication flow *(not implemented)*
+- **Anonymous comment system with no authentication required**
+- Required fields: First name, Last name
+- Optional fields: Email, Phone, Support message
+- Three support options:
+  - "I want to help more, please contact me"
+  - "Display just my name as supporting"
+  - "Display my name and comment if family approves"
+- Comment moderation system with admin approval workflow
+- Admin can edit comments before approval
+- Moderator notes for tracking decisions
+- Only approved comments shown publicly
+- File upload capabilities *(implemented but not in anonymous form)*
+- Privacy controls *(basic implementation)*
 
-### 4. Visual Customization
+### 4. Multi-Language Support
+- **Story Model** - Separate database model for stories with language support
+- Language codes using ISO 639-1 standard (en, es, fr, etc.)
+- Story types: personal, detention, family
+- Language toggle UI that only appears when multiple languages exist
+- Seamless language switching without page reload
+- Support for unlimited languages per person
+- Multi-language story editor in admin interface
+- Sample data in English, Spanish, and French
+
+### 5. Visual Customization
 - 10 selectable layout templates
 - 10 color theme options
 - Live theme editing UI on main page (admin only) *(not implemented)*
@@ -72,7 +90,7 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Environment variable defaults for system-wide settings
 - Theme persistence for town vs. system level *(partial - no live editing)*
 
-### 5. Admin Interface
+### 6. Admin Interface
 - Grid-based management for all models including detention centers
 - Sort, filter, edit, delete, and insert capabilities
 - Image thumbnail previews with full-size viewing
@@ -83,8 +101,33 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - "Eye" icon to view detainees at specific centers (town-admin restricted)
 - Help/notes sections below each admin grid explaining functionality
 - Config screen with public/private info based on admin level
+- **Person Visibility Management**:
+  - Individual visibility toggle for each person (isActive field)
+  - Live status toggle buttons (similar to boolean toggles in other admin grids)
+  - Instant visual feedback with optimistic updates
+  - "Group By Town" checkbox for organized person listing
+  - Bulk actions per town: "Set All Visible" and "Set All Invisible"
+  - Global bulk actions: "Set All Visible" and "Set All Invisible" for entire grid
+  - Optimistic UI updates with rollback on failure
+  - Real-time visibility status display in grid
+  - Search functionality remains outside grouping and filters all persons regardless of grouping state
+- **Town Visibility Management**:
+  - Individual visibility toggle for each town (using existing isActive field)
+  - "Group By State" checkbox (defaulted to ON)
+  - Bulk actions per state: "Set All Visible" and "Set All Invisible"
+  - Global bulk actions: "Set All Visible" and "Set All Invisible" for entire grid
+  - Live status toggle buttons with instant visual feedback
+  - Optimistic UI updates with rollback on failure
+  - Search functionality remains outside grouping
+- **Comment Management Enhancement**:
+  - "Group By Person" checkbox for organizing comments
+  - Town selection dropdown to filter comments by town
+  - Bulk actions per person: "Approve All" and "Reject All"
+  - Global bulk actions for all filtered comments
+  - Maintains existing comment moderation features
+  - Search functionality remains outside grouping
 
-### 6. Detention Center Management *(NOT IMPLEMENTED)*
+### 7. Detention Center Management *(NOT IMPLEMENTED)*
 - Comprehensive detention center database
 - Web scraping integration from ICE facility locator
 - Admin interface to import facilities by state or all
@@ -96,7 +139,13 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Seeding script for Southern California facilities
 - Town-based access restrictions for viewing detainees
 
-### 7. Story Editor & Content Management *(NOT IMPLEMENTED)*
+### 8. Story Editor & Content Management *(PARTIALLY IMPLEMENTED)*
+- **Multi-Language Story Editor** - Create and edit stories in multiple languages
+- Language selection dropdown in admin forms
+- Story type selection (personal, detention, family)
+- Plain text editor *(WYSIWYG not implemented)*
+- Stories stored as separate entities with language codes
+- Automatic handling of story uniqueness per person/language/type
 - TinyMCE WYSIWYG editor for person stories
 - HTML content storage in database
 - Direct HTML input option for advanced users
@@ -104,21 +153,25 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Auto-save functionality
 - Content versioning for stories
 
-### 8. Enhanced Authentication & Security *(NOT IMPLEMENTED)*
+### 9. Enhanced Authentication & Security *(NOT IMPLEMENTED)*
 - System-level override credentials (SYSTEM_USERNAME_OVERRIDE, SYSTEM_PASSWORD_OVERRIDE)
 - Site-wide access control for beta testing (SITE_BLOCK_USERNAME, SITE_BLOCK_PASSWORD)
 - Environment-based authentication bypass for development
 - Secure credential storage separate from database
 - No display of override credentials in config screens
 
-### 9. Anonymous Participation *(PARTIALLY IMPLEMENTED)*
-- Anonymous comment submission with email verification *(no reCAPTCHA)*
-- Intelligent user detection based on email *(not implemented)*
-- Login prompt for existing users without losing comment data *(not implemented)*
-- Seamless transition from anonymous to authenticated *(not implemented)*
-- Email notification options for anonymous commenters *(not implemented)*
+### 10. Anonymous Participation *(IMPLEMENTED)*
+- **Full anonymous comment system - no authentication required**
+- Required commenter information: First name, Last name
+- Optional contact fields: Email, Phone
+- Support preference checkboxes
+- No user account creation or login required
+- Comments stored with commenter information
+- Admin moderation workflow for all comments
+- No reCAPTCHA protection *(not implemented)*
+- No email verification *(not implemented)*
 
-### 10. Docker & Deployment
+### 11. Docker & Deployment
 - Production-ready docker-compose configuration
 - Environment variable management through .env files
 - Default values for all non-sensitive configurations
@@ -138,9 +191,10 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 ### Database Schema
 - **Users**: Authentication and role management ✅
 - **Towns**: Geographic organization units ✅
-- **Persons**: Detained individual profiles with detention details *(basic fields only, no detention info)*
+- **Persons**: Detained individual profiles ✅ *(detention fields partially implemented)*
+- **Stories**: Multi-language story content with language and type support ✅
 - **DetentionCenters**: ICE facility information and management ❌ *(not implemented)*
-- **Comments**: Community support and testimonial records ✅
+- **Comments**: Anonymous support records with commenter info ✅
 - **Roles**: Permission-based access control ✅
 - **Layouts**: Visual theme templates ✅
 - **Themes**: Color scheme definitions ✅
@@ -209,35 +263,53 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Middle name ✅
 - Last name ✅
 - Alien ID number ✅
-- Detention center (foreign key) ❌ *(not implemented)*
-- Detention date ❌ *(not implemented)*
-- Case number ❌ *(not implemented)*
-- Bond amount ❌ *(not implemented)*
+- Detention center (foreign key) ✅
+- Detention date ✅
+- Case number ✅
+- Bond amount (Decimal type) ✅
 - Legal representative info ❌ *(not implemented)*
 - US Address (full) ✅
 - International address (e.g., Mexico) ✅
 - Primary picture/video ✅
 - Secondary media (up to 3) ✅
-- Story (HTML from WYSIWYG) *(plain text field only)*
-- Detention status (detained/released/deported/in-proceedings) ❌ *(not implemented)*
+- Stories (separate Story model with multi-language support) ✅
+- Detention status ✅
 - Privacy settings per field ❌ *(not implemented)*
 - Associated town ✅
 - Admin users ✅
 - Created/updated timestamps ✅
 
+### Story Model *(NEW)*
+- ID (string GUID)
+- Person ID (foreign key)
+- Language (ISO 639-1 code, default: "en")
+- Story type (personal, detention, family)
+- Content (text)
+- Active status
+- Unique constraint on person + language + type
+- Created/updated timestamps
+
 ### Comment Model
 - ID (string GUID)
 - Person ID (foreign key)
-- Submitter information (optional)
-- Submitter email (required for anonymous)
-- Comment text
-- Support statement
-- Attached files (up to 3 images/videos)
-- Privacy level (public/family/officials)
-- Identity verification attachments
-- Anonymous flag
-- Temp data (for login flow preservation)
-- Approval status
+- **No user/author relationship - fully anonymous**
+- First name (required)
+- Last name (required)
+- Email (optional)
+- Phone (optional)
+- Comment content (optional)
+- Support preferences:
+  - wantsToHelpMore (boolean)
+  - displayNameOnly (boolean)
+  - requiresFamilyApproval (boolean)
+- Comment type (support, etc.)
+- Visibility level
+- Approval status with approval tracking:
+  - isApproved (boolean)
+  - approvedAt (timestamp)
+  - approvedBy (user ID)
+- Moderator notes
+- Active status
 - Created/updated timestamps
 
 ## User Experience Requirements
@@ -478,21 +550,40 @@ model Town {
 }
 
 model Person {
-  id              String   @id @default(cuid())
-  firstName       String
-  middleName      String?
-  lastName        String
-  alienIdNumber   String?
-  usAddress       String
-  primaryPicture  String?
-  secondaryPics   String[]
-  story           String?
-  townId          String
-  town            Town     @relation(fields: [townId], references: [id])
-  comments        Comment[]
-  adminUsers      PersonAccess[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                   String         @id @default(cuid())
+  firstName            String
+  middleName           String?
+  lastName             String
+  alienIdNumber        String?
+  detentionCenterId    String?
+  detentionCenter      DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
+  dateDetained         DateTime?
+  bondAmount           Decimal?       @db.Decimal(10, 2)
+  caseNumber           String?
+  detentionStatus      String?        @default("detained")
+  usAddress            String?
+  internationalAddress String?
+  stories              Story[]        // Multi-language stories
+  townId               String
+  town                 Town           @relation(fields: [townId], references: [id])
+  comments             Comment[]
+  personImages         PersonImage[]
+  adminUsers           PersonAccess[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model Story {
+  id        String  @id @default(cuid())
+  language  String  @default("en") // ISO 639-1 code
+  storyType String  @default("personal") // personal, detention, family
+  content   String  @db.Text
+  isActive  Boolean @default(true)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@unique([personId, language, storyType])
+  @@map("stories")
 }
 ```
 
@@ -938,29 +1029,32 @@ Each admin section must include:
 - **Interactive Elements**: Document which columns are clickable
 - **Tooltips**: Hover information for complex features
 
-### Anonymous Comment Flow
+### Anonymous Comment Flow *(IMPLEMENTED)*
 1. **Initial Submission**:
-   - User enters comment without logging in
-   - Google Invisible reCAPTCHA v2 validates in background
-   - No email or personal information required
-   - Comment saved after CAPTCHA validation
+   - No authentication required
+   - Required fields: First name, Last name
+   - Optional fields: Email, Phone, Comment message
+   - Three support preference checkboxes
+   - Form validation with clear error messages
+   - No reCAPTCHA *(not implemented)*
 
-2. **Temporary Storage**:
-   - React state: Draft stored in component state (if Redis unavailable)
-   - Redis: Draft stored with session key and 1-hour TTL
-   - Key pattern: `session:${sessionId}:comment:${personId}:draft`
-   - Manual deletion after successful submission
+2. **Admin Moderation**:
+   - All comments start as unapproved
+   - Admin sees pending comments in moderation interface
+   - Can edit comment content before approval
+   - Must provide moderator notes for rejection
+   - Approval updates timestamp and approver ID
 
-3. **Optional Authentication**:
-   - "Sign in for attribution" option shown
-   - Comment data preserved during login flow
-   - After login, comment posted with user attribution
-   - Temporary data deleted from Redis/cleared from state
+3. **Public Display**:
+   - Only approved comments shown on person's page
+   - Comments display commenter's name
+   - Support preferences respected
+   - Comment count includes only approved comments
 
-4. **Spam Prevention**:
-   - Invisible reCAPTCHA prevents bots
-   - No user interaction for legitimate users
-   - Falls back to challenge if suspicious
+4. **Data Storage**:
+   - All commenter information stored in Comment model
+   - No user account association
+   - Complete audit trail with moderator actions
 
 ### WYSIWYG Editor Requirements
 - **Editor**: TinyMCE

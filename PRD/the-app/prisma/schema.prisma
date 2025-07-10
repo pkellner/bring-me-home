@@ -30,7 +30,6 @@ model User {
 
   // Content relationships
   supporters   Supporter[]
-  comments     Comment[]
   personImages PersonImage[]
 
   // Audit fields
@@ -302,8 +301,19 @@ model Comment {
   id      String @id @default(cuid())
   content String @db.Text
   
+  // Commenter information (for anonymous comments)
+  firstName  String?
+  lastName   String?
+  email      String?
+  phone      String?
+  
+  // Support options
+  wantsToHelpMore     Boolean @default(false) // I want to help more, please contact me
+  displayNameOnly     Boolean @default(false) // Display just my name as supporting
+  requiresFamilyApproval Boolean @default(true) // Display my name and comment if family approves
+  
   // Comment type
-  type    String @default("general") // general, update, legal, family
+  type    String @default("support") // support, update, legal, family
   
   // Privacy controls
   visibility String @default("public") // public, supporters, family, private
@@ -319,8 +329,6 @@ model Comment {
   // Relationships
   personId String
   person   Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
-  authorId String?
-  author   User?   @relation(fields: [authorId], references: [id])
   
   // Attachments
   attachments Attachment[]
@@ -328,12 +336,14 @@ model Comment {
   // Audit fields
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  approvedAt DateTime?
+  approvedBy String? // User ID of approver
   
   @@index([personId])
   @@index([visibility])
   @@index([type])
   @@index([isApproved])
-  @@index([authorId])
+  @@index([email])
   @@map("comments")
 }
 

@@ -4,43 +4,39 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
-  content: z
-    .string()
-    .min(10, 'Comment must be at least 10 characters long')
-    .max(2000, 'Comment must be less than 2000 characters'),
-  visibility: z.enum(['public', 'supporters', 'family', 'private'], {
-    errorMap: () => ({ message: 'Invalid visibility level' }),
-  }),
+  firstName: z.string().min(1, 'First name is required').max(100),
+  lastName: z.string().min(1, 'Last name is required').max(100),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  content: z.string().optional().or(z.literal('')),
+  wantsToHelpMore: z.boolean().default(false),
+  displayNameOnly: z.boolean().default(false),
+  requiresFamilyApproval: z.boolean().default(true),
 });
 
 export async function submitComment(
   prevState: {
     success?: boolean;
     error?: string;
-    errors?: {
-      content?: string[];
-      visibility?: string[];
-    };
+    errors?: Record<string, string[]>;
   },
   formData: FormData
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return {
-        success: false,
-        error: 'You must be logged in to submit a comment',
-      };
-    }
-
     const rawData = {
       personId: formData.get('personId') as string,
+      firstName: formData.get('firstName') as string,
+      lastName: formData.get('lastName') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
       content: formData.get('content') as string,
-      visibility: formData.get('visibility') as string,
+      wantsToHelpMore: formData.get('wantsToHelpMore') === 'true',
+      displayNameOnly: formData.get('displayNameOnly') === 'true',
+      requiresFamilyApproval: formData.get('requiresFamilyApproval') === 'true',
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -52,12 +48,12 @@ export async function submitComment(
       };
     }
 
-    const { personId, content, visibility } = validatedData.data;
+    const data = validatedData.data;
 
     // Check if person exists and is active
     const person = await prisma.person.findFirst({
       where: {
-        id: personId,
+        id: data.personId,
         isActive: true,
       },
     });
@@ -72,11 +68,19 @@ export async function submitComment(
     // Create the comment
     await prisma.comment.create({
       data: {
-        content,
-        visibility,
-        personId,
-        authorId: session.user.id,
+        personId: data.personId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email || null,
+        phone: data.phone || null,
+        content: data.content || '',
+        wantsToHelpMore: data.wantsToHelpMore,
+        displayNameOnly: data.displayNameOnly,
+        requiresFamilyApproval: data.requiresFamilyApproval,
+        type: 'support',
+        visibility: 'public',
         isActive: true,
+        isApproved: false, // Requires approval
       },
     });
 
@@ -89,5 +93,120 @@ export async function submitComment(
       success: false,
       error: 'An unexpected error occurred. Please try again.',
     };
+  }
+}
+
+export async function approveComment(
+  commentId: string,
+  moderatorNotes?: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized');
+  }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: {
+      isApproved: true,
+      approvedAt: new Date(),
+      approvedBy: session.user.id,
+      moderatorNotes: moderatorNotes || null,
+    },
+  });
+
+  return { success: true };
+}
+
+export async function rejectComment(commentId: string, moderatorNotes: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized');
+  }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: {
+      isActive: false,
+      moderatorNotes,
+    },
+  });
+
+  return { success: true };
+}
+
+export async function updateCommentAndApprove(
+  commentId: string,
+  content: string,
+  moderatorNotes?: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized');
+  }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: {
+      content,
+      isApproved: true,
+      approvedAt: new Date(),
+      approvedBy: session.user.id,
+      moderatorNotes: moderatorNotes || null,
+    },
+  });
+
+  return { success: true };
+}
+
+export async function approveBulkComments(commentIds: string[]) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    await prisma.comment.updateMany({
+      where: { id: { in: commentIds } },
+      data: {
+        isApproved: true,
+        approvedAt: new Date(),
+        approvedBy: session.user.id,
+      },
+    });
+
+    revalidatePath('/admin/comments');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to approve bulk comments:', error);
+    return { success: false, error: 'Failed to approve comments' };
+  }
+}
+
+export async function rejectBulkComments(
+  commentIds: string[],
+  moderatorNotes: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    await prisma.comment.updateMany({
+      where: { id: { in: commentIds } },
+      data: {
+        isApproved: false,
+        approvedAt: new Date(),
+        approvedBy: session.user.id,
+        moderatorNotes,
+      },
+    });
+
+    revalidatePath('/admin/comments');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to reject bulk comments:', error);
+    return { success: false, error: 'Failed to reject comments' };
   }
 }

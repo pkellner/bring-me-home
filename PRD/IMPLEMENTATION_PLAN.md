@@ -1,436 +1,748 @@
-# Bring Them Home - Implementation Plan
+# Implementation Plan for Bring Them Home Application
 
 ## Overview
-This implementation plan outlines the step-by-step approach to building the "Bring Them Home" application for tracking and advocating for ICE detainees, prioritizing core functionality first, then adding administrative features.
+This document outlines the implementation plan for building the "Bring Them Home" application, a web platform designed to bring attention to individuals detained by ICE, enabling families and communities to share stories, gather support, and organize advocacy efforts.
 
-## Phase 1: Project Foundation (Week 1-2)
+## Current Status
 
-### 1.1 Project Setup
-- [x] Initialize Next.js 15 project with TypeScript
-- [x] Configure TailwindCSS for styling
-- [x] Set up ESLint and Prettier
-- [x] Configure package.json with required dependencies
-- [x] Set up git repository and initial commit
+### ✅ Completed Components
+1. **Database Schema** - Complete with Person, Story (multi-language), Comment models
+2. **User Authentication** - NextAuth implementation with role-based access
+3. **Basic CRUD Operations** - Towns, Persons, Comments
+4. **Multi-Language Story System** - Stories with language toggle UI
+5. **Anonymous Comment System** - Full implementation with moderation
+6. **Theme & Layout System** - 10 themes, 10 layouts with admin management
+7. **Admin Interface** - Comprehensive grids for all models
+8. **Comment Moderation** - Admin approval workflow with editing
+9. **Health Check System** - Redis and database connectivity tests
+10. **Build Configuration** - Version tracking and config display
+11. **Seed Data** - Multi-language examples (English, Spanish, French)
 
-### 1.2 Database Infrastructure
-- [x] Install and configure Prisma ORM
-- [x] Set up MySQL database connection
-- [x] Design and implement database schema*4
-- [x] Create migration files
-- [x] Set up database seeding infrastructure
+### ❌ Not Yet Implemented
+1. **Detention Center Features** - Model exists but no UI/functionality
+2. **WYSIWYG Editor** - Story content is plain text only
+3. **Google reCAPTCHA** - No spam protection
+4. **Enhanced Security** - Environment override credentials
+5. **Live Theme Editor** - On-page theme editing
+6. **Search Functionality** - No search implementation
+7. **Image Processing Limits** - Configurable upload/storage limits
+8. **Docker Production Setup** - Full docker-compose configuration
 
-### 1.3 Core Dependencies
-```bash
-npm install prisma @prisma/client mysql2
-npm install zod
-npm install @types/node
-npm install tailwindcss @tailwindcss/forms
-npm install next-auth
-npm install bcryptjs @types/bcryptjs
+## Phase 1: Core Infrastructure ✅ COMPLETED
+
+### Goals
+- Project setup with Next.js 15, TypeScript, TailwindCSS
+- Database infrastructure with Prisma and MySQL
+- Authentication system with NextAuth
+- Role-based access control
+- Basic CRUD operations
+
+### Implementation Details
+All core infrastructure has been successfully implemented including:
+- Next.js 15 project with TypeScript
+- Prisma ORM with MySQL database
+- NextAuth with bcrypt password hashing
+- Role-based permissions (site-admin, town-admin, person-admin)
+- Complete CRUD operations for all models
+
+## Phase 2: Comment System Enhancement ✅ COMPLETED
+
+### Goals
+- ✅ Implement anonymous comment system (no auth required)
+- ✅ Add required name fields and optional contact info
+- ✅ Add support preference checkboxes
+- ✅ Create comment moderation interface
+- ✅ Add ability to edit comments before approval
+- ❌ Add Google reCAPTCHA (not implemented)
+- ❌ Add file upload to comments (not in anonymous form)
+
+### 2.1 Anonymous Comment Implementation ✅ COMPLETED
+```typescript
+// components/person/AnonymousCommentForm.tsx
+export default function AnonymousCommentForm({ personId }: { personId: string }) {
+  const [state, formAction] = useFormState(submitComment, {
+    success: false,
+  });
+
+  return (
+    <form action={formAction} className="space-y-6">
+      <input type="hidden" name="personId" value={personId} />
+      
+      {/* Required Fields */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label htmlFor="firstName">First Name *</label>
+          <input type="text" id="firstName" name="firstName" required />
+        </div>
+        <div>
+          <label htmlFor="lastName">Last Name *</label>
+          <input type="text" id="lastName" name="lastName" required />
+        </div>
+      </div>
+
+      {/* Optional Contact */}
+      <div>
+        <label htmlFor="email">Email (optional)</label>
+        <input type="email" id="email" name="email" />
+      </div>
+      
+      {/* Support Preferences */}
+      <div className="space-y-4">
+        <label>
+          <input type="checkbox" name="wantsToHelpMore" value="true" />
+          I want to help more, please contact me
+        </label>
+        <label>
+          <input type="checkbox" name="displayNameOnly" value="true" />
+          Display just my name as supporting
+        </label>
+        <label>
+          <input type="checkbox" name="requiresFamilyApproval" value="true" />
+          Display my name and comment if family approves
+        </label>
+      </div>
+
+      <button type="submit">Submit Support</button>
+    </form>
+  );
+}
 ```
 
-## Phase 2: Authentication & Authorization (Week 2-3)
+### 2.2 Comment Moderation Enhancement ✅ COMPLETED
+```typescript
+// components/admin/CommentModerationModal.tsx
+export default function CommentModerationModal({ 
+  comment, 
+  isOpen, 
+  onClose 
+}: CommentModerationModalProps) {
+  const [content, setContent] = useState(comment.content || '');
+  const [moderatorNotes, setModeratorNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-### 2.1 Authentication System
-- [x] Implement NextAuth.js configuration
-- [x] Create user registration/login forms
-- [x] Set up password hashing with bcrypt
-- [x] Configure session management
-- [x] Create authentication middleware
+  const handleApprove = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateCommentAndApprove(
+        comment.id,
+        content,
+        moderatorNotes
+      );
+      toast.success('Comment approved successfully');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to approve comment');
+    }
+    setIsSubmitting(false);
+  };
 
-### 2.2 Role-Based Access Control
-- [x] Implement role-based permission system
-- [x] Create authorization middleware
-- [x] Set up route protection
-- [x] Configure role-specific redirects
+  const handleReject = async () => {
+    if (!moderatorNotes.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await rejectComment(comment.id, moderatorNotes);
+      toast.success('Comment rejected');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to reject comment');
+    }
+    setIsSubmitting(false);
+  };
 
-### 2.3 User Management
-- [x] Create user CRUD operations
-- [x] Implement role assignment system
-- [x] Set up town/person access controls
-- [x] Create user profile management
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Moderate Comment</DialogTitle>
+        </DialogHeader>
+        
+        {/* Comment details and editing form */}
+        <div className="space-y-4">
+          <div>
+            <h3>Commenter Information</h3>
+            <p>Name: {comment.firstName} {comment.lastName}</p>
+            {comment.email && <p>Email: {comment.email}</p>}
+            {comment.phone && <p>Phone: {comment.phone}</p>}
+          </div>
+          
+          <div>
+            <label>Comment Content</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full h-32"
+            />
+          </div>
+          
+          <div>
+            <label>Moderator Notes</label>
+            <textarea
+              value={moderatorNotes}
+              onChange={(e) => setModeratorNotes(e.target.value)}
+              placeholder="Required for rejection"
+              className="w-full h-20"
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={handleReject} variant="destructive">
+            Reject
+          </Button>
+          <Button onClick={handleApprove} variant="default">
+            Approve & Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
 
-## Phase 3: Core Data Models (Week 3-4)
+## Phase 3: Story Enhancement ✅ PARTIALLY COMPLETED
 
-### 3.1 Database Models Implementation
-- [x] Create User model with relationships
-- [x] Implement Town model
-- [x] Build Person model with image handling
-- [x] Create Comment model
-- [x] Set up Role and Permission models
-- [x] Configure Layout and Theme models
-- [x] Add layoutId and themeId to Town and Person models
-- [ ] Create DetentionCenter model
-- [ ] Add detention-specific fields to Person model
-- [ ] Update Comment model for reCAPTCHA support
-- [ ] Add image size limit fields to User and Town models
+### Goals
+- ✅ Implement multi-language story support
+- ✅ Create Story model with language codes
+- ✅ Add language toggle UI (only shows with multiple languages)
+- ✅ Create multi-language story editor
+- ✅ Add story type support (personal, detention, family)
+- ❌ Implement TinyMCE WYSIWYG editor
+- ❌ Add HTML content support
+- ❌ Create story versioning system
+- ❌ Add media embedding
 
-### 3.2 Zod Validation Schemas*5
-- [x] Create validation schemas for all models
-- [x] Implement client-side validation
-- [x] Set up server-side validation
-- [x] Create type-safe API endpoints
+### 3.1 Multi-Language Story Implementation ✅ COMPLETED
+```typescript
+// components/person/StorySection.tsx
+export default function StorySection({ 
+  stories, 
+  storyType, 
+  title 
+}: StorySectionProps) {
+  const availableLanguages = [...new Set(stories.map(s => s.language))];
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    availableLanguages.includes('en') ? 'en' : availableLanguages[0] || 'en'
+  );
+  
+  const currentStory = stories.find(s => s.language === selectedLanguage);
+  
+  if (!currentStory && stories.length === 0) return null;
+  
+  return (
+    <div className="bg-white overflow-hidden shadow rounded-lg">
+      <div className="px-4 py-5 sm:p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          
+          {availableLanguages.length > 1 && (
+            <LanguageToggle
+              languages={availableLanguages}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+          )}
+        </div>
+        
+        {currentStory ? (
+          <div className="prose max-w-none">
+            {currentStory.content.split('\n').map((paragraph, index) => (
+              <p key={index} className="mb-4">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 italic">
+            No {title.toLowerCase()} available in {getLanguageName(selectedLanguage)}.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
-### 3.3 React Server Functions
-- [x] Implement secure database operations
-- [x] Create CRUD functions for all models
-- [x] Set up error handling
-- [x] Add input sanitization
+// components/admin/MultiLanguageStoryEditor.tsx
+export default function MultiLanguageStoryEditor({ 
+  personId, 
+  stories 
+}: Props) {
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedType, setSelectedType] = useState<StoryType>('personal');
+  const [content, setContent] = useState('');
+  
+  // Load existing story when language/type changes
+  useEffect(() => {
+    const existingStory = stories.find(
+      s => s.language === selectedLanguage && s.storyType === selectedType
+    );
+    setContent(existingStory?.content || '');
+  }, [selectedLanguage, selectedType, stories]);
+  
+  const handleSave = async () => {
+    const formData = new FormData();
+    formData.append('personId', personId);
+    formData.append('language', selectedLanguage);
+    formData.append('storyType', selectedType);
+    formData.append('content', content);
+    
+    const result = await saveStory({}, formData);
+    if (result.success) {
+      toast.success('Story saved successfully');
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4">
+        <select 
+          value={selectedLanguage} 
+          onChange={(e) => setSelectedLanguage(e.target.value)}
+        >
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          {/* Add more languages as needed */}
+        </select>
+        
+        <select 
+          value={selectedType} 
+          onChange={(e) => setSelectedType(e.target.value as StoryType)}
+        >
+          <option value="personal">Personal Story</option>
+          <option value="detention">Detention Story</option>
+          <option value="family">Family Story</option>
+        </select>
+      </div>
+      
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full h-64"
+        placeholder={`Enter ${selectedType} story in ${getLanguageName(selectedLanguage)}...`}
+      />
+      
+      <button onClick={handleSave} className="btn-primary">
+        Save Story
+      </button>
+    </div>
+  );
+}
+```
 
-## Phase 4: Seed Data Implementation (Week 4-5)
+## Phase 3.5: Person Visibility Management
 
-### 4.1 Seed Data Creation
-- [x] Create California towns seed data
-- [x] Generate person profiles (2-5 per town)
-- [x] Create sample comments (5-15 per person)
-- [x] Set up image placeholder system*1
-- [x] Create admin user accounts
-- [ ] Scrape Southern California detention centers from ICE website
-- [ ] Create detention center seed data
-- [ ] Update person profiles with detention information
-- [ ] Add anonymous comment examples
+### Goals
+- Implement individual visibility toggles for each person using the isActive field
+- Add "Group By Town" checkbox for organized person listing
+- Implement bulk visibility actions per town
+- Add global visibility actions for all persons
+- Use optimistic UI updates with rollback on failure
+- Display real-time visibility status in admin grid
 
-### 4.2 Database Population
-- [x] Implement seeding scripts
-- [x] Create data validation checks
-- [x] Set up development data refresh
-- [x] Test data integrity
+### 3.5.1 Create Visibility Toggle Component
+```typescript
+// components/admin/PersonVisibilityToggle.tsx
+'use client';
 
-## Phase 5: Public Interface (Week 5-7)
+import { useState, useTransition } from 'react';
+import { togglePersonVisibility } from '@/app/actions/persons';
 
-### 5.1 Town/Person Public Pages
-- [x] Create town landing pages
-- [x] Implement person profile pages
-- [x] Add image display components
-- [x] Create story/description sections
-- [x] Implement responsive design
+interface PersonVisibilityToggleProps {
+  personId: string;
+  initialIsActive: boolean;
+  onUpdate?: (personId: string, isActive: boolean) => void;
+}
 
-### 5.2 Comment System
-- [x] Build comment submission forms
-- [x] Implement file upload functionality
-- [x] Create privacy level controls
-- [x] Add form validation with useActionState
-- [x] Set up comment display components
-- [ ] Implement Google Invisible reCAPTCHA v2
-- [ ] Add reCAPTCHA validation for anonymous comments
-- [ ] Create optional login prompt
-- [ ] Implement React state for comment drafts (no Redis)
-- [ ] Add Redis storage for drafts (when available)
-- [ ] Server-side reCAPTCHA verification
-- [ ] Add session ID generation for Redis keys
+export default function PersonVisibilityToggle({
+  personId,
+  initialIsActive,
+  onUpdate
+}: PersonVisibilityToggleProps) {
+  const [isActive, setIsActive] = useState(initialIsActive);
+  const [isPending, startTransition] = useTransition();
 
-### 5.3 Theme and Layout System
-- [x] Create 10 layout templates (Grid, Stack, Hero, Sidebar Left/Right, Magazine, Card, Minimal, Gallery, Full Width)
-- [x] Implement 10 color themes with custom theme creator
-- [x] Add theme switching functionality
-- [x] Create responsive breakpoints
-- [x] Test mobile compatibility
-- [x] Build LayoutRenderer component for dynamic layout rendering
-- [x] Create ThemeEditor component with color picker
-- [x] Implement layout and theme preview components
-- [x] Add layout/theme assignment to towns and persons
-- [ ] Add live theme editor UI on main pages
-- [ ] Implement town vs system theme persistence
-- [ ] Add theme editing permissions by role
+  const handleToggle = async () => {
+    const newStatus = !isActive;
+    
+    // Optimistic update
+    setIsActive(newStatus);
+    if (onUpdate) {
+      onUpdate(personId, newStatus);
+    }
 
-## Phase 6: File Upload & Media Management (Week 7-8)
+    startTransition(async () => {
+      try {
+        const result = await togglePersonVisibility(personId, newStatus);
+        if (!result.success) {
+          // Rollback on failure
+          setIsActive(!newStatus);
+          if (onUpdate) {
+            onUpdate(personId, !newStatus);
+          }
+        }
+      } catch (error) {
+        // Rollback on error
+        setIsActive(!newStatus);
+        if (onUpdate) {
+          onUpdate(personId, !newStatus);
+        }
+      }
+    });
+  };
 
-### 6.1 Image Upload System
-- [x] Implement secure file upload
-- [x] Create thumbnail generation
-- [x] Set up file size validation
-- [x] Add image compression
-- [x] Create file storage organization
-- [ ] Add configurable upload size limits (IMAGE_UPLOAD_MAX_SIZE_MB)
-- [ ] Add configurable storage size limits (IMAGE_STORAGE_MAX_SIZE_KB)
-- [ ] Implement multi-level limit hierarchy (user > town > system)
-- [ ] Add automatic resizing to storage limit
-- [ ] Create image processing pipeline with WebP conversion
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isPending}
+      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+        isActive
+          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {isActive ? 'Visible' : 'Hidden'}
+    </button>
+  );
+}
+```
 
-### 6.2 Media Display Components
-- [x] Build image gallery components
-- [x] Create thumbnail preview system
-- [x] Add full-size image modals
-- [x] Implement video support
-- [x] Create file size indicators
+### 3.5.2 Update PersonsGrid with Visibility Management
+```typescript
+// Add to PersonsGrid component
 
-## Phase 6.5: WYSIWYG Editor Integration (Week 8)
+// State for grouping by town
+const [groupByTown, setGroupByTown] = useState(false);
 
-### 6.5.1 Editor Implementation
-- [ ] Integrate TinyMCE editor
-- [ ] Configure editor toolbar and features
-- [ ] Implement HTML sanitization
-- [ ] Add direct HTML input mode
-- [ ] Create preview functionality
+// Handle bulk visibility updates
+const handleBulkVisibilityUpdate = async (personIds: string[], isActive: boolean) => {
+  // Optimistically update all persons
+  const originalPersons = [...persons];
+  setPersons(prev =>
+    prev.map(person =>
+      personIds.includes(person.id) ? { ...person, isActive } : person
+    )
+  );
 
-### 6.5.2 Content Storage
-- [ ] Update Person model with HTML story field
-- [ ] Migrate existing plain text stories
-- [ ] Implement versioning system
-- [ ] Add auto-save functionality
+  try {
+    const result = await updateBulkPersonVisibility(personIds, isActive);
+    if (!result.success) {
+      // Rollback on failure
+      setPersons(originalPersons);
+      setError('Failed to update visibility');
+    }
+  } catch (error) {
+    // Rollback on error
+    setPersons(originalPersons);
+    setError('Failed to update visibility');
+  }
+};
 
-## Phase 7: Advanced Features (Week 8-9)
+// Group persons by town if enabled
+const groupedPersons = groupByTown
+  ? persons.reduce((acc, person) => {
+      const townKey = `${person.town.name}, ${person.town.state}`;
+      if (!acc[townKey]) {
+        acc[townKey] = [];
+      }
+      acc[townKey].push(person);
+      return acc;
+    }, {} as Record<string, Person[]>)
+  : { 'All Persons': persons };
 
-### 7.1 Search and Navigation
-- [ ] Implement search functionality
-- [x] Create navigation components
-- [ ] Add breadcrumb navigation
-- [x] Set up URL routing
-- [ ] Create sitemap generation
+// Add visibility column to columns array
+{
+  key: 'isActive',
+  label: 'Visibility',
+  render: (value, record) => (
+    <PersonVisibilityToggle
+      personId={record.id}
+      initialIsActive={record.isActive}
+      onUpdate={handlePersonVisibilityUpdate}
+    />
+  ),
+}
+```
 
-### 7.2 Accessibility and Performance
-- [ ] Implement WCAG compliance
-- [ ] Add keyboard navigation
-- [ ] Create screen reader support
-- [ ] Optimize image loading
-- [ ] Add performance monitoring
+### 3.5.3 Add Bulk Action UI
+```typescript
+// components/admin/PersonBulkActions.tsx
+interface PersonBulkActionsProps {
+  onSetAllVisible: () => void;
+  onSetAllInvisible: () => void;
+  groupByTown: boolean;
+  onGroupByTownChange: (checked: boolean) => void;
+}
 
-## Phase 8: Admin Interface (Week 10-12)
+export default function PersonBulkActions({
+  onSetAllVisible,
+  onSetAllInvisible,
+  groupByTown,
+  onGroupByTownChange
+}: PersonBulkActionsProps) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onSetAllVisible}
+          className="btn btn-primary"
+        >
+          Set All Visible
+        </button>
+        <button
+          onClick={onSetAllInvisible}
+          className="btn btn-secondary"
+        >
+          Set All Invisible
+        </button>
+      </div>
+      
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={groupByTown}
+          onChange={(e) => onGroupByTownChange(e.target.checked)}
+          className="rounded"
+        />
+        <span>Group By Town</span>
+      </label>
+    </div>
+  );
+}
+```
 
-### 8.1 Admin Dashboard Framework
-- [x] Create admin layout components
-- [x] Implement navigation structure
-- [x] Set up role-based sections
-- [x] Create dashboard overview
-- [x] Add quick action buttons
+### 3.5.4 Server Actions
+```typescript
+// app/actions/persons.ts
 
-### 8.2 Data Management Grids
-- [x] Build reusable grid components
-- [x] Implement sort and filter functionality
-- [x] Create edit/delete/insert operations
-- [x] Add pagination with configurable rows
-- [x] Set up bulk operations (delete selected)
+export async function togglePersonVisibility(personId: string, isActive: boolean) {
+  try {
+    await prisma.person.update({
+      where: { id: personId },
+      data: { isActive }
+    });
+    
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}
 
-### 8.3 User Management Interface
-- [x] Create user administration panel
-- [x] Implement role assignment interface
-- [ ] Add user activity monitoring
-- [ ] Create user approval workflows
-- [x] Set up permission management
+export async function updateBulkPersonVisibility(personIds: string[], isActive: boolean) {
+  try {
+    await prisma.person.updateMany({
+      where: { id: { in: personIds } },
+      data: { isActive }
+    });
+    
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}
+```
 
-### 8.4 Layout and Theme Management
-- [x] Create admin interface for layouts (CRUD operations)
-- [x] Create admin interface for themes (CRUD operations)
-- [x] Implement layout preview in admin grid
-- [x] Implement theme preview with color display
-- [x] Add layout/theme selection in town forms
-- [x] Add layout/theme selection in person forms
-- [x] Add environment variables for system defaults (SYSTEM_DEFAULT_LAYOUT, SYSTEM_DEFAULT_THEME)
-- [ ] Create system config override interface for admins
-- [ ] Add layout/theme info to footer with admin edit capability
-- [ ] Display town-specific layout/theme in footer
-- [x] Update configs page to show layout/theme environment variables
+### 3.5.5 Implementation Notes
+- Use the existing `isActive` field on the Person model
+- Follow the optimistic UI pattern from comment moderation
+- Ensure proper role-based permissions for visibility updates
+- Add visual indicators for visibility status (green for visible, gray for hidden)
+- Group by town should maintain sorting and filtering capabilities
+- Bulk actions should show confirmation dialog for safety
+- Consider adding a visibility filter to show only visible/hidden persons
 
-### 8.6 Detention Center Management
-- [ ] Create detention center admin grid (CRUD)
-- [ ] Implement web scraping interface
-- [ ] Add state/all import options
-- [ ] Create progress indicators for import
-- [ ] Add "eye" icon to view detainees
-- [ ] Implement town-based access controls
-- [ ] Add facility image management with auto-resize to <50KB
-- [ ] Set up /public/images/detention-centers/ directory structure
-- [ ] Implement WebP conversion for images
-- [ ] Create thumbnail generation (max 20KB)
-- [ ] Create capacity tracking (admin only)
+## Phase 4: Detention Center Management (Week 4)
 
-### 8.7 Admin Help Documentation
-- [ ] Add "Notes" sections below each grid
-- [ ] Create icon legend documentation
-- [ ] Document clickable columns
-- [ ] Add keyboard shortcuts guide
-- [ ] Create tooltips for complex features
+### Goals
+- Create detention center UI components
+- Implement web scraping integration
+- Add admin management interface
+- Create detainee listing functionality
 
-### 8.5 Content Moderation
-- [x] Build comment moderation interface
-- [x] Create content approval workflows (approve/reject)
-- [ ] Implement spam detection
-- [ ] Add reporting functionality
-- [ ] Set up notification system
+### 4.1 Detention Center Model
+```typescript
+// Already exists in schema
+model DetentionCenter {
+  id                  String   @id @default(cuid())
+  name                String
+  facilityType        String
+  // ... other fields
+}
+```
 
-## Phase 9: Environment & Deployment (Week 12-13)
+### 4.2 Admin Interface
+- Create detention center grid with CRUD operations
+- Add import functionality by state
+- Implement progress indicators
+- Add facility image management
 
-### 9.1 Environment Configuration*2
-- [x] Set up environment variable management
-- [x] Create version tracking system
-- [x] Implement configuration validation
-- [x] Add environment-specific settings
-- [x] Create public configuration page (/configs)
-- [x] Implement build information tracking
-- [ ] Add SYSTEM_USERNAME_OVERRIDE and SYSTEM_PASSWORD_OVERRIDE
-- [ ] Implement SITE_BLOCK_USERNAME and SITE_BLOCK_PASSWORD
-- [ ] Add TOWN_DEFAULT and USER_DEFAULT
-- [x] Configure GITHUB_REPO_URL display
-- [ ] Add GOOGLE_RECAPTCHA_SITE_KEY (display for admin only)
-- [ ] Add GOOGLE_RECAPTCHA_SECRET_KEY (never display)
-- [x] Add REDIS_HOST and REDIS_PORT configuration
-- [x] Show Redis connection status (admin only)
-- [ ] Add IMAGE_UPLOAD_MAX_SIZE_MB to configs
-- [ ] Add IMAGE_STORAGE_MAX_SIZE_KB to configs
-- [x] Update configs page with admin-only sections
+## Phase 5: Search & Navigation (Week 5)
 
-### 9.2 Docker Configuration*3
-- [x] Create Dockerfile
-- [x] Set up docker-compose for development
-- [x] Configure production builds
-- [x] Add health check endpoints
-- [ ] Set up container orchestration
-- [ ] Create single docker-compose.yml with all configuration
-- [ ] Embed all environment variables directly in compose file
-- [ ] Add optional Redis service configuration
-- [ ] Add volume mappings for uploads, images, and Redis data
-- [ ] Implement database and Redis readiness checks
-- [ ] Remove need for separate .env file
+### Goals
+- Implement global search functionality
+- Add filters for towns, persons, detention centers
+- Create advanced search interface
+- Add breadcrumb navigation
 
-### 9.3 Production Deployment
-- [ ] Configure production database (Done with Coolify)
-- [ ] Set up SSL certificates (Done with Coolify)
-- [ ] Implement security headers (Done with Coolify)
-- [ ] Configure backup systems
-- [ ] Set up monitoring and logging
+### 5.1 Search Implementation
+```typescript
+// components/SearchBar.tsx
+interface SearchBarProps {
+  onSearch: (query: string, filters: SearchFilters) => void;
+}
 
-## Phase 9.5: Enhanced Authentication (Week 13)
+export function SearchBar({ onSearch }: SearchBarProps) {
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<SearchFilters>({
+    towns: [],
+    detentionCenters: [],
+    status: 'all'
+  });
+  
+  // Implementation details...
+}
+```
 
-### 9.5.1 System Override Authentication
-- [ ] Implement SYSTEM_USERNAME_OVERRIDE check
-- [ ] Add SYSTEM_PASSWORD_OVERRIDE validation
-- [ ] Create NextAuth custom provider
-- [ ] Ensure overrides bypass database
-- [ ] Hide override credentials from UI
+## Phase 6: Database Schema Updates ✅ PARTIALLY COMPLETED
 
-### 9.5.2 Site Protection
-- [ ] Implement SITE_BLOCK_USERNAME check
-- [ ] Add SITE_BLOCK_PASSWORD validation
-- [ ] Create middleware for site blocking
-- [ ] Design simple login UI for beta access
-- [ ] Add bypass for authenticated users
+### Goals
+- ✅ Add Story model for multi-language support
+- ✅ Update Comment model to remove user dependencies
+- ✅ Add anonymous commenter fields to Comment
+- ✅ Implement proper Decimal type for bondAmount
+- ❌ Add missing indexes
+- ❌ Implement soft deletes where appropriate
+- ❌ Add comprehensive audit logging
 
-### 9.5.3 Default Navigation
-- [ ] Implement TOWN_DEFAULT routing
-- [ ] Add USER_DEFAULT redirect
-- [ ] Create fallback for invalid defaults
-- [ ] Update home page navigation logic
+### 6.1 Schema Updates ✅ COMPLETED
+```prisma
+// Story model for multi-language support
+model Story {
+  id        String  @id @default(cuid())
+  language  String  @default("en") // ISO 639-1 language code
+  storyType String  @default("personal") // personal, detention, family
+  content   String  @db.Text
+  isActive  Boolean @default(true)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([personId, language, storyType])
+  @@map("stories")
+}
 
-### 9.5.4 reCAPTCHA Integration
-- [ ] Install @google-recaptcha/react package
-- [ ] Create reCAPTCHA component wrapper
-- [ ] Implement invisible reCAPTCHA on comment forms
-- [ ] Add server-side verification endpoint
-- [ ] Configure site key and secret key
-- [ ] Add fallback for reCAPTCHA failures
-- [ ] Test with Google reCAPTCHA admin console
+// Updated Comment model for anonymous support
+model Comment {
+  id                     String    @id @default(cuid())
+  personId               String
+  person                 Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Anonymous commenter fields
+  firstName              String?
+  lastName               String?
+  email                  String?
+  phone                  String?
+  
+  // Support preferences
+  wantsToHelpMore        Boolean   @default(false)
+  displayNameOnly        Boolean   @default(false)
+  requiresFamilyApproval Boolean   @default(true)
+  
+  content                String?   @db.Text
+  type                   String    @default("support")
+  visibility             String    @default("public")
+  
+  // Moderation fields
+  isActive               Boolean   @default(true)
+  isApproved             Boolean   @default(false)
+  approvedAt             DateTime?
+  approvedBy             String?
+  moderatorNotes         String?   @db.Text
+  
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  @@index([personId])
+  @@index([isApproved, isActive])
+  @@map("comments")
+}
 
-### 9.5.5 Temporary Storage Implementation
-- [x] Install ioredis package
-- [x] Create Redis connection helper with lazy loading
-- [ ] Implement dual storage strategy (React state + Redis)
-- [ ] Add session ID generation for Redis keys
-- [ ] Configure 1-hour TTL for Redis entries
-- [ ] Create storage abstraction service
-- [ ] Implement manual deletion after data consumption
-- [ ] Test Redis failover to React state
+// Updated Person model
+model Person {
+  // ... existing fields ...
+  bondAmount      Decimal?     @db.Decimal(10, 2)
+  stories         Story[]      // Relation to multi-language stories
+  // ... other fields ...
+}
+```
 
-### 9.5.6 Image Configuration System
-- [ ] Add IMAGE_UPLOAD_MAX_SIZE_MB environment variable
-- [ ] Add IMAGE_STORAGE_MAX_SIZE_KB environment variable
-- [ ] Create image limit service with hierarchy logic
-- [ ] Add admin UI for town-level limits
-- [ ] Add admin UI for user-level limits
-- [ ] Implement most-restrictive limit calculation
-- [ ] Update /configs to show image limits
+## Phase 7: Performance & Security (Week 7)
 
-### 9.5.7 Health Check System
-- [x] Create HealthCheck table in Prisma schema
-- [x] Implement Redis health check with performance metrics
-- [x] Implement Prisma health check with CRUD operations
-- [x] Add health check buttons to /configs (admin only)
-- [x] Create server actions for health tests
-- [x] Display connection status and performance metrics
-- [x] Add error handling and timeout logic
-- [x] Implement test data cleanup
+### Goals
+- Implement caching strategies
+- Add rate limiting
+- Optimize database queries
+- Enhance security headers
 
-## Phase 10: Testing & Quality Assurance (Week 13-14)
+### 7.1 Performance Optimizations
+- Add Redis caching for frequently accessed data
+- Implement query optimization
+- Add CDN for static assets
+- Optimize image delivery
 
-### 10.1 Testing Implementation
-- [ ] Set up Jest testing framework
-- [ ] Create unit tests for components
-- [ ] Implement integration tests
-- [ ] Add end-to-end testing
-- [ ] Create test data fixtures
+### 7.2 Security Enhancements
+- Implement CSRF protection
+- Add rate limiting to API endpoints
+- Enhance input validation
+- Add security monitoring
 
-### 10.2 Performance Optimization
-- [ ] Optimize database queries
-- [ ] Implement caching strategies
-- [ ] Add image optimization
-- [ ] Configure CDN integration
-- [ ] Monitor performance metrics
+## Phase 8: Testing & Documentation (Week 8)
 
-### 10.3 Security Hardening
-- [ ] Implement security headers
-- [ ] Add rate limiting
-- [ ] Configure CSRF protection
-- [ ] Set up input validation
-- [ ] Add security monitoring
+### Goals
+- Create comprehensive test suite
+- Write API documentation
+- Create user guides
+- Implement monitoring
 
-### 10.4 Monitoring & Health Checks
-- [x] Implement Redis connectivity monitoring
-- [x] Add database connectivity checks
-- [x] Create health check endpoints
-- [ ] Add performance metrics collection
-- [ ] Configure alerting thresholds
-- [ ] Implement automatic recovery procedures
+### 8.1 Testing Strategy
+- Unit tests for all components
+- Integration tests for API endpoints
+- E2E tests for critical user flows
+- Performance testing
 
-## Implementation Order Rationale
+### 8.2 Documentation
+- API documentation with examples
+- Admin user guide
+- Deployment documentation
+- Security best practices
 
-1. **Foundation First**: Setting up the project structure and database ensures a solid base for all subsequent development.
+## Phase 9: Deployment & Launch (Week 9)
 
-2. **Authentication Early**: User management and security should be implemented before any user-facing features.
+### Goals
+- Finalize production configuration
+- Set up monitoring and alerts
+- Create backup strategies
+- Launch preparation
 
-3. **Data Models Core**: All functionality depends on the core data models being properly designed and implemented.
+### 9.1 Production Setup
+- Configure production database
+- Set up SSL certificates
+- Implement backup systems
+- Configure monitoring
 
-4. **Seed Data Before UI**: Having test data available makes UI development more efficient and realistic.
-
-5. **Public Interface Priority**: The public-facing features are the primary user experience and should be perfected first.
-
-6. **Admin Interface Last**: Administrative features are important but secondary to the core user experience.
-
-## Development Best Practices
-
-### Code Organization
-- Use consistent file naming conventions
-- Implement proper TypeScript types
-- Follow React best practices
-- Maintain clean component architecture
-
-### Security Considerations
-- Validate all inputs on client and server
-- Use parameterized queries
-- Implement proper authentication checks
-- Follow OWASP security guidelines
-
-### Performance Guidelines
-- Optimize image loading and sizing
-- Use proper caching strategies
-- Implement lazy loading where appropriate
-- Monitor and optimize database queries
-
-### Testing Strategy
-- Write tests for all critical functionality
-- Test security and validation logic
-- Verify responsive design across devices
-- Test accessibility compliance
-
-## Risk Mitigation
-
-### Technical Risks
-- **Database Performance**: Implement proper indexing and query optimization
-- **File Upload Security**: Validate file types and implement virus scanning
-- **Authentication Vulnerabilities**: Use established libraries and security best practices
-
-### Project Risks
-- **Scope Creep**: Maintain focus on MVP features first
-- **Timeline Delays**: Build in buffer time for complex features
-- **Data Privacy**: Implement proper consent and privacy controls
+### 9.2 Launch Checklist
+- Security audit
+- Performance testing
+- Data migration
+- User training
 
 ## Success Metrics
 
@@ -449,7 +761,25 @@ npm install bcryptjs @types/bcryptjs
 ### Business Metrics
 - Successful advocacy campaigns for detainees
 - Community support message volume
-- Admin efficiency in detention center management
-- Anonymous vs authenticated participation rates
-- Social media sharing metrics
-- Time to gather support threshold (e.g., 100 supporters)
+- Admin efficiency in managing content
+- Multi-language content adoption rate
+- Anonymous participation rate
+
+## Next Steps
+
+1. **Immediate Priority**: Implement detention center UI and functionality
+2. **Short Term**: Add WYSIWYG editor for rich text stories
+3. **Medium Term**: Implement Google reCAPTCHA and enhanced security
+4. **Long Term**: Add search functionality and performance optimizations
+
+## Risk Mitigation
+
+### Technical Risks
+- **Database Performance**: Already implemented proper indexing
+- **Security**: Anonymous system reduces authentication complexity
+- **Scalability**: Multi-language system designed for growth
+
+### Project Risks
+- **Scope Creep**: Focus on detention center features next
+- **Timeline**: Core features completed, remaining are enhancements
+- **Data Privacy**: Anonymous system protects user privacy

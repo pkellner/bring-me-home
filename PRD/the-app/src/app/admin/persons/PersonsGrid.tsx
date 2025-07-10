@@ -12,8 +12,14 @@ import {
   ChatBubbleLeftRightIcon,
   UsersIcon,
   PhotoIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-import { deletePerson } from '@/app/actions/persons';
+import {
+  deletePerson,
+  updateBulkPersonVisibility,
+} from '@/app/actions/persons';
+import PersonVisibilityToggle from '@/components/admin/PersonVisibilityToggle';
+import PersonBulkActions from '@/components/admin/PersonBulkActions';
 
 interface Person extends Record<string, unknown> {
   id: string;
@@ -27,6 +33,7 @@ interface Person extends Record<string, unknown> {
   secondaryPic2: string | null;
   secondaryPic3: string | null;
   story: string | null;
+  isActive: boolean;
   town: {
     id: string;
     name: string;
@@ -70,6 +77,7 @@ export default function PersonsGrid({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<keyof Person>('firstName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [groupByTown, setGroupByTown] = useState(true);
 
   const filteredPersons = persons.filter(person => {
     if (!searchQuery) return true;
@@ -148,6 +156,72 @@ export default function PersonsGrid({
     },
     [router]
   );
+
+  const handlePersonVisibilityUpdate = useCallback(
+    (personId: string, isActive: boolean) => {
+      setPersons(prev =>
+        prev.map(person =>
+          person.id === personId ? { ...person, isActive } : person
+        )
+      );
+    },
+    []
+  );
+
+  const handleBulkVisibilityUpdate = useCallback(
+    async (personIds: string[], isActive: boolean) => {
+      // Optimistically update all persons
+      const originalPersons = [...persons];
+      setPersons(prev =>
+        prev.map(person =>
+          personIds.includes(person.id) ? { ...person, isActive } : person
+        )
+      );
+
+      setLoading(true);
+      try {
+        const result = await updateBulkPersonVisibility(personIds, isActive);
+        if (!result.success) {
+          // Rollback on failure
+          setPersons(originalPersons);
+          setError('Failed to update visibility');
+        }
+      } catch (error) {
+        // Rollback on error
+        setPersons(originalPersons);
+        setError('Failed to update visibility');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [persons]
+  );
+
+  const handleSetAllVisible = useCallback(() => {
+    const personIds = filteredPersons.map(p => p.id);
+    if (personIds.length > 0) {
+      if (
+        confirm(
+          `Are you sure you want to make ${personIds.length} persons visible?`
+        )
+      ) {
+        handleBulkVisibilityUpdate(personIds, true);
+      }
+    }
+  }, [filteredPersons, handleBulkVisibilityUpdate]);
+
+  const handleSetAllInvisible = useCallback(() => {
+    const personIds = filteredPersons.map(p => p.id);
+    if (personIds.length > 0) {
+      if (
+        confirm(
+          `Are you sure you want to make ${personIds.length} persons invisible?`
+        )
+      ) {
+        handleBulkVisibilityUpdate(personIds, false);
+      }
+    }
+  }, [filteredPersons, handleBulkVisibilityUpdate]);
 
   const columns: GridColumn<Person>[] = [
     {
@@ -248,6 +322,17 @@ export default function PersonsGrid({
       ),
     },
     {
+      key: 'isActive',
+      label: 'Visibility',
+      render: (value, record) => (
+        <PersonVisibilityToggle
+          personId={record.id}
+          initialIsActive={record.isActive}
+          onUpdate={handlePersonVisibilityUpdate}
+        />
+      ),
+    },
+    {
       key: 'createdAt',
       label: 'Created',
       sortable: true,
@@ -276,24 +361,123 @@ export default function PersonsGrid({
     },
   ];
 
+  // Group persons by town if enabled
+  const groupedData = groupByTown
+    ? sortedPersons.reduce(
+        (acc, person) => {
+          const townKey = `${person.town.name}, ${person.town.state}`;
+          if (!acc[townKey]) {
+            acc[townKey] = [];
+          }
+          acc[townKey].push(person);
+          return acc;
+        },
+        {} as Record<string, Person[]>
+      )
+    : { 'All Persons': sortedPersons };
+
   return (
-    <AdminDataGrid<Person>
-      data={sortedPersons}
-      columns={columns}
-      actions={actions}
-      title={gridTitle}
-      loading={loading}
-      error={error}
-      onRefresh={handleRefresh}
-      onSearch={handleSearch}
-      onSort={handleSort}
-      createUrl="/admin/persons/new"
-      createLabel={addButtonText}
-      showCreate={canCreate}
-      searchQuery={searchQuery}
-      sortKey={String(sortKey)}
-      sortDirection={sortDirection}
-      emptyMessage="No persons found"
-    />
+    <div>
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search persons..."
+            value={searchQuery}
+            onChange={e => handleSearch(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <PersonBulkActions
+        onSetAllVisible={handleSetAllVisible}
+        onSetAllInvisible={handleSetAllInvisible}
+        groupByTown={groupByTown}
+        onGroupByTownChange={setGroupByTown}
+        disabled={loading}
+      />
+
+      {groupByTown ? (
+        <div className="space-y-6">
+          {Object.entries(groupedData).map(([townName, townPersons]) => (
+            <div key={townName} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {townName}
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const townPersonIds = townPersons.map(p => p.id);
+                      if (
+                        confirm(
+                          `Make all ${townPersonIds.length} persons in ${townName} visible?`
+                        )
+                      ) {
+                        handleBulkVisibilityUpdate(townPersonIds, true);
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-md hover:bg-green-200"
+                  >
+                    Set All Visible
+                  </button>
+                  <button
+                    onClick={() => {
+                      const townPersonIds = townPersons.map(p => p.id);
+                      if (
+                        confirm(
+                          `Make all ${townPersonIds.length} persons in ${townName} invisible?`
+                        )
+                      ) {
+                        handleBulkVisibilityUpdate(townPersonIds, false);
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
+                  >
+                    Set All Invisible
+                  </button>
+                </div>
+              </div>
+              <AdminDataGrid<Person>
+                data={townPersons}
+                columns={columns}
+                actions={actions}
+                title=""
+                loading={loading}
+                error={error}
+                onRefresh={handleRefresh}
+                onSort={handleSort}
+                createUrl="/admin/persons/new"
+                createLabel={addButtonText}
+                showCreate={false}
+                sortKey={String(sortKey)}
+                sortDirection={sortDirection}
+                emptyMessage="No persons found"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AdminDataGrid<Person>
+          data={sortedPersons}
+          columns={columns}
+          actions={actions}
+          title={gridTitle}
+          loading={loading}
+          error={error}
+          onRefresh={handleRefresh}
+          onSort={handleSort}
+          createUrl="/admin/persons/new"
+          createLabel={addButtonText}
+          showCreate={canCreate}
+          sortKey={String(sortKey)}
+          sortDirection={sortDirection}
+          emptyMessage="No persons found"
+        />
+      )}
+    </div>
   );
 }

@@ -23,10 +23,24 @@ export default async function CommentsPage() {
           town: true,
         },
       },
-      author: true,
     },
     orderBy: {
       createdAt: 'desc',
+    },
+  });
+
+  const towns = await prisma.town.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: [
+      { state: 'asc' },
+      { name: 'asc' },
+    ],
+    select: {
+      id: true,
+      name: true,
+      state: true,
     },
   });
 
@@ -38,6 +52,7 @@ export default async function CommentsPage() {
       initialComments={comments}
       canApprove={canApprove}
       canDelete={canDelete}
+      towns={towns}
     />
   );
 }

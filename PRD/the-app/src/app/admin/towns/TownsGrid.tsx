@@ -11,8 +11,11 @@ import {
   UsersIcon,
   UserIcon,
   MapPinIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-import { deleteTown } from '@/app/actions/towns';
+import { deleteTown, updateBulkTownVisibility } from '@/app/actions/towns';
+import TownVisibilityToggle from '@/components/admin/TownVisibilityToggle';
+import TownBulkActions from '@/components/admin/TownBulkActions';
 
 interface Town extends Record<string, unknown> {
   id: string;
@@ -20,6 +23,7 @@ interface Town extends Record<string, unknown> {
   state: string;
   fullAddress: string;
   description: string | null;
+  isActive: boolean;
   persons: Array<{
     id: string;
     firstName: string;
@@ -55,6 +59,7 @@ export default function TownsGrid({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<keyof Town>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [groupByState, setGroupByState] = useState(true);
 
   const filteredTowns = towns.filter(town => {
     if (!searchQuery) return true;
@@ -129,6 +134,64 @@ export default function TownsGrid({
     [router]
   );
 
+  const handleTownVisibilityUpdate = useCallback(
+    (townId: string, isActive: boolean) => {
+      setTowns(prev =>
+        prev.map(town =>
+          town.id === townId ? { ...town, isActive } : town
+        )
+      );
+    },
+    []
+  );
+
+  const handleBulkVisibilityUpdate = useCallback(
+    async (townIds: string[], isActive: boolean) => {
+      // Optimistically update all towns
+      const originalTowns = [...towns];
+      setTowns(prev =>
+        prev.map(town =>
+          townIds.includes(town.id) ? { ...town, isActive } : town
+        )
+      );
+
+      setLoading(true);
+      try {
+        const result = await updateBulkTownVisibility(townIds, isActive);
+        if (!result.success) {
+          // Rollback on failure
+          setTowns(originalTowns);
+          setError('Failed to update visibility');
+        }
+      } catch (error) {
+        // Rollback on error
+        setTowns(originalTowns);
+        setError('Failed to update visibility');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [towns]
+  );
+
+  const handleSetAllVisible = useCallback(() => {
+    const townIds = filteredTowns.map(t => t.id);
+    if (townIds.length > 0) {
+      if (confirm(`Are you sure you want to make ${townIds.length} towns visible?`)) {
+        handleBulkVisibilityUpdate(townIds, true);
+      }
+    }
+  }, [filteredTowns, handleBulkVisibilityUpdate]);
+
+  const handleSetAllInvisible = useCallback(() => {
+    const townIds = filteredTowns.map(t => t.id);
+    if (townIds.length > 0) {
+      if (confirm(`Are you sure you want to make ${townIds.length} towns invisible?`)) {
+        handleBulkVisibilityUpdate(townIds, false);
+      }
+    }
+  }, [filteredTowns, handleBulkVisibilityUpdate]);
+
   const columns: GridColumn<Town>[] = [
     {
       key: 'name',
@@ -189,6 +252,17 @@ export default function TownsGrid({
       ),
     },
     {
+      key: 'isActive',
+      label: 'Visibility',
+      render: (value, record) => (
+        <TownVisibilityToggle
+          townId={record.id}
+          initialIsActive={record.isActive}
+          onUpdate={handleTownVisibilityUpdate}
+        />
+      ),
+    },
+    {
       key: 'createdAt',
       label: 'Created',
       sortable: true,
@@ -217,24 +291,115 @@ export default function TownsGrid({
     },
   ];
 
+  // Group towns by state if enabled
+  const groupedData = groupByState
+    ? sortedTowns.reduce(
+        (acc, town) => {
+          const stateKey = town.state;
+          if (!acc[stateKey]) {
+            acc[stateKey] = [];
+          }
+          acc[stateKey].push(town);
+          return acc;
+        },
+        {} as Record<string, Town[]>
+      )
+    : { 'All Towns': sortedTowns };
+
   return (
-    <AdminDataGrid<Town>
-      data={sortedTowns}
-      columns={columns}
-      actions={actions}
-      title="Towns"
-      loading={loading}
-      error={error}
-      onRefresh={handleRefresh}
-      onSearch={handleSearch}
-      onSort={handleSort}
-      createUrl="/admin/towns/new"
-      createLabel="Create Town"
-      showCreate={canCreate}
-      searchQuery={searchQuery}
-      sortKey={String(sortKey)}
-      sortDirection={sortDirection}
-      emptyMessage="No towns found"
-    />
+    <div>
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search towns..."
+            value={searchQuery}
+            onChange={e => handleSearch(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <TownBulkActions
+        onSetAllVisible={handleSetAllVisible}
+        onSetAllInvisible={handleSetAllInvisible}
+        groupByState={groupByState}
+        onGroupByStateChange={setGroupByState}
+        disabled={loading}
+      />
+      
+      {groupByState ? (
+        <div className="space-y-6">
+          {Object.entries(groupedData).map(([stateName, stateTowns]) => (
+            <div key={stateName} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {stateName}
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const stateTownIds = stateTowns.map(t => t.id);
+                      if (confirm(`Make all ${stateTownIds.length} towns in ${stateName} visible?`)) {
+                        handleBulkVisibilityUpdate(stateTownIds, true);
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-md hover:bg-green-200"
+                  >
+                    Set All Visible
+                  </button>
+                  <button
+                    onClick={() => {
+                      const stateTownIds = stateTowns.map(t => t.id);
+                      if (confirm(`Make all ${stateTownIds.length} towns in ${stateName} invisible?`)) {
+                        handleBulkVisibilityUpdate(stateTownIds, false);
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
+                  >
+                    Set All Invisible
+                  </button>
+                </div>
+              </div>
+              <AdminDataGrid<Town>
+                data={stateTowns}
+                columns={columns}
+                actions={actions}
+                title=""
+                loading={loading}
+                error={error}
+                onRefresh={handleRefresh}
+                onSort={handleSort}
+                createUrl="/admin/towns/new"
+                createLabel="Create Town"
+                showCreate={false}
+                sortKey={String(sortKey)}
+                sortDirection={sortDirection}
+                emptyMessage="No towns found"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AdminDataGrid<Town>
+          data={sortedTowns}
+          columns={columns}
+          actions={actions}
+          title="Towns"
+          loading={loading}
+          error={error}
+          onRefresh={handleRefresh}
+          onSort={handleSort}
+          createUrl="/admin/towns/new"
+          createLabel="Create Town"
+          showCreate={canCreate}
+          sortKey={String(sortKey)}
+          sortDirection={sortDirection}
+          emptyMessage="No towns found"
+        />
+      )}
+    </div>
   );
 }
