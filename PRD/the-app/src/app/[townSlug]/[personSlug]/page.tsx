@@ -61,6 +61,19 @@ async function getPersonData(townSlug: string, personSlug: string) {
           createdAt: 'desc',
         },
       },
+      stories: {
+        where: {
+          isActive: true,
+        },
+        orderBy: [
+          {
+            language: 'asc',
+          },
+          {
+            storyType: 'asc',
+          },
+        ],
+      },
     },
   });
 

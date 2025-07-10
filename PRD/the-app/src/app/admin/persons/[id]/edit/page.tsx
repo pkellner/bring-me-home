@@ -22,6 +22,13 @@ export default async function EditPersonPage({
     include: { 
       town: true,
       detentionCenter: true,
+      stories: {
+        where: { isActive: true },
+        orderBy: [
+          { language: 'asc' },
+          { storyType: 'asc' },
+        ],
+      },
     },
   });
 

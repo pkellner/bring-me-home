@@ -16,7 +16,7 @@ const personSchema = z.object({
   townId: z.string().min(1, 'Town is required'),
   dateOfBirth: z.string().optional(),
   lastKnownAddress: z.string().min(1, 'Last known address is required'),
-  story: z.string().max(5000).optional(),
+  stories: z.string().optional(), // JSON string of stories array
   layoutId: z.string().optional(),
   themeId: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -40,7 +40,7 @@ export async function createPerson(formData: FormData) {
     townId: formData.get('townId'),
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
-    story: formData.get('story'),
+    stories: formData.get('stories') || undefined,
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
@@ -74,9 +74,33 @@ export async function createPerson(formData: FormData) {
       data.detentionCenterId = null;
     }
 
+    // Extract stories from data (don't include in person creation)
+    const storiesJson = data.stories;
+    delete data.stories;
+
     const person = await prisma.person.create({
       data,
     });
+
+    // Handle stories creation
+    if (storiesJson) {
+      try {
+        const stories = JSON.parse(storiesJson);
+        if (Array.isArray(stories) && stories.length > 0) {
+          await prisma.story.createMany({
+            data: stories.map((story: any) => ({
+              personId: person.id,
+              language: story.language,
+              storyType: story.storyType,
+              content: story.content,
+              isActive: true,
+            })),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to parse stories:', error);
+      }
+    }
 
     // Handle primary picture upload
     const primaryPicture = formData.get('primaryPicture') as File;
@@ -128,7 +152,7 @@ export async function updatePerson(id: string, formData: FormData) {
     townId: formData.get('townId'),
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
-    story: formData.get('story'),
+    stories: formData.get('stories') || undefined,
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,
     isActive: formData.get('isActive') === 'on',
@@ -162,6 +186,10 @@ export async function updatePerson(id: string, formData: FormData) {
       updateData.detentionCenterId = null;
     }
 
+    // Extract stories from data (don't include in person update)
+    const storiesJson = updateData.stories;
+    delete updateData.stories;
+
     // Handle primary picture upload
     const primaryPicture = formData.get('primaryPicture') as File;
     if (primaryPicture && primaryPicture.size > 0) {
@@ -188,6 +216,33 @@ export async function updatePerson(id: string, formData: FormData) {
       where: { id },
       data: updateData,
     });
+
+    // Handle stories update
+    if (storiesJson) {
+      try {
+        const stories = JSON.parse(storiesJson);
+        
+        // Delete existing stories for this person
+        await prisma.story.deleteMany({
+          where: { personId: id },
+        });
+        
+        // Create new stories
+        if (Array.isArray(stories) && stories.length > 0) {
+          await prisma.story.createMany({
+            data: stories.map((story: any) => ({
+              personId: id,
+              language: story.language,
+              storyType: story.storyType,
+              content: story.content,
+              isActive: true,
+            })),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update stories:', error);
+      }
+    }
 
     revalidatePath('/admin/persons');
     revalidatePath(`/admin/persons/${id}/edit`);

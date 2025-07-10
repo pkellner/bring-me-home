@@ -139,10 +139,10 @@ model Person {
   secondaryPic2  String?
   secondaryPic3  String?
 
-  // Story and description
-  story            String?   @db.Text // Their story and background
-  detentionStory   String?   @db.Text // Circumstances of detention
-  familyMessage    String?   @db.Text // Message from family to supporters
+  // Story and description (moved to separate Story model for multi-language support)
+  story            String?   @db.Text // Their story and background - TO BE REMOVED AFTER MIGRATION
+  detentionStory   String?   @db.Text // Circumstances of detention - TO BE REMOVED AFTER MIGRATION
+  familyMessage    String?   @db.Text // Message from family to supporters - TO BE REMOVED AFTER MIGRATION
   lastSeenDate     DateTime? // When they were detained
   lastSeenLocation String?   // Where they were detained
 
@@ -190,6 +190,7 @@ model Person {
   attachments  Attachment[]
   personImages PersonImage[]
   familySettings FamilyPrivacySettings?
+  stories      Story[]
 
   // Audit fields
   createdAt DateTime @default(now())
@@ -200,6 +201,28 @@ model Person {
   @@index([status])
   @@index([detentionCenterId])
   @@map("persons")
+}
+
+// Story model for multi-language support
+model Story {
+  id             String  @id @default(cuid())
+  language       String  @default("en") // ISO 639-1 language code (en, es, fr, etc.)
+  storyType      String  @default("personal") // personal, detention, family
+  content        String  @db.Text
+  isActive       Boolean @default(true)
+  
+  // Relationships
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([personId, language, storyType])
+  @@index([personId])
+  @@index([language])
+  @@map("stories")
 }
 
 // PersonImage model for storing multiple images per person

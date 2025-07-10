@@ -4,12 +4,19 @@ import { Person, Town, Comment } from '@prisma/client';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import CommentSection from '@/components/person/CommentSection';
+import StorySection from '@/components/person/StorySection';
 
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
   bondAmount: string | null;
   town: Town;
   comments: any[];
   detentionCenter?: any;
+  stories?: Array<{
+    id: string;
+    language: string;
+    storyType: string;
+    content: string;
+  }>;
 };
 
 interface LayoutRendererProps {
@@ -184,10 +191,7 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
     ),
     
     'story': () => {
-      console.log('Story content:', person.story);
-      console.log('Story length:', person.story?.length);
-      
-      if (!person.story || person.story.trim() === '') {
+      if (!person.stories || person.stories.length === 0) {
         return (
           <div className="story-section">
             <h2 className="mb-4 text-2xl font-bold">Story</h2>
@@ -197,12 +201,26 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
       }
       
       return (
-        <div className="story-section">
-          <h2 className="mb-4 text-2xl font-bold">Story</h2>
-          <div 
-            className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-a:underline"
-            dangerouslySetInnerHTML={{ __html: person.story }}
+        <div className="space-y-8">
+          <StorySection 
+            stories={person.stories} 
+            storyType="personal" 
+            title="Personal Story" 
           />
+          {person.stories.some(s => s.storyType === 'detention') && (
+            <StorySection 
+              stories={person.stories} 
+              storyType="detention" 
+              title="Detention Circumstances" 
+            />
+          )}
+          {person.stories.some(s => s.storyType === 'family') && (
+            <StorySection 
+              stories={person.stories} 
+              storyType="family" 
+              title="Message from Family" 
+            />
+          )}
         </div>
       );
     },

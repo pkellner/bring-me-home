@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import RichTextEditor from '@/components/RichTextEditor';
+import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
 import Image from 'next/image';
-import { Person, Town, DetentionCenter } from '@prisma/client';
+import { Person, Town, DetentionCenter, Story } from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 
@@ -13,6 +14,7 @@ interface PersonFormProps {
   person?: Person & {
     town: Town;
     detentionCenter?: DetentionCenter | null;
+    stories?: Story[];
   };
   towns: Town[];
 }
@@ -27,11 +29,11 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
   const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<DetentionCenter | null>(
     person?.detentionCenter || null
   );
-  const [story, setStory] = useState(person?.story || '');
+  const [stories, setStories] = useState<{ language: string; storyType: string; content: string }[]>([]);
 
   async function handleSubmit(formData: FormData) {
-    // Add story content to form data
-    formData.set('story', story);
+    // Add stories as JSON to form data
+    formData.set('stories', JSON.stringify(stories));
     // Add detention center ID to form data
     if (selectedDetentionCenterId) {
       formData.append('detentionCenterId', selectedDetentionCenterId);
@@ -296,19 +298,16 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
         </div>
 
         <div>
-          <label htmlFor="story" className="block text-sm font-medium text-gray-700">
-            Story
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Stories
           </label>
-          <div className="mt-1">
-            <RichTextEditor
-              value={story}
-              onChange={setStory}
-              placeholder="Enter the person's story..."
-              height={300}
-            />
-          </div>
+          <MultiLanguageStoryEditor
+            personId={person?.id}
+            stories={person?.stories}
+            onChange={setStories}
+          />
           <p className="mt-2 text-sm text-gray-500">
-            Use the editor to format the story. This will be displayed on the person's profile page.
+            Add stories in multiple languages. Visitors will be able to switch between available languages on the profile page.
           </p>
         </div>
 
