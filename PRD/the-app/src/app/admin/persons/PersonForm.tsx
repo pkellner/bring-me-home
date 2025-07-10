@@ -291,6 +291,66 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
+
+                  <div>
+                    <label htmlFor="lastHeardFromDate" className="block text-sm font-medium text-gray-700">
+                      Last Heard From Date
+                    </label>
+                    <input
+                      type="date"
+                      id="lastHeardFromDate"
+                      name="lastHeardFromDate"
+                      defaultValue={
+                        person?.lastHeardFromDate
+                          ? new Date(person.lastHeardFromDate).toISOString().split('T')[0]
+                          : ''
+                      }
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="notesFromLastContact" className="block text-sm font-medium text-gray-700">
+                    Notes from Last Contact
+                  </label>
+                  <textarea
+                    id="notesFromLastContact"
+                    name="notesFromLastContact"
+                    rows={3}
+                    defaultValue={person?.notesFromLastContact || ''}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="Any important information from the last contact with the detainee"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="representedByLawyer"
+                      name="representedByLawyer"
+                      defaultChecked={person?.representedByLawyer ?? false}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="representedByLawyer" className="ml-2 block text-sm text-gray-900">
+                      Represented by Lawyer
+                    </label>
+                  </div>
+
+                  <div>
+                    <label htmlFor="representedByNotes" className="block text-sm font-medium text-gray-700">
+                      Legal Representation Notes
+                    </label>
+                    <textarea
+                      id="representedByNotes"
+                      name="representedByNotes"
+                      rows={3}
+                      defaultValue={person?.representedByNotes || ''}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      placeholder="Notes about legal representation (e.g., lawyer name, contact info, case status)"
+                    />
+                  </div>
                 </div>
               </>
             )}

@@ -47,12 +47,18 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 
 ### 2. Town & Person Management
 - Town-based organization with dedicated URLs (e.g., `/borrego-springs/fidel`)
-- Person profiles with detailed information including detention status *(detention fields not implemented)*
+- Person profiles with detailed information including detention status
 - Detention center assignment and tracking *(not implemented)*
 - Image and video management (primary + up to 3 secondary photos/videos)
 - Rich story content with WYSIWYG editor (HTML storage) *(plain text only, no WYSIWYG)*
 - Contact information and identification details (including Alien ID#)
 - Privacy controls for sensitive information (family vs. public view)
+- **Person Profile Display Requirements**:
+  - Top section shows only: Full name (including middle name if present) and Home Town
+  - Detention information: Detention date and Last heard from date
+  - Notes from last contact (if available)
+  - Legal representation status: "Represented by Lawyer: Yes/No"
+  - Clean, detainee-focused presentation (not missing person style)
 
 ### 3. Community Engagement
 - **Anonymous comment system with no authentication required**
@@ -271,9 +277,13 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Alien ID number ✅
 - Detention center (foreign key) ✅
 - Detention date ✅
+- Last heard from date ✅
+- Notes from last contact (text) ✅
 - Case number ✅
 - Bond amount (Decimal type) ✅
-- Legal representative info ❌ *(not implemented)*
+- Legal representation:
+  - representedByLawyer (boolean) ✅
+  - representedByNotes (text) ✅
 - US Address (full) ✅
 - International address (e.g., Mexico) ✅
 - Primary picture/video ✅
@@ -439,188 +449,7 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 
 ## Implementation Code Examples
 
-### *1 Image Encoding System
-```typescript
-// Image placeholder encoding for seed data
-interface ImagePlaceholder {
-  id: string;
-  encoding: string; // Base64 or placeholder identifier
-  description: string;
-  type: 'primary' | 'secondary';
-}
-
-const sampleImagePlaceholders: ImagePlaceholder[] = [
-  {
-    id: '1',
-    encoding: 'PERSON_PLACEHOLDER_001',
-    description: 'Primary photo - Male, 30s, brown hair',
-    type: 'primary'
-  },
-  {
-    id: '2',
-    encoding: 'PERSON_PLACEHOLDER_002',
-    description: 'Secondary photo - Same person, different angle',
-    type: 'secondary'
-  }
-];
-```
-
-### *2 Environment Variables Handler
-```typescript
-// Environment variables context provider
-interface EnvConfig {
-  RELEASEVERSION: string;
-  RELEASEDATE: string;
-  RELEASEDATEISO: string;
-  DATABASE_URL: string;
-  NEXTAUTH_URL: string;
-  ADMIN_EMAIL: string;
-  // Add more as needed
-}
-
-export const getServerEnvironment = (): EnvConfig => {
-  return {
-    RELEASEVERSION: process.env.RELEASEVERSION || '0',
-    RELEASEDATE: process.env.RELEASEDATE || '',
-    RELEASEDATEISO: process.env.RELEASEDATEISO || '',
-    DATABASE_URL: process.env.DATABASE_URL || '',
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || '',
-    ADMIN_EMAIL: process.env.ADMIN_EMAIL || '',
-  };
-};
-```
-
-### *3 Docker Configuration
-```dockerfile
-# Use official node runtime as parent image
-FROM node:20-alpine
-
-# Create app directory
-RUN mkdir -p /usr/src
-WORKDIR /usr/src
-
-COPY package.json /usr/src/
-COPY package-lock.json /usr/src/
-
-RUN npm install
-
-# Bundle app source
-COPY . /usr/src
-
-# Generate version information
-RUN if [ -f ./baseversion ]; then \
-         RELEASEVERSION=$(($(cat ./baseversion) + 0)); \
-     else \
-         RELEASEVERSION=0; \
-     fi \
-     && RELEASEDATE=$(date "+%a %b %d %T %Y") \
-     && RELEASEDATEISO=$(date -u "+%Y-%m-%dT%H:%M:%SZ") \
-     && echo "RELEASEVERSION=$RELEASEVERSION" > ./.env.production \
-     && echo "RELEASEDATE=$RELEASEDATE" >> ./.env.production \
-     && echo "NEXT_PUBLIC_RELEASEDATE=$RELEASEDATE" >> ./.env.production \
-     && echo "RELEASEDATEISO=$RELEASEDATEISO" >> ./.env.production
-
-RUN npm run build
-EXPOSE 3000
-
-CMD ["npm", "start"]
-```
-
-### *4 Database Schema Examples
-```typescript
-// Prisma schema models
-model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  email       String?
-  password    String
-  roles       UserRole[]
-  townAccess  TownAccess[]
-  personAccess PersonAccess[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Town {
-  id          String   @id @default(cuid())
-  name        String
-  state       String
-  address     String
-  description String?
-  persons     Person[]
-  adminUsers  TownAccess[]
-  layoutId    String?
-  themeId     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Person {
-  id                   String         @id @default(cuid())
-  firstName            String
-  middleName           String?
-  lastName             String
-  alienIdNumber        String?
-  detentionCenterId    String?
-  detentionCenter      DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
-  dateDetained         DateTime?
-  bondAmount           Decimal?       @db.Decimal(10, 2)
-  caseNumber           String?
-  detentionStatus      String?        @default("detained")
-  usAddress            String?
-  internationalAddress String?
-  stories              Story[]        // Multi-language stories
-  townId               String
-  town                 Town           @relation(fields: [townId], references: [id])
-  comments             Comment[]
-  personImages         PersonImage[]
-  adminUsers           PersonAccess[]
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-}
-
-model Story {
-  id        String  @id @default(cuid())
-  language  String  @default("en") // ISO 639-1 code
-  storyType String  @default("personal") // personal, detention, family
-  content   String  @db.Text
-  isActive  Boolean @default(true)
-  personId  String
-  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  @@unique([personId, language, storyType])
-  @@map("stories")
-}
-```
-
-### *5 Zod Validation Schemas
-```typescript
-import { z } from 'zod';
-
-export const PersonSchema = z.object({
-  id: z.string().cuid().optional(),
-  firstName: z.string().min(1, 'First name is required'),
-  middleName: z.string().optional(),
-  lastName: z.string().min(1, 'Last name is required'),
-  alienIdNumber: z.string().optional(),
-  usAddress: z.string().min(10, 'Valid US address required'),
-  primaryPicture: z.string().url().optional(),
-  secondaryPics: z.array(z.string().url()).max(3),
-  story: z.string().optional(),
-  townId: z.string().cuid(),
-});
-
-export const CommentSchema = z.object({
-  id: z.string().cuid().optional(),
-  personId: z.string().cuid(),
-  submitterName: z.string().optional(),
-  submitterEmail: z.string().email().optional(),
-  content: z.string().min(1, 'Comment content is required'),
-  attachments: z.array(z.string().url()).max(3),
-  privacyLevel: z.enum(['public', 'family', 'officials']),
-  verified: z.boolean().default(false),
-});
-```
+*Note: All code examples have been moved to the CODE_EXAMPLES.md file for better organization and maintainability.*
 
 ## Layout and Theme System
 

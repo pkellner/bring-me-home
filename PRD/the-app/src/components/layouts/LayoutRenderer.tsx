@@ -81,46 +81,35 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
     'info': () => (
       <div className="info-section space-y-4">
         <h1 className="text-3xl font-bold">
-          {person.firstName} {person.middleName} {person.lastName}
+          {person.firstName} {person.middleName ? `${person.middleName} ` : ''}{person.lastName}
         </h1>
-        <div className="grid grid-cols-1 gap-2 text-sm">
-          {person.dateOfBirth && (
+        <div className="text-lg text-gray-600">
+          <span className="font-semibold">Home Town:</span> {person.town.name}, {person.town.state}
+        </div>
+        
+        <div className="grid grid-cols-1 gap-3 mt-4">
+          {person.detentionDate && (
             <div>
-              <span className="font-semibold">Date of Birth:</span>{' '}
-              {formatDate(person.dateOfBirth)}
+              <span className="font-semibold">Detention Date:</span>{' '}
+              {formatDate(person.detentionDate)}
             </div>
           )}
-          {person.height && (
+          {person.lastHeardFromDate && (
             <div>
-              <span className="font-semibold">Height:</span> {person.height}
+              <span className="font-semibold">Last Heard From:</span>{' '}
+              {formatDate(person.lastHeardFromDate)}
             </div>
           )}
-          {person.weight && (
-            <div>
-              <span className="font-semibold">Weight:</span> {person.weight}
-            </div>
-          )}
-          {person.eyeColor && (
-            <div>
-              <span className="font-semibold">Eye Color:</span> {person.eyeColor}
-            </div>
-          )}
-          {person.hairColor && (
-            <div>
-              <span className="font-semibold">Hair Color:</span> {person.hairColor}
+          {person.notesFromLastContact && (
+            <div className="mt-2">
+              <span className="font-semibold">Notes from Last Contact:</span>
+              <p className="mt-1 text-gray-700">{person.notesFromLastContact}</p>
             </div>
           )}
           <div>
-            <span className="font-semibold">Last Known Address:</span>{' '}
-            {person.lastKnownAddress}
+            <span className="font-semibold">Represented by Lawyer:</span>{' '}
+            {person.representedByLawyer ? 'Yes' : 'No'}
           </div>
-          {person.lastSeenDate && (
-            <div>
-              <span className="font-semibold">Last Seen:</span>{' '}
-              {formatDate(person.lastSeenDate)}
-              {person.lastSeenLocation && ` at ${person.lastSeenLocation}`}
-            </div>
-          )}
         </div>
         
         {person.detentionCenter && (
@@ -234,9 +223,9 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
     'basic-info': () => (
       <div className="basic-info text-center">
         <h1 className="mb-2 text-4xl font-bold">
-          {person.firstName} {person.lastName}
+          {person.firstName} {person.middleName ? `${person.middleName} ` : ''}{person.lastName}
         </h1>
-        <p className="text-xl text-gray-600">{person.town.name}, {person.town.state}</p>
+        <p className="text-xl text-gray-600">Home Town: {person.town.name}, {person.town.state}</p>
       </div>
     ),
     
@@ -246,18 +235,28 @@ export default function LayoutRenderer({ person, layout, theme }: LayoutRenderer
         <dl className="space-y-2 text-sm">
           <div>
             <dt className="font-semibold">Name</dt>
-            <dd>{person.firstName} {person.middleName} {person.lastName}</dd>
+            <dd>{person.firstName} {person.middleName ? `${person.middleName} ` : ''}{person.lastName}</dd>
           </div>
           <div>
-            <dt className="font-semibold">Location</dt>
+            <dt className="font-semibold">Home Town</dt>
             <dd>{person.town.name}, {person.town.state}</dd>
           </div>
-          {person.dateOfBirth && (
+          {person.detentionDate && (
             <div>
-              <dt className="font-semibold">Born</dt>
-              <dd>{formatDate(person.dateOfBirth)}</dd>
+              <dt className="font-semibold">Detained Since</dt>
+              <dd>{formatDate(person.detentionDate)}</dd>
             </div>
           )}
+          {person.lastHeardFromDate && (
+            <div>
+              <dt className="font-semibold">Last Contact</dt>
+              <dd>{formatDate(person.lastHeardFromDate)}</dd>
+            </div>
+          )}
+          <div>
+            <dt className="font-semibold">Legal Representation</dt>
+            <dd>{person.representedByLawyer ? 'Yes' : 'No'}</dd>
+          </div>
         </dl>
       </div>
     ),

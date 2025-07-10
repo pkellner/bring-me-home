@@ -1,5 +1,7 @@
 # Implementation Plan for Bring Them Home Application
 
+**Note: This document contains the plan for implementation and does not contain any code. All sample code can be found in the CODE_EXAMPLES.md file.**
+
 ## Overview
 This document outlines the implementation plan for building the "Bring Them Home" application, a web platform designed to bring attention to individuals detained by ICE, enabling families and communities to share stories, gather support, and organize advocacy efforts.
 
@@ -57,151 +59,16 @@ All core infrastructure has been successfully implemented including:
 - ❌ Add file upload to comments (not in anonymous form)
 
 ### 2.1 Anonymous Comment Implementation ✅ COMPLETED
-```typescript
-// components/person/AnonymousCommentForm.tsx
-export default function AnonymousCommentForm({ personId }: { personId: string }) {
-  const [state, formAction] = useFormState(submitComment, {
-    success: false,
-  });
-
-  return (
-    <form action={formAction} className="space-y-6">
-      <input type="hidden" name="personId" value={personId} />
-      
-      {/* Required Fields */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="firstName">First Name *</label>
-          <input type="text" id="firstName" name="firstName" required />
-        </div>
-        <div>
-          <label htmlFor="lastName">Last Name *</label>
-          <input type="text" id="lastName" name="lastName" required />
-        </div>
-      </div>
-
-      {/* Optional Contact */}
-      <div>
-        <label htmlFor="email">Email (optional)</label>
-        <input type="email" id="email" name="email" />
-      </div>
-      
-      {/* Support Preferences */}
-      <div className="space-y-4">
-        <label>
-          <input type="checkbox" name="wantsToHelpMore" value="true" />
-          I want to help more, please contact me
-        </label>
-        <label>
-          <input type="checkbox" name="displayNameOnly" value="true" />
-          Display just my name as supporting
-        </label>
-        <label>
-          <input type="checkbox" name="requiresFamilyApproval" value="true" />
-          Display my name and comment if family approves
-        </label>
-      </div>
-
-      <button type="submit">Submit Support</button>
-    </form>
-  );
-}
-```
+- Created AnonymousCommentForm component with required name fields
+- Added optional email and phone fields
+- Implemented three support preference checkboxes
+- Used React Server Actions for form submission
+- No authentication required for comment submission
+- All form data stored in Comment model
+  The anonymous comment form implementation includes fields for first name, last name, optional email and phone, comment content, and three checkboxes for support preferences. The form uses React Server Actions for submission without requiring authentication.
 
 ### 2.2 Comment Moderation Enhancement ✅ COMPLETED
-```typescript
-// components/admin/CommentModerationModal.tsx
-export default function CommentModerationModal({ 
-  comment, 
-  isOpen, 
-  onClose 
-}: CommentModerationModalProps) {
-  const [content, setContent] = useState(comment.content || '');
-  const [moderatorNotes, setModeratorNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleApprove = async () => {
-    setIsSubmitting(true);
-    try {
-      await updateCommentAndApprove(
-        comment.id,
-        content,
-        moderatorNotes
-      );
-      toast.success('Comment approved successfully');
-      onClose();
-    } catch (error) {
-      toast.error('Failed to approve comment');
-    }
-    setIsSubmitting(false);
-  };
-
-  const handleReject = async () => {
-    if (!moderatorNotes.trim()) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      await rejectComment(comment.id, moderatorNotes);
-      toast.success('Comment rejected');
-      onClose();
-    } catch (error) {
-      toast.error('Failed to reject comment');
-    }
-    setIsSubmitting(false);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Moderate Comment</DialogTitle>
-        </DialogHeader>
-        
-        {/* Comment details and editing form */}
-        <div className="space-y-4">
-          <div>
-            <h3>Commenter Information</h3>
-            <p>Name: {comment.firstName} {comment.lastName}</p>
-            {comment.email && <p>Email: {comment.email}</p>}
-            {comment.phone && <p>Phone: {comment.phone}</p>}
-          </div>
-          
-          <div>
-            <label>Comment Content</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full h-32"
-            />
-          </div>
-          
-          <div>
-            <label>Moderator Notes</label>
-            <textarea
-              value={moderatorNotes}
-              onChange={(e) => setModeratorNotes(e.target.value)}
-              placeholder="Required for rejection"
-              className="w-full h-20"
-            />
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button onClick={handleReject} variant="destructive">
-            Reject
-          </Button>
-          <Button onClick={handleApprove} variant="default">
-            Approve & Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-```
+The comment moderation modal provides an interface for admins to review, edit, and either approve or reject comments. It displays commenter information (name, email, phone), allows editing of comment content before approval, requires moderator notes for rejections, and provides approve/reject actions with success/error notifications.
 
 ## Phase 3: Story Enhancement ✅ PARTIALLY COMPLETED
 
@@ -217,122 +84,9 @@ export default function CommentModerationModal({
 - ❌ Add media embedding
 
 ### 3.1 Multi-Language Story Implementation ✅ COMPLETED
-```typescript
-// components/person/StorySection.tsx
-export default function StorySection({ 
-  stories, 
-  storyType, 
-  title 
-}: StorySectionProps) {
-  const availableLanguages = [...new Set(stories.map(s => s.language))];
-  const [selectedLanguage, setSelectedLanguage] = useState(
-    availableLanguages.includes('en') ? 'en' : availableLanguages[0] || 'en'
-  );
-  
-  const currentStory = stories.find(s => s.language === selectedLanguage);
-  
-  if (!currentStory && stories.length === 0) return null;
-  
-  return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          
-          {availableLanguages.length > 1 && (
-            <LanguageToggle
-              languages={availableLanguages}
-              selectedLanguage={selectedLanguage}
-              onLanguageChange={setSelectedLanguage}
-            />
-          )}
-        </div>
-        
-        {currentStory ? (
-          <div className="prose max-w-none">
-            {currentStory.content.split('\n').map((paragraph, index) => (
-              <p key={index} className="mb-4">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">
-            No {title.toLowerCase()} available in {getLanguageName(selectedLanguage)}.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// components/admin/MultiLanguageStoryEditor.tsx
-export default function MultiLanguageStoryEditor({ 
-  personId, 
-  stories 
-}: Props) {
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [selectedType, setSelectedType] = useState<StoryType>('personal');
-  const [content, setContent] = useState('');
-  
-  // Load existing story when language/type changes
-  useEffect(() => {
-    const existingStory = stories.find(
-      s => s.language === selectedLanguage && s.storyType === selectedType
-    );
-    setContent(existingStory?.content || '');
-  }, [selectedLanguage, selectedType, stories]);
-  
-  const handleSave = async () => {
-    const formData = new FormData();
-    formData.append('personId', personId);
-    formData.append('language', selectedLanguage);
-    formData.append('storyType', selectedType);
-    formData.append('content', content);
-    
-    const result = await saveStory({}, formData);
-    if (result.success) {
-      toast.success('Story saved successfully');
-    }
-  };
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <select 
-          value={selectedLanguage} 
-          onChange={(e) => setSelectedLanguage(e.target.value)}
-        >
-          <option value="en">English</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          {/* Add more languages as needed */}
-        </select>
-        
-        <select 
-          value={selectedType} 
-          onChange={(e) => setSelectedType(e.target.value as StoryType)}
-        >
-          <option value="personal">Personal Story</option>
-          <option value="detention">Detention Story</option>
-          <option value="family">Family Story</option>
-        </select>
-      </div>
-      
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="w-full h-64"
-        placeholder={`Enter ${selectedType} story in ${getLanguageName(selectedLanguage)}...`}
-      />
-      
-      <button onClick={handleSave} className="btn-primary">
-        Save Story
-      </button>
-    </div>
-  );
-}
-```
+The multi-language story system includes:
+- **StorySection Component**: Displays stories with automatic language detection and a language toggle that only appears when multiple languages are available. It handles story rendering with proper paragraph formatting and shows appropriate messages when stories aren't available in the selected language.
+- **MultiLanguageStoryEditor Component**: Provides an admin interface for creating and editing stories in multiple languages (English, Spanish, French) with three story types (personal, detention, family). It automatically loads existing content when switching between languages or story types and saves stories using server actions.
 
 ## Phase 3.5: Person Visibility Management
 
@@ -345,208 +99,33 @@ export default function MultiLanguageStoryEditor({
 - Display real-time visibility status in admin grid
 
 ### 3.5.1 Create Visibility Toggle Component
-```typescript
-// components/admin/PersonVisibilityToggle.tsx
-'use client';
-
-import { useState, useTransition } from 'react';
-import { togglePersonVisibility } from '@/app/actions/persons';
-
-interface PersonVisibilityToggleProps {
-  personId: string;
-  initialIsActive: boolean;
-  onUpdate?: (personId: string, isActive: boolean) => void;
-}
-
-export default function PersonVisibilityToggle({
-  personId,
-  initialIsActive,
-  onUpdate
-}: PersonVisibilityToggleProps) {
-  const [isActive, setIsActive] = useState(initialIsActive);
-  const [isPending, startTransition] = useTransition();
-
-  const handleToggle = async () => {
-    const newStatus = !isActive;
-    
-    // Optimistic update
-    setIsActive(newStatus);
-    if (onUpdate) {
-      onUpdate(personId, newStatus);
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await togglePersonVisibility(personId, newStatus);
-        if (!result.success) {
-          // Rollback on failure
-          setIsActive(!newStatus);
-          if (onUpdate) {
-            onUpdate(personId, !newStatus);
-          }
-        }
-      } catch (error) {
-        // Rollback on error
-        setIsActive(!newStatus);
-        if (onUpdate) {
-          onUpdate(personId, !newStatus);
-        }
-      }
-    });
-  };
-
-  return (
-    <button
-      onClick={handleToggle}
-      disabled={isPending}
-      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-        isActive
-          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-      } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      {isActive ? 'Visible' : 'Hidden'}
-    </button>
-  );
-}
-```
+The PersonVisibilityToggle component should be created as a client-side component that manages individual person visibility. It should:
+- Accept personId, initialIsActive state, and an optional onUpdate callback
+- Implement optimistic UI updates using React's useTransition hook
+- Toggle between "Visible" (green) and "Hidden" (gray) states
+- Call the togglePersonVisibility server action
+- Handle rollback on failure to maintain UI consistency
+- Show loading state during the transition
 
 ### 3.5.2 Update PersonsGrid with Visibility Management
-```typescript
-// Add to PersonsGrid component
-
-// State for grouping by town
-const [groupByTown, setGroupByTown] = useState(false);
-
-// Handle bulk visibility updates
-const handleBulkVisibilityUpdate = async (personIds: string[], isActive: boolean) => {
-  // Optimistically update all persons
-  const originalPersons = [...persons];
-  setPersons(prev =>
-    prev.map(person =>
-      personIds.includes(person.id) ? { ...person, isActive } : person
-    )
-  );
-
-  try {
-    const result = await updateBulkPersonVisibility(personIds, isActive);
-    if (!result.success) {
-      // Rollback on failure
-      setPersons(originalPersons);
-      setError('Failed to update visibility');
-    }
-  } catch (error) {
-    // Rollback on error
-    setPersons(originalPersons);
-    setError('Failed to update visibility');
-  }
-};
-
-// Group persons by town if enabled
-const groupedPersons = groupByTown
-  ? persons.reduce((acc, person) => {
-      const townKey = `${person.town.name}, ${person.town.state}`;
-      if (!acc[townKey]) {
-        acc[townKey] = [];
-      }
-      acc[townKey].push(person);
-      return acc;
-    }, {} as Record<string, Person[]>)
-  : { 'All Persons': persons };
-
-// Add visibility column to columns array
-{
-  key: 'isActive',
-  label: 'Visibility',
-  render: (value, record) => (
-    <PersonVisibilityToggle
-      personId={record.id}
-      initialIsActive={record.isActive}
-      onUpdate={handlePersonVisibilityUpdate}
-    />
-  ),
-}
-```
+The PersonsGrid component should be enhanced with:
+- State management for grouping persons by town
+- Bulk visibility update handler that implements optimistic updates with rollback on failure
+- Logic to group persons by town when the groupByTown option is enabled
+- A new visibility column in the grid that displays the PersonVisibilityToggle component
+- Error handling and state management for failed visibility updates
 
 ### 3.5.3 Add Bulk Action UI
-```typescript
-// components/admin/PersonBulkActions.tsx
-interface PersonBulkActionsProps {
-  onSetAllVisible: () => void;
-  onSetAllInvisible: () => void;
-  groupByTown: boolean;
-  onGroupByTownChange: (checked: boolean) => void;
-}
-
-export default function PersonBulkActions({
-  onSetAllVisible,
-  onSetAllInvisible,
-  groupByTown,
-  onGroupByTownChange
-}: PersonBulkActionsProps) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onSetAllVisible}
-          className="btn btn-primary"
-        >
-          Set All Visible
-        </button>
-        <button
-          onClick={onSetAllInvisible}
-          className="btn btn-secondary"
-        >
-          Set All Invisible
-        </button>
-      </div>
-      
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={groupByTown}
-          onChange={(e) => onGroupByTownChange(e.target.checked)}
-          className="rounded"
-        />
-        <span>Group By Town</span>
-      </label>
-    </div>
-  );
-}
-```
+The PersonBulkActions component should provide:
+- Buttons for "Set All Visible" and "Set All Invisible" bulk actions
+- A checkbox to toggle "Group By Town" display mode
+- Props for handling visibility actions and grouping state changes
+- Proper styling with flexbox layout for responsive design
 
 ### 3.5.4 Server Actions
-```typescript
-// app/actions/persons.ts
-
-export async function togglePersonVisibility(personId: string, isActive: boolean) {
-  try {
-    await prisma.person.update({
-      where: { id: personId },
-      data: { isActive }
-    });
-    
-    revalidatePath('/admin/persons');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to update visibility' };
-  }
-}
-
-export async function updateBulkPersonVisibility(personIds: string[], isActive: boolean) {
-  try {
-    await prisma.person.updateMany({
-      where: { id: { in: personIds } },
-      data: { isActive }
-    });
-    
-    revalidatePath('/admin/persons');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to update visibility' };
-  }
-}
-```
+The server actions for person visibility should include:
+- **togglePersonVisibility**: Updates a single person's isActive status, revalidates the admin persons page, and returns success/error status
+- **updateBulkPersonVisibility**: Updates multiple persons' visibility status using Prisma's updateMany, revalidates the relevant paths, and handles errors appropriately
 
 ### 3.5.5 Implementation Notes
 - Use the existing `isActive` field on the Person model
@@ -566,15 +145,7 @@ export async function updateBulkPersonVisibility(personIds: string[], isActive: 
 - Create detainee listing functionality
 
 ### 4.1 Detention Center Model
-```typescript
-// Already exists in schema
-model DetentionCenter {
-  id                  String   @id @default(cuid())
-  name                String
-  facilityType        String
-  // ... other fields
-}
-```
+The DetentionCenter model already exists in the schema with fields for id, name, facilityType, and other detention center-specific information. This model is ready for UI implementation.
 
 ### 4.2 Admin Interface
 - Create detention center grid with CRUD operations
@@ -591,23 +162,12 @@ model DetentionCenter {
 - Add breadcrumb navigation
 
 ### 5.1 Search Implementation
-```typescript
-// components/SearchBar.tsx
-interface SearchBarProps {
-  onSearch: (query: string, filters: SearchFilters) => void;
-}
-
-export function SearchBar({ onSearch }: SearchBarProps) {
-  const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilters>({
-    towns: [],
-    detentionCenters: [],
-    status: 'all'
-  });
-  
-  // Implementation details...
-}
-```
+The SearchBar component should implement:
+- Text input for search queries
+- Filter options for towns, detention centers, and status
+- State management for search query and filters
+- Callback prop to handle search execution
+- Integration with the application's search functionality
 
 ## Phase 6: Database Schema Updates ✅ PARTIALLY COMPLETED
 
@@ -621,68 +181,10 @@ export function SearchBar({ onSearch }: SearchBarProps) {
 - ❌ Add comprehensive audit logging
 
 ### 6.1 Schema Updates ✅ COMPLETED
-```prisma
-// Story model for multi-language support
-model Story {
-  id        String  @id @default(cuid())
-  language  String  @default("en") // ISO 639-1 language code
-  storyType String  @default("personal") // personal, detention, family
-  content   String  @db.Text
-  isActive  Boolean @default(true)
-  personId  String
-  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@unique([personId, language, storyType])
-  @@map("stories")
-}
-
-// Updated Comment model for anonymous support
-model Comment {
-  id                     String    @id @default(cuid())
-  personId               String
-  person                 Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  // Anonymous commenter fields
-  firstName              String?
-  lastName               String?
-  email                  String?
-  phone                  String?
-  
-  // Support preferences
-  wantsToHelpMore        Boolean   @default(false)
-  displayNameOnly        Boolean   @default(false)
-  requiresFamilyApproval Boolean   @default(true)
-  
-  content                String?   @db.Text
-  type                   String    @default("support")
-  visibility             String    @default("public")
-  
-  // Moderation fields
-  isActive               Boolean   @default(true)
-  isApproved             Boolean   @default(false)
-  approvedAt             DateTime?
-  approvedBy             String?
-  moderatorNotes         String?   @db.Text
-  
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  
-  @@index([personId])
-  @@index([isApproved, isActive])
-  @@map("comments")
-}
-
-// Updated Person model
-model Person {
-  // ... existing fields ...
-  bondAmount      Decimal?     @db.Decimal(10, 2)
-  stories         Story[]      // Relation to multi-language stories
-  // ... other fields ...
-}
-```
+The database schema has been updated with:
+- **Story Model**: Supports multi-language content with ISO 639-1 language codes, three story types (personal, detention, family), active status tracking, and a unique constraint on personId/language/storyType combination
+- **Comment Model**: Enhanced for anonymous support with fields for commenter information (firstName, lastName, email, phone), support preferences (wantsToHelpMore, displayNameOnly, requiresFamilyApproval), and moderation fields (isApproved, approvedAt, approvedBy, moderatorNotes)
+- **Person Model**: Updated to include Decimal type for bondAmount and a relation to the Story model for multi-language support
 
 ## Phase 7: Performance & Security (Week 7)
 
@@ -753,111 +255,35 @@ model Person {
 - Ensure consistent visibility control throughout public interface
 
 ### 10.1 Homepage Visibility Filtering
-```typescript
-// app/page.tsx
-// Update the town query to filter by visibility
-const towns = await prisma.town.findMany({
-  where: {
-    isActive: true, // Only show active/visible towns
-  },
-  include: {
-    persons: {
-      where: {
-        isActive: true, // Count only visible persons
-      },
-      select: {
-        id: true,
-      },
-    },
-  },
-  orderBy: {
-    name: 'asc',
-  },
-});
-```
+The homepage town query should be updated to:
+- Filter towns by isActive status to show only visible towns
+- Include only active/visible persons when counting detained individuals per town
+- Maintain alphabetical ordering by town name
+- Select only necessary fields for performance optimization
 
 ### 10.2 Recently Added Section Update
-```typescript
-// Update recently added persons query
-const recentPersons = await prisma.person.findMany({
-  where: {
-    isActive: true, // Only visible persons
-    town: {
-      isActive: true, // Only from visible towns
-    },
-  },
-  include: {
-    town: true,
-    stories: {
-      where: {
-        storyType: 'personal',
-        isActive: true,
-      },
-    },
-    _count: {
-      select: {
-        comments: {
-          where: {
-            isApproved: true,
-            isActive: true,
-          },
-        },
-      },
-    },
-  },
-  orderBy: {
-    createdAt: 'desc',
-  },
-  take: 6, // Show 6 most recent
-});
-```
+The recently added persons query should:
+- Filter to show only active/visible persons from active/visible towns
+- Include town information for display
+- Include only active personal stories
+- Count only approved and active comments
+- Order by creation date (newest first)
+- Limit results to 6 most recent entries
 
 ### 10.3 Detained Person Count Update
-```typescript
-// Update the total count query
-const totalDetained = await prisma.person.count({
-  where: {
-    isActive: true,
-    town: {
-      isActive: true,
-    },
-  },
-});
-```
+The total detained person count should be calculated by:
+- Counting only persons with isActive set to true
+- Including only persons from towns that are also active/visible
+- Using Prisma's count method for efficient database queries
 
 ### 10.4 Town Page Visibility
-```typescript
-// app/[townSlug]/page.tsx
-// Ensure town page only shows visible persons
-const persons = await prisma.person.findMany({
-  where: {
-    townId: town.id,
-    isActive: true, // Only show visible persons
-  },
-  include: {
-    detentionCenter: true,
-    stories: {
-      where: {
-        storyType: 'personal',
-        isActive: true,
-      },
-    },
-    _count: {
-      select: {
-        comments: {
-          where: {
-            isApproved: true,
-            isActive: true,
-          },
-        },
-      },
-    },
-  },
-  orderBy: {
-    createdAt: 'desc',
-  },
-});
-```
+The town page person query should:
+- Filter persons by townId and isActive status
+- Include detention center information
+- Include only active personal stories
+- Count only approved and active comments
+- Order by creation date (newest first)
+- Ensure consistent visibility filtering across all public pages
 
 ### 10.5 Implementation Notes
 - All public-facing pages must respect the visibility settings

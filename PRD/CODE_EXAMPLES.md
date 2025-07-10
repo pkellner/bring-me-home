@@ -1,882 +1,1118 @@
-# Code Examples and Implementation Snippets
+# Code Examples for Bring Me Home Application
 
-## React Server Functions
+This file contains code examples referenced in the Product Requirements Document and Implementation Plan. These examples demonstrate implementation patterns, database schemas, and configuration approaches used throughout the application.
 
-### User Authentication Server Function
-```typescript
-// app/actions/auth.ts
-'use server';
+## Table of Contents
+1. [Database Schema Examples](#database-schema-examples)
+2. [Image Encoding System](#image-encoding-system)
+3. [Environment Variables Handler](#environment-variables-handler)
+4. [Docker Configuration](#docker-configuration)
+5. [Validation Schemas](#validation-schemas)
+6. [Anonymous Comment Implementation](#anonymous-comment-implementation)
+7. [Comment Moderation Enhancement](#comment-moderation-enhancement)
+8. [Multi-Language Story Implementation](#multi-language-story-implementation)
+9. [Person Visibility Management](#person-visibility-management)
+10. [Public Page Visibility Filtering](#public-page-visibility-filtering)
 
-import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { LoginSchema } from '@/schemas/user';
-import { signIn } from '@/lib/auth';
+---
 
-export async function loginUser(formData: FormData) {
-  const rawData = {
-    username: formData.get('username'),
-    password: formData.get('password'),
-  };
+## Database Schema Examples
 
-  const validation = LoginSchema.safeParse(rawData);
-  if (!validation.success) {
-    return { error: 'Invalid input data' };
-  }
+### Complete Prisma Schema Models
 
-  const { username, password } = validation.data;
+```prisma
+// User authentication and role management
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String?
+  password    String
+  roles       UserRole[]
+  townAccess  TownAccess[]
+  personAccess PersonAccess[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
-  try {
-    const user = await prisma.user.findUnique({
-      where: { username },
-      include: { userRoles: { include: { role: true } } },
-    });
+// Town organization model
+model Town {
+  id          String   @id @default(cuid())
+  name        String
+  state       String
+  address     String
+  description String?
+  persons     Person[]
+  adminUsers  TownAccess[]
+  layoutId    String?
+  themeId     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
-    if (!user || !user.isActive) {
-      return { error: 'Invalid credentials' };
-    }
+// Detained person model with comprehensive tracking
+model Person {
+  id                   String         @id @default(cuid())
+  firstName            String
+  middleName           String?
+  lastName             String
+  alienIdNumber        String?
+  detentionCenterId    String?
+  detentionCenter      DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
+  dateDetained         DateTime?
+  lastHeardFromDate    DateTime?
+  notesFromLastContact String?        @db.Text
+  bondAmount           Decimal?       @db.Decimal(10, 2)
+  caseNumber           String?
+  detentionStatus      String?        @default("detained")
+  representedByLawyer  Boolean        @default(false)
+  representedByNotes   String?        @db.Text
+  usAddress            String?
+  internationalAddress String?
+  stories              Story[]        // Multi-language stories
+  townId               String
+  town                 Town           @relation(fields: [townId], references: [id])
+  comments             Comment[]
+  personImages         PersonImage[]
+  adminUsers           PersonAccess[]
+  isActive             Boolean        @default(true)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return { error: 'Invalid credentials' };
-    }
+// Multi-language story support
+model Story {
+  id        String  @id @default(cuid())
+  language  String  @default("en") // ISO 639-1 code
+  storyType String  @default("personal") // personal, detention, family
+  content   String  @db.Text
+  isActive  Boolean @default(true)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([personId, language, storyType])
+  @@map("stories")
+}
 
-    await signIn(user);
-    return { success: true, user: { id: user.id, username: user.username } };
-  } catch (error) {
-    console.error('Login error:', error);
-    return { error: 'Login failed' };
-  }
+// Anonymous comment model
+model Comment {
+  id                     String    @id @default(cuid())
+  personId               String
+  person                 Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  // Anonymous commenter fields
+  firstName              String?
+  lastName               String?
+  email                  String?
+  phone                  String?
+  
+  // Support preferences
+  wantsToHelpMore        Boolean   @default(false)
+  displayNameOnly        Boolean   @default(false)
+  requiresFamilyApproval Boolean   @default(true)
+  
+  content                String?   @db.Text
+  type                   String    @default("support")
+  visibility             String    @default("public")
+  
+  // Moderation fields
+  isActive               Boolean   @default(true)
+  isApproved             Boolean   @default(false)
+  approvedAt             DateTime?
+  approvedBy             String?
+  moderatorNotes         String?   @db.Text
+  
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  @@index([personId])
+  @@index([isApproved, isActive])
+  @@map("comments")
 }
 ```
 
-### Person Management Server Function
+---
+
+## Image Encoding System
+
+### Image Placeholder Implementation for Seed Data
+
 ```typescript
-// app/actions/person.ts
-'use server';
+// Image placeholder encoding for seed data
+interface ImagePlaceholder {
+  id: string;
+  encoding: string; // Base64 or placeholder identifier
+  description: string;
+  type: 'primary' | 'secondary';
+}
 
-import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-import { CreatePersonSchema, UpdatePersonSchema } from '@/schemas/person';
-import { getCurrentUser } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
-
-export async function createPerson(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return { error: 'Unauthorized' };
+const sampleImagePlaceholders: ImagePlaceholder[] = [
+  {
+    id: '1',
+    encoding: 'PERSON_PLACEHOLDER_001',
+    description: 'Primary photo - Male, 30s, brown hair',
+    type: 'primary'
+  },
+  {
+    id: '2',
+    encoding: 'PERSON_PLACEHOLDER_002',
+    description: 'Secondary photo - Same person, different angle',
+    type: 'secondary'
   }
+];
 
-  const rawData = {
-    firstName: formData.get('firstName'),
-    middleName: formData.get('middleName'),
-    lastName: formData.get('lastName'),
-    alienIdNumber: formData.get('alienIdNumber'),
-    lastKnownAddress: formData.get('lastKnownAddress'),
-    story: formData.get('story'),
-    townId: formData.get('townId'),
-    // ... other fields
-  };
-
-  const validation = CreatePersonSchema.safeParse(rawData);
-  if (!validation.success) {
-    return { error: 'Invalid input data', details: validation.error.errors };
-  }
-
-  try {
-    // Check if user has permission to create person in this town
-    const hasAccess = await prisma.townAccess.findFirst({
-      where: {
-        userId: user.id,
-        townId: validation.data.townId,
-        accessLevel: { in: ['write', 'admin'] },
-      },
-    });
-
-    if (!hasAccess) {
-      return { error: 'Insufficient permissions' };
-    }
-
-    const person = await prisma.person.create({
-      data: validation.data,
-    });
-
-    // Create audit log
-    await prisma.auditLog.create({
+// Usage in seed data
+async function seedPersonImages() {
+  const placeholders = generatePlaceholderImages();
+  
+  for (const person of persons) {
+    await prisma.personImage.create({
       data: {
-        userId: user.id,
-        action: 'CREATE_PERSON',
-        entityType: 'Person',
-        entityId: person.id,
-        newValues: JSON.stringify(validation.data),
-      },
+        personId: person.id,
+        imageUrl: placeholders.primary,
+        isPrimary: true,
+        isActive: true
+      }
     });
-
-    revalidatePath(`/towns/${validation.data.townId}`);
-    return { success: true, person };
-  } catch (error) {
-    console.error('Create person error:', error);
-    return { error: 'Failed to create person' };
   }
 }
 ```
 
-### Comment Submission Server Function
-```typescript
-// app/actions/comment.ts
-'use server';
+---
 
+## Environment Variables Handler
+
+### Server-side Environment Configuration
+
+```typescript
+// Environment variables context provider
+interface EnvConfig {
+  RELEASEVERSION: string;
+  RELEASEDATE: string;
+  RELEASEDATEISO: string;
+  DATABASE_URL: string;
+  NEXTAUTH_URL: string;
+  ADMIN_EMAIL: string;
+  SYSTEM_DEFAULT_LAYOUT: string;
+  SYSTEM_DEFAULT_THEME: string;
+  REDIS_HOST?: string;
+  REDIS_PORT?: number;
+  IMAGE_UPLOAD_MAX_SIZE_MB?: number;
+  IMAGE_STORAGE_MAX_SIZE_KB?: number;
+}
+
+export const getServerEnvironment = (): EnvConfig => {
+  return {
+    RELEASEVERSION: process.env.RELEASEVERSION || '0',
+    RELEASEDATE: process.env.RELEASEDATE || '',
+    RELEASEDATEISO: process.env.RELEASEDATEISO || '',
+    DATABASE_URL: process.env.DATABASE_URL || '',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || '',
+    ADMIN_EMAIL: process.env.ADMIN_EMAIL || '',
+    SYSTEM_DEFAULT_LAYOUT: process.env.SYSTEM_DEFAULT_LAYOUT || 'grid',
+    SYSTEM_DEFAULT_THEME: process.env.SYSTEM_DEFAULT_THEME || 'default',
+    REDIS_HOST: process.env.REDIS_HOST,
+    REDIS_PORT: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379,
+    IMAGE_UPLOAD_MAX_SIZE_MB: process.env.IMAGE_UPLOAD_MAX_SIZE_MB 
+      ? parseInt(process.env.IMAGE_UPLOAD_MAX_SIZE_MB) : 10,
+    IMAGE_STORAGE_MAX_SIZE_KB: process.env.IMAGE_STORAGE_MAX_SIZE_KB 
+      ? parseInt(process.env.IMAGE_STORAGE_MAX_SIZE_KB) : 200,
+  };
+};
+```
+
+---
+
+## Docker Configuration
+
+### Production Docker Setup
+
+```dockerfile
+# Use official node runtime as parent image
+FROM node:20-alpine
+
+# Create app directory
+RUN mkdir -p /usr/src
+WORKDIR /usr/src
+
+# Copy package files
+COPY package.json /usr/src/
+COPY package-lock.json /usr/src/
+
+# Install dependencies
+RUN npm install
+
+# Bundle app source
+COPY . /usr/src
+
+# Generate version information
+RUN if [ -f ./baseversion ]; then \
+         RELEASEVERSION=$(($(cat ./baseversion) + 0)); \
+     else \
+         RELEASEVERSION=0; \
+     fi \
+     && RELEASEDATE=$(date "+%a %b %d %T %Y") \
+     && RELEASEDATEISO=$(date -u "+%Y-%m-%dT%H:%M:%SZ") \
+     && echo "RELEASEVERSION=$RELEASEVERSION" > ./.env.production \
+     && echo "RELEASEDATE=$RELEASEDATE" >> ./.env.production \
+     && echo "NEXT_PUBLIC_RELEASEDATE=$RELEASEDATE" >> ./.env.production \
+     && echo "RELEASEDATEISO=$RELEASEDATEISO" >> ./.env.production
+
+# Build the application
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]
+```
+
+---
+
+## Validation Schemas
+
+### Zod Validation Schemas
+
+```typescript
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-import { CreateCommentSchema } from '@/schemas/comment';
-import { uploadFiles } from '@/lib/upload';
 
-export async function submitComment(formData: FormData) {
-  const rawData = {
-    content: formData.get('content'),
-    submitterName: formData.get('submitterName'),
-    submitterEmail: formData.get('submitterEmail'),
-    isAnonymous: formData.get('isAnonymous') === 'true',
-    privacyLevel: formData.get('privacyLevel'),
-    personId: formData.get('personId'),
-  };
+// Person validation schema
+export const PersonSchema = z.object({
+  id: z.string().cuid().optional(),
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
+  alienIdNumber: z.string().optional(),
+  dateDetained: z.date().optional(),
+  lastHeardFromDate: z.date().optional(),
+  notesFromLastContact: z.string().optional(),
+  bondAmount: z.number().positive().optional(),
+  caseNumber: z.string().optional(),
+  representedByLawyer: z.boolean().default(false),
+  representedByNotes: z.string().optional(),
+  usAddress: z.string().min(10, 'Valid US address required'),
+  internationalAddress: z.string().optional(),
+  townId: z.string().cuid(),
+  isActive: z.boolean().default(true),
+});
 
-  const validation = CreateCommentSchema.safeParse(rawData);
-  if (!validation.success) {
-    return { error: 'Invalid input data', details: validation.error.errors };
-  }
+// Anonymous comment validation schema
+export const CommentSchema = z.object({
+  id: z.string().cuid().optional(),
+  personId: z.string().cuid(),
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  content: z.string().optional().or(z.literal('')),
+  wantsToHelpMore: z.boolean().default(false),
+  displayNameOnly: z.boolean().default(false),
+  requiresFamilyApproval: z.boolean().default(true),
+});
 
-  try {
-    // Handle file uploads
-    const files = formData.getAll('attachments') as File[];
-    const uploadedFiles = await uploadFiles(files);
-
-    const comment = await prisma.comment.create({
-      data: {
-        ...validation.data,
-        isApproved: false, // Requires moderation
-      },
-    });
-
-    // Create attachments
-    if (uploadedFiles.length > 0) {
-      await prisma.attachment.createMany({
-        data: uploadedFiles.map(file => ({
-          ...file,
-          commentId: comment.id,
-        })),
-      });
-    }
-
-    return { success: true, comment };
-  } catch (error) {
-    console.error('Submit comment error:', error);
-    return { error: 'Failed to submit comment' };
-  }
-}
+// Story validation schema
+export const StorySchema = z.object({
+  id: z.string().cuid().optional(),
+  personId: z.string().cuid(),
+  language: z.string().length(2, 'Language code must be 2 characters'),
+  storyType: z.enum(['personal', 'detention', 'family']),
+  content: z.string().min(1, 'Story content is required'),
+  isActive: z.boolean().default(true),
+});
 ```
 
-## React Components
+---
 
-### Person Profile Component
+## Anonymous Comment Implementation
+
+### Comment Form Component
+
 ```typescript
-// app/components/PersonProfile.tsx
-import { Person, Town, Comment, Attachment } from '@prisma/client';
-import { ImageGallery } from './ImageGallery';
-import { CommentList } from './CommentList';
-import { CommentForm } from './CommentForm';
-
-interface PersonProfileProps {
-  person: Person & {
-    town: Town;
-    comments: (Comment & { attachments: Attachment[] })[];
-  };
-}
-
-export default function PersonProfile({ person }: PersonProfileProps) {
-  const images = [
-    person.primaryPicture,
-    person.secondaryPic1,
-    person.secondaryPic2,
-    person.secondaryPic3,
-  ].filter(Boolean);
-
-  return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Person Info */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {person.firstName} {person.middleName} {person.lastName}
-          </h1>
-          <p className="text-lg text-gray-600 mb-4">
-            {person.town.name}, {person.town.state}
-          </p>
-          
-          {person.story && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">Story</h2>
-              <p className="text-gray-700 whitespace-pre-line">
-                {person.story}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2 text-sm text-gray-600">
-            <p><strong>Last Known Address:</strong> {person.lastKnownAddress}</p>
-            {person.lastSeenDate && (
-              <p><strong>Last Seen:</strong> {person.lastSeenDate.toLocaleDateString()}</p>
-            )}
-            {person.lastSeenLocation && (
-              <p><strong>Last Seen Location:</strong> {person.lastSeenLocation}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Images */}
-        <div>
-          <ImageGallery images={images} alt={`${person.firstName} ${person.lastName}`} />
-        </div>
-      </div>
-
-      {/* Comments Section */}
-      <div className="mt-12 border-t pt-8">
-        <h2 className="text-2xl font-bold mb-6">Community Comments</h2>
-        <CommentList comments={person.comments} />
-        <CommentForm personId={person.id} />
-      </div>
-    </div>
-  );
-}
-```
-
-### Comment Form with useActionState
-```typescript
-// app/components/CommentForm.tsx
+// components/person/AnonymousCommentForm.tsx
 'use client';
 
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { submitComment } from '@/app/actions/comment';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Textarea } from './ui/Textarea';
-import { FileUpload } from './ui/FileUpload';
+import { useFormState } from 'react-dom';
+import { submitComment } from '@/app/actions/comments';
 
-interface CommentFormProps {
-  personId: string;
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? 'Submitting...' : 'Submit Comment'}
-    </Button>
-  );
-}
-
-export default function CommentForm({ personId }: CommentFormProps) {
-  const [state, action] = useActionState(submitComment, null);
+export default function AnonymousCommentForm({ personId }: { personId: string }) {
+  const [state, formAction] = useFormState(submitComment, {
+    success: false,
+  });
 
   return (
-    <form action={action} className="space-y-6 bg-gray-50 p-6 rounded-lg">
+    <form action={formAction} className="space-y-6">
       <input type="hidden" name="personId" value={personId} />
       
+      {/* Required Fields */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+            First Name *
+          </label>
+          <input 
+            type="text" 
+            id="firstName" 
+            name="firstName" 
+            required 
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+            Last Name *
+          </label>
+          <input 
+            type="text" 
+            id="lastName" 
+            name="lastName" 
+            required 
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+      </div>
+
+      {/* Optional Contact */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            Email (optional)
+          </label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            Phone (optional)
+          </label>
+          <input 
+            type="tel" 
+            id="phone" 
+            name="phone" 
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+          />
+        </div>
+      </div>
+
+      {/* Message */}
       <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-          Your Comment *
+        <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+          Your Message (optional)
         </label>
-        <Textarea
-          id="content"
-          name="content"
+        <textarea 
+          id="content" 
+          name="content" 
           rows={4}
-          required
-          placeholder="Share any information that might be helpful..."
-          className="w-full"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
         />
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="submitterName" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Name (Optional)
-          </label>
-          <Input
-            id="submitterName"
-            name="submitterName"
-            type="text"
-            placeholder="Enter your name"
+      
+      {/* Support Preferences */}
+      <div className="space-y-4">
+        <label className="flex items-start">
+          <input 
+            type="checkbox" 
+            name="wantsToHelpMore" 
+            value="true" 
+            className="mt-1 rounded border-gray-300"
           />
-        </div>
-
-        <div>
-          <label htmlFor="submitterEmail" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Email (Optional)
-          </label>
-          <Input
-            id="submitterEmail"
-            name="submitterEmail"
-            type="email"
-            placeholder="Enter your email"
+          <span className="ml-2 text-sm text-gray-700">
+            I want to help more, please contact me
+          </span>
+        </label>
+        <label className="flex items-start">
+          <input 
+            type="checkbox" 
+            name="displayNameOnly" 
+            value="true" 
+            className="mt-1 rounded border-gray-300"
           />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Privacy Level
+          <span className="ml-2 text-sm text-gray-700">
+            Display just my name as supporting
+          </span>
         </label>
-        <select
-          name="privacyLevel"
-          className="w-full p-2 border border-gray-300 rounded-md"
-        >
-          <option value="public">Public - Anyone can see</option>
-          <option value="family">Family Only</option>
-          <option value="officials">Officials Only</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Attachments (Optional)
-        </label>
-        <FileUpload
-          name="attachments"
-          multiple
-          accept="image/*,video/*"
-          maxFiles={3}
-        />
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="isAnonymous"
-          name="isAnonymous"
-          value="true"
-          className="rounded"
-        />
-        <label htmlFor="isAnonymous" className="text-sm text-gray-700">
-          Submit anonymously
+        <label className="flex items-start">
+          <input 
+            type="checkbox" 
+            name="requiresFamilyApproval" 
+            value="true" 
+            defaultChecked
+            className="mt-1 rounded border-gray-300"
+          />
+          <span className="ml-2 text-sm text-gray-700">
+            Display my name and comment if family approves
+          </span>
         </label>
       </div>
 
-      {state?.error && (
-        <div className="text-red-600 text-sm">{state.error}</div>
+      <button 
+        type="submit" 
+        className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+      >
+        Submit Support
+      </button>
+
+      {state.success && (
+        <p className="text-green-600">Thank you for your support!</p>
       )}
-
-      {state?.success && (
-        <div className="text-green-600 text-sm">
-          Comment submitted successfully and is pending approval.
-        </div>
+      {state.error && (
+        <p className="text-red-600">{state.error}</p>
       )}
-
-      <SubmitButton />
     </form>
   );
 }
 ```
 
-### Admin Grid Component
+---
+
+## Comment Moderation Enhancement
+
+### Moderation Modal Component
+
 ```typescript
-// app/components/admin/DataGrid.tsx
+// components/admin/CommentModerationModal.tsx
 'use client';
 
 import { useState } from 'react';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { updateCommentAndApprove, rejectComment } from '@/app/actions/comments';
 
-interface Column {
-  key: string;
-  label: string;
-  sortable?: boolean;
-  render?: (value: any, row: any) => React.ReactNode;
+interface CommentModerationModalProps {
+  comment: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
+    content: string | null;
+    wantsToHelpMore: boolean;
+    displayNameOnly: boolean;
+    requiresFamilyApproval: boolean;
+  };
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (commentId: string, isApproved: boolean) => void;
 }
 
-interface DataGridProps {
-  data: any[];
-  columns: Column[];
-  title: string;
-  onEdit?: (row: any) => void;
-  onDelete?: (row: any) => void;
-  onCreate?: () => void;
-  pageSize?: number;
-}
+export default function CommentModerationModal({ 
+  comment, 
+  isOpen, 
+  onClose,
+  onUpdate 
+}: CommentModerationModalProps) {
+  const [content, setContent] = useState(comment.content || '');
+  const [moderatorNotes, setModeratorNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export default function DataGrid({
-  data,
-  columns,
-  title,
-  onEdit,
-  onDelete,
-  onCreate,
-  pageSize = 100,
-}: DataGridProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [filter, setFilter] = useState('');
-
-  // Filter data
-  const filteredData = data.filter(row =>
-    Object.values(row).some(value =>
-      String(value).toLowerCase().includes(filter.toLowerCase())
-    )
-  );
-
-  // Sort data
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortField) return 0;
-    
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  // Paginate data
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+  const handleApprove = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateCommentAndApprove(
+        comment.id,
+        content,
+        moderatorNotes
+      );
+      onUpdate(comment.id, true);
+      onClose();
+    } catch (error) {
+      console.error('Failed to approve comment:', error);
     }
+    setIsSubmitting(false);
   };
 
+  const handleReject = async () => {
+    if (!moderatorNotes.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await rejectComment(comment.id, moderatorNotes);
+      onUpdate(comment.id, false);
+      onClose();
+    } catch (error) {
+      console.error('Failed to reject comment:', error);
+    }
+    setIsSubmitting(false);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">{title}</h2>
-          {onCreate && (
-            <Button onClick={onCreate} className="bg-blue-600 hover:bg-blue-700">
-              Create New
-            </Button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4">Moderate Comment</h2>
+        
+        {/* Comment details */}
+        <div className="space-y-4 mb-6">
+          <div>
+            <h3 className="font-semibold">Commenter Information</h3>
+            <p>Name: {comment.firstName} {comment.lastName}</p>
+            {comment.email && <p>Email: {comment.email}</p>}
+            {comment.phone && <p>Phone: {comment.phone}</p>}
+          </div>
+
+          <div>
+            <h3 className="font-semibold">Support Preferences</h3>
+            <ul className="text-sm">
+              {comment.wantsToHelpMore && <li>• Wants to help more</li>}
+              {comment.displayNameOnly && <li>• Display name only</li>}
+              {comment.requiresFamilyApproval && <li>• Requires family approval</li>}
+            </ul>
+          </div>
+          
+          <div>
+            <label className="block font-semibold mb-2">Comment Content</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full h-32 p-2 border rounded-md"
+              placeholder="No message provided - name only support"
+            />
+          </div>
+          
+          <div>
+            <label className="block font-semibold mb-2">
+              Moderator Notes <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={moderatorNotes}
+              onChange={(e) => setModeratorNotes(e.target.value)}
+              placeholder="Required for rejection, optional for approval"
+              className="w-full h-20 p-2 border rounded-md"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleReject}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            disabled={isSubmitting}
+          >
+            Reject
+          </button>
+          <button
+            onClick={handleApprove}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            disabled={isSubmitting}
+          >
+            Approve & Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Multi-Language Story Implementation
+
+### Story Display Component
+
+```typescript
+// components/person/StorySection.tsx
+'use client';
+
+import { useState } from 'react';
+import LanguageToggle from './LanguageToggle';
+
+interface Story {
+  id: string;
+  language: string;
+  storyType: string;
+  content: string;
+}
+
+interface StorySectionProps {
+  stories: Story[];
+  storyType: 'personal' | 'detention' | 'family';
+  title: string;
+}
+
+export default function StorySection({ 
+  stories, 
+  storyType, 
+  title 
+}: StorySectionProps) {
+  // Filter stories by type
+  const typeStories = stories.filter(s => s.storyType === storyType);
+  const availableLanguages = [...new Set(typeStories.map(s => s.language))];
+  
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    availableLanguages.includes('en') ? 'en' : availableLanguages[0] || 'en'
+  );
+  
+  const currentStory = typeStories.find(s => s.language === selectedLanguage);
+  
+  if (typeStories.length === 0) return null;
+  
+  return (
+    <div className="bg-white overflow-hidden shadow rounded-lg">
+      <div className="px-4 py-5 sm:p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          
+          {availableLanguages.length > 1 && (
+            <LanguageToggle
+              languages={availableLanguages}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
           )}
         </div>
         
-        <div className="mt-4">
-          <Input
-            placeholder="Filter records..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="max-w-md"
-          />
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  {column.sortable ? (
-                    <button
-                      onClick={() => handleSort(column.key)}
-                      className="flex items-center space-x-1 hover:text-gray-700"
-                    >
-                      <span>{column.label}</span>
-                      {sortField === column.key && (
-                        <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </button>
-                  ) : (
-                    column.label
-                  )}
-                </th>
-              ))}
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedData.map((row, index) => (
-              <tr key={row.id || index} className="hover:bg-gray-50">
-                {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
-                ))}
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end space-x-2">
-                    {onEdit && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onEdit(row)}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onDelete(row)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
+        {currentStory ? (
+          <div className="prose max-w-none">
+            {currentStory.content.split('\n').map((paragraph, index) => (
+              <p key={index} className="mb-4">
+                {paragraph}
+              </p>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="px-6 py-4 border-t flex items-center justify-between">
-        <div className="text-sm text-gray-700">
-          Showing {startIndex + 1} to {Math.min(startIndex + pageSize, sortedData.length)} of {sortedData.length} results
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous
-          </Button>
-          
-          <span className="text-sm text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
-        </div>
+          </div>
+        ) : (
+          <p className="text-gray-500 italic">
+            No {title.toLowerCase()} available in {getLanguageName(selectedLanguage)}.
+          </p>
+        )}
       </div>
     </div>
   );
 }
-```
 
-### Environment Variables Context
-```typescript
-// app/context/EnvironmentContext.tsx
-'use client';
-
-import { createContext, useContext, ReactNode } from 'react';
-
-interface EnvironmentConfig {
-  RELEASEVERSION: string;
-  RELEASEDATE: string;
-  RELEASEDATEISO: string;
-  NEXTAUTH_URL: string;
-  GA_TRACKING_ID: string;
-  ADMIN_EMAIL: string;
-  DEBUG_FLAG: string;
-}
-
-const EnvironmentContext = createContext<EnvironmentConfig | null>(null);
-
-export function useEnvironment() {
-  const context = useContext(EnvironmentContext);
-  if (!context) {
-    throw new Error('useEnvironment must be used within an EnvironmentProvider');
-  }
-  return context;
-}
-
-interface EnvironmentProviderProps {
-  children: ReactNode;
-  config: EnvironmentConfig;
-}
-
-export function EnvironmentProvider({ children, config }: EnvironmentProviderProps) {
-  return (
-    <EnvironmentContext.Provider value={config}>
-      {children}
-    </EnvironmentContext.Provider>
-  );
+function getLanguageName(code: string): string {
+  const languages: Record<string, string> = {
+    en: 'English',
+    es: 'Spanish',
+    fr: 'French',
+    // Add more as needed
+  };
+  return languages[code] || code.toUpperCase();
 }
 ```
 
-### File Upload Component
+### Multi-Language Story Editor
+
 ```typescript
-// app/components/ui/FileUpload.tsx
+// components/admin/MultiLanguageStoryEditor.tsx
 'use client';
 
-import { useState, useRef } from 'react';
-import { CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { saveStory } from '@/app/actions/stories';
 
-interface FileUploadProps {
-  name: string;
-  multiple?: boolean;
-  accept?: string;
-  maxFiles?: number;
-  maxSize?: number; // in MB
-  onFilesChange?: (files: File[]) => void;
+interface Story {
+  id: string;
+  language: string;
+  storyType: string;
+  content: string;
 }
 
-export default function FileUpload({
-  name,
-  multiple = false,
-  accept,
-  maxFiles = 3,
-  maxSize = 5,
-  onFilesChange,
-}: FileUploadProps) {
-  const [files, setFiles] = useState<File[]>([]);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+interface Props {
+  personId: string;
+  stories: Story[];
+}
 
-  const handleFiles = (fileList: FileList) => {
-    const newFiles = Array.from(fileList);
-    const validFiles = newFiles.filter(file => {
-      // Check file size
-      if (file.size > maxSize * 1024 * 1024) {
-        alert(`File ${file.name} is too large. Maximum size is ${maxSize}MB.`);
-        return false;
-      }
-      return true;
-    });
+type StoryType = 'personal' | 'detention' | 'family';
 
-    const updatedFiles = multiple ? [...files, ...validFiles].slice(0, maxFiles) : validFiles.slice(0, 1);
-    setFiles(updatedFiles);
-    onFilesChange?.(updatedFiles);
-  };
-
-  const removeFile = (index: number) => {
-    const updatedFiles = files.filter((_, i) => i !== index);
-    setFiles(updatedFiles);
-    onFilesChange?.(updatedFiles);
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+export default function MultiLanguageStoryEditor({ 
+  personId, 
+  stories 
+}: Props) {
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedType, setSelectedType] = useState<StoryType>('personal');
+  const [content, setContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Load existing story when language/type changes
+  useEffect(() => {
+    const existingStory = stories.find(
+      s => s.language === selectedLanguage && s.storyType === selectedType
+    );
+    setContent(existingStory?.content || '');
+  }, [selectedLanguage, selectedType, stories]);
+  
+  const handleSave = async () => {
+    setIsSaving(true);
+    const formData = new FormData();
+    formData.append('personId', personId);
+    formData.append('language', selectedLanguage);
+    formData.append('storyType', selectedType);
+    formData.append('content', content);
     
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
+    try {
+      const result = await saveStory({}, formData);
+      if (result.success) {
+        alert('Story saved successfully');
+      }
+    } catch (error) {
+      alert('Failed to save story');
     }
+    setIsSaving(false);
   };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4">
+        <select 
+          value={selectedLanguage} 
+          onChange={(e) => setSelectedLanguage(e.target.value)}
+          className="rounded-md border-gray-300"
+        >
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+        </select>
+        
+        <select 
+          value={selectedType} 
+          onChange={(e) => setSelectedType(e.target.value as StoryType)}
+          className="rounded-md border-gray-300"
+        >
+          <option value="personal">Personal Story</option>
+          <option value="detention">Detention Story</option>
+          <option value="family">Family Story</option>
+        </select>
+      </div>
+      
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full h-64 p-3 border rounded-md"
+        placeholder={`Enter ${selectedType} story in ${getLanguageName(selectedLanguage)}...`}
+      />
+      
+      <button 
+        onClick={handleSave} 
+        disabled={isSaving}
+        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+      >
+        {isSaving ? 'Saving...' : 'Save Story'}
+      </button>
+    </div>
+  );
+}
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+function getLanguageName(code: string): string {
+  const languages: Record<string, string> = {
+    en: 'English',
+    es: 'Spanish', 
+    fr: 'French',
+  };
+  return languages[code] || code.toUpperCase();
+}
+```
+
+---
+
+## Person Visibility Management
+
+### Visibility Toggle Component
+
+```typescript
+// components/admin/PersonVisibilityToggle.tsx
+'use client';
+
+import { useState, useTransition } from 'react';
+import { togglePersonVisibility } from '@/app/actions/persons';
+
+interface PersonVisibilityToggleProps {
+  personId: string;
+  initialIsActive: boolean;
+  onUpdate?: (personId: string, isActive: boolean) => void;
+}
+
+export default function PersonVisibilityToggle({
+  personId,
+  initialIsActive,
+  onUpdate
+}: PersonVisibilityToggleProps) {
+  const [isActive, setIsActive] = useState(initialIsActive);
+  const [isPending, startTransition] = useTransition();
+
+  const handleToggle = async () => {
+    const newStatus = !isActive;
+    
+    // Optimistic update
+    setIsActive(newStatus);
+    if (onUpdate) {
+      onUpdate(personId, newStatus);
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await togglePersonVisibility(personId, newStatus);
+        if (!result.success) {
+          // Rollback on failure
+          setIsActive(!newStatus);
+          if (onUpdate) {
+            onUpdate(personId, !newStatus);
+          }
+        }
+      } catch (error) {
+        // Rollback on error
+        setIsActive(!newStatus);
+        if (onUpdate) {
+          onUpdate(personId, !newStatus);
+        }
+      }
+    });
   };
 
   return (
-    <div className="w-full">
-      <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <p className="mt-2 text-sm text-gray-600">
-          Click to upload or drag and drop
-        </p>
-        <p className="text-xs text-gray-500">
-          {accept && `Accepted formats: ${accept}`}
-          {maxSize && ` (Max ${maxSize}MB per file)`}
-        </p>
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        name={name}
-        multiple={multiple}
-        accept={accept}
-        onChange={(e) => e.target.files && handleFiles(e.target.files)}
-        className="hidden"
-      />
-
-      {files.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {files.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {file.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatFileSize(file.size)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => removeFile(index)}
-                className="ml-2 p-1 text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      onClick={handleToggle}
+      disabled={isPending}
+      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+        isActive
+          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {isActive ? 'Visible' : 'Hidden'}
+    </button>
   );
 }
 ```
 
-## Utility Functions
+### Server Actions for Visibility
 
-### Image Processing
 ```typescript
-// lib/image.ts
-import sharp from 'sharp';
-import { promises as fs } from 'fs';
-import path from 'path';
+// app/actions/persons.ts
+'use server';
 
-export async function processImage(file: File, options: {
-  width?: number;
-  height?: number;
-  quality?: number;
-  format?: 'jpeg' | 'png' | 'webp';
-}) {
-  const buffer = Buffer.from(await file.arrayBuffer());
-  
-  let pipeline = sharp(buffer);
-  
-  if (options.width || options.height) {
-    pipeline = pipeline.resize(options.width, options.height, {
-      fit: 'inside',
-      withoutEnlargement: true,
-    });
+import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
+
+export async function togglePersonVisibility(
+  personId: string, 
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'persons', 'update')) {
+    throw new Error('Unauthorized');
   }
-  
-  if (options.format) {
-    pipeline = pipeline.toFormat(options.format, {
-      quality: options.quality || 80,
+
+  try {
+    await prisma.person.update({
+      where: { id: personId },
+      data: { isActive }
     });
+    
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update person visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
   }
-  
-  return pipeline.toBuffer();
 }
 
-export async function generateThumbnail(imagePath: string, thumbnailPath: string) {
-  await sharp(imagePath)
-    .resize(300, 300, { fit: 'inside' })
-    .jpeg({ quality: 80 })
-    .toFile(thumbnailPath);
+export async function updateBulkPersonVisibility(
+  personIds: string[], 
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'persons', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.person.updateMany({
+      where: { id: { in: personIds } },
+      data: { isActive }
+    });
+    
+    revalidatePath('/admin/persons');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update bulk visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
 }
 ```
 
-### Database Connection
+---
+
+## Public Page Visibility Filtering
+
+### Homepage Visibility Filtering
+
 ```typescript
-// lib/prisma.ts
-import { PrismaClient } from '@prisma/client';
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-```
-
-### Authentication Helpers
-```typescript
-// lib/auth.ts
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import { prisma } from './prisma';
-
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+// app/page.tsx
+async function getPublicData() {
+  const [towns, recentPersons, totalDetained] = await Promise.all([
+    // Only show visible towns
+    prisma.town.findMany({
+      where: {
+        isActive: true,
       },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
-          include: { userRoles: { include: { role: true } } },
-        });
-
-        if (!user || !user.isActive) {
-          return null;
-        }
-
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
-        if (!passwordMatch) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          roles: user.userRoles.map(ur => ur.role),
-        };
+      select: {
+        id: true,
+        name: true,
+        state: true,
+        _count: {
+          select: {
+            persons: {
+              where: {
+                isActive: true,
+                status: 'detained',
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
       },
     }),
-  ],
-  session: {
-    strategy: 'jwt',
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.roles = user.roles;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub;
-        session.user.roles = token.roles;
-      }
-      return session;
-    },
-  },
-};
+    
+    // Only show visible persons from visible towns
+    prisma.person.findMany({
+      where: {
+        isActive: true,
+        status: 'detained',
+        town: {
+          isActive: true,
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        primaryPicture: true,
+        lastSeenDate: true,
+        town: {
+          select: {
+            name: true,
+            state: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 6,
+    }),
+    
+    // Count only visible persons from visible towns
+    prisma.person.count({
+      where: {
+        isActive: true,
+        status: 'detained',
+        town: {
+          isActive: true,
+        },
+      },
+    }),
+  ]);
+
+  return { towns, recentPersons, totalDetained };
+}
 ```
 
-This completes the comprehensive PRD, implementation plan, database schema, and code examples for your "Bring Me Home" application. The documentation provides everything needed to begin development following your specific requirements.
+### Town Page Visibility
+
+```typescript
+// app/[townSlug]/page.tsx
+async function getTownData(townSlug: string) {
+  const townName = townSlug.replace(/-/g, ' ');
+
+  const town = await prisma.town.findFirst({
+    where: {
+      name: townName,
+      isActive: true, // Only show visible towns
+    },
+    include: {
+      persons: {
+        where: {
+          isActive: true, // Only show visible persons
+          status: 'detained',
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          // ... other fields
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+    },
+  });
+
+  return town;
+}
+```
+
+### Person Page Visibility
+
+```typescript
+// app/[townSlug]/[personSlug]/page.tsx
+async function getPersonData(townSlug: string, personSlug: string) {
+  const townName = townSlug.replace(/-/g, ' ');
+  const [firstName, lastName] = personSlug
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1));
+
+  const person = await prisma.person.findFirst({
+    where: {
+      firstName: firstName,
+      lastName: lastName,
+      town: {
+        name: townName,
+        isActive: true, // Only show persons from visible towns
+      },
+      isActive: true, // Only show visible persons
+    },
+    include: {
+      town: true,
+      detentionCenter: true,
+      stories: {
+        where: {
+          isActive: true,
+        },
+      },
+      comments: {
+        where: {
+          isActive: true,
+          isApproved: true,
+        },
+      },
+      // ... other relations
+    },
+  });
+
+  return person;
+}
+```
+
+---
+
+## Notes
+
+- All code examples are simplified for clarity and may need additional error handling and validation in production
+- TypeScript types are included where relevant to demonstrate proper typing
+- Server actions use Next.js 13+ conventions with 'use server' directive
+- Components use React Server Components where appropriate
+- Authentication and permission checks are included in server actions
+- Optimistic UI updates are implemented for better user experience
+- Database queries include proper filtering for visibility and active status

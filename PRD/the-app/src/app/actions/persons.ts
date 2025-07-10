@@ -25,6 +25,10 @@ const personSchema = z.object({
   detentionStatus: z.string().optional(),
   caseNumber: z.string().optional(),
   bondAmount: z.coerce.number().optional(),
+  lastHeardFromDate: z.string().optional(),
+  notesFromLastContact: z.string().optional(),
+  representedByLawyer: z.boolean().optional(),
+  representedByNotes: z.string().optional(),
 });
 
 export async function createPerson(formData: FormData) {
@@ -49,6 +53,10 @@ export async function createPerson(formData: FormData) {
     detentionStatus: formData.get('detentionStatus') || undefined,
     caseNumber: formData.get('caseNumber') || undefined,
     bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
+    lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
+    notesFromLastContact: formData.get('notesFromLastContact') || undefined,
+    representedByLawyer: formData.get('representedByLawyer') === 'on',
+    representedByNotes: formData.get('representedByNotes') || undefined,
   });
 
   if (!validatedFields.success) {
@@ -66,6 +74,9 @@ export async function createPerson(formData: FormData) {
         : undefined,
       detentionDate: validatedFields.data.detentionDate
         ? new Date(validatedFields.data.detentionDate)
+        : undefined,
+      lastHeardFromDate: validatedFields.data.lastHeardFromDate
+        ? new Date(validatedFields.data.lastHeardFromDate)
         : undefined,
     };
 
@@ -161,6 +172,10 @@ export async function updatePerson(id: string, formData: FormData) {
     detentionStatus: formData.get('detentionStatus') || undefined,
     caseNumber: formData.get('caseNumber') || undefined,
     bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
+    lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
+    notesFromLastContact: formData.get('notesFromLastContact') || undefined,
+    representedByLawyer: formData.get('representedByLawyer') === 'on',
+    representedByNotes: formData.get('representedByNotes') || undefined,
   });
 
   if (!validatedFields.success) {
@@ -178,6 +193,9 @@ export async function updatePerson(id: string, formData: FormData) {
         : null,
       detentionDate: validatedFields.data.detentionDate
         ? new Date(validatedFields.data.detentionDate)
+        : null,
+      lastHeardFromDate: validatedFields.data.lastHeardFromDate
+        ? new Date(validatedFields.data.lastHeardFromDate)
         : null,
     };
 

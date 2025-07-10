@@ -153,6 +153,8 @@ model Person {
   // Detention information
   detentionCenterId String?
   detentionDate     DateTime?
+  lastHeardFromDate DateTime?
+  notesFromLastContact String? @db.Text
   releaseDate       DateTime?
   detentionStatus   String?   @default("detained") // detained, released, deported, in-proceedings
   caseNumber        String?
@@ -160,6 +162,8 @@ model Person {
   bondStatus        String? // posted, denied, pending
 
   // Legal information
+  representedByLawyer Boolean @default(false)
+  representedByNotes  String? @db.Text
   legalRepName  String?
   legalRepPhone String?
   legalRepEmail String?
