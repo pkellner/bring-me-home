@@ -124,6 +124,11 @@ export async function updateUser(userId: string, formData: FormData) {
     // Get current user data for audit log
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        userRoles: true,
+        townAccess: true,
+        personAccess: true,
+      },
     });
 
     if (!currentUser) {
@@ -155,13 +160,93 @@ export async function updateUser(userId: string, formData: FormData) {
       }
     }
 
-    // Update user
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...validation.data,
-        email: validation.data.email || null,
-      },
+    // Extract roles from form data
+    const roleIds = formData.getAll('roles') as string[];
+    
+    // Extract town access from form data
+    const townAccessData: Array<{ townId: string; accessLevel: string }> = [];
+    let i = 0;
+    while (formData.get(`townAccess[${i}][townId]`)) {
+      townAccessData.push({
+        townId: formData.get(`townAccess[${i}][townId]`) as string,
+        accessLevel: formData.get(`townAccess[${i}][accessLevel]`) as string,
+      });
+      i++;
+    }
+
+    // Extract person access from form data
+    const personAccessData: Array<{ personId: string; accessLevel: string }> = [];
+    i = 0;
+    while (formData.get(`personAccess[${i}][personId]`)) {
+      personAccessData.push({
+        personId: formData.get(`personAccess[${i}][personId]`) as string,
+        accessLevel: formData.get(`personAccess[${i}][accessLevel]`) as string,
+      });
+      i++;
+    }
+
+    // Update user in a transaction
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // Update basic user info
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          ...validation.data,
+          email: validation.data.email || null,
+        },
+      });
+
+      // Update roles
+      // First, delete all existing user roles
+      await tx.userRole.deleteMany({
+        where: { userId },
+      });
+
+      // Then create new user roles
+      if (roleIds.length > 0) {
+        await tx.userRole.createMany({
+          data: roleIds.map(roleId => ({
+            userId,
+            roleId,
+          })),
+        });
+      }
+
+      // Update town access
+      // First, delete all existing town access
+      await tx.townAccess.deleteMany({
+        where: { userId },
+      });
+
+      // Then create new town access
+      if (townAccessData.length > 0) {
+        await tx.townAccess.createMany({
+          data: townAccessData.map(access => ({
+            userId,
+            townId: access.townId,
+            accessLevel: access.accessLevel,
+          })),
+        });
+      }
+
+      // Update person access
+      // First, delete all existing person access
+      await tx.personAccess.deleteMany({
+        where: { userId },
+      });
+
+      // Then create new person access
+      if (personAccessData.length > 0) {
+        await tx.personAccess.createMany({
+          data: personAccessData.map(access => ({
+            userId,
+            personId: access.personId,
+            accessLevel: access.accessLevel,
+          })),
+        });
+      }
+
+      return user;
     });
 
     // Create audit log
@@ -177,8 +262,16 @@ export async function updateUser(userId: string, formData: FormData) {
           firstName: currentUser.firstName,
           lastName: currentUser.lastName,
           isActive: currentUser.isActive,
+          roles: currentUser.userRoles.length,
+          townAccess: currentUser.townAccess.length,
+          personAccess: currentUser.personAccess.length,
         }),
-        newValues: JSON.stringify(validation.data),
+        newValues: JSON.stringify({
+          ...validation.data,
+          roles: roleIds.length,
+          townAccess: townAccessData.length,
+          personAccess: personAccessData.length,
+        }),
       },
     });
 
@@ -277,6 +370,54 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   } catch (error) {
     console.error('Reset password error:', error);
     return { error: 'Failed to reset password' };
+  }
+}
+
+export async function toggleUserStatus(userId: string, isActive: boolean) {
+  const session = await getServerSession(authOptions);
+
+  if (!hasPermission(session, 'users', 'update')) {
+    return { error: 'Insufficient permissions' };
+  }
+
+  try {
+    // Prevent deactivating yourself
+    if (session?.user?.id === userId && !isActive) {
+      return { error: 'Cannot deactivate your own account' };
+    }
+
+    // Get current user data for audit log
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!currentUser) {
+      return { error: 'User not found' };
+    }
+
+    // Update user status
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: session?.user?.id,
+        action: isActive ? 'ACTIVATE_USER' : 'DEACTIVATE_USER',
+        entityType: 'User',
+        entityId: userId,
+        oldValues: JSON.stringify({ isActive: currentUser.isActive }),
+        newValues: JSON.stringify({ isActive }),
+      },
+    });
+
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error('Toggle user status error:', error);
+    return { error: 'Failed to update user status' };
   }
 }
 

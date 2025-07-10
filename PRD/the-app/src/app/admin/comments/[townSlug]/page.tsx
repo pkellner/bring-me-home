@@ -4,6 +4,8 @@ import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from '../CommentsGrid';
+import Link from 'next/link';
+import { ArrowLeftIcon, GlobeAltIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 interface PageProps {
   params: Promise<{ townSlug: string }>;
@@ -107,12 +109,39 @@ export default async function TownCommentsPage({ params }: PageProps) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Comments for {town.name}, {town.state}
-        </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Showing all comments for people in {town.name}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Comments for {town.name}, {town.state}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Showing all comments for people in {town.name}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={`/${townSlug}`}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <GlobeAltIcon className="h-4 w-4 mr-2" />
+              View Live Site
+            </Link>
+            <Link
+              href="/admin/persons"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <UsersIcon className="h-4 w-4 mr-2" />
+              Manage Persons
+            </Link>
+            <Link
+              href="/admin/comments"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              All Comments
+            </Link>
+          </div>
+        </div>
       </div>
       <CommentsGrid
         initialComments={comments}

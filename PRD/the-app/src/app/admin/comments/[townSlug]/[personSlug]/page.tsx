@@ -4,6 +4,8 @@ import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from '../../CommentsGrid';
+import Link from 'next/link';
+import { ArrowLeftIcon, GlobeAltIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 interface PageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -122,24 +124,39 @@ export default async function PersonCommentsPage({ params }: PageProps) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Comments for {person.firstName} {person.lastName}
-        </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          <a 
-            href={`/${townSlug}/${personSlug}`}
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
-            View profile
-          </a>
-          {' • '}
-          <a 
-            href={`/admin/comments/${townSlug}`}
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
-            View all {person.town.name} comments
-          </a>
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Comments for {person.firstName} {person.lastName}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {person.town.name}, {person.town.state}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={`/${townSlug}/${personSlug}`}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <GlobeAltIcon className="h-4 w-4 mr-2" />
+              View Live Profile
+            </Link>
+            <Link
+              href={`/admin/persons/${person.id}/edit`}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <PencilIcon className="h-4 w-4 mr-2" />
+              Edit Person
+            </Link>
+            <Link
+              href={`/admin/comments/${townSlug}`}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              {person.town.name} Comments
+            </Link>
+          </div>
+        </div>
       </div>
       <CommentsGrid
         initialComments={comments}

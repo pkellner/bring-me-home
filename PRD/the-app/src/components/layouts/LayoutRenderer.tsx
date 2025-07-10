@@ -180,47 +180,48 @@ export default function LayoutRenderer({
         </div>
 
         {person.detentionCenter && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <h3 className="text-lg font-bold text-red-800 mb-3">
-              Detention Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div>
-                  <span className="font-semibold text-red-700">
-                    Detention Center:
-                  </span>{' '}
-                  <span className="text-red-800">
-                    {person.detentionCenter.name}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold text-red-700">Location:</span>{' '}
-                  <span className="text-red-800">
-                    {person.detentionCenter.address},{' '}
-                    {person.detentionCenter.city},{' '}
-                    {person.detentionCenter.state}{' '}
-                    {person.detentionCenter.zipCode}
-                  </span>
-                </div>
-                {person.detentionCenter.phoneNumber && (
-                  <div>
-                    <span className="font-semibold text-red-700">Phone:</span>{' '}
-                    <span className="text-red-800">
-                      {person.detentionCenter.phoneNumber}
-                    </span>
-                  </div>
-                )}
-                {person.detentionDate && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-grow">
+                <h3 className="text-sm font-bold text-red-800 mb-2">
+                  Detention Information
+                </h3>
+                <div className="space-y-1 text-sm">
                   <div>
                     <span className="font-semibold text-red-700">
-                      Detained Since:
+                      Detention Center:
                     </span>{' '}
                     <span className="text-red-800">
-                      {formatDate(person.detentionDate)}
+                      {person.detentionCenter.name}
                     </span>
                   </div>
-                )}
+                  <div>
+                    <span className="font-semibold text-red-700">Location:</span>{' '}
+                    <span className="text-red-800">
+                      {person.detentionCenter.address},{' '}
+                      {person.detentionCenter.city},{' '}
+                      {person.detentionCenter.state}{' '}
+                      {person.detentionCenter.zipCode}
+                    </span>
+                  </div>
+                  {person.detentionCenter.phoneNumber && (
+                    <div>
+                      <span className="font-semibold text-red-700">Phone:</span>{' '}
+                      <span className="text-red-800">
+                        {person.detentionCenter.phoneNumber}
+                      </span>
+                    </div>
+                  )}
+                  {person.detentionDate && (
+                    <div>
+                      <span className="font-semibold text-red-700">
+                        Detained Since:
+                      </span>{' '}
+                      <span className="text-red-800">
+                        {formatDate(person.detentionDate)}
+                      </span>
+                    </div>
+                  )}
                 {person.detentionStatus && (
                   <div>
                     <span className="font-semibold text-red-700">Status:</span>{' '}
@@ -245,19 +246,20 @@ export default function LayoutRenderer({
                     <span className="text-red-800">${person.bondAmount}</span>
                   </div>
                 )}
+                </div>
               </div>
-              <div className="flex items-center justify-center">
+              <div className="flex-shrink-0">
                 {person.detentionCenter.thumbnailImageId ? (
                   <Image
                     src={`/api/images/${person.detentionCenter.thumbnailImageId}`}
                     alt={person.detentionCenter.name}
-                    width={300}
-                    height={200}
+                    width={80}
+                    height={80}
                     className="rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-4xl text-gray-400">🏢</span>
+                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl text-gray-400">🏢</span>
                   </div>
                 )}
               </div>
@@ -388,62 +390,74 @@ export default function LayoutRenderer({
       const additionalImages = person.personImages || [];
       const allImages = [];
 
-      // Add primary picture first if it exists
-      if (person.primaryPicture) {
-        allImages.push({
-          imageUrl: person.primaryPicture,
-          caption: 'Primary Photo',
-          isPrimary: true,
-        });
-      }
-
-      // Add additional images that are public
-      allImages.push(...additionalImages.filter(img => img.displayPublicly));
+      // Don't include primary picture in gallery - it's shown separately
+      // Add additional images that are public and not primary
+      const publicImages = additionalImages.filter(img => img.displayPublicly && !img.isPrimary);
+      allImages.push(...publicImages);
 
       // Add legacy images if no new images exist
-      if (additionalImages.length === 0) {
+      if (publicImages.length === 0) {
         if (person.secondaryPic1)
           allImages.push({
             imageUrl: person.secondaryPic1,
-            caption: 'Secondary 1',
+            caption: 'Additional Photo 1',
           });
         if (person.secondaryPic2)
           allImages.push({
             imageUrl: person.secondaryPic2,
-            caption: 'Secondary 2',
+            caption: 'Additional Photo 2',
+          });
+        if (person.secondaryPic3)
+          allImages.push({
+            imageUrl: person.secondaryPic3,
+            caption: 'Additional Photo 3',
           });
       }
+      
+      if (allImages.length === 0) return null;
+      
+      // Determine layout based on number of images
+      const getLayoutClass = () => {
+        switch (allImages.length) {
+          case 1:
+            return "grid-cols-1 max-w-md mx-auto";
+          case 2:
+            return "grid-cols-2 gap-4 max-w-2xl mx-auto";
+          case 3:
+            return "grid-cols-3 gap-4";
+          case 4:
+            return "grid-cols-2 md:grid-cols-4 gap-4";
+          default:
+            return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+        }
+      };
 
       return (
-        <div className="gallery-grid grid grid-cols-2 gap-4 md:grid-cols-3">
-          {allImages.map((image, index) => (
-            <div
-              key={'id' in image && image.id ? image.id : `image-${index}`}
-              className="relative aspect-square overflow-hidden rounded-lg group"
-            >
-              <Image
-                src={image.imageUrl}
-                alt={image.caption || `Image ${index + 1}`}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-              {image.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-sm p-2">
-                  {image.caption}
+        <div className="gallery-section mt-8">
+          <h3 className="text-lg font-semibold mb-4">Additional Photos</h3>
+          <div className={`gallery-grid grid ${getLayoutClass()}`}>
+            {allImages.map((image, index) => (
+              <div
+                key={'id' in image && image.id ? image.id : `image-${index}`}
+                className="relative group"
+              >
+                <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                  <Image
+                    src={image.imageUrl}
+                    alt={image.caption || `Additional photo ${index + 1}`}
+                    width={300}
+                    height={300}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                 </div>
-              )}
-              {image.isPrimary && (
-                <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
-                  Primary
-                </div>
-              )}
-            </div>
-          ))}
-          {allImages.length === 0 && (
-            <div className="col-span-full text-center text-gray-500 py-8">
-              No images available
-            </div>
-          )}
+                {image.caption && (
+                  <p className="mt-2 text-sm text-gray-600 text-center">
+                    {image.caption}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       );
     },

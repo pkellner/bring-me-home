@@ -28,3 +28,8 @@ Your output must be a well-formatted markdown response containing two distinct s
 
 
 NOTE: If in plan mode, do not implement the plan. You are only allowed to plan. Confirmation comes from a user message.
+
+## Notes about checking work
+
+You should always run npm run lint and npm run build after you have made changes to make sure that no errors were created. If you find errors, you need to fix them.
+

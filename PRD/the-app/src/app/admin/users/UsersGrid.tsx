@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminDataGrid, {
   GridAction,
   GridColumn,
 } from '@/components/admin/AdminDataGrid';
 import { deleteUser, resetUserPassword } from '@/app/actions/users';
+import UserStatusToggle from '@/components/admin/UserStatusToggle';
 import {
   BuildingOfficeIcon,
   KeyIcon,
@@ -70,6 +71,11 @@ export default function UsersGrid({
   const [sortKey, setSortKey] = useState<keyof User>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  // Sync with initialUsers when they change (e.g., after editing)
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
+
   const filteredUsers = users.filter(user => {
     if (!searchQuery) return true;
 
@@ -99,7 +105,9 @@ export default function UsersGrid({
 
   const handleRefresh = useCallback(() => {
     router.refresh();
-  }, [router]);
+    // Reset the users state to the initial users to ensure fresh data
+    setUsers(initialUsers);
+  }, [router, initialUsers]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -157,6 +165,17 @@ export default function UsersGrid({
       }
     });
   }, []);
+
+  const handleStatusUpdate = useCallback(
+    (userId: string, isActive: boolean) => {
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === userId ? { ...user, isActive } : user
+        )
+      );
+    },
+    []
+  );
 
   const columns: GridColumn<User>[] = [
     {
@@ -244,14 +263,12 @@ export default function UsersGrid({
       key: 'isActive',
       label: 'Status',
       sortable: true,
-      render: value => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {value ? 'Active' : 'Inactive'}
-        </span>
+      render: (value, record) => (
+        <UserStatusToggle
+          userId={record.id}
+          initialIsActive={record.isActive}
+          onUpdate={handleStatusUpdate}
+        />
       ),
     },
     {
