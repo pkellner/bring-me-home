@@ -5,8 +5,13 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from './CommentsGrid';
 
-export default async function CommentsPage() {
+interface CommentsPageProps {
+  searchParams: Promise<{ personId?: string }>;
+}
+
+export default async function CommentsPage({ searchParams }: CommentsPageProps) {
   const session = await getServerSession(authOptions);
+  const { personId } = await searchParams;
 
   if (!session) {
     redirect('/auth/signin');
@@ -16,7 +21,55 @@ export default async function CommentsPage() {
     redirect('/admin');
   }
 
+  // If personId is provided, check if user has access to this person
+  if (personId) {
+    const userWithAccess = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+        personAccess: {
+          where: {
+            personId: personId,
+            accessLevel: 'admin',
+          },
+        },
+      },
+    });
+
+    const person = await prisma.person.findUnique({
+      where: { id: personId },
+      include: {
+        town: true,
+      },
+    });
+
+    if (person) {
+      // Check if user has admin access to the person's town
+      const townAccess = await prisma.townAccess.findFirst({
+        where: {
+          userId: session.user.id,
+          townId: person.townId,
+          accessLevel: 'admin',
+        },
+      });
+
+      const isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
+      const hasPersonAccess = (userWithAccess?.personAccess?.length ?? 0) > 0;
+      const hasTownAccess = !!townAccess;
+
+      if (!isSiteAdmin && !hasPersonAccess && !hasTownAccess) {
+        redirect('/admin');
+      }
+    }
+  }
+
+  const whereClause = personId ? { personId } : {};
   const rawComments = await prisma.comment.findMany({
+    where: whereClause,
     include: {
       person: {
         include: {
@@ -59,6 +112,7 @@ export default async function CommentsPage() {
       canApprove={canApprove}
       canDelete={canDelete}
       towns={towns}
+      personId={personId}
     />
   );
 }

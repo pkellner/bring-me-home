@@ -2,6 +2,7 @@
 
 import { Comment, Person, Town } from '@prisma/client';
 import Image from 'next/image';
+import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import CommentSection from '@/components/person/CommentSection';
 import StorySection from '@/components/person/StorySection';
@@ -79,12 +80,14 @@ interface LayoutRendererProps {
     name: string;
     cssVars: string | null;
   };
+  isAdmin?: boolean;
 }
 
 export default function LayoutRenderer({
   person,
   layout,
   theme,
+  isAdmin = false,
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
 
@@ -135,6 +138,14 @@ export default function LayoutRenderer({
         <h1 className="text-3xl font-bold">
           {person.firstName} {person.middleName ? `${person.middleName} ` : ''}
           {person.lastName}
+          {isAdmin && (
+            <Link
+              href={`/admin/persons/${person.id}/edit`}
+              className="ml-3 text-sm font-normal text-indigo-600 hover:text-indigo-500"
+            >
+              [Edit Person]
+            </Link>
+          )}
         </h1>
         <div className="text-lg text-gray-600">
           <span className="font-semibold">Home Town:</span> {person.town.name},{' '}
@@ -293,6 +304,17 @@ export default function LayoutRenderer({
 
     comments: () => (
       <div className="comments-section">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">Community Support</h2>
+          {isAdmin && (
+            <Link
+              href={`/admin/comments?personId=${person.id}`}
+              className="text-sm text-indigo-600 hover:text-indigo-500"
+            >
+              [Manage Comments]
+            </Link>
+          )}
+        </div>
         <CommentSection personId={person.id} comments={person.comments} />
       </div>
     ),
@@ -302,6 +324,14 @@ export default function LayoutRenderer({
         <h1 className="mb-2 text-4xl font-bold">
           {person.firstName} {person.middleName ? `${person.middleName} ` : ''}
           {person.lastName}
+          {isAdmin && (
+            <Link
+              href={`/admin/persons/${person.id}/edit`}
+              className="ml-3 text-sm font-normal text-indigo-600 hover:text-indigo-500"
+            >
+              [Edit Person]
+            </Link>
+          )}
         </h1>
         <p className="text-xl text-gray-600">
           Home Town: {person.town.name}, {person.town.state}

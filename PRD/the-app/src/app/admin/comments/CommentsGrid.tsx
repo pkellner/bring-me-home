@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AdminDataGrid, {
   GridAction,
   GridColumn,
@@ -71,6 +72,7 @@ interface CommentsGridProps {
   canApprove: boolean;
   canDelete: boolean;
   towns: Town[];
+  personId?: string;
 }
 
 function CommentsGrid({
@@ -78,6 +80,7 @@ function CommentsGrid({
   canApprove,
   canDelete,
   towns,
+  personId,
 }: CommentsGridProps) {
   const router = useRouter();
   const [comments, setComments] = useState(initialComments);
@@ -413,7 +416,11 @@ function CommentsGrid({
     {
       type: 'view',
       label: 'View on Profile',
-      href: comment => `/persons/${comment.person.id}#comments`,
+      href: comment => {
+        const townSlug = comment.person.town.name.toLowerCase().replace(/\s+/g, '-');
+        const personSlug = `${comment.person.firstName.toLowerCase()}-${comment.person.lastName.toLowerCase()}`;
+        return `/${townSlug}/${personSlug}#comments`;
+      },
     },
     {
       type: 'delete',
@@ -439,8 +446,31 @@ function CommentsGrid({
       )
     : { 'All Comments': sortedComments };
 
+  // Find the person being viewed if personId is provided
+  const viewedPerson = personId 
+    ? initialComments.find(c => c.person.id === personId)?.person 
+    : null;
+
   return (
     <div className="space-y-6">
+      {/* Header for specific person */}
+      {viewedPerson && (
+        <div className="bg-white shadow-sm rounded-lg p-4 border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Comments for {viewedPerson.firstName} {viewedPerson.lastName}
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {viewedPerson.town.name}, {viewedPerson.town.state}
+          </p>
+          <Link
+            href={`/${viewedPerson.town.name.toLowerCase().replace(/\s+/g, '-')}/${viewedPerson.firstName.toLowerCase()}-${viewedPerson.lastName.toLowerCase()}`}
+            className="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-500"
+          >
+            View Profile →
+          </Link>
+        </div>
+      )}
+      
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative max-w-md">

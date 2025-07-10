@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { toggleCommentStatus } from '@/app/actions/comments';
+import { Switch } from '@headlessui/react';
 
 interface CommentStatusToggleProps {
   commentId: string;
   initialIsApproved: boolean;
-  onUpdate?: (commentId: string, isApproved: boolean) => void;
+  onUpdate: (commentId: string, isApproved: boolean) => void;
 }
 
 export default function CommentStatusToggle({
@@ -17,46 +17,51 @@ export default function CommentStatusToggle({
   const [isApproved, setIsApproved] = useState(initialIsApproved);
   const [isPending, startTransition] = useTransition();
 
-  const handleToggle = async () => {
+  const handleToggle = () => {
     const newStatus = !isApproved;
-
-    // Optimistic update
-    setIsApproved(newStatus);
-    if (onUpdate) {
-      onUpdate(commentId, newStatus);
-    }
-
+    
     startTransition(async () => {
       try {
-        const result = await toggleCommentStatus(commentId, newStatus);
-        if (!result.success) {
-          // Rollback on failure
-          setIsApproved(!newStatus);
-          if (onUpdate) {
-            onUpdate(commentId, !newStatus);
-          }
+        const response = await fetch(`/api/admin/comments/${commentId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isApproved: newStatus }),
+        });
+
+        if (response.ok) {
+          setIsApproved(newStatus);
+          onUpdate(commentId, newStatus);
         }
-      } catch {
-        // Rollback on error
-        setIsApproved(!newStatus);
-        if (onUpdate) {
-          onUpdate(commentId, !newStatus);
-        }
+      } catch (error) {
+        console.error('Failed to update comment status:', error);
       }
     });
   };
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={isPending}
-      className={`inline-flex items-center justify-center w-20 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-        isApproved
-          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-          : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-      } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      {isApproved ? 'Approved' : 'Pending'}
-    </button>
+    <div className="flex items-center">
+      <Switch
+        checked={isApproved}
+        onChange={handleToggle}
+        disabled={isPending}
+        className={`${
+          isApproved ? 'bg-green-600' : 'bg-gray-200'
+        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50`}
+      >
+        <span className="sr-only">
+          {isApproved ? 'Approved' : 'Pending'}
+        </span>
+        <span
+          className={`${
+            isApproved ? 'translate-x-6' : 'translate-x-1'
+          } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+        />
+      </Switch>
+      <span className={`ml-2 text-sm ${isApproved ? 'text-green-600' : 'text-gray-500'}`}>
+        {isApproved ? 'Approved' : 'Pending'}
+      </span>
+    </div>
   );
 }

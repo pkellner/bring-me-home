@@ -123,10 +123,14 @@ export default async function PersonPage({ params }: PersonPageProps) {
     notFound();
   }
 
-  // Check if user is site admin
+  // Check if user has admin access
+  let isAdmin = false;
   let isSiteAdmin = false;
+  let isTownAdmin = false;
+  let isPersonAdmin = false;
+  
   if (session?.user?.id) {
-    const userWithRoles = await prisma.user.findUnique({
+    const userWithAccess = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
         userRoles: {
@@ -134,12 +138,28 @@ export default async function PersonPage({ params }: PersonPageProps) {
             role: true,
           },
         },
+        townAccess: {
+          where: {
+            townId: person.townId,
+            accessLevel: 'admin',
+          },
+        },
+        personAccess: {
+          where: {
+            personId: person.id,
+            accessLevel: 'admin',
+          },
+        },
       },
     });
 
     isSiteAdmin =
-      userWithRoles?.userRoles.some(ur => ur.role.name === 'site-admin') ||
+      userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') ||
       false;
+    isTownAdmin = (userWithAccess?.townAccess?.length ?? 0) > 0;
+    isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
+    
+    isAdmin = isSiteAdmin || isTownAdmin || isPersonAdmin;
   }
 
   // Get admin link delay from environment
@@ -242,6 +262,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           person={serializedPerson}
           layout={layout}
           theme={theme}
+          isAdmin={isAdmin}
         />
       </main>
 
