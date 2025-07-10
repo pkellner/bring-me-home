@@ -9,6 +9,7 @@ This file contains code examples referenced in the Product Requirements Document
 4. [Docker Configuration](#docker-configuration)
 5. [Validation Schemas](#validation-schemas)
 6. [Anonymous Comment Implementation](#anonymous-comment-implementation)
+   - [Comment Submission Confirmation](#comment-submission-confirmation)
 7. [Comment Moderation Enhancement](#comment-moderation-enhancement)
 8. [Multi-Language Story Implementation](#multi-language-story-implementation)
 9. [Person Visibility Management](#person-visibility-management)
@@ -468,6 +469,328 @@ export default function AnonymousCommentForm({ personId }: { personId: string })
       )}
     </form>
   );
+}
+```
+
+### Comment Submission Confirmation
+
+```typescript
+// components/person/CommentConfirmationModal.tsx
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+interface CommentData {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  content?: string;
+  wantsToHelpMore: boolean;
+  displayNameOnly: boolean;
+  requiresFamilyApproval: boolean;
+}
+
+export default function CommentConfirmationModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+  commentData,
+}: CommentConfirmationModalProps) {
+  // Focus management and escape key handling
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onCancel}
+      />
+      
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-lg max-w-md w-full shadow-xl">
+          <div className="p-6">
+            {/* Header with icon */}
+            <div className="text-center mb-6">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Review Your Support Message
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Your message is being reviewed by the family to make sure it is OK with them.
+              </p>
+            </div>
+
+            {/* Summary of submission */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Your Submission:</h4>
+              {/* Display submitted data and preferences */}
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium">Name:</span> {commentData.firstName} {commentData.lastName}
+                </div>
+                {/* Show selected preferences with checkmarks */}
+                <ul className="mt-3 space-y-1">
+                  {commentData.wantsToHelpMore && (
+                    <li className="flex items-start">
+                      <svg className="h-4 w-4 text-green-500 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      I want to help more, please contact me
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex justify-end space-x-3">
+              <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Cancel
+              </button>
+              <button onClick={onConfirm} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                OK, Post My Support
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Portal to render modal at document root
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  return null;
+}
+```
+
+### Updated Anonymous Comment Form with Confirmation
+
+```typescript
+// components/person/AnonymousCommentForm.tsx
+export default function AnonymousCommentForm({
+  personId,
+  onSubmit,
+  isPending,
+  state,
+}: AnonymousCommentFormProps) {
+  const [showForm, setShowForm] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  
+  // Reset form and hide when submission is successful
+  useEffect(() => {
+    if (state?.success) {
+      setShowForm(false);
+      if (formRef.current) {
+        formRef.current.reset();
+      }
+    }
+  }, [state?.success]);
+
+  return (
+    <>
+      <form 
+        ref={formRef}
+        action={(formData) => {
+          // Capture form data and show confirmation modal instead of submitting
+          setPendingFormData(formData);
+          setShowConfirmModal(true);
+        }} 
+        className="space-y-4"
+      >
+        {/* Form fields */}
+      </form>
+      
+      {/* Confirmation Modal */}
+      <CommentConfirmationModal
+        isOpen={showConfirmModal}
+        onConfirm={() => {
+          if (pendingFormData) {
+            onSubmit(pendingFormData);
+            setShowConfirmModal(false);
+            setPendingFormData(null);
+          }
+        }}
+        onCancel={() => {
+          setShowConfirmModal(false);
+          setPendingFormData(null);
+          // Reset the form
+          if (formRef.current) {
+            formRef.current.reset();
+          }
+        }}
+        commentData={{
+          firstName: pendingFormData?.get('firstName') as string || '',
+          lastName: pendingFormData?.get('lastName') as string || '',
+          email: pendingFormData?.get('email') as string || undefined,
+          phone: pendingFormData?.get('phone') as string || undefined,
+          content: pendingFormData?.get('content') as string || undefined,
+          wantsToHelpMore: pendingFormData?.get('wantsToHelpMore') === 'true',
+          displayNameOnly: pendingFormData?.get('displayNameOnly') === 'true',
+          requiresFamilyApproval: pendingFormData?.get('requiresFamilyApproval') === 'true',
+        }}
+      />
+    </>
+  );
+}
+```
+
+---
+
+## Comment Moderation Enhancement
+
+### Comment Status Toggle Component
+
+```typescript
+// components/admin/CommentStatusToggle.tsx
+'use client';
+
+import { useState, useTransition } from 'react';
+import { toggleCommentStatus } from '@/app/actions/comments';
+
+interface CommentStatusToggleProps {
+  commentId: string;
+  initialIsApproved: boolean;
+  onUpdate?: (commentId: string, isApproved: boolean) => void;
+}
+
+export default function CommentStatusToggle({
+  commentId,
+  initialIsApproved,
+  onUpdate
+}: CommentStatusToggleProps) {
+  const [isApproved, setIsApproved] = useState(initialIsApproved);
+  const [isPending, startTransition] = useTransition();
+
+  const handleToggle = async () => {
+    const newStatus = !isApproved;
+    
+    // Optimistic update
+    setIsApproved(newStatus);
+    if (onUpdate) {
+      onUpdate(commentId, newStatus);
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await toggleCommentStatus(commentId, newStatus);
+        if (!result.success) {
+          // Rollback on failure
+          setIsApproved(!newStatus);
+          if (onUpdate) {
+            onUpdate(commentId, !newStatus);
+          }
+        }
+      } catch (error) {
+        // Rollback on error
+        setIsApproved(!newStatus);
+        if (onUpdate) {
+          onUpdate(commentId, !newStatus);
+        }
+      }
+    });
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isPending}
+      className={`inline-flex items-center justify-center w-20 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+        isApproved
+          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+          : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+      } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {isApproved ? 'Approved' : 'Pending'}
+    </button>
+  );
+}
+```
+
+### Permission-Based Action Visibility
+
+```typescript
+// app/admin/comments/page.tsx - Permission checks
+const canApprove = hasPermission(session, 'comments', 'update');
+const canDelete = hasPermission(session, 'comments', 'delete');
+
+// app/admin/comments/CommentsGrid.tsx - Conditional actions
+const actions: GridAction<Comment>[] = [
+  {
+    type: 'edit',
+    label: 'Edit',
+    onClick: handleModerate,
+    show: () => canApprove, // Only show edit icon if user has update permission
+    className: 'text-indigo-600 hover:text-indigo-800',
+  },
+  {
+    type: 'view',
+    label: 'View on Profile',
+    href: comment => `/persons/${comment.person.id}#comments`,
+    // No show condition - all users can view
+  },
+  {
+    type: 'delete',
+    label: 'Delete',
+    onClick: handleDeleteComment,
+    show: () => canDelete, // Only show delete if user has delete permission
+    className: 'text-red-600 hover:text-red-800',
+  },
+];
+```
+
+### Server Action for Comment Status Toggle
+
+```typescript
+// app/actions/comments.ts
+export async function toggleCommentStatus(
+  commentId: string,
+  isApproved: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'comments', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: { 
+        isApproved,
+        approvedAt: isApproved ? new Date() : null,
+        approvedBy: isApproved ? session.user.id : null,
+      },
+    });
+    
+    revalidatePath('/admin/comments');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to toggle comment status:', error);
+    return { success: false, error: 'Failed to update comment status' };
+  }
 }
 ```
 

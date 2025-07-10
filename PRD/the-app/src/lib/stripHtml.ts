@@ -10,6 +10,6 @@ export function stripHtml(html: string): string {
     .replace(/&#39;/g, "'") // Replace &#39; with '
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
-    
+
   return stripped;
 }

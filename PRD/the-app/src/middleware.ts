@@ -1,10 +1,9 @@
 import { withAuth } from 'next-auth/middleware';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import {
   checkSiteProtectionFromRequest,
   checkSystemOverrideFromRequest,
-  SYSTEM_OVERRIDE_COOKIE,
 } from '@/lib/auth-protection-edge';
 
 export default function middleware(request: NextRequest) {
@@ -169,8 +168,7 @@ export default function middleware(request: NextRequest) {
       },
     }
   );
-
-  return authMiddleware(request as any, {} as any);
+  return authMiddleware(request as never, {} as NextFetchEvent);
 }
 
 export const config = {

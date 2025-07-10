@@ -1,45 +1,44 @@
-import { PrismaClient } from '@prisma/client'
-import sharp from 'sharp'
+import { PrismaClient } from '@prisma/client';
+import sharp from 'sharp';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export interface ImageData {
-  buffer: Buffer
-  mimeType: string
-  width?: number
-  height?: number
+  buffer: Buffer;
+  mimeType: string;
+  width?: number;
+  height?: number;
 }
 
 export interface ProcessedImages {
-  fullImage: ImageData
-  thumbnail: ImageData
+  fullImage: ImageData;
+  thumbnail: ImageData;
 }
 
 export async function processAndStoreImage(
-  buffer: Buffer,
-  mimeType: string
+  buffer: Buffer
 ): Promise<{ fullImageId: string; thumbnailImageId: string }> {
   // Process full-size image (convert to JPEG, max 1200x1200)
   const fullImageBuffer = await sharp(buffer)
-    .resize(1200, 1200, { 
+    .resize(1200, 1200, {
       fit: 'inside',
-      withoutEnlargement: true 
+      withoutEnlargement: true,
     })
     .jpeg({ quality: 85 })
-    .toBuffer()
+    .toBuffer();
 
-  const fullImageMetadata = await sharp(fullImageBuffer).metadata()
+  const fullImageMetadata = await sharp(fullImageBuffer).metadata();
 
   // Create thumbnail (300x300 JPEG)
   const thumbnailBuffer = await sharp(buffer)
-    .resize(300, 300, { 
+    .resize(300, 300, {
       fit: 'cover',
-      position: 'center' 
+      position: 'center',
     })
     .jpeg({ quality: 80 })
-    .toBuffer()
+    .toBuffer();
 
-  const thumbnailMetadata = await sharp(thumbnailBuffer).metadata()
+  const thumbnailMetadata = await sharp(thumbnailBuffer).metadata();
 
   // Store both images in database
   const [fullImage, thumbnailImage] = await Promise.all([
@@ -61,21 +60,21 @@ export async function processAndStoreImage(
         height: thumbnailMetadata.height,
       },
     }),
-  ])
+  ]);
 
   return {
     fullImageId: fullImage.id,
     thumbnailImageId: thumbnailImage.id,
-  }
+  };
 }
 
 export async function getImage(imageId: string): Promise<ImageData | null> {
   const image = await prisma.imageStorage.findUnique({
     where: { id: imageId },
-  })
+  });
 
   if (!image) {
-    return null
+    return null;
   }
 
   return {
@@ -83,17 +82,17 @@ export async function getImage(imageId: string): Promise<ImageData | null> {
     mimeType: image.mimeType,
     width: image.width ?? undefined,
     height: image.height ?? undefined,
-  }
+  };
 }
 
 export async function deleteImage(imageId: string): Promise<boolean> {
   try {
     await prisma.imageStorage.delete({
       where: { id: imageId },
-    })
-    return true
-  } catch (error) {
-    return false
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -102,24 +101,20 @@ export async function processImageBuffer(
   type: 'full' | 'thumbnail'
 ): Promise<ImageData> {
   const processedBuffer = await sharp(buffer)
-    .resize(
-      type === 'full' ? 1200 : 300,
-      type === 'full' ? 1200 : 300,
-      {
-        fit: type === 'full' ? 'inside' : 'cover',
-        withoutEnlargement: type === 'full',
-        position: 'center',
-      }
-    )
+    .resize(type === 'full' ? 1200 : 300, type === 'full' ? 1200 : 300, {
+      fit: type === 'full' ? 'inside' : 'cover',
+      withoutEnlargement: type === 'full',
+      position: 'center',
+    })
     .jpeg({ quality: type === 'full' ? 85 : 80 })
-    .toBuffer()
+    .toBuffer();
 
-  const metadata = await sharp(processedBuffer).metadata()
+  const metadata = await sharp(processedBuffer).metadata();
 
   return {
     buffer: processedBuffer,
     mimeType: 'image/jpeg',
     width: metadata.width,
     height: metadata.height,
-  }
+  };
 }

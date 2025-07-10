@@ -25,7 +25,7 @@ export default function LayoutsGrid({
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this layout?')) return;
-    
+
     const result = await deleteLayout(id);
     if (result.success) {
       setLayouts(layouts.filter(layout => layout.id !== id));
@@ -40,15 +40,24 @@ export default function LayoutsGrid({
   const columns = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'description', label: 'Description' },
-    { key: 'isActive', label: 'Active', render: (value: unknown) => (
-      <span className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
-        value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
-        {value ? 'Active' : 'Inactive'}
-      </span>
-    )},
-    { key: 'createdAt', label: 'Created', sortable: true, render: (value: unknown) => 
-      new Date(value as Date).toLocaleDateString()
+    {
+      key: 'isActive',
+      label: 'Active',
+      render: (value: unknown) => (
+        <span
+          className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      sortable: true,
+      render: (value: unknown) => new Date(value as Date).toLocaleDateString(),
     },
   ];
 
@@ -58,17 +67,25 @@ export default function LayoutsGrid({
       label: 'Preview',
       onClick: (layout: Layout) => setSelectedLayout(layout),
     },
-    ...(canUpdate ? [{
-      type: 'edit' as const,
-      label: 'Edit',
-      href: (layout: Layout) => `/admin/layouts/${layout.id}/edit`,
-    }] : []),
-    ...(canDelete ? [{
-      type: 'delete' as const,
-      label: 'Delete',
-      onClick: async (layout: Layout) => await handleDelete(layout.id),
-      className: 'text-red-600 hover:text-red-900',
-    }] : []),
+    ...(canUpdate
+      ? [
+          {
+            type: 'edit' as const,
+            label: 'Edit',
+            href: (layout: Layout) => `/admin/layouts/${layout.id}/edit`,
+          },
+        ]
+      : []),
+    ...(canDelete
+      ? [
+          {
+            type: 'delete' as const,
+            label: 'Delete',
+            onClick: async (layout: Layout) => await handleDelete(layout.id),
+            className: 'text-red-600 hover:text-red-900',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -101,7 +118,7 @@ export default function LayoutsGrid({
             emptyMessage="No layouts found"
           />
         </div>
-        
+
         <div className="lg:col-span-1">
           <div className="sticky top-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Preview</h2>

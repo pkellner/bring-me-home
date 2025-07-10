@@ -52,10 +52,18 @@ export async function createDetentionCenter(formData: FormData) {
     faxNumber: formData.get('faxNumber') || undefined,
     emailAddress: formData.get('emailAddress') || undefined,
     website: formData.get('website') || undefined,
-    capacity: formData.get('capacity') ? Number(formData.get('capacity')) : undefined,
-    currentPopulation: formData.get('currentPopulation') ? Number(formData.get('currentPopulation')) : undefined,
-    latitude: formData.get('latitude') ? Number(formData.get('latitude')) : undefined,
-    longitude: formData.get('longitude') ? Number(formData.get('longitude')) : undefined,
+    capacity: formData.get('capacity')
+      ? Number(formData.get('capacity'))
+      : undefined,
+    currentPopulation: formData.get('currentPopulation')
+      ? Number(formData.get('currentPopulation'))
+      : undefined,
+    latitude: formData.get('latitude')
+      ? Number(formData.get('latitude'))
+      : undefined,
+    longitude: formData.get('longitude')
+      ? Number(formData.get('longitude'))
+      : undefined,
     isActive: formData.get('isActive') === 'on',
     isICEFacility: formData.get('isICEFacility') === 'on',
     notes: formData.get('notes') || undefined,
@@ -77,7 +85,7 @@ export async function createDetentionCenter(formData: FormData) {
     const facilityImageFile = formData.get('facilityImage') as File;
     if (facilityImageFile && facilityImageFile.size > 0) {
       const buffer = Buffer.from(await facilityImageFile.arrayBuffer());
-      
+
       // Validate image
       const isValid = await validateImageBuffer(buffer);
       if (!isValid) {
@@ -87,10 +95,8 @@ export async function createDetentionCenter(formData: FormData) {
       }
 
       // Process and store images
-      const { fullImageId, thumbnailImageId: thumbId } = await processAndStoreImage(
-        buffer,
-        'facilityImage'
-      );
+      const { fullImageId, thumbnailImageId: thumbId } =
+        await processAndStoreImage(buffer);
 
       facilityImageId = fullImageId;
       thumbnailImageId = thumbId;
@@ -133,10 +139,18 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
     faxNumber: formData.get('faxNumber') || undefined,
     emailAddress: formData.get('emailAddress') || undefined,
     website: formData.get('website') || undefined,
-    capacity: formData.get('capacity') ? Number(formData.get('capacity')) : undefined,
-    currentPopulation: formData.get('currentPopulation') ? Number(formData.get('currentPopulation')) : undefined,
-    latitude: formData.get('latitude') ? Number(formData.get('latitude')) : undefined,
-    longitude: formData.get('longitude') ? Number(formData.get('longitude')) : undefined,
+    capacity: formData.get('capacity')
+      ? Number(formData.get('capacity'))
+      : undefined,
+    currentPopulation: formData.get('currentPopulation')
+      ? Number(formData.get('currentPopulation'))
+      : undefined,
+    latitude: formData.get('latitude')
+      ? Number(formData.get('latitude'))
+      : undefined,
+    longitude: formData.get('longitude')
+      ? Number(formData.get('longitude'))
+      : undefined,
     isActive: formData.get('isActive') === 'on',
     isICEFacility: formData.get('isICEFacility') === 'on',
     notes: formData.get('notes') || undefined,
@@ -164,7 +178,7 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
     const facilityImageFile = formData.get('facilityImage') as File;
     if (facilityImageFile && facilityImageFile.size > 0) {
       const buffer = Buffer.from(await facilityImageFile.arrayBuffer());
-      
+
       // Validate image
       const isValid = await validateImageBuffer(buffer);
       if (!isValid) {
@@ -178,29 +192,29 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
         await prisma.imageStorage.deleteMany({
           where: {
             id: {
-              in: [existingCenter.facilityImageId, existingCenter.thumbnailImageId].filter(Boolean) as string[],
+              in: [
+                existingCenter.facilityImageId,
+                existingCenter.thumbnailImageId,
+              ].filter(Boolean) as string[],
             },
           },
         });
       }
 
       // Process and store new images
-      const { fullImageId, thumbnailImageId: thumbId } = await processAndStoreImage(
-        buffer,
-        'facilityImage'
-      );
+      const { fullImageId, thumbnailImageId: thumbId } =
+        await processAndStoreImage(buffer);
 
       facilityImageId = fullImageId;
       thumbnailImageId = thumbId;
     }
 
-    const updateData: any = {
+    const updateData = {
       ...validatedFields.data,
       facilityImageId,
       thumbnailImageId,
     };
-    
-    
+
     const detentionCenter = await prisma.detentionCenter.update({
       where: { id },
       data: updateData,
@@ -232,7 +246,9 @@ export async function deleteDetentionCenter(id: string) {
     if (detaineesCount > 0) {
       return {
         errors: {
-          _form: [`Cannot delete detention center with ${detaineesCount} assigned detainee(s)`],
+          _form: [
+            `Cannot delete detention center with ${detaineesCount} assigned detainee(s)`,
+          ],
         },
       };
     }
@@ -248,7 +264,10 @@ export async function deleteDetentionCenter(id: string) {
       await prisma.imageStorage.deleteMany({
         where: {
           id: {
-            in: [detentionCenter.facilityImageId, detentionCenter.thumbnailImageId].filter(Boolean) as string[],
+            in: [
+              detentionCenter.facilityImageId,
+              detentionCenter.thumbnailImageId,
+            ].filter(Boolean) as string[],
           },
         },
       });
@@ -279,7 +298,10 @@ export async function deleteEmptyDetentionCenters(state?: string) {
 
   try {
     // Find all detention centers without detainees
-    const where: any = {
+    const where: {
+      detainees: { none: Record<string, never> };
+      state?: string;
+    } = {
       detainees: {
         none: {},
       },
@@ -331,7 +353,7 @@ export async function deleteEmptyDetentionCenters(state?: string) {
     });
 
     revalidatePath('/admin/detention-centers');
-    
+
     return {
       success: true,
       deletedCount: deleteResult.count,
@@ -359,7 +381,17 @@ export async function searchDetentionCenters(searchParams: {
     throw new Error('Unauthorized');
   }
 
-  const where: any = {};
+  const where: {
+    OR?: Array<{
+      name?: { contains: string; mode: 'insensitive' };
+      city?: { contains: string; mode: 'insensitive' };
+      address?: { contains: string; mode: 'insensitive' };
+    }>;
+    state?: string;
+    city?: { contains: string; mode: 'insensitive' };
+    isActive?: boolean;
+    isICEFacility?: boolean;
+  } = {};
 
   if (searchParams.query) {
     where.OR = [
@@ -397,11 +429,7 @@ export async function searchDetentionCenters(searchParams: {
         },
       },
     },
-    orderBy: [
-      { state: 'asc' },
-      { city: 'asc' },
-      { name: 'asc' },
-    ],
+    orderBy: [{ state: 'asc' }, { city: 'asc' }, { name: 'asc' }],
   });
 
   return detentionCenters;

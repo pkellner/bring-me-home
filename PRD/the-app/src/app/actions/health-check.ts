@@ -9,13 +9,13 @@ export async function testRedisConnection() {
     return {
       success: result.connected,
       data: result,
-      error: result.error
+      error: result.error || null,
     };
   } catch (error) {
     return {
       success: false,
       data: null,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -29,28 +29,29 @@ export async function testDatabaseConnection() {
     updateTime: 0,
     deleteTime: 0,
     totalTime: 0,
-    databaseInfo: ''
+    databaseInfo: '',
   };
 
   try {
     // Get database info
     const dbInfo = await prisma.$queryRaw`SELECT VERSION() as version`;
-    metrics.databaseInfo = (dbInfo as any)[0]?.version || 'Unknown';
+    metrics.databaseInfo =
+      (dbInfo as Array<{ version: string }>)[0]?.version || 'Unknown';
 
     // Test create operation
     const createStart = Date.now();
     const testRecord = await prisma.healthCheck.create({
       data: {
         testData: `Health check at ${new Date().toISOString()}`,
-        testNumber: Math.floor(Math.random() * 1000000)
-      }
+        testNumber: Math.floor(Math.random() * 1000000),
+      },
     });
     metrics.createTime = Date.now() - createStart;
 
     // Test read operation
     const readStart = Date.now();
     const readRecord = await prisma.healthCheck.findUnique({
-      where: { id: testRecord.id }
+      where: { id: testRecord.id },
     });
     metrics.readTime = Date.now() - readStart;
 
@@ -64,15 +65,15 @@ export async function testDatabaseConnection() {
       where: { id: testRecord.id },
       data: {
         testData: `Updated at ${new Date().toISOString()}`,
-        testNumber: readRecord.testNumber + 1
-      }
+        testNumber: readRecord.testNumber + 1,
+      },
     });
     metrics.updateTime = Date.now() - updateStart;
 
     // Test delete operation
     const deleteStart = Date.now();
     await prisma.healthCheck.delete({
-      where: { id: testRecord.id }
+      where: { id: testRecord.id },
     });
     metrics.deleteTime = Date.now() - deleteStart;
 
@@ -82,15 +83,15 @@ export async function testDatabaseConnection() {
     return {
       success: true,
       data: metrics,
-      error: null
+      error: null,
     };
   } catch (error) {
     metrics.totalTime = Date.now() - startTime;
-    
+
     return {
       success: false,
       data: metrics,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

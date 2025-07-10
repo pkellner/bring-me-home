@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState } from 'react';
+import { useActionState } from 'react';
 import { submitComment } from '@/app/actions/comments';
 import AnonymousCommentForm from './AnonymousCommentForm';
 
@@ -9,15 +9,21 @@ interface Comment {
   content: string;
   firstName?: string | null;
   lastName?: string | null;
+  occupation?: string | null;
+  birthdate?: Date | string | null;
+  city?: string | null;
+  state?: string | null;
+  showOccupation?: boolean;
+  showBirthdate?: boolean;
+  showCityState?: boolean;
   displayNameOnly?: boolean;
-  createdAt: Date;
+  createdAt: Date | string;
   isApproved: boolean;
 }
 
 interface CommentSectionProps {
   personId: string;
   comments: Comment[];
-  isAuthenticated: boolean;
 }
 
 interface CommentFormState {
@@ -29,7 +35,6 @@ interface CommentFormState {
 export default function CommentSection({
   personId,
   comments,
-  isAuthenticated,
 }: CommentSectionProps) {
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
@@ -48,12 +53,27 @@ export default function CommentSection({
     if (!comment.firstName || !comment.lastName) {
       return 'Anonymous Supporter';
     }
-    
+
     if (comment.displayNameOnly) {
       return `${comment.firstName} ${comment.lastName.charAt(0)}.`;
     }
-    
+
     return `${comment.firstName} ${comment.lastName}`;
+  };
+
+  const calculateAge = (birthdate: Date | string | null | undefined) => {
+    if (!birthdate) return null;
+    const birth = new Date(birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+    return age;
   };
 
   // Filter to only show approved comments
@@ -89,14 +109,42 @@ export default function CommentSection({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900">
-                        {getDisplayName(comment)}
-                      </p>
-                      <span className="mx-2 text-gray-400">•</span>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(comment.createdAt)}
-                      </p>
+                    <div>
+                      <div className="flex items-center flex-wrap gap-x-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {getDisplayName(comment)}
+                        </p>
+                        {comment.showOccupation && comment.occupation && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <p className="text-sm text-gray-600">
+                              {comment.occupation}
+                            </p>
+                          </>
+                        )}
+                        {comment.showBirthdate && comment.birthdate && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <p className="text-sm text-gray-600">
+                              Age {calculateAge(comment.birthdate)}
+                            </p>
+                          </>
+                        )}
+                        {comment.showCityState &&
+                          comment.city &&
+                          comment.state && (
+                            <>
+                              <span className="text-gray-400">•</span>
+                              <p className="text-sm text-gray-600">
+                                {comment.city}, {comment.state}
+                              </p>
+                            </>
+                          )}
+                        <span className="text-gray-400">•</span>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(new Date(comment.createdAt))}
+                        </p>
+                      </div>
                     </div>
                     {comment.content && !comment.displayNameOnly && (
                       <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">

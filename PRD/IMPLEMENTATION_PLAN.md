@@ -71,6 +71,31 @@ All core infrastructure has been successfully implemented including:
 ### 2.2 Comment Moderation Enhancement ✅ COMPLETED
 The comment moderation modal provides an interface for admins to review, edit, and either approve or reject comments. It displays commenter information (name, email, phone), allows editing of comment content before approval, requires moderator notes for rejections, and provides approve/reject actions with success/error notifications.
 
+### 2.3 Comment Submission Confirmation Flow ✅ COMPLETED
+Implement a professional confirmation modal after comment submission that:
+- **Confirmation Modal Component**: Create a reusable modal that appears after form submission
+- **Display Submission Summary**: Show the user what they submitted including their name and selected preferences
+- **Clear Messaging**: Inform users that "Your message is being reviewed by the family to make sure it is OK with them"
+- **Two-Step Confirmation**: 
+  - Prevent immediate database save on form submission
+  - Only save comment after user clicks "OK, Post My Support"
+  - Provide "Cancel" option to abandon submission entirely
+- **Professional Design**: Use proper modal styling with overlay, centered content, and smooth animations
+- **Accessibility**: Ensure modal is keyboard navigable and screen reader friendly
+- **Mobile Responsive**: Design works well on all screen sizes
+
+### 2.4 Comment Status Toggle Enhancement
+Implement live comment status toggle functionality:
+- **CommentStatusToggle Component**: Create a toggle component for switching between "Approved" and "Pending" states
+- **Visual Feedback**: Green badge for approved, yellow badge for pending status
+- **Optimistic UI**: Immediate visual update with rollback on server error
+- **Consistent Pattern**: Follow the same implementation pattern as PersonVisibilityToggle
+- **Server Actions**: Create toggleCommentStatus action with proper permissions
+- **Default Grouping**: Set "Group By Person" as default ON in CommentsGrid
+- **Edit Functionality**: Ensure comment edit modal works properly for content modification
+- **Permission-Based UI**: Show edit icon only when user has 'comments:update' permission
+- **Conditional Rendering**: Hide non-functional UI elements based on user permissions
+
 ## Phase 3: Story Enhancement ✅ PARTIALLY COMPLETED
 
 ### Goals

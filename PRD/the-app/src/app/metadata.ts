@@ -9,6 +9,8 @@ export async function generateSiteMetadata(): Promise<Metadata> {
 
   return {
     title: siteTitle || 'Bring Me Home - Support for ICE Detainees',
-    description: siteDescription || 'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.',
+    description:
+      siteDescription ||
+      'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.',
   };
 }

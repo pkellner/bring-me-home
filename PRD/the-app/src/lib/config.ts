@@ -34,7 +34,9 @@ export async function getConfig(key: string): Promise<string | null> {
   }
 }
 
-export async function getConfigs(keys: string[]): Promise<Record<string, string>> {
+export async function getConfigs(
+  keys: string[]
+): Promise<Record<string, string>> {
   const configs: Record<string, string> = {};
 
   try {

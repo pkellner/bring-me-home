@@ -24,21 +24,20 @@ export default async function DetentionCentersPage() {
         },
       },
     },
-    orderBy: [
-      { state: 'asc' },
-      { city: 'asc' },
-      { name: 'asc' },
-    ],
+    orderBy: [{ state: 'asc' }, { city: 'asc' }, { name: 'asc' }],
   });
 
   // Group detention centers by state
-  const centersByState = detentionCenters.reduce((acc, center) => {
-    if (!acc[center.state]) {
-      acc[center.state] = [];
-    }
-    acc[center.state].push(center);
-    return acc;
-  }, {} as Record<string, typeof detentionCenters>);
+  const centersByState = detentionCenters.reduce(
+    (acc, center) => {
+      if (!acc[center.state]) {
+        acc[center.state] = [];
+      }
+      acc[center.state].push(center);
+      return acc;
+    },
+    {} as Record<string, typeof detentionCenters>
+  );
 
   async function deleteCenter(formData: FormData) {
     'use server';
@@ -56,8 +55,17 @@ export default async function DetentionCentersPage() {
               href="/admin/detention-centers/import"
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
             >
-              <svg className="mr-2 -ml-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              <svg
+                className="mr-2 -ml-1 h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Import from ICE
             </Link>
@@ -65,8 +73,17 @@ export default async function DetentionCentersPage() {
               href="/admin/detention-centers/new"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <svg className="mr-2 -ml-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              <svg
+                className="mr-2 -ml-1 h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               Add Detention Center
             </Link>
@@ -96,20 +113,26 @@ export default async function DetentionCentersPage() {
             <div className="bg-gray-50 p-3 rounded">
               <p className="text-gray-600">Total Detainees</p>
               <p className="text-2xl font-bold">
-                {detentionCenters.reduce((sum, c) => sum + c._count.detainees, 0)}
+                {detentionCenters.reduce(
+                  (sum, c) => sum + c._count.detainees,
+                  0
+                )}
               </p>
             </div>
           </div>
-          
-          {hasPermission(session, 'detentionCenters', 'delete') && 
-           detentionCenters.some(c => c._count.detainees === 0) && (
-            <div className="mt-4 flex justify-end">
-              <BulkDeleteButton 
-                label={`Delete All Empty Centers (${detentionCenters.filter(c => c._count.detainees === 0).length})`}
-                className="px-3 py-1 border border-red-300 rounded-md hover:bg-red-50"
-              />
-            </div>
-          )}
+
+          {hasPermission(session, 'detentionCenters', 'delete') &&
+            detentionCenters.some(c => c._count.detainees === 0) && (
+              <div className="mt-4 flex justify-end">
+                <BulkDeleteButton
+                  label={`Delete All Empty Centers (${
+                    detentionCenters.filter(c => c._count.detainees === 0)
+                      .length
+                  })`}
+                  className="px-3 py-1 border border-red-300 rounded-md hover:bg-red-50"
+                />
+              </div>
+            )}
         </div>
 
         <div className="space-y-6">
@@ -117,16 +140,19 @@ export default async function DetentionCentersPage() {
             <div key={state} className="border rounded-lg p-4">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {state} ({centers.length} center{centers.length !== 1 ? 's' : ''})
+                  {state} ({centers.length} center
+                  {centers.length !== 1 ? 's' : ''})
                 </h2>
-                {hasPermission(session, 'detentionCenters', 'delete') && 
-                 centers.some(c => c._count.detainees === 0) && (
-                  <BulkDeleteButton 
-                    state={state}
-                    label={`Delete Empty (${centers.filter(c => c._count.detainees === 0).length})`}
-                    className="text-sm"
-                  />
-                )}
+                {hasPermission(session, 'detentionCenters', 'delete') &&
+                  centers.some(c => c._count.detainees === 0) && (
+                    <BulkDeleteButton
+                      state={state}
+                      label={`Delete Empty (${
+                        centers.filter(c => c._count.detainees === 0).length
+                      })`}
+                      className="text-sm"
+                    />
+                  )}
               </div>
               <div className="grid gap-4">
                 {centers.map(center => (
@@ -168,17 +194,28 @@ export default async function DetentionCentersPage() {
                                 Operated by: {center.operatedBy}
                               </span>
                             )}
-                            <span className={center.isActive ? 'text-green-600' : 'text-red-600'}>
+                            <span
+                              className={
+                                center.isActive
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }
+                            >
                               {center.isActive ? 'Active' : 'Inactive'}
                             </span>
                           </div>
                           <p className="mt-1 text-sm font-medium text-indigo-600">
-                            {center._count.detainees} detainee{center._count.detainees !== 1 ? 's' : ''}
+                            {center._count.detainees} detainee
+                            {center._count.detainees !== 1 ? 's' : ''}
                           </p>
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          {hasPermission(session, 'detentionCenters', 'update') && (
+                          {hasPermission(
+                            session,
+                            'detentionCenters',
+                            'update'
+                          ) && (
                             <Link
                               href={`/admin/detention-centers/${center.id}/edit`}
                               className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -186,9 +223,17 @@ export default async function DetentionCentersPage() {
                               Edit
                             </Link>
                           )}
-                          {hasPermission(session, 'detentionCenters', 'delete') && center._count.detainees === 0 && (
-                            <DeleteButton action={deleteCenter} id={center.id} />
-                          )}
+                          {hasPermission(
+                            session,
+                            'detentionCenters',
+                            'delete'
+                          ) &&
+                            center._count.detainees === 0 && (
+                              <DeleteButton
+                                action={deleteCenter}
+                                id={center.id}
+                              />
+                            )}
                         </div>
                       </div>
                     </div>

@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import LayoutRenderer from '@/components/layouts/LayoutRenderer';
+import LayoutRenderer, {
+  type SerializedPerson,
+} from '@/components/layouts/LayoutRenderer';
 import Footer from '@/components/Footer';
+import DelayedAdminLink from '@/components/person/DelayedAdminLink';
 import { getSystemLayoutTheme } from '@/app/actions/systemConfig';
 
 interface PersonPageProps {
@@ -40,14 +43,44 @@ async function getPersonData(townSlug: string, personSlug: string) {
       personImages: {
         where: {
           isActive: true,
+          displayPublicly: true,
         },
-        orderBy: {
-          isPrimary: 'desc',
-        },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
       },
       comments: {
         where: {
           isActive: true,
+        },
+        select: {
+          id: true,
+          content: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          occupation: true,
+          birthdate: true,
+          streetAddress: true,
+          city: true,
+          state: true,
+          zipCode: true,
+          showOccupation: true,
+          showBirthdate: true,
+          showCityState: true,
+          wantsToHelpMore: true,
+          displayNameOnly: true,
+          requiresFamilyApproval: true,
+          isApproved: true,
+          isActive: true,
+          personId: true,
+          type: true,
+          visibility: true,
+          familyVisibilityOverride: true,
+          moderatorNotes: true,
+          createdAt: true,
+          updatedAt: true,
+          approvedAt: true,
+          approvedBy: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -90,30 +123,64 @@ export default async function PersonPage({ params }: PersonPageProps) {
     notFound();
   }
 
+  // Check if user is site admin
+  let isSiteAdmin = false;
+  if (session?.user?.id) {
+    const userWithRoles = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    isSiteAdmin =
+      userWithRoles?.userRoles.some(ur => ur.role.name === 'site-admin') ||
+      false;
+  }
+
+  // Get admin link delay from environment
+  const adminLinkDelay = process.env.ADMIN_LINK_DELAY_SECONDS
+    ? parseInt(process.env.ADMIN_LINK_DELAY_SECONDS)
+    : 5;
+
   // Ensure bondAmount is serialized for client component
+  const serializedComments = (person.comments || []).map(comment => ({
+    ...comment,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    birthdate: comment.birthdate ? comment.birthdate.toISOString() : null,
+    approvedAt: comment.approvedAt ? comment.approvedAt.toISOString() : null,
+  }));
+
   const serializedPerson = {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
     stories: person.stories || [],
-    comments: person.comments || [],
-  };
+    comments: serializedComments,
+  } as unknown as SerializedPerson;
 
   // Determine which layout and theme to use
-  const layout = serializedPerson.layout || serializedPerson.town.layout || {
-    id: 'default',
-    name: 'Standard Profile',
-    template: JSON.stringify({
-      type: systemDefaults.layout || 'grid',
-      columns: 2,
-      sections: ['image', 'info', 'story', 'comments'],
-    }),
-  };
+  const layout = serializedPerson.layout ||
+    serializedPerson.town.layout || {
+      id: 'default',
+      name: 'Standard Profile',
+      template: JSON.stringify({
+        type: systemDefaults.layout || 'grid',
+        columns: 2,
+        sections: ['image', 'info', 'story', 'comments'],
+      }),
+    };
 
-  const theme = serializedPerson.theme || serializedPerson.town.theme || {
-    id: 'default',
-    name: systemDefaults.theme || 'default',
-    cssVars: null,
-  };
+  const theme = serializedPerson.theme ||
+    serializedPerson.town.theme || {
+      id: 'default',
+      name: systemDefaults.theme || 'default',
+      cssVars: null,
+    };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,17 +238,29 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-        <LayoutRenderer person={serializedPerson} layout={layout} theme={theme} />
+        <LayoutRenderer
+          person={serializedPerson}
+          layout={layout}
+          theme={theme}
+        />
       </main>
 
       {/* Footer */}
-      <Footer 
+      <Footer
         townLayout={serializedPerson.town.layout?.name}
         townTheme={serializedPerson.town.theme?.name}
         townName={serializedPerson.town.name}
         personLayout={serializedPerson.layout?.name}
         personTheme={serializedPerson.theme?.name}
       />
+
+      {/* Delayed Admin Link for Site Admins */}
+      {isSiteAdmin && (
+        <DelayedAdminLink
+          personId={serializedPerson.id}
+          delaySeconds={adminLinkDelay}
+        />
+      )}
     </div>
   );
 }

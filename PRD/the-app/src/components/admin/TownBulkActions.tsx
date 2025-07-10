@@ -13,7 +13,7 @@ export default function TownBulkActions({
   onSetAllInvisible,
   groupByState,
   onGroupByStateChange,
-  disabled = false
+  disabled = false,
 }: TownBulkActionsProps) {
   return (
     <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
@@ -33,15 +33,17 @@ export default function TownBulkActions({
           Set All Invisible
         </button>
       </div>
-      
+
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
           checked={groupByState}
-          onChange={(e) => onGroupByStateChange(e.target.checked)}
+          onChange={e => onGroupByStateChange(e.target.checked)}
           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
         />
-        <span className="text-sm font-medium text-gray-700">Group By State</span>
+        <span className="text-sm font-medium text-gray-700">
+          Group By State
+        </span>
       </label>
     </div>
   );

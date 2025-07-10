@@ -85,7 +85,7 @@ export async function processImageForStorage(
 ): Promise<ProcessedImages> {
   // Generate optimized full image (JPEG)
   const fullImage = await optimizeImage(buffer, { format: 'jpeg' });
-  
+
   // Generate thumbnail (JPEG)
   const thumbnail = await generateThumbnail(buffer, { format: 'jpeg' });
 

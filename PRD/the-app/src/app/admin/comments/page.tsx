@@ -16,7 +16,7 @@ export default async function CommentsPage() {
     redirect('/admin');
   }
 
-  const comments = await prisma.comment.findMany({
+  const rawComments = await prisma.comment.findMany({
     include: {
       person: {
         include: {
@@ -29,14 +29,20 @@ export default async function CommentsPage() {
     },
   });
 
+  // Serialize Decimal fields to strings
+  const comments = rawComments.map(comment => ({
+    ...comment,
+    person: {
+      ...comment.person,
+      bondAmount: comment.person.bondAmount?.toString() || null,
+    },
+  }));
+
   const towns = await prisma.town.findMany({
     where: {
       isActive: true,
     },
-    orderBy: [
-      { state: 'asc' },
-      { name: 'asc' },
-    ],
+    orderBy: [{ state: 'asc' }, { name: 'asc' }],
     select: {
       id: true,
       name: true,

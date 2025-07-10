@@ -64,7 +64,9 @@ export async function createTheme(formData: FormData) {
   } catch (error) {
     console.error('Failed to create theme:', error);
     return {
-      errors: { _form: ['Failed to create theme. Please check your color values.'] },
+      errors: {
+        _form: ['Failed to create theme. Please check your color values.'],
+      },
     };
   }
 }
@@ -120,7 +122,9 @@ export async function updateTheme(id: string, formData: FormData) {
   } catch (error) {
     console.error('Failed to update theme:', error);
     return {
-      errors: { _form: ['Failed to update theme. Please check your color values.'] },
+      errors: {
+        _form: ['Failed to update theme. Please check your color values.'],
+      },
     };
   }
 }
@@ -142,7 +146,9 @@ export async function deleteTheme(id: string) {
     console.error('Failed to delete theme:', error);
     return {
       errors: {
-        _form: ['Failed to delete theme. It may be in use by towns or persons.'],
+        _form: [
+          'Failed to delete theme. It may be in use by towns or persons.',
+        ],
       },
     };
   }

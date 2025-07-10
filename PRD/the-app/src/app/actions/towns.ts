@@ -143,10 +143,7 @@ export async function deleteTown(id: string) {
   }
 }
 
-export async function toggleTownVisibility(
-  townId: string,
-  isActive: boolean
-) {
+export async function toggleTownVisibility(townId: string, isActive: boolean) {
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'towns', 'update')) {
     throw new Error('Unauthorized');

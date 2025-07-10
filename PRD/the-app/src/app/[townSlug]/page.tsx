@@ -117,10 +117,18 @@ export default async function TownPage({ params }: TownPageProps) {
         <div className="mx-auto max-w-7xl py-12 px-4 sm:py-16 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              {replaceTextPlaceholders(config.town_page_title || 'Detained Community Members in {town}', { town: town.name })}
+              {replaceTextPlaceholders(
+                config.town_page_title ||
+                  'Detained Community Members in {town}',
+                { town: town.name }
+              )}
             </h2>
             <p className="mt-4 text-lg text-indigo-200">
-              {replaceTextPlaceholders(config.town_page_subtitle || '{count} community member(s) need your support', { count: town.persons.length })}
+              {replaceTextPlaceholders(
+                config.town_page_subtitle ||
+                  '{count} community member(s) need your support',
+                { count: town.persons.length }
+              )}
             </p>
           </div>
         </div>
@@ -163,7 +171,10 @@ export default async function TownPage({ params }: TownPageProps) {
                       </h3>
                       {person.detentionCenter && (
                         <p className="text-sm font-bold text-red-600 mt-1">
-                          {config.detained_at_label || 'Detained at'} {person.detentionCenter.name} ({person.detentionCenter.city}, {person.detentionCenter.state})
+                          {config.detained_at_label || 'Detained at'}{' '}
+                          {person.detentionCenter.name} (
+                          {person.detentionCenter.city},{' '}
+                          {person.detentionCenter.state})
                         </p>
                       )}
                     </div>
@@ -181,7 +192,9 @@ export default async function TownPage({ params }: TownPageProps) {
 
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-600 mb-3">
-                      <span className="font-medium">{config.last_seen_label || 'Detained since'}:</span>{' '}
+                      <span className="font-medium">
+                        {config.last_seen_label || 'Detained since'}:
+                      </span>{' '}
                       {new Date(person.lastSeenDate).toLocaleDateString()}
                     </p>
                   )}
@@ -191,7 +204,10 @@ export default async function TownPage({ params }: TownPageProps) {
                       <p className="text-gray-700 text-sm line-clamp-3">
                         {(() => {
                           const plainText = stripHtml(person.story);
-                          return plainText.substring(0, 150) + (plainText.length > 150 ? '...' : '');
+                          return (
+                            plainText.substring(0, 150) +
+                            (plainText.length > 150 ? '...' : '')
+                          );
                         })()}
                       </p>
                     </div>
@@ -200,16 +216,27 @@ export default async function TownPage({ params }: TownPageProps) {
                   <div className="border-t pt-4 space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <div className="text-gray-600">
-                        <span className="font-medium">{person._count.comments}</span> {person._count.comments !== 1 ? 'supporters' : 'supporter'} showing solidarity
+                        <span className="font-medium">
+                          {person._count.comments}
+                        </span>{' '}
+                        {person._count.comments !== 1
+                          ? 'supporters'
+                          : 'supporter'}{' '}
+                        showing solidarity
                       </div>
                     </div>
-                    
+
                     <Link
                       href={`/${townSlug}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
                       className="block w-full text-center bg-indigo-600 text-white px-4 py-3 rounded-md font-medium hover:bg-indigo-700 transition-colors"
                     >
-                      <div className="text-base">{config.view_profile_button || 'View Full Story & Show Support'}</div>
-                      <div className="text-xs mt-1 opacity-90">Read their story and leave a message of support</div>
+                      <div className="text-base">
+                        {config.view_profile_button ||
+                          'View Full Story & Show Support'}
+                      </div>
+                      <div className="text-xs mt-1 opacity-90">
+                        Read their story and leave a message of support
+                      </div>
                     </Link>
                   </div>
                 </div>
@@ -234,10 +261,15 @@ export default async function TownPage({ params }: TownPageProps) {
               </svg>
             </div>
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {config.town_no_detainees_title || 'No detained individuals reported'}
+              {config.town_no_detainees_title ||
+                'No detained individuals reported'}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {replaceTextPlaceholders(config.town_no_detainees_text || 'There are currently no detained community members from {town} in the system.', { town: town.name })}
+              {replaceTextPlaceholders(
+                config.town_no_detainees_text ||
+                  'There are currently no detained community members from {town} in the system.',
+                { town: town.name }
+              )}
             </p>
           </div>
         )}
@@ -248,7 +280,8 @@ export default async function TownPage({ params }: TownPageProps) {
             {config.town_info_title || 'Want to Help?'}
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            {config.town_info_text || 'If you know someone who has been detained or want to show support for those already in the system, please add your voice. Community support can make a real difference in immigration proceedings.'}
+            {config.town_info_text ||
+              'If you know someone who has been detained or want to show support for those already in the system, please add your voice. Community support can make a real difference in immigration proceedings.'}
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
             <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">
@@ -265,7 +298,7 @@ export default async function TownPage({ params }: TownPageProps) {
       </main>
 
       {/* Footer */}
-      <FooterWrapper 
+      <FooterWrapper
         townLayout={town.layout?.name}
         townTheme={town.theme?.name}
         townName={town.name}

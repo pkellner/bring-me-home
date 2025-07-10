@@ -1,15 +1,25 @@
 'use client';
 
-import { useState, useCallback, useTransition, memo } from 'react';
+import { memo, useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminDataGrid, {
-  GridColumn,
   GridAction,
+  GridColumn,
 } from '@/components/admin/AdminDataGrid';
 import CommentModerationModal from '@/components/admin/CommentModerationModal';
 import CommentBulkActions from '@/components/admin/CommentBulkActions';
-import { UserIcon, DocumentTextIcon, EnvelopeIcon, PhoneIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { approveBulkComments, rejectBulkComments } from '@/app/actions/comments';
+import CommentStatusToggle from '@/components/admin/CommentStatusToggle';
+import {
+  DocumentTextIcon,
+  EnvelopeIcon,
+  MagnifyingGlassIcon,
+  PhoneIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline';
+import {
+  approveBulkComments,
+  rejectBulkComments,
+} from '@/app/actions/comments';
 
 interface Comment extends Record<string, unknown> {
   id: string;
@@ -18,6 +28,15 @@ interface Comment extends Record<string, unknown> {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  occupation: string | null;
+  birthdate: Date | null;
+  streetAddress: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  showOccupation: boolean;
+  showBirthdate: boolean;
+  showCityState: boolean;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
   requiresFamilyApproval: boolean;
@@ -72,7 +91,7 @@ function CommentsGrid({
   const [isPending, startTransition] = useTransition();
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [isModerationModalOpen, setIsModerationModalOpen] = useState(false);
-  const [groupByPerson, setGroupByPerson] = useState(false);
+  const [groupByPerson, setGroupByPerson] = useState(true); // Default to grouped by person
   const [selectedTownId, setSelectedTownId] = useState('');
 
   const filteredComments = comments.filter(comment => {
@@ -93,10 +112,14 @@ function CommentsGrid({
 
     const searchLower = searchQuery.toLowerCase();
     return (
-      (comment.content?.toLowerCase().includes(searchLower) || false) ||
-      (comment.firstName?.toLowerCase().includes(searchLower) || false) ||
-      (comment.lastName?.toLowerCase().includes(searchLower) || false) ||
-      (comment.email?.toLowerCase().includes(searchLower) || false) ||
+      comment.content?.toLowerCase().includes(searchLower) ||
+      false ||
+      comment.firstName?.toLowerCase().includes(searchLower) ||
+      false ||
+      comment.lastName?.toLowerCase().includes(searchLower) ||
+      false ||
+      comment.email?.toLowerCase().includes(searchLower) ||
+      false ||
       comment.person.firstName.toLowerCase().includes(searchLower) ||
       comment.person.lastName.toLowerCase().includes(searchLower) ||
       comment.person.town.name.toLowerCase().includes(searchLower) ||
@@ -180,7 +203,11 @@ function CommentsGrid({
       return;
     }
 
-    if (!confirm(`Are you sure you want to approve ${pendingComments.length} pending comments?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to approve ${pendingComments.length} pending comments?`
+      )
+    ) {
       return;
     }
 
@@ -189,12 +216,12 @@ function CommentsGrid({
       try {
         const commentIds = pendingComments.map(c => c.id);
         const result = await approveBulkComments(commentIds);
-        
+
         if (result.success) {
           // Update local state
-          setComments(prev => 
-            prev.map(comment => 
-              commentIds.includes(comment.id) 
+          setComments(prev =>
+            prev.map(comment =>
+              commentIds.includes(comment.id)
                 ? { ...comment, isApproved: true }
                 : comment
             )
@@ -216,7 +243,9 @@ function CommentsGrid({
       return;
     }
 
-    const reason = prompt(`Please provide a reason for rejecting ${pendingComments.length} comments:`);
+    const reason = prompt(
+      `Please provide a reason for rejecting ${pendingComments.length} comments:`
+    );
     if (!reason) {
       return;
     }
@@ -226,12 +255,12 @@ function CommentsGrid({
       try {
         const commentIds = pendingComments.map(c => c.id);
         const result = await rejectBulkComments(commentIds, reason);
-        
+
         if (result.success) {
           // Update local state
-          setComments(prev => 
-            prev.map(comment => 
-              commentIds.includes(comment.id) 
+          setComments(prev =>
+            prev.map(comment =>
+              commentIds.includes(comment.id)
                 ? { ...comment, isApproved: false, moderatorNotes: reason }
                 : comment
             )
@@ -270,6 +299,11 @@ function CommentsGrid({
                   {record.phone}
                 </div>
               )}
+              {record.city && record.state && (
+                <div className="text-gray-400">
+                  {record.city}, {record.state}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -305,7 +339,9 @@ function CommentsGrid({
             {record.content ? (
               <div className="max-w-xs truncate">{record.content}</div>
             ) : (
-              <span className="text-gray-500 italic">No message - name only</span>
+              <span className="text-gray-500 italic">
+                No message - name only
+              </span>
             )}
             <div className="flex gap-2 mt-1">
               {record.wantsToHelpMore && (
@@ -332,10 +368,10 @@ function CommentsGrid({
             value === 'support'
               ? 'bg-green-100 text-green-800'
               : value === 'update'
-                ? 'bg-blue-100 text-blue-800'
-                : value === 'legal'
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'bg-yellow-100 text-yellow-800'
+              ? 'bg-blue-100 text-blue-800'
+              : value === 'legal'
+              ? 'bg-purple-100 text-purple-800'
+              : 'bg-yellow-100 text-yellow-800'
           }`}
         >
           {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
@@ -346,16 +382,16 @@ function CommentsGrid({
       key: 'isApproved',
       label: 'Status',
       sortable: true,
-      render: (value) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            value
-              ? 'bg-green-100 text-green-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}
-        >
-          {value ? 'Approved' : 'Pending'}
-        </span>
+      render: (value, record) => (
+        <CommentStatusToggle
+          commentId={record.id}
+          initialIsApproved={record.isApproved}
+          onUpdate={(commentId, isApproved) => {
+            setComments(prev =>
+              prev.map(c => (c.id === commentId ? { ...c, isApproved } : c))
+            );
+          }}
+        />
       ),
     },
     {
@@ -368,8 +404,8 @@ function CommentsGrid({
 
   const actions: GridAction<Comment>[] = [
     {
-      type: 'custom',
-      label: 'Moderate',
+      type: 'edit',
+      label: 'Edit',
       onClick: handleModerate,
       show: () => canApprove,
       className: 'text-indigo-600 hover:text-indigo-800',
@@ -464,10 +500,11 @@ function CommentsGrid({
                   {personName}
                 </h3>
                 <span className="text-sm text-gray-500">
-                  {personComments.length} comment{personComments.length !== 1 ? 's' : ''}
+                  {personComments.length} comment
+                  {personComments.length !== 1 ? 's' : ''}
                 </span>
               </div>
-                      <AdminDataGrid<Comment>
+              <AdminDataGrid<Comment>
                 data={personComments}
                 columns={columns}
                 actions={actions}

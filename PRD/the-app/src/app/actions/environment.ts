@@ -9,7 +9,7 @@ import { getSystemLayoutTheme } from './systemConfig';
 export async function getEnvironmentConfig() {
   // Get system config overrides if they exist
   const systemOverrides = await getSystemLayoutTheme();
-  
+
   return {
     // Version information
     releaseVersion: process.env.RELEASEVERSION || '0',

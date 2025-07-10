@@ -12,14 +12,14 @@ interface TownVisibilityToggleProps {
 export default function TownVisibilityToggle({
   townId,
   initialIsActive,
-  onUpdate
+  onUpdate,
 }: TownVisibilityToggleProps) {
   const [isActive, setIsActive] = useState(initialIsActive);
   const [isPending, startTransition] = useTransition();
 
   const handleToggle = async () => {
     const newStatus = !isActive;
-    
+
     // Optimistic update
     setIsActive(newStatus);
     if (onUpdate) {
@@ -36,7 +36,7 @@ export default function TownVisibilityToggle({
             onUpdate(townId, !newStatus);
           }
         }
-      } catch (error) {
+      } catch {
         // Rollback on error
         setIsActive(!newStatus);
         if (onUpdate) {

@@ -12,14 +12,14 @@ interface PersonVisibilityToggleProps {
 export default function PersonVisibilityToggle({
   personId,
   initialIsActive,
-  onUpdate
+  onUpdate,
 }: PersonVisibilityToggleProps) {
   const [isActive, setIsActive] = useState(initialIsActive);
   const [isPending, startTransition] = useTransition();
 
   const handleToggle = async () => {
     const newStatus = !isActive;
-    
+
     // Optimistic update
     setIsActive(newStatus);
     if (onUpdate) {
@@ -36,7 +36,7 @@ export default function PersonVisibilityToggle({
             onUpdate(personId, !newStatus);
           }
         }
-      } catch (error) {
+      } catch {
         // Rollback on error
         setIsActive(!newStatus);
         if (onUpdate) {

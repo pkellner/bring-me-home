@@ -15,7 +15,7 @@ interface ThemeEditorProps {
   onChange: (colors: ThemeColors) => void;
 }
 
-export default function ThemeEditor({ 
+export default function ThemeEditor({
   initialColors = {
     primary: '#3B82F6',
     secondary: '#6366F1',
@@ -23,7 +23,7 @@ export default function ThemeEditor({
     background: '#FFFFFF',
     text: '#111827',
   },
-  onChange 
+  onChange,
 }: ThemeEditorProps) {
   const [colors, setColors] = useState<ThemeColors>(initialColors);
 
@@ -76,7 +76,7 @@ export default function ThemeEditor({
     },
   ];
 
-  const applyPreset = (preset: typeof presetThemes[0]) => {
+  const applyPreset = (preset: (typeof presetThemes)[0]) => {
     setColors(preset.colors);
     onChange(preset.colors);
   };
@@ -85,9 +85,11 @@ export default function ThemeEditor({
     <div className="space-y-6">
       {/* Preset themes */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-gray-700">Preset Themes</h3>
+        <h3 className="mb-3 text-sm font-medium text-gray-700">
+          Preset Themes
+        </h3>
         <div className="grid grid-cols-2 gap-2">
-          {presetThemes.map((preset) => (
+          {presetThemes.map(preset => (
             <button
               key={preset.name}
               onClick={() => applyPreset(preset)}
@@ -95,13 +97,15 @@ export default function ThemeEditor({
             >
               <div className="mb-2 text-sm font-medium">{preset.name}</div>
               <div className="flex gap-1">
-                {Object.values(preset.colors).slice(0, 4).map((color, idx) => (
-                  <div
-                    key={idx}
-                    className="h-6 w-6 rounded"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+                {Object.values(preset.colors)
+                  .slice(0, 4)
+                  .map((color, idx) => (
+                    <div
+                      key={idx}
+                      className="h-6 w-6 rounded"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
               </div>
             </button>
           ))}
@@ -110,7 +114,9 @@ export default function ThemeEditor({
 
       {/* Color pickers */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-gray-700">Custom Colors</h3>
+        <h3 className="mb-3 text-sm font-medium text-gray-700">
+          Custom Colors
+        </h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -120,13 +126,13 @@ export default function ThemeEditor({
               <input
                 type="color"
                 value={colors.primary}
-                onChange={(e) => handleColorChange('primary', e.target.value)}
+                onChange={e => handleColorChange('primary', e.target.value)}
                 className="h-10 w-20"
               />
               <input
                 type="text"
                 value={colors.primary}
-                onChange={(e) => handleColorChange('primary', e.target.value)}
+                onChange={e => handleColorChange('primary', e.target.value)}
                 className="rounded-md border px-3 py-1 text-sm"
                 placeholder="#3B82F6"
               />
@@ -141,13 +147,13 @@ export default function ThemeEditor({
               <input
                 type="color"
                 value={colors.secondary}
-                onChange={(e) => handleColorChange('secondary', e.target.value)}
+                onChange={e => handleColorChange('secondary', e.target.value)}
                 className="h-10 w-20"
               />
               <input
                 type="text"
                 value={colors.secondary}
-                onChange={(e) => handleColorChange('secondary', e.target.value)}
+                onChange={e => handleColorChange('secondary', e.target.value)}
                 className="rounded-md border px-3 py-1 text-sm"
                 placeholder="#6366F1"
               />
@@ -162,13 +168,13 @@ export default function ThemeEditor({
               <input
                 type="color"
                 value={colors.accent}
-                onChange={(e) => handleColorChange('accent', e.target.value)}
+                onChange={e => handleColorChange('accent', e.target.value)}
                 className="h-10 w-20"
               />
               <input
                 type="text"
                 value={colors.accent}
-                onChange={(e) => handleColorChange('accent', e.target.value)}
+                onChange={e => handleColorChange('accent', e.target.value)}
                 className="rounded-md border px-3 py-1 text-sm"
                 placeholder="#F59E0B"
               />
@@ -183,13 +189,13 @@ export default function ThemeEditor({
               <input
                 type="color"
                 value={colors.background}
-                onChange={(e) => handleColorChange('background', e.target.value)}
+                onChange={e => handleColorChange('background', e.target.value)}
                 className="h-10 w-20"
               />
               <input
                 type="text"
                 value={colors.background}
-                onChange={(e) => handleColorChange('background', e.target.value)}
+                onChange={e => handleColorChange('background', e.target.value)}
                 className="rounded-md border px-3 py-1 text-sm"
                 placeholder="#FFFFFF"
               />
@@ -204,13 +210,13 @@ export default function ThemeEditor({
               <input
                 type="color"
                 value={colors.text}
-                onChange={(e) => handleColorChange('text', e.target.value)}
+                onChange={e => handleColorChange('text', e.target.value)}
                 className="h-10 w-20"
               />
               <input
                 type="text"
                 value={colors.text}
-                onChange={(e) => handleColorChange('text', e.target.value)}
+                onChange={e => handleColorChange('text', e.target.value)}
                 className="rounded-md border px-3 py-1 text-sm"
                 placeholder="#111827"
               />
@@ -237,8 +243,8 @@ export default function ThemeEditor({
             Sample Heading
           </h4>
           <p className="mb-4" style={{ color: colors.text }}>
-            This is how your content will look with these colors. The theme colors
-            will be applied throughout the entire page.
+            This is how your content will look with these colors. The theme
+            colors will be applied throughout the entire page.
           </p>
           <div className="flex gap-2">
             <button

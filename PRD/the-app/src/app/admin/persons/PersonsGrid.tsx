@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminDataGrid, {
-  GridColumn,
   GridAction,
+  GridColumn,
 } from '@/components/admin/AdminDataGrid';
 import {
-  UserIcon,
   BuildingOfficeIcon,
   ChatBubbleLeftRightIcon,
-  UsersIcon,
-  PhotoIcon,
   MagnifyingGlassIcon,
+  PhotoIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import {
   deletePerson,
@@ -37,6 +37,7 @@ interface Person extends Record<string, unknown> {
   town: {
     id: string;
     name: string;
+    slug: string;
     state: string;
   };
   comments: Array<{
@@ -58,6 +59,7 @@ interface PersonsGridProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  isSiteAdmin: boolean;
   gridTitle?: string;
   addButtonText?: string;
 }
@@ -67,13 +69,13 @@ export default function PersonsGrid({
   canCreate,
   canEdit,
   canDelete,
+  isSiteAdmin,
   gridTitle = 'Detained Persons',
   addButtonText = 'Add Detained Person',
 }: PersonsGridProps) {
   const router = useRouter();
   const [persons, setPersons] = useState(initialPersons);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<keyof Person>('firstName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -137,7 +139,6 @@ export default function PersonsGrid({
       }
 
       setLoading(true);
-      setError('');
 
       try {
         const result = await deletePerson(person.id);
@@ -146,10 +147,10 @@ export default function PersonsGrid({
           setPersons(prev => prev.filter(p => p.id !== person.id));
           router.refresh();
         } else {
-          setError(result.errors?._form?.[0] || 'Failed to delete person');
+          alert(result.errors?._form?.[0] || 'Failed to delete person');
         }
       } catch {
-        setError('Failed to delete person');
+        alert('Failed to delete person');
       } finally {
         setLoading(false);
       }
@@ -184,12 +185,12 @@ export default function PersonsGrid({
         if (!result.success) {
           // Rollback on failure
           setPersons(originalPersons);
-          setError('Failed to update visibility');
+          alert('Failed to update visibility');
         }
-      } catch (error) {
+      } catch {
         // Rollback on error
         setPersons(originalPersons);
-        setError('Failed to update visibility');
+        alert('Failed to update visibility');
       } finally {
         setLoading(false);
       }
@@ -244,9 +245,26 @@ export default function PersonsGrid({
           )}
           <div>
             <div className="text-sm font-medium text-gray-900">
-              {record.firstName}{' '}
-              {record.middleName ? `${record.middleName} ` : ''}
-              {record.lastName}
+              {isSiteAdmin ? (
+                <a
+                  href={`/${
+                    record.town.slug
+                  }/${record.firstName.toLowerCase()}-${record.lastName.toLowerCase()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-blue-600 hover:underline"
+                >
+                  {record.firstName}{' '}
+                  {record.middleName ? `${record.middleName} ` : ''}
+                  {record.lastName}
+                </a>
+              ) : (
+                <>
+                  {record.firstName}{' '}
+                  {record.middleName ? `${record.middleName} ` : ''}
+                  {record.lastName}
+                </>
+              )}
             </div>
             <div className="text-xs text-gray-400">
               {record.town.name}, {record.town.state}
@@ -447,7 +465,6 @@ export default function PersonsGrid({
                 actions={actions}
                 title=""
                 loading={loading}
-                error={error}
                 onRefresh={handleRefresh}
                 onSort={handleSort}
                 createUrl="/admin/persons/new"
@@ -467,7 +484,6 @@ export default function PersonsGrid({
           actions={actions}
           title={gridTitle}
           loading={loading}
-          error={error}
           onRefresh={handleRefresh}
           onSort={handleSort}
           createUrl="/admin/persons/new"

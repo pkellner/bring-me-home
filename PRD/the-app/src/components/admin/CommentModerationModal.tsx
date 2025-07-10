@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { updateCommentAndApprove, approveComment, rejectComment } from '@/app/actions/comments';
+import {
+  approveComment,
+  rejectComment,
+  updateCommentAndApprove,
+} from '@/app/actions/comments';
 
 interface Comment {
   id: string;
@@ -11,9 +15,13 @@ interface Comment {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  occupation: string | null;
+  birthdate: Date | null;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
   requiresFamilyApproval: boolean;
+  showOccupation: boolean;
+  showBirthdate: boolean;
   type: string;
   visibility: string;
   isApproved: boolean;
@@ -39,7 +47,19 @@ export default function CommentModerationModal({
   onUpdate,
 }: CommentModerationModalProps) {
   const [editedContent, setEditedContent] = useState(comment.content || '');
-  const [moderatorNotes, setModeratorNotes] = useState(comment.moderatorNotes || '');
+  const [editedOccupation, setEditedOccupation] = useState(
+    comment.occupation || ''
+  );
+  const [editedBirthdate, setEditedBirthdate] = useState(
+    comment.birthdate
+      ? new Date(comment.birthdate).toISOString().split('T')[0]
+      : ''
+  );
+  const [showOccupation, setShowOccupation] = useState(comment.showOccupation);
+  const [showBirthdate, setShowBirthdate] = useState(comment.showBirthdate);
+  const [moderatorNotes, setModeratorNotes] = useState(
+    comment.moderatorNotes || ''
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -47,8 +67,28 @@ export default function CommentModerationModal({
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      if (editedContent !== comment.content) {
-        await updateCommentAndApprove(comment.id, editedContent, moderatorNotes);
+      const hasChanges =
+        editedContent !== comment.content ||
+        editedOccupation !== (comment.occupation || '') ||
+        editedBirthdate !==
+          (comment.birthdate
+            ? new Date(comment.birthdate).toISOString().split('T')[0]
+            : '') ||
+        showOccupation !== comment.showOccupation ||
+        showBirthdate !== comment.showBirthdate;
+
+      if (hasChanges) {
+        await updateCommentAndApprove(
+          comment.id,
+          editedContent,
+          moderatorNotes,
+          {
+            occupation: editedOccupation || undefined,
+            birthdate: editedBirthdate || undefined,
+            showOccupation,
+            showBirthdate,
+          }
+        );
       } else {
         await approveComment(comment.id, moderatorNotes);
       }
@@ -66,7 +106,7 @@ export default function CommentModerationModal({
       alert('Please provide a reason for rejection in the moderator notes.');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       await rejectComment(comment.id, moderatorNotes);
@@ -82,8 +122,11 @@ export default function CommentModerationModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={onClose}
+        />
+
         <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
@@ -102,22 +145,40 @@ export default function CommentModerationModal({
             <div className="space-y-4">
               {/* Commenter Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Commenter Information</h4>
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Commenter Information
+                </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Name:</span> {comment.firstName} {comment.lastName}
+                    <span className="font-medium">Name:</span>{' '}
+                    {comment.firstName} {comment.lastName}
                   </div>
                   <div>
-                    <span className="font-medium">Email:</span> {comment.email || 'Not provided'}
+                    <span className="font-medium">Email:</span>{' '}
+                    {comment.email || 'Not provided'}
                   </div>
                   <div>
-                    <span className="font-medium">Phone:</span> {comment.phone || 'Not provided'}
+                    <span className="font-medium">Phone:</span>{' '}
+                    {comment.phone || 'Not provided'}
                   </div>
                   <div>
-                    <span className="font-medium">Date:</span> {new Date(comment.createdAt).toLocaleString()}
+                    <span className="font-medium">Date:</span>{' '}
+                    {new Date(comment.createdAt).toLocaleString()}
                   </div>
+                  {comment.occupation && (
+                    <div>
+                      <span className="font-medium">Occupation:</span>{' '}
+                      {comment.occupation}
+                    </div>
+                  )}
+                  {comment.birthdate && (
+                    <div>
+                      <span className="font-medium">Birth Date:</span>{' '}
+                      {new Date(comment.birthdate).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
-                
+
                 <div className="mt-3 space-y-1">
                   {comment.wantsToHelpMore && (
                     <div className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded inline-block">
@@ -147,29 +208,93 @@ export default function CommentModerationModal({
 
               {/* Comment Content */}
               <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="content"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Comment Content (you can edit this before approving)
                 </label>
                 <textarea
                   id="content"
                   rows={6}
                   value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
+                  onChange={e => setEditedContent(e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   placeholder="No comment provided - supporter is showing support only"
                 />
               </div>
 
+              {/* Additional Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="occupation"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Occupation
+                  </label>
+                  <input
+                    type="text"
+                    id="occupation"
+                    value={editedOccupation}
+                    onChange={e => setEditedOccupation(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="e.g., Teacher, Engineer"
+                  />
+                  <label className="flex items-center mt-1">
+                    <input
+                      type="checkbox"
+                      checked={showOccupation}
+                      onChange={e => setShowOccupation(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">
+                      Show occupation publicly
+                    </span>
+                  </label>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="birthdate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Birth Date
+                  </label>
+                  <input
+                    type="date"
+                    id="birthdate"
+                    value={editedBirthdate}
+                    onChange={e => setEditedBirthdate(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                  <label className="flex items-center mt-1">
+                    <input
+                      type="checkbox"
+                      checked={showBirthdate}
+                      onChange={e => setShowBirthdate(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">
+                      Show birthdate publicly
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               {/* Moderator Notes */}
               <div>
-                <label htmlFor="moderatorNotes" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="moderatorNotes"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Moderator Notes (internal only)
                 </label>
                 <textarea
                   id="moderatorNotes"
                   rows={3}
                   value={moderatorNotes}
-                  onChange={(e) => setModeratorNotes(e.target.value)}
+                  onChange={e => setModeratorNotes(e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   placeholder="Add any internal notes about this comment..."
                 />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { uploadPersonImage } from '@/app/actions/upload';
 
 interface ImageUploadProps {

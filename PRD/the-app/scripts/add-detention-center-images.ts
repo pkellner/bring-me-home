@@ -22,13 +22,16 @@ async function addDetentionCenterImages() {
     try {
       // For now, we'll use person placeholder images
       // In production, replace these with actual detention center facility images
-      const imagePath = join(process.cwd(), 'public', 'images', `placeholder-person-${mapping.imageNum}.jpg`);
-      const imageBuffer = await readFile(imagePath);
-      
-      const { fullImageId, thumbnailImageId } = await processAndStoreImage(
-        imageBuffer,
-        'image/jpeg'
+      const imagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        `placeholder-person-${mapping.imageNum}.jpg`
       );
+      const imageBuffer = await readFile(imagePath);
+
+      const { fullImageId, thumbnailImageId } =
+        await processAndStoreImage(imageBuffer);
 
       await prisma.detentionCenter.update({
         where: { id: mapping.centerId },
@@ -40,7 +43,10 @@ async function addDetentionCenterImages() {
 
       console.log(`Updated detention center ${mapping.centerId} with images`);
     } catch (error) {
-      console.error(`Failed to update detention center ${mapping.centerId}:`, error);
+      console.error(
+        `Failed to update detention center ${mapping.centerId}:`,
+        error
+      );
     }
   }
 

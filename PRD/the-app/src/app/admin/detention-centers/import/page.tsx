@@ -17,9 +17,11 @@ export default async function ImportDetentionCentersPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Import Detention Centers</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Import Detention Centers
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Import detention facility data from ICE's official facility list
+          Import detention facility data from ICE&apos;s official facility list
         </p>
       </div>
 

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySiteProtection, setSiteProtectionCookie } from '@/lib/auth-protection';
+import {
+  setSiteProtectionCookie,
+  verifySiteProtection,
+} from '@/lib/auth-protection';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,10 +21,7 @@ export async function POST(request: NextRequest) {
       await setSiteProtectionCookie();
       return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json(
-        { error: 'Invalid password' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
     }
   } catch (error) {
     console.error('Site protection error:', error);

@@ -52,8 +52,13 @@ export async function DELETE(
         newValues: JSON.stringify({
           commentId: id,
           personName: `${comment.person.firstName} ${comment.person.lastName}`,
-          commenterName: comment.firstName && comment.lastName ? `${comment.firstName} ${comment.lastName}` : 'Anonymous',
-          content: comment.content ? comment.content.substring(0, 100) + '...' : 'No content',
+          commenterName:
+            comment.firstName && comment.lastName
+              ? `${comment.firstName} ${comment.lastName}`
+              : 'Anonymous',
+          content: comment.content
+            ? comment.content.substring(0, 100) + '...'
+            : 'No content',
         }),
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',

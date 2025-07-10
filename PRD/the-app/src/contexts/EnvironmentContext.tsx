@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-  getEnvironmentConfig,
   type EnvironmentConfig,
+  getEnvironmentConfig,
 } from '@/app/actions/environment';
 
 interface EnvironmentContextType {

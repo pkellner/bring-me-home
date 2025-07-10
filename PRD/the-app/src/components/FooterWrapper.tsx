@@ -12,7 +12,10 @@ interface FooterWrapperProps {
 export default async function FooterWrapper(props: FooterWrapperProps) {
   const config = await getSiteTextConfig();
   const currentYear = new Date().getFullYear();
-  const copyrightText = `© ${currentYear} ${config.copyright_text || 'Bring Me Home. Together, we can bring our loved ones home.'}`;
-  
+  const copyrightText = `© ${currentYear} ${
+    config.copyright_text ||
+    'Bring Me Home. Together, we can bring our loved ones home.'
+  }`;
+
   return <Footer {...props} copyrightText={copyrightText} />;
 }

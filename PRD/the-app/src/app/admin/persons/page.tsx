@@ -43,7 +43,22 @@ export default async function PersonsPage() {
   const canCreate = hasPermission(session, 'persons', 'create');
   const canEdit = hasPermission(session, 'persons', 'update');
   const canDelete = hasPermission(session, 'persons', 'delete');
-  
+
+  // Check if user is site admin
+  const userWithRoles = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  const isSiteAdmin =
+    userWithRoles?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
+
   const config = await getSiteTextConfig();
 
   return (
@@ -52,6 +67,7 @@ export default async function PersonsPage() {
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
+      isSiteAdmin={isSiteAdmin}
       gridTitle={config.admin_detained_persons_title || 'Detained Persons'}
       addButtonText={config.admin_add_person_button || 'Add Detained Person'}
     />

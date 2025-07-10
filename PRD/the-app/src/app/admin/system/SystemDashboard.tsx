@@ -2,16 +2,16 @@
 
 import { useState } from 'react';
 import {
-  UsersIcon,
   BuildingOfficeIcon,
-  UserIcon,
+  ChartBarIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
+  CircleStackIcon as DatabaseIcon,
   ClockIcon,
-  ChartBarIcon,
   CogIcon,
   ServerIcon,
-  CircleStackIcon as DatabaseIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { useEnvironment } from '@/contexts/EnvironmentContext';
 

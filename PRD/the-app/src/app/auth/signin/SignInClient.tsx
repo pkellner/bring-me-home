@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -9,7 +9,9 @@ interface SignInClientProps {
   showSystemOverrideLink?: boolean;
 }
 
-export default function SignInClient({ showSystemOverrideLink = false }: SignInClientProps) {
+export default function SignInClient({
+  showSystemOverrideLink = false,
+}: SignInClientProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -63,11 +65,12 @@ export default function SignInClient({ showSystemOverrideLink = false }: SignInC
               Already signed in
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              You are signed in as {session.user?.username || session.user?.email}
+              You are signed in as{' '}
+              {session.user?.username || session.user?.email}
             </p>
           </div>
           <div className="space-y-4">
-            {session.user?.roles?.some(role => 
+            {session.user?.roles?.some(role =>
               ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
             ) && (
               <Link
@@ -136,7 +139,7 @@ export default function SignInClient({ showSystemOverrideLink = false }: SignInC
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={e => setUsername(e.target.value)}
               />
             </div>
             <div>
@@ -152,7 +155,7 @@ export default function SignInClient({ showSystemOverrideLink = false }: SignInC
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
               />
             </div>
           </div>

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySystemOverride, setSystemOverrideCookie } from '@/lib/auth-protection';
+import {
+  setSystemOverrideCookie,
+  verifySystemOverride,
+} from '@/lib/auth-protection';
 
 export async function POST(request: NextRequest) {
   try {

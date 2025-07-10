@@ -52,7 +52,9 @@ export async function createPerson(formData: FormData) {
     detentionDate: formData.get('detentionDate') || undefined,
     detentionStatus: formData.get('detentionStatus') || undefined,
     caseNumber: formData.get('caseNumber') || undefined,
-    bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
+    bondAmount: formData.get('bondAmount')
+      ? Number(formData.get('bondAmount'))
+      : undefined,
     lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
     notesFromLastContact: formData.get('notesFromLastContact') || undefined,
     representedByLawyer: formData.get('representedByLawyer') === 'on',
@@ -67,7 +69,7 @@ export async function createPerson(formData: FormData) {
 
   try {
     // Process data for database
-    const data: any = {
+    const data = {
       ...validatedFields.data,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
@@ -78,11 +80,12 @@ export async function createPerson(formData: FormData) {
       lastHeardFromDate: validatedFields.data.lastHeardFromDate
         ? new Date(validatedFields.data.lastHeardFromDate)
         : undefined,
+      stories: undefined as undefined, // Explicitly remove stories field
     };
 
     // Handle empty detentionCenterId
     if (data.detentionCenterId === '') {
-      data.detentionCenterId = null;
+      data.detentionCenterId = undefined;
     }
 
     // Extract stories from data (don't include in person creation)
@@ -99,13 +102,19 @@ export async function createPerson(formData: FormData) {
         const stories = JSON.parse(storiesJson);
         if (Array.isArray(stories) && stories.length > 0) {
           await prisma.story.createMany({
-            data: stories.map((story: any) => ({
-              personId: person.id,
-              language: story.language,
-              storyType: story.storyType,
-              content: story.content,
-              isActive: true,
-            })),
+            data: stories.map(
+              (story: {
+                language: string;
+                storyType: string;
+                content: string;
+              }) => ({
+                personId: person.id,
+                language: story.language,
+                storyType: story.storyType,
+                content: story.content,
+                isActive: true,
+              })
+            ),
           });
         }
       } catch (error) {
@@ -128,10 +137,7 @@ export async function createPerson(formData: FormData) {
         };
       }
 
-      const { fullImageId, thumbnailImageId } = await processAndStoreImage(
-        buffer,
-        primaryPicture.type
-      );
+      const { fullImageId } = await processAndStoreImage(buffer);
       const fullPath = `/api/images/${fullImageId}`;
 
       await prisma.person.update({
@@ -171,7 +177,9 @@ export async function updatePerson(id: string, formData: FormData) {
     detentionDate: formData.get('detentionDate') || undefined,
     detentionStatus: formData.get('detentionStatus') || undefined,
     caseNumber: formData.get('caseNumber') || undefined,
-    bondAmount: formData.get('bondAmount') ? Number(formData.get('bondAmount')) : undefined,
+    bondAmount: formData.get('bondAmount')
+      ? Number(formData.get('bondAmount'))
+      : undefined,
     lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
     notesFromLastContact: formData.get('notesFromLastContact') || undefined,
     representedByLawyer: formData.get('representedByLawyer') === 'on',
@@ -186,7 +194,7 @@ export async function updatePerson(id: string, formData: FormData) {
 
   try {
     // Process data for database
-    let updateData: any = {
+    const updateData = {
       ...validatedFields.data,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
@@ -197,11 +205,12 @@ export async function updatePerson(id: string, formData: FormData) {
       lastHeardFromDate: validatedFields.data.lastHeardFromDate
         ? new Date(validatedFields.data.lastHeardFromDate)
         : null,
+      stories: undefined as undefined, // Explicitly remove stories field
     };
 
     // Handle empty detentionCenterId
     if (updateData.detentionCenterId === '') {
-      updateData.detentionCenterId = null;
+      updateData.detentionCenterId = undefined;
     }
 
     // Extract stories from data (don't include in person update)
@@ -221,40 +230,116 @@ export async function updatePerson(id: string, formData: FormData) {
         };
       }
 
-      const { fullImageId, thumbnailImageId } = await processAndStoreImage(
-        buffer,
-        primaryPicture.type
-      );
+      const { fullImageId } = await processAndStoreImage(buffer);
       const fullPath = `/api/images/${fullImageId}`;
 
-      updateData = { ...updateData, primaryPicture: fullPath };
+      (updateData as Record<string, unknown>).primaryPicture = fullPath;
     }
 
+    // Handle additional images
+    const additionalImagesJson = formData.get('additionalImages') as string;
+    let additionalImages: Array<{
+      buffer?: Buffer;
+      caption?: string;
+      toDelete?: boolean;
+      id?: string;
+      isNew?: boolean;
+      file?: File;
+    }> = [];
+    if (additionalImagesJson) {
+      try {
+        additionalImages = JSON.parse(additionalImagesJson);
+      } catch (error) {
+        console.error('Failed to parse additional images:', error);
+      }
+    }
+
+    // Update person first
     await prisma.person.update({
       where: { id },
       data: updateData,
     });
 
+    // Handle PersonImage records
+    if (additionalImages.length > 0) {
+      for (const imageData of additionalImages) {
+        if (imageData.toDelete && imageData.id) {
+          // Delete existing image
+          await prisma.personImage.update({
+            where: { id: imageData.id },
+            data: { isActive: false },
+          });
+        } else if (imageData.isNew && imageData.file) {
+          // Process and create new image
+          try {
+            // Get the file from FormData
+            const imageFile = formData.get(
+              `image_file_${additionalImages.indexOf(imageData)}`
+            ) as File;
+            if (imageFile && imageFile.size > 0) {
+              const buffer = Buffer.from(await imageFile.arrayBuffer());
+              const isValidImage = await validateImageBuffer(buffer);
+
+              if (isValidImage) {
+                const { fullImageId, thumbnailImageId } =
+                  await processAndStoreImage(buffer);
+
+                await prisma.personImage.create({
+                  data: {
+                    personId: id,
+                    imageUrl: `/api/images/${fullImageId}`,
+                    thumbnailUrl: `/api/images/${thumbnailImageId}`,
+                    fullImageId,
+                    thumbnailImageId,
+                    caption: imageData.caption || null,
+                    displayPublicly: true, // All images are public now
+                    isPrimary: false,
+                    uploadedById: session.user.id,
+                  },
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Failed to process additional image:', error);
+          }
+        } else if (imageData.id && !imageData.toDelete) {
+          // Update existing image
+          await prisma.personImage.update({
+            where: { id: imageData.id },
+            data: {
+              caption: imageData.caption || null,
+            },
+          });
+        }
+      }
+    }
+
     // Handle stories update
     if (storiesJson) {
       try {
         const stories = JSON.parse(storiesJson);
-        
+
         // Delete existing stories for this person
         await prisma.story.deleteMany({
           where: { personId: id },
         });
-        
+
         // Create new stories
         if (Array.isArray(stories) && stories.length > 0) {
           await prisma.story.createMany({
-            data: stories.map((story: any) => ({
-              personId: id,
-              language: story.language,
-              storyType: story.storyType,
-              content: story.content,
-              isActive: true,
-            })),
+            data: stories.map(
+              (story: {
+                language: string;
+                storyType: string;
+                content: string;
+              }) => ({
+                personId: id,
+                language: story.language,
+                storyType: story.storyType,
+                content: story.content,
+                isActive: true,
+              })
+            ),
           });
         }
       } catch (error) {

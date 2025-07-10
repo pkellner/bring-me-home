@@ -3,19 +3,19 @@
 import { Session } from 'next-auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { hasRole, hasPermission } from '@/lib/permissions';
+import { hasPermission, hasRole } from '@/lib/permissions';
 import { performSignOut } from '@/lib/signout';
 import {
-  HomeIcon,
-  UsersIcon,
+  BuildingLibraryIcon,
   BuildingOfficeIcon,
-  UserIcon,
   ChatBubbleLeftRightIcon,
   CogIcon,
+  HomeIcon,
   ShieldCheckIcon,
   Squares2X2Icon,
   SwatchIcon,
-  BuildingLibraryIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {

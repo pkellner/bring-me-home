@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import RichTextEditor from '@/components/RichTextEditor';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
+import PersonImageManager from '@/components/admin/PersonImageManager';
 import Image from 'next/image';
-import { Person, Town, DetentionCenter, Story } from '@prisma/client';
+import {
+  DetentionCenter,
+  Person,
+  PersonImage,
+  Story,
+  Town,
+} from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 
@@ -15,6 +21,7 @@ interface PersonFormProps {
     town: Town;
     detentionCenter?: DetentionCenter | null;
     stories?: Story[];
+    personImages?: PersonImage[];
   };
   towns: Town[];
 }
@@ -23,13 +30,26 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
-  const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<string | null>(
-    person?.detentionCenterId || null
-  );
-  const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<DetentionCenter | null>(
-    person?.detentionCenter || null
-  );
-  const [stories, setStories] = useState<{ language: string; storyType: string; content: string }[]>([]);
+  const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<
+    string | null
+  >(person?.detentionCenterId || null);
+  const [selectedDetentionCenter, setSelectedDetentionCenter] =
+    useState<DetentionCenter | null>(person?.detentionCenter || null);
+  const [stories, setStories] = useState<
+    { language: string; storyType: string; content: string }[]
+  >([]);
+  const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<
+    Array<{
+      id?: string;
+      imageUrl: string;
+      thumbnailUrl?: string | null;
+      caption?: string | null;
+      file?: File;
+      isNew?: boolean;
+      toDelete?: boolean;
+    }>
+  >([]);
 
   async function handleSubmit(formData: FormData) {
     // Add stories as JSON to form data
@@ -40,6 +60,21 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
     } else {
       formData.append('detentionCenterId', '');
     }
+
+    // Add primary image if new one selected
+    if (primaryImageFile) {
+      formData.append('primaryPicture', primaryImageFile);
+    }
+
+    // Add additional images data
+    formData.set('additionalImages', JSON.stringify(additionalImages));
+
+    // Add actual image files for new images
+    additionalImages.forEach((image, index) => {
+      if (image.isNew && image.file && !image.toDelete) {
+        formData.append(`image_file_${index}`, image.file);
+      }
+    });
 
     const result = person
       ? await updatePerson(person.id, formData)
@@ -54,7 +89,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
   async function handleDetentionCenterSelect(centerId: string | null) {
     setSelectedDetentionCenterId(centerId);
-    
+
     if (centerId) {
       // Fetch the detention center details
       try {
@@ -76,7 +111,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
       <form action={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-gray-700"
+            >
               First Name
             </label>
             <input
@@ -93,7 +131,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-gray-700"
+            >
               Last Name
             </label>
             <input
@@ -110,7 +151,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </div>
 
           <div>
-            <label htmlFor="middleName" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="middleName"
+              className="block text-sm font-medium text-gray-700"
+            >
               Middle Name
             </label>
             <input
@@ -123,7 +167,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </div>
 
           <div>
-            <label htmlFor="townId" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="townId"
+              className="block text-sm font-medium text-gray-700"
+            >
               Town
             </label>
             <select
@@ -134,7 +181,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             >
               <option value="">Select a town</option>
-              {towns.map((town) => (
+              {towns.map(town => (
                 <option key={town.id} value={town.id}>
                   {town.name}, {town.state}
                 </option>
@@ -146,7 +193,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </div>
 
           <div>
-            <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="dateOfBirth"
+              className="block text-sm font-medium text-gray-700"
+            >
               Date of Birth
             </label>
             <input
@@ -163,7 +213,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="lastKnownAddress" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="lastKnownAddress"
+              className="block text-sm font-medium text-gray-700"
+            >
               Last Known Address
             </label>
             <input
@@ -175,15 +228,19 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
             {errors.lastKnownAddress && (
-              <p className="mt-1 text-sm text-red-600">{errors.lastKnownAddress[0]}</p>
+              <p className="mt-1 text-sm text-red-600">
+                {errors.lastKnownAddress[0]}
+              </p>
             )}
           </div>
         </div>
 
         {/* Detention Center Section */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Detention Information</h3>
-          
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Detention Information
+          </h3>
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -202,9 +259,12 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                       />
                     )}
                     <div className="flex-grow">
-                      <h4 className="font-medium text-gray-900">{selectedDetentionCenter.name}</h4>
+                      <h4 className="font-medium text-gray-900">
+                        {selectedDetentionCenter.name}
+                      </h4>
                       <p className="text-sm text-gray-600">
-                        {selectedDetentionCenter.city}, {selectedDetentionCenter.state}
+                        {selectedDetentionCenter.city},{' '}
+                        {selectedDetentionCenter.state}
                       </p>
                       <button
                         type="button"
@@ -231,7 +291,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="detentionDate" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="detentionDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Detention Date
                     </label>
                     <input
@@ -240,7 +303,9 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                       name="detentionDate"
                       defaultValue={
                         person?.detentionDate
-                          ? new Date(person.detentionDate).toISOString().split('T')[0]
+                          ? new Date(person.detentionDate)
+                              .toISOString()
+                              .split('T')[0]
                           : ''
                       }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -248,7 +313,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                   </div>
 
                   <div>
-                    <label htmlFor="detentionStatus" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="detentionStatus"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Detention Status
                     </label>
                     <select
@@ -265,7 +333,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                   </div>
 
                   <div>
-                    <label htmlFor="caseNumber" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="caseNumber"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Case Number
                     </label>
                     <input
@@ -278,7 +349,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                   </div>
 
                   <div>
-                    <label htmlFor="bondAmount" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="bondAmount"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Bond Amount
                     </label>
                     <input
@@ -293,7 +367,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                   </div>
 
                   <div>
-                    <label htmlFor="lastHeardFromDate" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="lastHeardFromDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Last Heard From Date
                     </label>
                     <input
@@ -302,7 +379,9 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                       name="lastHeardFromDate"
                       defaultValue={
                         person?.lastHeardFromDate
-                          ? new Date(person.lastHeardFromDate).toISOString().split('T')[0]
+                          ? new Date(person.lastHeardFromDate)
+                              .toISOString()
+                              .split('T')[0]
                           : ''
                       }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -311,7 +390,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label htmlFor="notesFromLastContact" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="notesFromLastContact"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Notes from Last Contact
                   </label>
                   <textarea
@@ -333,13 +415,19 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
                       defaultChecked={person?.representedByLawyer ?? false}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="representedByLawyer" className="ml-2 block text-sm text-gray-900">
+                    <label
+                      htmlFor="representedByLawyer"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
                       Represented by Lawyer
                     </label>
                   </div>
 
                   <div>
-                    <label htmlFor="representedByNotes" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="representedByNotes"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Legal Representation Notes
                     </label>
                     <textarea
@@ -362,46 +450,24 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
             Stories
           </label>
           <MultiLanguageStoryEditor
-            personId={person?.id}
             stories={person?.stories}
             onChange={setStories}
           />
           <p className="mt-2 text-sm text-gray-500">
-            Add stories in multiple languages. Visitors will be able to switch between available languages on the profile page.
+            Add stories in multiple languages. Visitors will be able to switch
+            between available languages on the profile page.
           </p>
         </div>
 
-        <div>
-          <label htmlFor="primaryPicture" className="block text-sm font-medium text-gray-700">
-            Primary Picture
-          </label>
-          {person?.primaryPicture && (
-            <div className="mt-2 mb-4">
-              <Image
-                src={person.primaryPicture}
-                alt={`${person.firstName} ${person.lastName}`}
-                width={200}
-                height={200}
-                className="rounded-lg object-cover"
-              />
-              <p className="text-sm text-gray-500 mt-1">Current image</p>
-            </div>
-          )}
-          <input
-            type="file"
-            id="primaryPicture"
-            name="primaryPicture"
-            accept="image/*"
-            className="mt-1 block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-medium
-              file:bg-indigo-50 file:text-indigo-700
-              hover:file:bg-indigo-100"
+        <div className="border-t pt-6">
+          <PersonImageManager
+            primaryImage={person?.primaryPicture}
+            existingImages={person?.personImages}
+            onChange={(primaryFile, images) => {
+              setPrimaryImageFile(primaryFile);
+              setAdditionalImages(images);
+            }}
           />
-          <p className="mt-1 text-sm text-gray-500">
-            Upload a new image to replace the current one
-          </p>
         </div>
 
         <div className="flex items-center">
@@ -412,7 +478,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
             defaultChecked={person?.isActive ?? true}
             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
           />
-          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+          <label
+            htmlFor="isActive"
+            className="ml-2 block text-sm text-gray-900"
+          >
             Active (visible to public)
           </label>
         </div>

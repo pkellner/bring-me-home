@@ -19,15 +19,16 @@ export default async function EditPersonPage({
 
   const person = await prisma.person.findUnique({
     where: { id },
-    include: { 
+    include: {
       town: true,
       detentionCenter: true,
       stories: {
         where: { isActive: true },
-        orderBy: [
-          { language: 'asc' },
-          { storyType: 'asc' },
-        ],
+        orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
+      },
+      personImages: {
+        where: { isActive: true },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
       },
     },
   });

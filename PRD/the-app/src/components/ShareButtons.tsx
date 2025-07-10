@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShareIcon, LinkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, LinkIcon, ShareIcon } from '@heroicons/react/24/outline';
 
 interface ShareButtonsProps {
   url: string;
@@ -17,13 +17,17 @@ export default function ShareButtons({
   const [copied, setCopied] = useState(false);
 
   const shareOnFacebook = () => {
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      url
+    )}`;
     window.open(facebookUrl, '_blank', 'width=600,height=400');
   };
 
   const shareOnTwitter = () => {
     const text = description ? `${title} - ${description}` : title;
-    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+      url
+    )}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank', 'width=600,height=400');
   };
 

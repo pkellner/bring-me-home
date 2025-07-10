@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminDataGrid, {
-  GridColumn,
   GridAction,
+  GridColumn,
 } from '@/components/admin/AdminDataGrid';
 import {
   BuildingOfficeIcon,
-  UsersIcon,
-  UserIcon,
-  MapPinIcon,
   MagnifyingGlassIcon,
+  MapPinIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { deleteTown, updateBulkTownVisibility } from '@/app/actions/towns';
 import TownVisibilityToggle from '@/components/admin/TownVisibilityToggle';
@@ -55,7 +55,6 @@ export default function TownsGrid({
   const router = useRouter();
   const [towns, setTowns] = useState(initialTowns);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<keyof Town>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -114,7 +113,6 @@ export default function TownsGrid({
       }
 
       setLoading(true);
-      setError('');
 
       try {
         const result = await deleteTown(town.id);
@@ -123,10 +121,10 @@ export default function TownsGrid({
           setTowns(prev => prev.filter(t => t.id !== town.id));
           router.refresh();
         } else {
-          setError(result.errors?._form?.[0] || 'Failed to delete town');
+          alert(result.errors?._form?.[0] || 'Failed to delete town');
         }
       } catch {
-        setError('Failed to delete town');
+        alert('Failed to delete town');
       } finally {
         setLoading(false);
       }
@@ -137,9 +135,7 @@ export default function TownsGrid({
   const handleTownVisibilityUpdate = useCallback(
     (townId: string, isActive: boolean) => {
       setTowns(prev =>
-        prev.map(town =>
-          town.id === townId ? { ...town, isActive } : town
-        )
+        prev.map(town => (town.id === townId ? { ...town, isActive } : town))
       );
     },
     []
@@ -161,12 +157,12 @@ export default function TownsGrid({
         if (!result.success) {
           // Rollback on failure
           setTowns(originalTowns);
-          setError('Failed to update visibility');
+          alert('Failed to update visibility');
         }
-      } catch (error) {
+      } catch {
         // Rollback on error
         setTowns(originalTowns);
-        setError('Failed to update visibility');
+        alert('Failed to update visibility');
       } finally {
         setLoading(false);
       }
@@ -177,7 +173,11 @@ export default function TownsGrid({
   const handleSetAllVisible = useCallback(() => {
     const townIds = filteredTowns.map(t => t.id);
     if (townIds.length > 0) {
-      if (confirm(`Are you sure you want to make ${townIds.length} towns visible?`)) {
+      if (
+        confirm(
+          `Are you sure you want to make ${townIds.length} towns visible?`
+        )
+      ) {
         handleBulkVisibilityUpdate(townIds, true);
       }
     }
@@ -186,7 +186,11 @@ export default function TownsGrid({
   const handleSetAllInvisible = useCallback(() => {
     const townIds = filteredTowns.map(t => t.id);
     if (townIds.length > 0) {
-      if (confirm(`Are you sure you want to make ${townIds.length} towns invisible?`)) {
+      if (
+        confirm(
+          `Are you sure you want to make ${townIds.length} towns invisible?`
+        )
+      ) {
         handleBulkVisibilityUpdate(townIds, false);
       }
     }
@@ -329,7 +333,7 @@ export default function TownsGrid({
         onGroupByStateChange={setGroupByState}
         disabled={loading}
       />
-      
+
       {groupByState ? (
         <div className="space-y-6">
           {Object.entries(groupedData).map(([stateName, stateTowns]) => (
@@ -342,7 +346,11 @@ export default function TownsGrid({
                   <button
                     onClick={() => {
                       const stateTownIds = stateTowns.map(t => t.id);
-                      if (confirm(`Make all ${stateTownIds.length} towns in ${stateName} visible?`)) {
+                      if (
+                        confirm(
+                          `Make all ${stateTownIds.length} towns in ${stateName} visible?`
+                        )
+                      ) {
                         handleBulkVisibilityUpdate(stateTownIds, true);
                       }
                     }}
@@ -353,7 +361,11 @@ export default function TownsGrid({
                   <button
                     onClick={() => {
                       const stateTownIds = stateTowns.map(t => t.id);
-                      if (confirm(`Make all ${stateTownIds.length} towns in ${stateName} invisible?`)) {
+                      if (
+                        confirm(
+                          `Make all ${stateTownIds.length} towns in ${stateName} invisible?`
+                        )
+                      ) {
                         handleBulkVisibilityUpdate(stateTownIds, false);
                       }
                     }}
@@ -369,7 +381,6 @@ export default function TownsGrid({
                 actions={actions}
                 title=""
                 loading={loading}
-                error={error}
                 onRefresh={handleRefresh}
                 onSort={handleSort}
                 createUrl="/admin/towns/new"
@@ -389,7 +400,6 @@ export default function TownsGrid({
           actions={actions}
           title="Towns"
           loading={loading}
-          error={error}
           onRefresh={handleRefresh}
           onSort={handleSort}
           createUrl="/admin/towns/new"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { searchDetentionCenters } from '@/app/actions/detention-centers';
@@ -26,11 +26,56 @@ interface DetentionCenterSelectorProps {
 }
 
 const states = [
-  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+  'AL',
+  'AK',
+  'AZ',
+  'AR',
+  'CA',
+  'CO',
+  'CT',
+  'DE',
+  'FL',
+  'GA',
+  'HI',
+  'ID',
+  'IL',
+  'IN',
+  'IA',
+  'KS',
+  'KY',
+  'LA',
+  'ME',
+  'MD',
+  'MA',
+  'MI',
+  'MN',
+  'MS',
+  'MO',
+  'MT',
+  'NE',
+  'NV',
+  'NH',
+  'NJ',
+  'NM',
+  'NY',
+  'NC',
+  'ND',
+  'OH',
+  'OK',
+  'OR',
+  'PA',
+  'RI',
+  'SC',
+  'SD',
+  'TN',
+  'TX',
+  'UT',
+  'VT',
+  'VA',
+  'WA',
+  'WV',
+  'WI',
+  'WY',
 ];
 
 export default function DetentionCenterSelector({
@@ -41,19 +86,15 @@ export default function DetentionCenterSelector({
 }: DetentionCenterSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('');
-  const [detentionCenters, setDetentionCenters] = useState<DetentionCenter[]>([]);
+  const [detentionCenters, setDetentionCenters] = useState<DetentionCenter[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(
     currentDetentionCenterId || null
   );
 
-  useEffect(() => {
-    if (isOpen) {
-      loadDetentionCenters();
-    }
-  }, [isOpen, searchQuery, selectedState]);
-
-  async function loadDetentionCenters() {
+  const loadDetentionCenters = useCallback(async () => {
     setLoading(true);
     try {
       const centers = await searchDetentionCenters({
@@ -67,7 +108,13 @@ export default function DetentionCenterSelector({
     } finally {
       setLoading(false);
     }
-  }
+  }, [searchQuery, selectedState]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDetentionCenters();
+    }
+  }, [isOpen, searchQuery, selectedState, loadDetentionCenters]);
 
   function handleSelect() {
     onSelect(selectedCenterId);
@@ -80,13 +127,16 @@ export default function DetentionCenterSelector({
   }
 
   // Group centers by state
-  const centersByState = detentionCenters.reduce((acc, center) => {
-    if (!acc[center.state]) {
-      acc[center.state] = [];
-    }
-    acc[center.state].push(center);
-    return acc;
-  }, {} as Record<string, DetentionCenter[]>);
+  const centersByState = detentionCenters.reduce(
+    (acc, center) => {
+      if (!acc[center.state]) {
+        acc[center.state] = [];
+      }
+      acc[center.state].push(center);
+      return acc;
+    },
+    {} as Record<string, DetentionCenter[]>
+  );
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -117,7 +167,10 @@ export default function DetentionCenterSelector({
               <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
                 <div>
                   <div className="flex items-center justify-between">
-                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-gray-900"
+                    >
                       Select Detention Center
                     </Dialog.Title>
                     <button
@@ -151,7 +204,7 @@ export default function DetentionCenterSelector({
                             placeholder="Search by name, city, or address"
                             type="search"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={e => setSearchQuery(e.target.value)}
                           />
                         </div>
                       </div>
@@ -165,10 +218,10 @@ export default function DetentionCenterSelector({
                           name="state-filter"
                           className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           value={selectedState}
-                          onChange={(e) => setSelectedState(e.target.value)}
+                          onChange={e => setSelectedState(e.target.value)}
                         >
                           <option value="">All States</option>
-                          {states.map((state) => (
+                          {states.map(state => (
                             <option key={state} value={state}>
                               {state}
                             </option>
@@ -180,72 +233,89 @@ export default function DetentionCenterSelector({
                     {/* Detention Centers List */}
                     <div className="max-h-96 overflow-y-auto border rounded-lg">
                       {loading ? (
-                        <div className="p-4 text-center text-gray-500">Loading...</div>
+                        <div className="p-4 text-center text-gray-500">
+                          Loading...
+                        </div>
                       ) : detentionCenters.length === 0 ? (
                         <div className="p-4 text-center text-gray-500">
                           No detention centers found
                         </div>
                       ) : (
                         <div className="divide-y divide-gray-200">
-                          {Object.entries(centersByState).map(([state, centers]) => (
-                            <div key={state}>
-                              <div className="bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
-                                {state} ({centers.length})
-                              </div>
-                              {centers.map((center) => (
-                                <div
-                                  key={center.id}
-                                  className={`p-4 hover:bg-gray-50 cursor-pointer ${
-                                    selectedCenterId === center.id ? 'bg-indigo-50' : ''
-                                  }`}
-                                  onClick={() => setSelectedCenterId(center.id)}
-                                >
-                                  <div className="flex items-start space-x-3">
-                                    <div className="flex-shrink-0">
-                                      {center.thumbnailImageId ? (
-                                        <Image
-                                          src={`/api/images/${center.thumbnailImageId}`}
-                                          alt={center.name}
-                                          width={60}
-                                          height={45}
-                                          className="rounded object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-[60px] h-[45px] bg-gray-200 rounded flex items-center justify-center">
-                                          <span className="text-gray-400 text-xs">📍</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex-grow">
-                                      <div className="flex items-center">
-                                        <input
-                                          type="radio"
-                                          name="detention-center"
-                                          value={center.id}
-                                          checked={selectedCenterId === center.id}
-                                          onChange={() => setSelectedCenterId(center.id)}
-                                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                                        />
-                                        <label
-                                          htmlFor={`center-${center.id}`}
-                                          className="ml-3 block text-sm font-medium text-gray-900"
-                                        >
-                                          {center.name}
-                                        </label>
+                          {Object.entries(centersByState).map(
+                            ([state, centers]) => (
+                              <div key={state}>
+                                <div className="bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
+                                  {state} ({centers.length})
+                                </div>
+                                {centers.map(center => (
+                                  <div
+                                    key={center.id}
+                                    className={`p-4 hover:bg-gray-50 cursor-pointer ${
+                                      selectedCenterId === center.id
+                                        ? 'bg-indigo-50'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSelectedCenterId(center.id)
+                                    }
+                                  >
+                                    <div className="flex items-start space-x-3">
+                                      <div className="flex-shrink-0">
+                                        {center.thumbnailImageId ? (
+                                          <Image
+                                            src={`/api/images/${center.thumbnailImageId}`}
+                                            alt={center.name}
+                                            width={60}
+                                            height={45}
+                                            className="rounded object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-[60px] h-[45px] bg-gray-200 rounded flex items-center justify-center">
+                                            <span className="text-gray-400 text-xs">
+                                              📍
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
-                                      <p className="ml-7 text-sm text-gray-600">
-                                        {center.city}, {center.state}
-                                      </p>
-                                      <p className="ml-7 text-xs text-gray-500">
-                                        {center.facilityType} • {center._count.detainees} detainee
-                                        {center._count.detainees !== 1 ? 's' : ''}
-                                      </p>
+                                      <div className="flex-grow">
+                                        <div className="flex items-center">
+                                          <input
+                                            type="radio"
+                                            name="detention-center"
+                                            value={center.id}
+                                            checked={
+                                              selectedCenterId === center.id
+                                            }
+                                            onChange={() =>
+                                              setSelectedCenterId(center.id)
+                                            }
+                                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                                          />
+                                          <label
+                                            htmlFor={`center-${center.id}`}
+                                            className="ml-3 block text-sm font-medium text-gray-900"
+                                          >
+                                            {center.name}
+                                          </label>
+                                        </div>
+                                        <p className="ml-7 text-sm text-gray-600">
+                                          {center.city}, {center.state}
+                                        </p>
+                                        <p className="ml-7 text-xs text-gray-500">
+                                          {center.facilityType} •{' '}
+                                          {center._count.detainees} detainee
+                                          {center._count.detainees !== 1
+                                            ? 's'
+                                            : ''}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          ))}
+                                ))}
+                              </div>
+                            )
+                          )}
                         </div>
                       )}
                     </div>

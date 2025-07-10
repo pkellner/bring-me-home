@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEnvironment } from '@/contexts/EnvironmentContext';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { updateSystemDefaults } from '@/app/actions/systemConfig';
 
@@ -36,10 +36,12 @@ export default function Footer({
     }
   }, [env]);
 
-  const isAdmin = session?.user?.roles?.some((role: any) => {
+  const isAdmin = session?.user?.roles?.some(role => {
     try {
       const permissions = JSON.parse(role.permissions || '{}');
-      return permissions.system?.includes('config') || role.name === 'site-admin';
+      return (
+        permissions.system?.includes('config') || role.name === 'site-admin'
+      );
     } catch {
       return false;
     }
@@ -153,7 +155,8 @@ export default function Footer({
           {/* Copyright and Links */}
           <div className="text-center">
             <p className="text-sm text-gray-400">
-              {copyrightText || '© 2024 Bring Me Home. Together, we can bring our loved ones home.'}
+              {copyrightText ||
+                '© 2024 Bring Me Home. Together, we can bring our loved ones home.'}
             </p>
             <div className="mt-4 space-x-4">
               <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@prisma/client';
 import { createLayout, updateLayout } from '@/app/actions/layouts';
@@ -91,7 +91,7 @@ export default function LayoutForm({ layout }: LayoutFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const formDataToSend = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (typeof value === 'boolean') {
@@ -116,14 +116,17 @@ export default function LayoutForm({ layout }: LayoutFormProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
             Layout Name
           </label>
           <input
             type="text"
             id="name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={e => setFormData({ ...formData, name: e.target.value })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             required
           />
@@ -133,29 +136,37 @@ export default function LayoutForm({ layout }: LayoutFormProps) {
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700"
+          >
             Description
           </label>
           <textarea
             id="description"
             rows={3}
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={e =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
 
         <div>
-          <label htmlFor="template" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="template"
+            className="block text-sm font-medium text-gray-700"
+          >
             Template Type
           </label>
           <select
             id="template"
             value={selectedTemplate}
-            onChange={(e) => setSelectedTemplate(e.target.value)}
+            onChange={e => setSelectedTemplate(e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           >
-            {layoutTemplates.map((template) => (
+            {layoutTemplates.map(template => (
               <option key={template.type} value={template.type}>
                 {template.name}
               </option>
@@ -164,14 +175,19 @@ export default function LayoutForm({ layout }: LayoutFormProps) {
         </div>
 
         <div>
-          <label htmlFor="cssClasses" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="cssClasses"
+            className="block text-sm font-medium text-gray-700"
+          >
             Custom CSS Classes (Optional)
           </label>
           <textarea
             id="cssClasses"
             rows={3}
             value={formData.cssClasses}
-            onChange={(e) => setFormData({ ...formData, cssClasses: e.target.value })}
+            onChange={e =>
+              setFormData({ ...formData, cssClasses: e.target.value })
+            }
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono text-xs"
             placeholder="Enter custom CSS classes or styles"
           />
@@ -182,10 +198,15 @@ export default function LayoutForm({ layout }: LayoutFormProps) {
             type="checkbox"
             id="isActive"
             checked={formData.isActive}
-            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+            onChange={e =>
+              setFormData({ ...formData, isActive: e.target.checked })
+            }
             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           />
-          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+          <label
+            htmlFor="isActive"
+            className="ml-2 block text-sm text-gray-900"
+          >
             Active
           </label>
         </div>

@@ -25,23 +25,26 @@ export default function CommentBulkActions({
   selectedTownId,
   onTownChange,
   towns,
-  disabled = false
+  disabled = false,
 }: CommentBulkActionsProps) {
   return (
     <div className="mb-4 space-y-4">
       {/* Town Filter */}
       <div className="flex items-center gap-4">
-        <label htmlFor="town-filter" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="town-filter"
+          className="text-sm font-medium text-gray-700"
+        >
           Filter by Town:
         </label>
         <select
           id="town-filter"
           value={selectedTownId}
-          onChange={(e) => onTownChange(e.target.value)}
+          onChange={e => onTownChange(e.target.value)}
           className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         >
           <option value="">All Towns</option>
-          {towns.map((town) => (
+          {towns.map(town => (
             <option key={town.id} value={town.id}>
               {town.name}, {town.state}
             </option>
@@ -67,15 +70,17 @@ export default function CommentBulkActions({
             Reject All
           </button>
         </div>
-        
+
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={groupByPerson}
-            onChange={(e) => onGroupByPersonChange(e.target.checked)}
+            onChange={e => onGroupByPersonChange(e.target.checked)}
             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
           />
-          <span className="text-sm font-medium text-gray-700">Group By Person</span>
+          <span className="text-sm font-medium text-gray-700">
+            Group By Person
+          </span>
         </label>
       </div>
     </div>

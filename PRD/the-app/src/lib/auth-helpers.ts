@@ -20,7 +20,10 @@ export interface SystemOverrideUser {
 // Check if current request has system override
 export async function hasSystemOverrideAccess(): Promise<boolean> {
   const headersList = await headers();
-  return headersList.get('x-system-override') === 'true' || await checkSystemOverride();
+  return (
+    headersList.get('x-system-override') === 'true' ||
+    (await checkSystemOverride())
+  );
 }
 
 // Get current user with system override check
@@ -35,19 +38,21 @@ export async function getCurrentUser() {
       firstName: 'System',
       lastName: 'Override',
       isSystemOverride: true,
-      roles: [{
-        id: 'system-override-role',
-        name: 'site-admin',
-        permissions: JSON.stringify({
-          users: ['create', 'read', 'update', 'delete'],
-          roles: ['create', 'read', 'update', 'delete'],
-          towns: ['create', 'read', 'update', 'delete'],
-          persons: ['create', 'read', 'update', 'delete'],
-          detentionCenters: ['create', 'read', 'update', 'delete'],
-          comments: ['create', 'read', 'update', 'delete', 'moderate'],
-          system: ['config', 'audit', 'backup'],
-        }),
-      }],
+      roles: [
+        {
+          id: 'system-override-role',
+          name: 'site-admin',
+          permissions: JSON.stringify({
+            users: ['create', 'read', 'update', 'delete'],
+            roles: ['create', 'read', 'update', 'delete'],
+            towns: ['create', 'read', 'update', 'delete'],
+            persons: ['create', 'read', 'update', 'delete'],
+            detentionCenters: ['create', 'read', 'update', 'delete'],
+            comments: ['create', 'read', 'update', 'delete', 'moderate'],
+            system: ['config', 'audit', 'backup'],
+          }),
+        },
+      ],
     };
     return systemOverrideUser;
   }

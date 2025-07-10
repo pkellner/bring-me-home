@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 interface Story {
   id: string;
@@ -43,7 +43,11 @@ const languageFlags: Record<string, string> = {
   ko: '🇰🇷',
 };
 
-export default function StorySection({ stories, storyType, title }: StorySectionProps) {
+export default function StorySection({
+  stories,
+  storyType,
+  title,
+}: StorySectionProps) {
   const filteredStories = useMemo(
     () => stories.filter(story => story.storyType === storyType),
     [stories, storyType]
@@ -66,7 +70,9 @@ export default function StorySection({ stories, storyType, title }: StorySection
     return (
       <div className="story-section">
         <h2 className="mb-4 text-2xl font-bold">{title}</h2>
-        <p className="text-gray-500 italic">No {title.toLowerCase()} has been added yet.</p>
+        <p className="text-gray-500 italic">
+          No {title.toLowerCase()} has been added yet.
+        </p>
       </div>
     );
   }
@@ -85,14 +91,17 @@ export default function StorySection({ stories, storyType, title }: StorySection
                   onClick={() => setSelectedLanguage(lang)}
                   className={`
                     flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors
-                    ${selectedLanguage === lang 
-                      ? 'bg-indigo-600 text-white' 
-                      : 'text-gray-700 hover:bg-gray-100'
+                    ${
+                      selectedLanguage === lang
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
                   title={languageNames[lang] || lang}
                 >
-                  <span className="text-base">{languageFlags[lang] || '🌐'}</span>
+                  <span className="text-base">
+                    {languageFlags[lang] || '🌐'}
+                  </span>
                   <span>{languageNames[lang] || lang.toUpperCase()}</span>
                 </button>
               ))}
@@ -100,8 +109,8 @@ export default function StorySection({ stories, storyType, title }: StorySection
           </div>
         )}
       </div>
-      
-      <div 
+
+      <div
         className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-a:underline"
         dangerouslySetInnerHTML={{ __html: currentStory.content }}
       />

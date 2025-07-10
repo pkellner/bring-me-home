@@ -1,13 +1,13 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { hasRole, hasPermission } from '@/lib/permissions';
+import { hasPermission, hasRole } from '@/lib/permissions';
 import DashboardCard from '@/components/admin/DashboardCard';
 import Link from 'next/link';
 import {
-  UsersIcon,
   BuildingOfficeIcon,
   UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { getSiteTextConfig } from '@/lib/config';
 
@@ -73,7 +73,6 @@ export default async function AdminDashboard() {
           Welcome back, {session?.user?.firstName || session?.user?.username}
         </p>
       </div>
-
 
       {/* Role Information */}
       <div className="bg-white overflow-hidden shadow rounded-lg">

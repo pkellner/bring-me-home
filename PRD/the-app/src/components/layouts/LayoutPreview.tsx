@@ -10,13 +10,13 @@ interface LayoutPreviewProps {
 
 export default function LayoutPreview({ layout }: LayoutPreviewProps) {
   const template = JSON.parse(layout.template);
-  
+
   const sectionColors: Record<string, string> = {
     'hero-image': 'bg-blue-100 border-blue-300',
-    'image': 'bg-green-100 border-green-300',
-    'info': 'bg-yellow-100 border-yellow-300',
-    'story': 'bg-purple-100 border-purple-300',
-    'comments': 'bg-pink-100 border-pink-300',
+    image: 'bg-green-100 border-green-300',
+    info: 'bg-yellow-100 border-yellow-300',
+    story: 'bg-purple-100 border-purple-300',
+    comments: 'bg-pink-100 border-pink-300',
     'sidebar-info': 'bg-indigo-100 border-indigo-300',
     'main-content': 'bg-gray-100 border-gray-300',
     'gallery-grid': 'bg-teal-100 border-teal-300',
@@ -42,7 +42,7 @@ export default function LayoutPreview({ layout }: LayoutPreviewProps) {
             {template.sections.map(renderSection)}
           </div>
         );
-        
+
       case 'sidebar-left':
         return (
           <div className="grid grid-cols-[1fr_2fr] gap-2">
@@ -58,7 +58,7 @@ export default function LayoutPreview({ layout }: LayoutPreviewProps) {
             </div>
           </div>
         );
-        
+
       case 'sidebar-right':
         return (
           <div className="grid grid-cols-[2fr_1fr] gap-2">
@@ -74,11 +74,11 @@ export default function LayoutPreview({ layout }: LayoutPreviewProps) {
             </div>
           </div>
         );
-        
+
       case 'magazine':
         return (
           <div className="grid grid-cols-3 gap-2">
-            {template.sections.map((section: string, idx: number) => (
+            {template.sections.map((section: string) => (
               <div
                 key={section}
                 className={section === 'featured-image' ? 'col-span-2' : ''}
@@ -88,7 +88,7 @@ export default function LayoutPreview({ layout }: LayoutPreviewProps) {
             ))}
           </div>
         );
-        
+
       default:
         return (
           <div className="space-y-2">

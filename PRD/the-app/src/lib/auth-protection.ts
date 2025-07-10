@@ -13,7 +13,7 @@ function simpleHash(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash).toString(36);
@@ -71,7 +71,10 @@ export async function checkSiteProtection(): Promise<boolean> {
 }
 
 // System Override Authentication (9.5.1) - Admin override
-export async function verifySystemOverride(username: string, password: string): Promise<boolean> {
+export async function verifySystemOverride(
+  username: string,
+  password: string
+): Promise<boolean> {
   const systemUsername = process.env.SYSTEM_OVERRIDE_USERNAME;
   const systemPassword = process.env.SYSTEM_OVERRIDE_PASSWORD;
 

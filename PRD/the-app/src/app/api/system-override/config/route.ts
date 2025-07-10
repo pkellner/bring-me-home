@@ -3,6 +3,6 @@ import { shouldShowSystemOverrideCredentials } from '@/lib/auth-protection';
 
 export async function GET() {
   return NextResponse.json({
-    showCredentials: shouldShowSystemOverrideCredentials()
+    showCredentials: shouldShowSystemOverrideCredentials(),
   });
 }

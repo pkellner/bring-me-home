@@ -4,19 +4,85 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { DetentionCenter } from '@prisma/client';
-import { createDetentionCenter, updateDetentionCenter } from '@/app/actions/detention-centers';
+import {
+  createDetentionCenter,
+  updateDetentionCenter,
+} from '@/app/actions/detention-centers';
 import Image from 'next/image';
 
+interface SerializedDetentionCenter
+  extends Omit<
+    DetentionCenter,
+    | 'createdAt'
+    | 'updatedAt'
+    | 'latitude'
+    | 'longitude'
+    | 'capacity'
+    | 'currentPopulation'
+  > {
+  createdAt: string;
+  updatedAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  capacity?: number | null;
+  currentPopulation?: number | null;
+}
+
 interface DetentionCenterFormProps {
-  detentionCenter?: DetentionCenter;
+  detentionCenter?: SerializedDetentionCenter;
 }
 
 const states = [
-  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+  'AL',
+  'AK',
+  'AZ',
+  'AR',
+  'CA',
+  'CO',
+  'CT',
+  'DE',
+  'FL',
+  'GA',
+  'HI',
+  'ID',
+  'IL',
+  'IN',
+  'IA',
+  'KS',
+  'KY',
+  'LA',
+  'ME',
+  'MD',
+  'MA',
+  'MI',
+  'MN',
+  'MS',
+  'MO',
+  'MT',
+  'NE',
+  'NV',
+  'NH',
+  'NJ',
+  'NM',
+  'NY',
+  'NC',
+  'ND',
+  'OH',
+  'OK',
+  'OR',
+  'PA',
+  'RI',
+  'SC',
+  'SD',
+  'TN',
+  'TX',
+  'UT',
+  'VT',
+  'VA',
+  'WA',
+  'WV',
+  'WI',
+  'WY',
 ];
 
 const facilityTypes = [
@@ -25,12 +91,16 @@ const facilityTypes = [
   'County Jail',
   'Private Prison',
   'Federal Detention Center',
-  'Other'
+  'Other',
 ];
 
-export default function DetentionCenterForm({ detentionCenter }: DetentionCenterFormProps) {
+export default function DetentionCenterForm({
+  detentionCenter,
+}: DetentionCenterFormProps) {
   const router = useRouter();
-  const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
+  const [errors, setErrors] = useState<Record<string, string[] | undefined>>(
+    {}
+  );
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   async function handleSubmit(formData: FormData) {
@@ -71,7 +141,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
 
           <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             <div className="sm:col-span-4">
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Facility Name
               </label>
               <input
@@ -88,7 +161,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="facilityType" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="facilityType"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Facility Type
               </label>
               <select
@@ -100,16 +176,23 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
               >
                 <option value="">Select a type</option>
                 {facilityTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
                 ))}
               </select>
               {errors.facilityType && (
-                <p className="mt-1 text-sm text-red-600">{errors.facilityType[0]}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.facilityType[0]}
+                </p>
               )}
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="operatedBy" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="operatedBy"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Operated By
               </label>
               <input
@@ -123,7 +206,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-6">
-              <label htmlFor="facilityImage" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="facilityImage"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Facility Image
               </label>
               <div className="mt-1">
@@ -137,7 +223,7 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
                     )}
                   </div>
                 )}
-                
+
                 <div className="flex items-center space-x-4">
                   {(imagePreview || detentionCenter?.facilityImageId) && (
                     <div className="relative w-32 h-24">
@@ -176,7 +262,9 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
                 </div>
               </div>
               {errors.facilityImage && (
-                <p className="mt-1 text-sm text-red-600">{errors.facilityImage[0]}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.facilityImage[0]}
+                </p>
               )}
             </div>
           </div>
@@ -194,7 +282,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
 
           <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             <div className="sm:col-span-6">
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Street Address
               </label>
               <input
@@ -211,7 +302,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium text-gray-700"
+              >
                 City
               </label>
               <input
@@ -228,7 +322,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="state"
+                className="block text-sm font-medium text-gray-700"
+              >
                 State
               </label>
               <select
@@ -240,7 +337,9 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
               >
                 <option value="">Select a state</option>
                 {states.map(state => (
-                  <option key={state} value={state}>{state}</option>
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
                 ))}
               </select>
               {errors.state && (
@@ -249,7 +348,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="zipCode"
+                className="block text-sm font-medium text-gray-700"
+              >
                 ZIP Code
               </label>
               <input
@@ -266,7 +368,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="latitude"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Latitude (optional)
               </label>
               <input
@@ -282,7 +387,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="longitude"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Longitude (optional)
               </label>
               <input
@@ -311,7 +419,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
 
           <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             <div className="sm:col-span-3">
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="phoneNumber"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Phone Number
               </label>
               <input
@@ -324,7 +435,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="faxNumber" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="faxNumber"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Fax Number
               </label>
               <input
@@ -337,7 +451,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="emailAddress"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email Address
               </label>
               <input
@@ -350,7 +467,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="website" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="website"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Website
               </label>
               <input
@@ -376,7 +496,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
 
           <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             <div className="sm:col-span-3">
-              <label htmlFor="capacity" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="capacity"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Capacity
               </label>
               <input
@@ -390,7 +513,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-3">
-              <label htmlFor="currentPopulation" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="currentPopulation"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Current Population
               </label>
               <input
@@ -404,7 +530,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-6">
-              <label htmlFor="visitingHours" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="visitingHours"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Visiting Hours
               </label>
               <textarea
@@ -417,7 +546,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-6">
-              <label htmlFor="transportInfo" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="transportInfo"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Transportation Information
               </label>
               <textarea
@@ -430,7 +562,10 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
             </div>
 
             <div className="sm:col-span-6">
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="notes"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Additional Notes
               </label>
               <textarea
@@ -454,10 +589,15 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="isActive" className="font-medium text-gray-700">
+                  <label
+                    htmlFor="isActive"
+                    className="font-medium text-gray-700"
+                  >
                     Active
                   </label>
-                  <p className="text-gray-500">This facility is currently operational</p>
+                  <p className="text-gray-500">
+                    This facility is currently operational
+                  </p>
                 </div>
               </div>
 
@@ -472,10 +612,15 @@ export default function DetentionCenterForm({ detentionCenter }: DetentionCenter
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor="isICEFacility" className="font-medium text-gray-700">
+                  <label
+                    htmlFor="isICEFacility"
+                    className="font-medium text-gray-700"
+                  >
                     ICE Facility
                   </label>
-                  <p className="text-gray-500">This is an ICE detention facility</p>
+                  <p className="text-gray-500">
+                    This is an ICE detention facility
+                  </p>
                 </div>
               </div>
             </div>

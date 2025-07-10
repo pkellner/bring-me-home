@@ -25,7 +25,7 @@ export default function ThemesGrid({
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this theme?')) return;
-    
+
     const result = await deleteTheme(id);
     if (result.success) {
       setThemes(themes.filter(theme => theme.id !== id));
@@ -40,15 +40,24 @@ export default function ThemesGrid({
   const columns = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'description', label: 'Description' },
-    { key: 'isActive', label: 'Active', render: (value: unknown) => (
-      <span className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
-        value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
-        {value ? 'Active' : 'Inactive'}
-      </span>
-    )},
-    { key: 'createdAt', label: 'Created', sortable: true, render: (value: unknown) => 
-      new Date(value as Date).toLocaleDateString()
+    {
+      key: 'isActive',
+      label: 'Active',
+      render: (value: unknown) => (
+        <span
+          className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      sortable: true,
+      render: (value: unknown) => new Date(value as Date).toLocaleDateString(),
     },
   ];
 
@@ -58,17 +67,25 @@ export default function ThemesGrid({
       label: 'Preview',
       onClick: (theme: Theme) => setSelectedTheme(theme),
     },
-    ...(canUpdate ? [{
-      type: 'edit' as const,
-      label: 'Edit',
-      href: (theme: Theme) => `/admin/themes/${theme.id}/edit`,
-    }] : []),
-    ...(canDelete ? [{
-      type: 'delete' as const,
-      label: 'Delete',
-      onClick: async (theme: Theme) => await handleDelete(theme.id),
-      className: 'text-red-600 hover:text-red-900',
-    }] : []),
+    ...(canUpdate
+      ? [
+          {
+            type: 'edit' as const,
+            label: 'Edit',
+            href: (theme: Theme) => `/admin/themes/${theme.id}/edit`,
+          },
+        ]
+      : []),
+    ...(canDelete
+      ? [
+          {
+            type: 'delete' as const,
+            label: 'Delete',
+            onClick: async (theme: Theme) => await handleDelete(theme.id),
+            className: 'text-red-600 hover:text-red-900',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -101,7 +118,7 @@ export default function ThemesGrid({
             emptyMessage="No themes found"
           />
         </div>
-        
+
         <div className="lg:col-span-1">
           <div className="sticky top-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Preview</h2>

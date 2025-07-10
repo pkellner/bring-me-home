@@ -37,10 +37,12 @@ export async function updateSystemDefaults(layout: string, theme: string) {
   }
 
   // Check if user has system:config permission
-  const hasPermission = session.user.roles?.some((role: any) => {
+  const hasPermission = session.user.roles?.some(role => {
     try {
       const permissions = JSON.parse(role.permissions || '{}');
-      return permissions.system?.includes('config') || role.name === 'site-admin';
+      return (
+        permissions.system?.includes('config') || role.name === 'site-admin'
+      );
     } catch {
       return false;
     }
@@ -93,10 +95,12 @@ export async function getAllSystemConfigs() {
   }
 
   // Check if user has system:config permission
-  const hasPermission = session.user.roles?.some((role: any) => {
+  const hasPermission = session.user.roles?.some(role => {
     try {
       const permissions = JSON.parse(role.permissions || '{}');
-      return permissions.system?.includes('config') || role.name === 'site-admin';
+      return (
+        permissions.system?.includes('config') || role.name === 'site-admin'
+      );
     } catch {
       return false;
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -63,8 +63,10 @@ export default function SystemOverridePage() {
           {showCredentials && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-800">
-                <strong>Development Only:</strong><br />
-                Username: Check SYSTEM_OVERRIDE_USERNAME<br />
+                <strong>Development Only:</strong>
+                <br />
+                Username: Check SYSTEM_OVERRIDE_USERNAME
+                <br />
                 Password: Check SYSTEM_OVERRIDE_PASSWORD
               </p>
             </div>
@@ -72,7 +74,10 @@ export default function SystemOverridePage() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Username
               </label>
               <div className="mt-1">
@@ -83,14 +88,17 @@ export default function SystemOverridePage() {
                   autoComplete="username"
                   required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={e => setUsername(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="mt-1">
@@ -101,17 +109,13 @@ export default function SystemOverridePage() {
                   autoComplete="current-password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
             </div>
 
-            {error && (
-              <div className="text-sm text-red-600">
-                {error}
-              </div>
-            )}
+            {error && <div className="text-sm text-red-600">{error}</div>}
 
             <div>
               <button

@@ -49,7 +49,12 @@ export default async function NewUserPage() {
         </p>
       </div>
 
-      <UserForm mode="create" roles={roles} towns={towns} persons={serializedPersons} />
+      <UserForm
+        mode="create"
+        roles={roles}
+        towns={towns}
+        persons={serializedPersons}
+      />
     </div>
   );
 }

@@ -13,7 +13,7 @@ export default function PersonBulkActions({
   onSetAllInvisible,
   groupByTown,
   onGroupByTownChange,
-  disabled = false
+  disabled = false,
 }: PersonBulkActionsProps) {
   return (
     <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
@@ -33,12 +33,12 @@ export default function PersonBulkActions({
           Set All Invisible
         </button>
       </div>
-      
+
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
           checked={groupByTown}
-          onChange={(e) => onGroupByTownChange(e.target.checked)}
+          onChange={e => onGroupByTownChange(e.target.checked)}
           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
         />
         <span className="text-sm font-medium text-gray-700">Group By Town</span>

@@ -63,13 +63,17 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 ### 3. Community Engagement
 - **Anonymous comment system with no authentication required**
 - Required fields: First name, Last name
-- Optional fields: Email, Phone, Support message
+- Optional fields: Email, Phone, Occupation, Birthdate, Support message
 - Three support options:
   - "I want to help more, please contact me"
   - "Display just my name as supporting"
   - "Display my name and comment if family approves"
+- Privacy options for optional fields:
+  - "Show my occupation publicly" (checkbox)
+  - "Show my birthdate publicly" (checkbox)
 - Comment moderation system with admin approval workflow
 - Admin can edit comments before approval
+- Admin can toggle occupation/birthdate visibility before approval
 - Moderator notes for tracking decisions
 - Only approved comments shown publicly
 - File upload capabilities *(implemented but not in anonymous form)*
@@ -126,12 +130,25 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
   - Optimistic UI updates with rollback on failure
   - Search functionality remains outside grouping
 - **Comment Management Enhancement**:
-  - "Group By Person" checkbox for organizing comments
+  - "Group By Person" checkbox for organizing comments (default ON)
   - Town selection dropdown to filter comments by town
   - Bulk actions per person: "Approve All" and "Reject All"
   - Global bulk actions for all filtered comments
   - Maintains existing comment moderation features
   - Search functionality remains outside grouping
+  - **Comment Status Toggle**: Live toggle between "Approved" and "Pending" states
+  - Visual feedback with green badge for approved, yellow for pending
+  - Optimistic UI updates with rollback on failure
+  - Edit functionality to modify comment content before approval
+  - Consistent with person/town visibility toggle patterns
+  - **Edit Icon Visibility**: Show edit icon only for users with comment update permissions
+  - Hide edit icon for users without permissions to prevent non-functional UI elements
+  - Permission-based UI elements follow role-based access control
+  - **Enhanced Comment Fields**: 
+    - Occupation field (optional) with public display toggle
+    - Birthdate field (optional) with public display toggle
+    - Moderators can edit these fields and toggle their visibility before approval
+    - Public display respects commenter's privacy preferences
 - **Visibility Filtering on Public Pages**:
   - Main site homepage only shows towns where isActive is true
   - "Recently Added" section only shows persons from visible towns who are also visible (isActive)
@@ -176,12 +193,28 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - **Full anonymous comment system - no authentication required**
 - Required commenter information: First name, Last name
 - Optional contact fields: Email, Phone
+- Optional demographic fields: Occupation, Birthdate
 - Support preference checkboxes
+- Privacy controls for showing occupation and birthdate publicly
 - No user account creation or login required
 - Comments stored with commenter information
 - Admin moderation workflow for all comments
 - No reCAPTCHA protection *(not implemented)*
 - No email verification *(not implemented)*
+
+### 10.1. Comment Submission Confirmation Flow
+- **Post-submission confirmation modal** (not just an alert)
+- Display message: "Your message is being reviewed by the family to make sure it is OK with them"
+- Show user's selected support preferences:
+  - "I want to help more, please contact me" (if selected)
+  - "Display just my name as supporting" (if selected)
+  - "Display my name and comment if family approves" (if selected)
+- Provide clear options:
+  - "Cancel" button - removes the comment entirely
+  - "OK, Post My Support" button - confirms submission
+- No comment is saved until user confirms with OK button
+- Professional, empathetic design matching site theme
+- Modal should be accessible and mobile-friendly
 
 ### 11. Docker & Deployment
 - Production-ready docker-compose configuration
@@ -189,6 +222,45 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Default values for all non-sensitive configurations
 - Health checks and monitoring endpoints
 - Container orchestration support
+
+### 12. Person Image Management
+
+#### Overview
+The application supports simple image management for detained persons with a primary picture and up to 5 additional images.
+
+#### Primary Picture
+- Single main image stored directly on Person model
+- No caption support (identification only)
+- Displayed prominently in all layouts
+- Managed separately from additional images
+- Supports all common image formats
+
+#### Additional Images (PersonImage Model)
+- Up to 5 additional images per person
+- Each image includes:
+  - Optional caption/description field
+  - Automatic thumbnail generation
+  - Upload tracking with user attribution
+- All images are publicly displayed
+
+#### Image Manager Component
+- Clean, simple interface with two sections:
+  1. Primary Picture: Upload/change main photo
+  2. Additional Pictures: Grid of up to 5 images
+- Features:
+  - Simple file selection (single or multiple)
+  - Real-time image preview
+  - Caption field beneath each additional image
+  - Easy removal with trash icon
+  - Image count indicator (e.g., "3/5")
+  - Alert when trying to exceed 5 image limit
+
+#### Gallery Display
+- Primary image shown in layouts as main photo
+- Additional images displayed in simple grid
+- Captions shown below images when provided
+- Responsive grid layout (1-5 columns based on screen size)
+- Supports legacy secondaryPic1/2 fields for backward compatibility
 
 ## Technical Requirements
 
@@ -313,11 +385,16 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Last name (required)
 - Email (optional)
 - Phone (optional)
+- Occupation (optional)
+- Birthdate (optional)
 - Comment content (optional)
 - Support preferences:
   - wantsToHelpMore (boolean)
   - displayNameOnly (boolean)
   - requiresFamilyApproval (boolean)
+- Display preferences:
+  - showOccupation (boolean) - whether to display occupation publicly
+  - showBirthdate (boolean) - whether to display birthdate publicly
 - Comment type (support, etc.)
 - Visibility level
 - Approval status with approval tracking:

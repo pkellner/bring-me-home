@@ -1,6 +1,35 @@
 import getRedisConnectionLazy from './get-redis-connection-lazy';
 import { Redis } from 'ioredis';
 
+// Define interfaces for the data structures
+interface CommentDraft {
+  content?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  occupation?: string;
+  birthdate?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  showOccupation?: boolean;
+  showBirthdate?: boolean;
+  showCityState?: boolean;
+  wantsToHelpMore?: boolean;
+  displayNameOnly?: boolean;
+  requiresFamilyApproval?: boolean;
+}
+
+interface LoginFlowData {
+  returnUrl?: string;
+  personId?: string;
+  action?: string;
+  timestamp?: number;
+  [key: string]: unknown;
+}
+
 // Module-level Redis instance
 let redis: Redis | null = null;
 let isAvailable: boolean = false;
@@ -14,8 +43,8 @@ function initializeRedis() {
         parseInt(process.env.REDIS_PORT)
       );
       isAvailable = true;
-    } catch (error) {
-      console.error('Failed to initialize Redis:', error);
+    } catch {
+      console.error('Failed to initialize Redis');
       isAvailable = false;
     }
   }
@@ -28,11 +57,11 @@ initializeRedis();
 export async function isRedisConnected(): Promise<boolean> {
   const { redis, isAvailable } = initializeRedis();
   if (!redis || !isAvailable) return false;
-  
+
   try {
     await redis.ping();
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -40,7 +69,7 @@ export async function isRedisConnected(): Promise<boolean> {
 export async function setCommentDraft(
   sessionId: string,
   personId: string,
-  draft: any,
+  draft: CommentDraft,
   ttlSeconds: number = 3600 // 1 hour default
 ): Promise<boolean> {
   const { redis, isAvailable } = initializeRedis();
@@ -50,8 +79,8 @@ export async function setCommentDraft(
     const key = `session:${sessionId}:comment:${personId}:draft`;
     await redis.setex(key, ttlSeconds, JSON.stringify(draft));
     return true;
-  } catch (error) {
-    console.error('Redis setCommentDraft error:', error);
+  } catch {
+    console.error('Redis setCommentDraft error');
     return false;
   }
 }
@@ -59,7 +88,7 @@ export async function setCommentDraft(
 export async function getCommentDraft(
   sessionId: string,
   personId: string
-): Promise<any | null> {
+): Promise<CommentDraft | null> {
   const { redis, isAvailable } = initializeRedis();
   if (!redis || !isAvailable) return null;
 
@@ -67,8 +96,8 @@ export async function getCommentDraft(
     const key = `session:${sessionId}:comment:${personId}:draft`;
     const data = await redis.get(key);
     return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Redis getCommentDraft error:', error);
+  } catch {
+    console.error('Redis getCommentDraft error');
     return null;
   }
 }
@@ -84,15 +113,15 @@ export async function deleteCommentDraft(
     const key = `session:${sessionId}:comment:${personId}:draft`;
     await redis.del(key);
     return true;
-  } catch (error) {
-    console.error('Redis deleteCommentDraft error:', error);
+  } catch {
+    console.error('Redis deleteCommentDraft error');
     return false;
   }
 }
 
 export async function setLoginFlow(
   sessionId: string,
-  flowData: any,
+  flowData: LoginFlowData,
   ttlSeconds: number = 3600
 ): Promise<boolean> {
   const { redis, isAvailable } = initializeRedis();
@@ -102,13 +131,15 @@ export async function setLoginFlow(
     const key = `session:${sessionId}:login_flow`;
     await redis.setex(key, ttlSeconds, JSON.stringify(flowData));
     return true;
-  } catch (error) {
-    console.error('Redis setLoginFlow error:', error);
+  } catch {
+    console.error('Redis setLoginFlow error');
     return false;
   }
 }
 
-export async function getLoginFlow(sessionId: string): Promise<any | null> {
+export async function getLoginFlow(
+  sessionId: string
+): Promise<LoginFlowData | null> {
   const { redis, isAvailable } = initializeRedis();
   if (!redis || !isAvailable) return null;
 
@@ -116,8 +147,8 @@ export async function getLoginFlow(sessionId: string): Promise<any | null> {
     const key = `session:${sessionId}:login_flow`;
     const data = await redis.get(key);
     return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Redis getLoginFlow error:', error);
+  } catch {
+    console.error('Redis getLoginFlow error');
     return null;
   }
 }
@@ -130,8 +161,8 @@ export async function deleteLoginFlow(sessionId: string): Promise<boolean> {
     const key = `session:${sessionId}:login_flow`;
     await redis.del(key);
     return true;
-  } catch (error) {
-    console.error('Redis deleteLoginFlow error:', error);
+  } catch {
+    console.error('Redis deleteLoginFlow error');
     return false;
   }
 }
@@ -152,11 +183,11 @@ export async function redisHealthCheck(): Promise<{
 
   const startTime = Date.now();
   const testKeys: string[] = [];
-  
+
   try {
     // Test connection
     await redis.ping();
-    
+
     // Test write operations
     const writeStart = Date.now();
     for (let i = 0; i < 5; i++) {
@@ -187,7 +218,7 @@ export async function redisHealthCheck(): Promise<{
       writeTime,
       readTime,
       deleteTime,
-      totalTime
+      totalTime,
     };
   } catch (error) {
     // Clean up any test keys that were created
@@ -201,7 +232,7 @@ export async function redisHealthCheck(): Promise<{
 
     return {
       connected: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

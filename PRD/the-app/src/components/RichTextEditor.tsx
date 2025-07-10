@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -70,12 +70,14 @@ export default function RichTextEditor({
       if (isSourceMode && textareaRef.current) {
         const start = textareaRef.current.selectionStart;
         const end = textareaRef.current.selectionEnd;
-        const newValue = htmlSource.substring(0, start) + '  ' + htmlSource.substring(end);
+        const newValue =
+          htmlSource.substring(0, start) + '  ' + htmlSource.substring(end);
         setHtmlSource(newValue);
         onChange(newValue);
         setTimeout(() => {
           if (textareaRef.current) {
-            textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
+            textareaRef.current.selectionStart =
+              textareaRef.current.selectionEnd = start + 2;
           }
         }, 0);
       } else {
@@ -132,11 +134,13 @@ export default function RichTextEditor({
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1" />
             <select
-              onChange={(e) => execCommand('formatBlock', e.target.value)}
+              onChange={e => execCommand('formatBlock', e.target.value)}
               className="px-2 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
               defaultValue=""
             >
-              <option value="" disabled>Heading</option>
+              <option value="" disabled>
+                Heading
+              </option>
               <option value="p">Normal</option>
               <option value="h1">Heading 1</option>
               <option value="h2">Heading 2</option>
@@ -172,17 +176,19 @@ export default function RichTextEditor({
             type="button"
             onClick={toggleSourceMode}
             className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-              isSourceMode 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+              isSourceMode
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
             }`}
-            title={isSourceMode ? 'Switch to Visual Editor' : 'Edit HTML Source'}
+            title={
+              isSourceMode ? 'Switch to Visual Editor' : 'Edit HTML Source'
+            }
           >
             {isSourceMode ? 'Visual' : '</>'}
           </button>
         </div>
       </div>
-      
+
       {isSourceMode ? (
         <textarea
           ref={textareaRef}

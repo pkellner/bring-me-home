@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { validateImageBuffer, processImageForStorage } from '@/lib/image-utils';
+import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
 
 const uploadSchema = z.object({
@@ -107,10 +107,8 @@ export async function uploadPersonImage(
     }
 
     // Process and store images in database
-    const { fullImageId, thumbnailImageId } = await processAndStoreImage(
-      buffer,
-      file.type
-    );
+    const { fullImageId, thumbnailImageId } =
+      await processAndStoreImage(buffer);
 
     // Create the image record
     const personImage = await prisma.personImage.create({

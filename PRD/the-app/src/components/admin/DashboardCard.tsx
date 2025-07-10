@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import {
-  UsersIcon,
   BuildingOfficeIcon,
-  UserIcon,
   ChatBubbleLeftRightIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {

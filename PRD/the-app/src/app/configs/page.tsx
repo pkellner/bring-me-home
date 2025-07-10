@@ -16,10 +16,12 @@ export default async function ConfigsPage() {
   const session = await getServerSession(authOptions);
 
   // Check if user is admin
-  const isAdmin = session?.user?.roles?.some((role: any) => {
+  const isAdmin = session?.user?.roles?.some(role => {
     try {
       const permissions = JSON.parse(role.permissions || '{}');
-      return permissions.system?.includes('config') || role.name === 'site-admin';
+      return (
+        permissions.system?.includes('config') || role.name === 'site-admin'
+      );
     } catch {
       return false;
     }

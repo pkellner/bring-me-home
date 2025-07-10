@@ -22,9 +22,10 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     city: 'Adelanto',
     state: 'CA',
     zipCode: '92301',
-    imageUrl: 'https://www.ice.gov/sites/default/files/images/detention/adelantoMain_0.jpg',
+    imageUrl:
+      'https://www.ice.gov/sites/default/files/images/detention/adelantoMain_0.jpg',
     facilityType: 'ICE Processing Center',
-    operatedBy: 'The GEO Group, Inc.'
+    operatedBy: 'The GEO Group, Inc.',
   },
   {
     name: 'Adelanto ICE Processing Center - West',
@@ -32,9 +33,10 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     city: 'Adelanto',
     state: 'CA',
     zipCode: '92301',
-    imageUrl: 'https://www.ice.gov/sites/default/files/images/detention/adelantoMain_0.jpg',
+    imageUrl:
+      'https://www.ice.gov/sites/default/files/images/detention/adelantoMain_0.jpg',
     facilityType: 'ICE Processing Center',
-    operatedBy: 'The GEO Group, Inc.'
+    operatedBy: 'The GEO Group, Inc.',
   },
   {
     name: 'Desert View Annex',
@@ -43,7 +45,7 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '92301',
     facilityType: 'ICE Processing Center',
-    operatedBy: 'The GEO Group, Inc.'
+    operatedBy: 'The GEO Group, Inc.',
   },
   {
     name: 'Golden State Annex',
@@ -52,7 +54,7 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '93301',
     facilityType: 'Contract Detention Facility',
-    operatedBy: 'The GEO Group, Inc.'
+    operatedBy: 'The GEO Group, Inc.',
   },
   {
     name: 'Mesa Verde ICE Processing Center',
@@ -61,7 +63,7 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '93301',
     facilityType: 'ICE Processing Center',
-    operatedBy: 'The GEO Group, Inc.'
+    operatedBy: 'The GEO Group, Inc.',
   },
   {
     name: 'Imperial Regional Detention Facility',
@@ -70,7 +72,7 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '92231',
     facilityType: 'Contract Detention Facility',
-    operatedBy: 'Management & Training Corporation'
+    operatedBy: 'Management & Training Corporation',
   },
   {
     name: 'Otay Mesa Detention Center',
@@ -79,7 +81,7 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '92154',
     facilityType: 'Contract Detention Facility',
-    operatedBy: 'CoreCivic'
+    operatedBy: 'CoreCivic',
   },
   {
     name: 'Yuba County Jail',
@@ -88,8 +90,8 @@ const californiaDetentionCenters: DetentionCenterData[] = [
     state: 'CA',
     zipCode: '95901',
     facilityType: 'Intergovernmental Agreement',
-    operatedBy: 'Yuba County Sheriff\'s Office'
-  }
+    operatedBy: "Yuba County Sheriff's Office",
+  },
 ];
 
 async function fetchImageAsBuffer(url: string): Promise<Buffer | null> {
@@ -117,8 +119,8 @@ async function scrapeAndStoreDetentionCenters() {
         where: {
           name: centerData.name,
           city: centerData.city,
-          state: centerData.state
-        }
+          state: centerData.state,
+        },
       });
 
       if (existing) {
@@ -133,18 +135,19 @@ async function scrapeAndStoreDetentionCenters() {
       if (centerData.imageUrl) {
         console.log(`Fetching image for ${centerData.name}...`);
         const imageBuffer = await fetchImageAsBuffer(centerData.imageUrl);
-        
+
         if (imageBuffer) {
           try {
-            const { fullImageId, thumbnailImageId: thumbId } = await processAndStoreImage(
-              imageBuffer,
-              'image/jpeg'
-            );
+            const { fullImageId, thumbnailImageId: thumbId } =
+              await processAndStoreImage(imageBuffer);
             facilityImageId = fullImageId;
             thumbnailImageId = thumbId;
             console.log(`Successfully stored images for ${centerData.name}`);
           } catch (error) {
-            console.error(`Failed to process image for ${centerData.name}:`, error);
+            console.error(
+              `Failed to process image for ${centerData.name}:`,
+              error
+            );
           }
         }
       }
@@ -164,7 +167,7 @@ async function scrapeAndStoreDetentionCenters() {
           isICEFacility: true,
           facilityImageId,
           thumbnailImageId,
-        }
+        },
       });
 
       console.log(`Created detention center: ${centerData.name}`);

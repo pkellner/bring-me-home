@@ -236,6 +236,7 @@ model PersonImage {
   caption      String?
   isPrimary    Boolean @default(false)
   isActive     Boolean @default(true)
+  displayPublicly Boolean @default(true) // Whether to display this image on the public profile
 
   // Image data stored in separate table
   fullImageId      String?
@@ -310,6 +311,19 @@ model Comment {
   lastName   String?
   email      String?
   phone      String?
+  occupation String?
+  birthdate  DateTime?
+  
+  // Address fields
+  streetAddress String?
+  city          String?
+  state         String?
+  zipCode       String?
+  
+  // Display preferences for optional fields
+  showOccupation Boolean @default(false) // Whether to display occupation publicly
+  showBirthdate  Boolean @default(false) // Whether to display birthdate publicly
+  showCityState  Boolean @default(false) // Whether to display city and state publicly
   
   // Support options
   wantsToHelpMore     Boolean @default(false) // I want to help more, please contact me

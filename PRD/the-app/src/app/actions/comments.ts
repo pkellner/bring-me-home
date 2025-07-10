@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { hasPermission } from '@/lib/permissions';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -12,10 +13,19 @@ const commentSchema = z.object({
   lastName: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
-  content: z.string().optional().or(z.literal('')),
+  occupation: z.string().optional().or(z.literal('')),
+  birthdate: z.string().optional().or(z.literal('')),
+  streetAddress: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  state: z.string().max(2).optional().or(z.literal('')),
+  zipCode: z.string().max(10).optional().or(z.literal('')),
+  content: z.string().max(500).optional().or(z.literal('')),
   wantsToHelpMore: z.boolean().default(false),
   displayNameOnly: z.boolean().default(false),
   requiresFamilyApproval: z.boolean().default(true),
+  showOccupation: z.boolean().default(false),
+  showBirthdate: z.boolean().default(false),
+  showCityState: z.boolean().default(false),
 });
 
 export async function submitComment(
@@ -33,10 +43,19 @@ export async function submitComment(
       lastName: formData.get('lastName') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
+      occupation: formData.get('occupation') as string,
+      birthdate: formData.get('birthdate') as string,
+      streetAddress: formData.get('streetAddress') as string,
+      city: formData.get('city') as string,
+      state: formData.get('state') as string,
+      zipCode: formData.get('zipCode') as string,
       content: formData.get('content') as string,
       wantsToHelpMore: formData.get('wantsToHelpMore') === 'true',
       displayNameOnly: formData.get('displayNameOnly') === 'true',
       requiresFamilyApproval: formData.get('requiresFamilyApproval') === 'true',
+      showOccupation: formData.get('showOccupation') === 'true',
+      showBirthdate: formData.get('showBirthdate') === 'true',
+      showCityState: formData.get('showCityState') === 'true',
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -73,10 +92,19 @@ export async function submitComment(
         lastName: data.lastName,
         email: data.email || null,
         phone: data.phone || null,
+        occupation: data.occupation || null,
+        birthdate: data.birthdate ? new Date(data.birthdate) : null,
+        streetAddress: data.streetAddress || null,
+        city: data.city || null,
+        state: data.state || null,
+        zipCode: data.zipCode || null,
         content: data.content || '',
         wantsToHelpMore: data.wantsToHelpMore,
         displayNameOnly: data.displayNameOnly,
         requiresFamilyApproval: data.requiresFamilyApproval,
+        showOccupation: data.showOccupation,
+        showBirthdate: data.showBirthdate,
+        showCityState: data.showCityState,
         type: 'support',
         visibility: 'public',
         isActive: true,
@@ -138,7 +166,13 @@ export async function rejectComment(commentId: string, moderatorNotes: string) {
 export async function updateCommentAndApprove(
   commentId: string,
   content: string,
-  moderatorNotes?: string
+  moderatorNotes?: string,
+  additionalFields?: {
+    occupation?: string;
+    birthdate?: string;
+    showOccupation?: boolean;
+    showBirthdate?: boolean;
+  }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -153,6 +187,14 @@ export async function updateCommentAndApprove(
       approvedAt: new Date(),
       approvedBy: session.user.id,
       moderatorNotes: moderatorNotes || null,
+      ...(additionalFields && {
+        occupation: additionalFields.occupation || null,
+        birthdate: additionalFields.birthdate
+          ? new Date(additionalFields.birthdate)
+          : null,
+        showOccupation: additionalFields.showOccupation ?? false,
+        showBirthdate: additionalFields.showBirthdate ?? false,
+      }),
     },
   });
 
@@ -208,5 +250,32 @@ export async function rejectBulkComments(
   } catch (error) {
     console.error('Failed to reject bulk comments:', error);
     return { success: false, error: 'Failed to reject comments' };
+  }
+}
+
+export async function toggleCommentStatus(
+  commentId: string,
+  isApproved: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'comments', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: {
+        isApproved,
+        approvedAt: isApproved ? new Date() : null,
+        approvedBy: isApproved ? session.user.id : null,
+      },
+    });
+
+    revalidatePath('/admin/comments');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to toggle comment status:', error);
+    return { success: false, error: 'Failed to update comment status' };
   }
 }

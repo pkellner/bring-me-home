@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDetentionCentersByState, importDetentionCenters } from '@/app/actions/scrape-detention-centers';
+import {
+  getDetentionCentersByState,
+  importDetentionCenters,
+} from '@/app/actions/scrape-detention-centers';
 
 interface Facility {
   name: string;
@@ -21,11 +24,15 @@ interface ImportDetentionCentersProps {
   availableStates: string[];
 }
 
-export default function ImportDetentionCenters({ availableStates }: ImportDetentionCentersProps) {
+export default function ImportDetentionCenters({
+  availableStates,
+}: ImportDetentionCentersProps) {
   const router = useRouter();
   const [selectedState, setSelectedState] = useState('');
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [selectedFacilities, setSelectedFacilities] = useState<Set<string>>(new Set());
+  const [selectedFacilities, setSelectedFacilities] = useState<Set<string>>(
+    new Set()
+  );
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<{
@@ -49,7 +56,7 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
     try {
       const data = await getDetentionCentersByState(state);
       setFacilities(data);
-      
+
       // Auto-select facilities that don't exist yet
       const newFacilities = data.filter(f => !f.exists).map(f => f.name);
       setSelectedFacilities(new Set(newFacilities));
@@ -92,7 +99,7 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
         Array.from(selectedFacilities)
       );
       setImportResults(results);
-      
+
       // Show success message and redirect if successful
       if (results.success.length > 0) {
         setShowSuccess(true);
@@ -114,24 +121,33 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
     <div className="p-6 space-y-6">
       {/* State Selection */}
       <div className="max-w-md">
-        <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="state"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Select State
         </label>
         <div className="relative">
           <select
             id="state"
             value={selectedState}
-            onChange={(e) => handleStateChange(e.target.value)}
+            onChange={e => handleStateChange(e.target.value)}
             className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-3 pr-8 rounded-lg shadow-sm leading-tight focus:outline-none focus:shadow-outline focus:border-indigo-500 transition duration-150 ease-in-out"
           >
             <option value="">Choose a state...</option>
             {availableStates.map(state => (
-              <option key={state} value={state}>{state}</option>
+              <option key={state} value={state}>
+                {state}
+              </option>
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+            <svg
+              className="fill-current h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
             </svg>
           </div>
         </div>
@@ -142,8 +158,16 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
         <div className="rounded-md bg-green-50 p-4 border border-green-200">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-green-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
@@ -151,7 +175,10 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
                 Import Successful!
               </h3>
               <div className="mt-2 text-sm text-green-700">
-                <p>Successfully imported {importResults?.success.length} detention centers.</p>
+                <p>
+                  Successfully imported {importResults?.success.length}{' '}
+                  detention centers.
+                </p>
                 <p className="mt-1">Redirecting to detention centers list...</p>
               </div>
             </div>
@@ -164,25 +191,43 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
         <div className="rounded-md bg-blue-50 p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-blue-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">Import Results</h3>
+              <h3 className="text-sm font-medium text-blue-800">
+                Import Results
+              </h3>
               <div className="mt-2 text-sm text-blue-700">
                 {importResults.success.length > 0 && (
-                  <p>✅ Successfully imported: {importResults.success.length} facilities</p>
+                  <p>
+                    ✅ Successfully imported: {importResults.success.length}{' '}
+                    facilities
+                  </p>
                 )}
                 {importResults.skipped.length > 0 && (
-                  <p>⏭️ Skipped (already exist): {importResults.skipped.length} facilities</p>
+                  <p>
+                    ⏭️ Skipped (already exist): {importResults.skipped.length}{' '}
+                    facilities
+                  </p>
                 )}
                 {importResults.failed.length > 0 && (
                   <div>
                     <p>❌ Failed: {importResults.failed.length} facilities</p>
                     <ul className="mt-1 ml-4 list-disc">
                       {importResults.failed.map((f, i) => (
-                        <li key={i}>{f.name}: {f.error}</li>
+                        <li key={i}>
+                          {f.name}: {f.error}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -206,7 +251,8 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
                 onClick={toggleAll}
                 className="text-sm text-indigo-600 hover:text-indigo-500"
               >
-                {selectedFacilities.size === facilities.filter(f => !f.exists).length
+                {selectedFacilities.size ===
+                facilities.filter(f => !f.exists).length
                   ? 'Deselect All'
                   : 'Select All New'}
               </button>
@@ -216,9 +262,24 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-flex items-center">
-                <svg className="animate-spin h-5 w-5 mr-3 text-indigo-600" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <svg
+                  className="animate-spin h-5 w-5 mr-3 text-indigo-600"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 Loading facilities...
               </div>
@@ -233,7 +294,9 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
                 <div
                   key={facility.name}
                   className={`border rounded-lg p-4 ${
-                    facility.exists ? 'bg-gray-50 border-gray-200' : 'border-gray-300'
+                    facility.exists
+                      ? 'bg-gray-50 border-gray-200'
+                      : 'border-gray-300'
                   }`}
                 >
                   <div className="flex items-start">
@@ -249,14 +312,23 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
                     <div className="ml-3 flex-grow">
                       <div className="flex justify-between">
                         <div>
-                          <label className={`font-medium ${facility.exists ? 'text-gray-500' : 'text-gray-900'}`}>
+                          <label
+                            className={`font-medium ${
+                              facility.exists
+                                ? 'text-gray-500'
+                                : 'text-gray-900'
+                            }`}
+                          >
                             {facility.name}
                             {facility.exists && (
-                              <span className="ml-2 text-xs text-gray-500">(Already imported)</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                (Already imported)
+                              </span>
                             )}
                           </label>
                           <p className="text-sm text-gray-600">
-                            {facility.address}, {facility.city}, {facility.state} {facility.zipCode}
+                            {facility.address}, {facility.city},{' '}
+                            {facility.state} {facility.zipCode}
                           </p>
                           <div className="mt-1 text-xs text-gray-500 space-x-4">
                             {facility.facilityType && (
@@ -303,14 +375,31 @@ export default function ImportDetentionCenters({ availableStates }: ImportDetent
               >
                 {importing ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Importing...
                   </>
                 ) : (
-                  `Import ${selectedFacilities.size} Facilit${selectedFacilities.size === 1 ? 'y' : 'ies'}`
+                  `Import ${selectedFacilities.size} Facilit${
+                    selectedFacilities.size === 1 ? 'y' : 'ies'
+                  }`
                 )}
               </button>
             </div>

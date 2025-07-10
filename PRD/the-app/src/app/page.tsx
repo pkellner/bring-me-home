@@ -100,11 +100,16 @@ export default async function HomePage() {
               {config.site_tagline || 'Help Bring Families Together'}
             </h2>
             <p className="mt-4 text-xl text-indigo-200">
-              {config.site_description || 'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.'}
+              {config.site_description ||
+                'A platform dedicated to reuniting detained individuals with their families through community support and advocacy.'}
             </p>
             {totalDetained > 0 && (
               <p className="mt-6 text-lg text-indigo-100">
-                Currently supporting <span className="font-bold text-white">{totalDetained}</span> detained {totalDetained === 1 ? 'person' : 'people'} across {towns.length} {towns.length === 1 ? 'community' : 'communities'}
+                Currently supporting{' '}
+                <span className="font-bold text-white">{totalDetained}</span>{' '}
+                detained {totalDetained === 1 ? 'person' : 'people'} across{' '}
+                {towns.length}{' '}
+                {towns.length === 1 ? 'community' : 'communities'}
               </p>
             )}
           </div>
@@ -177,11 +182,17 @@ export default async function HomePage() {
                   </p>
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-500 mt-1">
-                      {config.last_seen_label || 'Detained since'}: {person.lastSeenDate.toLocaleDateString()}
+                      {config.last_seen_label || 'Detained since'}:{' '}
+                      {person.lastSeenDate.toLocaleDateString()}
                     </p>
                   )}
                   <Link
-                    href={`/${person.town.name.toLowerCase().replace(/\s+/g, '-')}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
+                    href={`/${person.town.name
+                      .toLowerCase()
+                      .replace(
+                        /\s+/g,
+                        '-'
+                      )}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
                     className="mt-3 inline-block text-indigo-600 hover:text-indigo-500 text-sm font-medium"
                   >
                     View Details →
@@ -198,7 +209,8 @@ export default async function HomePage() {
             {config.homepage_cta_title || 'How You Can Help'}
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            {config.homepage_cta_text || 'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.'}
+            {config.homepage_cta_text ||
+              'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.'}
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
             <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">

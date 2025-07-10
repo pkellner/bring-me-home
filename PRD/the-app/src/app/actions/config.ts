@@ -9,7 +9,7 @@ import { getSystemLayoutTheme } from './systemConfig';
 export async function getPublicConfig() {
   // Get system config overrides if they exist
   const systemOverrides = await getSystemLayoutTheme();
-  
+
   return {
     // Build information
     build: {
@@ -65,12 +65,28 @@ export async function getPublicConfig() {
       systemDefaultLayout: systemOverrides.layout,
       systemDefaultTheme: systemOverrides.theme,
       availableLayouts: [
-        'grid', 'stack', 'hero', 'sidebar-left', 'sidebar-right',
-        'magazine', 'card', 'minimal', 'gallery', 'full-width'
+        'grid',
+        'stack',
+        'hero',
+        'sidebar-left',
+        'sidebar-right',
+        'magazine',
+        'card',
+        'minimal',
+        'gallery',
+        'full-width',
       ],
       availableThemes: [
-        'default', 'ocean', 'forest', 'sunset', 'night',
-        'warm', 'cool', 'earth', 'sky', 'custom'
+        'default',
+        'ocean',
+        'forest',
+        'sunset',
+        'night',
+        'warm',
+        'cool',
+        'earth',
+        'sky',
+        'custom',
       ],
     },
 

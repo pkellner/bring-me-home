@@ -48,7 +48,9 @@ export async function createLayout(formData: FormData) {
   } catch (error) {
     console.error('Failed to create layout:', error);
     return {
-      errors: { _form: ['Failed to create layout. Please check your template JSON.'] },
+      errors: {
+        _form: ['Failed to create layout. Please check your template JSON.'],
+      },
     };
   }
 }
@@ -88,7 +90,9 @@ export async function updateLayout(id: string, formData: FormData) {
   } catch (error) {
     console.error('Failed to update layout:', error);
     return {
-      errors: { _form: ['Failed to update layout. Please check your template JSON.'] },
+      errors: {
+        _form: ['Failed to update layout. Please check your template JSON.'],
+      },
     };
   }
 }
@@ -110,7 +114,9 @@ export async function deleteLayout(id: string) {
     console.error('Failed to delete layout:', error);
     return {
       errors: {
-        _form: ['Failed to delete layout. It may be in use by towns or persons.'],
+        _form: [
+          'Failed to delete layout. It may be in use by towns or persons.',
+        ],
       },
     };
   }

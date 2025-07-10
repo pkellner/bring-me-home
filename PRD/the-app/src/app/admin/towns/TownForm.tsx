@@ -1,6 +1,6 @@
 'use client';
 
-import { Town, Layout, Theme } from '@prisma/client';
+import { Layout, Theme, Town } from '@prisma/client';
 import Link from 'next/link';
 import { createTown, updateTown } from '@/app/actions/towns';
 import { useRouter } from 'next/navigation';
@@ -257,10 +257,7 @@ export default function TownForm({ town, layouts, themes }: TownFormProps) {
           defaultChecked={town?.isActive ?? true}
           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
         />
-        <label
-          htmlFor="isActive"
-          className="ml-2 block text-sm text-gray-900"
-        >
+        <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
           Active (visible to public)
         </label>
       </div>
