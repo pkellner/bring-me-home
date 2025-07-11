@@ -176,11 +176,16 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
     let thumbnailImageId = existingCenter?.thumbnailImageId;
 
     const facilityImageFile = formData.get('facilityImage') as File;
+    console.log('Update - Facility image file:', facilityImageFile?.name, facilityImageFile?.size, facilityImageFile?.type);
+    
     if (facilityImageFile && facilityImageFile.size > 0) {
       const buffer = Buffer.from(await facilityImageFile.arrayBuffer());
+      console.log('Update - Buffer size:', buffer.length);
 
       // Validate image
       const isValid = await validateImageBuffer(buffer);
+      console.log('Update - Image validation result:', isValid);
+      
       if (!isValid) {
         return {
           errors: { facilityImage: ['Invalid image file'] },
@@ -207,6 +212,9 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
 
       facilityImageId = fullImageId;
       thumbnailImageId = thumbId;
+      console.log('Update - New image IDs:', { facilityImageId, thumbnailImageId });
+    } else {
+      console.log('Update - No new image uploaded, keeping existing IDs:', { facilityImageId, thumbnailImageId });
     }
 
     const updateData = {
@@ -214,10 +222,18 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
       facilityImageId,
       thumbnailImageId,
     };
+    
+    console.log('Update - Final updateData:', updateData);
 
     const detentionCenter = await prisma.detentionCenter.update({
       where: { id },
       data: updateData,
+    });
+    
+    console.log('Update - Detention center after update:', {
+      id: detentionCenter.id,
+      facilityImageId: detentionCenter.facilityImageId,
+      thumbnailImageId: detentionCenter.thumbnailImageId
     });
 
     revalidatePath('/admin/detention-centers');

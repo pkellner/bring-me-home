@@ -127,7 +127,7 @@ export default function DetentionCenterForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-8 divide-y divide-gray-200">
+    <form action={handleSubmit} className="space-y-8 divide-y divide-gray-200" encType="multipart/form-data">
       <div className="space-y-8 divide-y divide-gray-200">
         <div>
           <div>
