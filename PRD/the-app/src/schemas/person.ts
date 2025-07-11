@@ -25,10 +25,6 @@ export const CreatePersonSchema = z.object({
     .regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number')
     .optional(),
   emailAddress: z.string().email('Invalid email format').optional(),
-  primaryPicture: z.string().url('Invalid image URL').optional(),
-  secondaryPic1: z.string().url('Invalid image URL').optional(),
-  secondaryPic2: z.string().url('Invalid image URL').optional(),
-  secondaryPic3: z.string().url('Invalid image URL').optional(),
   story: z.string().max(5000).optional(),
   circumstances: z.string().max(5000).optional(),
   lastSeenDate: z.date().optional(),

@@ -28,10 +28,6 @@ interface Person extends Record<string, unknown> {
   lastName: string;
   alienIdNumber: string | null;
   lastKnownAddress: string;
-  primaryPicture: string | null;
-  secondaryPic1: string | null;
-  secondaryPic2: string | null;
-  secondaryPic3: string | null;
   story: string | null;
   isActive: boolean;
   town: {
@@ -49,6 +45,13 @@ interface Person extends Record<string, unknown> {
       id: string;
       username: string;
     };
+  }>;
+  personImages?: Array<{
+    id: string;
+    imageUrl: string;
+    thumbnailUrl?: string | null;
+    isPrimary: boolean;
+    isActive: boolean;
   }>;
   createdAt: Date;
   updatedAt: Date;
@@ -232,9 +235,9 @@ export default function PersonsGrid({
       searchable: true,
       render: (value, record) => (
         <div className="flex items-center">
-          {record.primaryPicture ? (
+          {record.personImages?.find(img => img.isPrimary)?.imageUrl ? (
             <img
-              src={record.primaryPicture}
+              src={record.personImages.find(img => img.isPrimary)!.imageUrl}
               alt={`${record.firstName} ${record.lastName}`}
               className="h-10 w-10 rounded-full object-cover mr-3"
             />
@@ -301,16 +304,14 @@ export default function PersonsGrid({
       ),
     },
     {
-      key: 'primaryPicture',
+      key: 'personImages',
       label: 'Photos',
       render: (value, record) => (
         <div className="flex items-center">
           <PhotoIcon className="h-4 w-4 text-gray-400 mr-2" />
           <span className="text-sm text-gray-900">
             {(value ? 1 : 0) +
-              (record.secondaryPic1 ? 1 : 0) +
-              (record.secondaryPic2 ? 1 : 0) +
-              (record.secondaryPic3 ? 1 : 0)}
+              (record.personImages?.filter(img => !img.isPrimary).length || 0)}
           </span>
         </div>
       ),

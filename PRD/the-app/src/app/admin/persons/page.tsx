@@ -41,6 +41,15 @@ export default async function PersonsPage() {
           user: true,
         },
       },
+      personImages: {
+        where: {
+          isActive: true,
+        },
+        orderBy: [
+          { isPrimary: 'desc' },
+          { createdAt: 'asc' },
+        ],
+      },
     },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   });

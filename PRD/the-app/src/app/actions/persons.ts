@@ -140,9 +140,17 @@ export async function createPerson(formData: FormData) {
       const { fullImageId } = await processAndStoreImage(buffer);
       const fullPath = `/api/images/${fullImageId}`;
 
-      await prisma.person.update({
-        where: { id: person.id },
-        data: { primaryPicture: fullPath },
+      // Create PersonImage record for primary image
+      await prisma.personImage.create({
+        data: {
+          imageUrl: fullPath,
+          thumbnailUrl: fullPath,
+          isPrimary: true,
+          isActive: true,
+          displayPublicly: true,
+          personId: person.id,
+          uploadedById: session.user.id,
+        },
       });
     }
 
@@ -237,8 +245,30 @@ export async function updatePerson(id: string, formData: FormData) {
 
       const { fullImageId } = await processAndStoreImage(buffer);
       const fullPath = `/api/images/${fullImageId}`;
-
-      (updateData as Record<string, unknown>).primaryPicture = fullPath;
+      
+      // Mark existing primary images as non-primary
+      await prisma.personImage.updateMany({
+        where: {
+          personId: id,
+          isPrimary: true,
+        },
+        data: {
+          isPrimary: false,
+        },
+      });
+      
+      // Create new primary image
+      await prisma.personImage.create({
+        data: {
+          imageUrl: fullPath,
+          thumbnailUrl: fullPath,
+          isPrimary: true,
+          isActive: true,
+          displayPublicly: true,
+          personId: id,
+          uploadedById: session.user.id,
+        },
+      });
     }
 
     // Handle additional images

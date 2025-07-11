@@ -99,19 +99,19 @@ export default function LayoutRenderer({
   // Common components that can be used in layouts
   const components = {
     'hero-image': () => {
-      const primaryImage = person.personImages?.find(img => img.isPrimary) || person.personImages?.[0];
+      const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
       return (
-        <div className="hero-image relative h-96 w-full overflow-hidden rounded-lg">
-          {primaryImage || person.primaryPicture ? (
+        <div className="hero-image relative h-64 sm:h-80 md:h-96 w-full overflow-hidden rounded-lg">
+          {primaryImage ? (
             <Image
-              src={primaryImage?.imageUrl || person.primaryPicture || ''}
+              src={primaryImage.imageUrl}
               alt={`${person.firstName} ${person.lastName}`}
               fill
               className="object-cover"
             />
           ) : (
             <div className="flex h-full items-center justify-center bg-gray-200">
-              <span className="text-4xl text-gray-400">No Photo Available</span>
+              <span className="text-3xl text-gray-400">No Photo Available</span>
             </div>
           )}
         </div>
@@ -119,23 +119,26 @@ export default function LayoutRenderer({
     },
 
     image: () => {
-      const primaryImage = person.personImages?.find(img => img.isPrimary) || person.personImages?.[0];
+      // Only use personImages for primary image
+      const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
+      const imageUrl = primaryImage?.imageUrl;
+      
       return (
         <div className="image-section">
-          {primaryImage || person.primaryPicture ? (
-            <div className="relative overflow-hidden rounded-xl shadow-lg">
+          {imageUrl ? (
+            <div className="relative overflow-hidden rounded-xl shadow-lg max-w-md mx-auto">
               <Image
-                src={primaryImage?.imageUrl || person.primaryPicture || ''}
+                src={imageUrl}
                 alt={`${person.firstName} ${person.lastName}`}
-                width={500}
-                height={500}
+                width={400}
+                height={400}
                 className="w-full h-auto object-cover"
                 priority
               />
             </div>
           ) : (
-            <div className="flex h-96 w-full items-center justify-center rounded-xl bg-gray-100 shadow-inner">
-              <span className="text-2xl text-gray-400">No Photo Available</span>
+            <div className="flex h-64 w-full max-w-md mx-auto items-center justify-center rounded-xl bg-gray-100 shadow-inner">
+              <span className="text-xl text-gray-400">No Photo Available</span>
             </div>
           )}
         </div>
@@ -380,64 +383,41 @@ export default function LayoutRenderer({
     ),
 
     'gallery-grid': () => {
-      const additionalImages = person.personImages || [];
-      const allImages = [];
-
-      // Don't include primary picture in gallery - it's shown separately
-      // Add additional images that are public and not primary
-      const publicImages = additionalImages.filter(img => img.displayPublicly && !img.isPrimary);
-      allImages.push(...publicImages);
-
-      // Add legacy images if no new images exist
-      if (publicImages.length === 0) {
-        if (person.secondaryPic1)
-          allImages.push({
-            imageUrl: person.secondaryPic1,
-          });
-        if (person.secondaryPic2)
-          allImages.push({
-            imageUrl: person.secondaryPic2,
-          });
-        if (person.secondaryPic3)
-          allImages.push({
-            imageUrl: person.secondaryPic3,
-          });
-      }
+      // Use personImages, excluding the primary image
+      const allImages = person.personImages?.filter(img => !img.isPrimary && img.displayPublicly) || [];
       
+      // Don't show gallery if no additional images
       if (allImages.length === 0) return null;
       
-      // Determine layout based on number of images with world-class UI design
+      // Determine layout based on number of images - smaller images
       const getLayoutClass = () => {
         switch (allImages.length) {
           case 1:
             return "grid-cols-1 max-w-xs mx-auto";
           case 2:
-            return "grid-cols-2 gap-3 max-w-lg mx-auto";
+            return "grid-cols-2 gap-3 max-w-sm mx-auto";
           case 3:
-            return "grid-cols-3 gap-3 max-w-2xl mx-auto";
-          case 4:
-            return "grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto";
-          case 5:
-            return "grid-cols-3 sm:grid-cols-5 gap-3 max-w-4xl mx-auto";
+            return "grid-cols-3 gap-3 max-w-lg mx-auto";
           default:
-            return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-w-5xl mx-auto";
+            return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-4xl mx-auto";
         }
       };
 
       return (
-        <div className="gallery-section mt-6">
+        <div className="gallery-section w-full mt-6 mb-6">
+          <h3 className="text-lg font-semibold mb-3">Additional Photos</h3>
           <div className={`gallery-grid grid ${getLayoutClass()}`}>
             {allImages.map((image, index) => (
               <div
-                key={'id' in image && image.id ? image.id : `image-${index}`}
+                key={`secondary-image-${index}`}
                 className="relative group cursor-pointer"
               >
                 <div className="aspect-square overflow-hidden rounded-lg bg-gray-50 shadow-sm hover:shadow-md transition-all duration-300">
                   <Image
                     src={image.imageUrl}
                     alt={`Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
-                    width={200}
-                    height={200}
+                    width={150}
+                    height={150}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
@@ -454,13 +434,33 @@ export default function LayoutRenderer({
   const renderLayout = () => {
     switch (template.type) {
       case 'grid':
+        // Sections that should always be full width
+        const fullWidthSections = ['gallery-grid', 'story', 'comments'];
+        
+        // Separate sections into grid and full-width
+        const gridSections = template.sections.filter((s: string) => !fullWidthSections.includes(s));
+        const fullSections = template.sections.filter((s: string) => fullWidthSections.includes(s));
+        
         const gridCols = template.columns === 3 ? 'md:grid-cols-3' : 
                         template.columns === 4 ? 'md:grid-cols-4' : 
                         'md:grid-cols-2';
+        
         return (
-          <div className={`grid gap-6 ${gridCols}`}>
-            {template.sections.map((section: string) => (
-              <div key={section} className="layout-section">
+          <div className="space-y-8">
+            {/* Grid sections (image, info, etc.) */}
+            {gridSections.length > 0 && (
+              <div className={`grid gap-6 ${gridCols}`}>
+                {gridSections.map((section: string) => (
+                  <div key={section} className="layout-section">
+                    {components[section as keyof typeof components]?.()}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Full width sections (gallery, story, comments) */}
+            {fullSections.map((section: string) => (
+              <div key={section} className="layout-section w-full">
                 {components[section as keyof typeof components]?.()}
               </div>
             ))}

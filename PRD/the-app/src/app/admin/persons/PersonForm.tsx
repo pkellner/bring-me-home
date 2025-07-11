@@ -465,7 +465,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
         <div className="border-t pt-6">
           <PersonImageManager
-            primaryImage={person?.primaryPicture}
+            primaryImage={person?.personImages?.find(img => img.isPrimary)?.imageUrl}
             existingImages={person?.personImages}
             onChange={(primaryFile, images) => {
               setPrimaryImageFile(primaryFile);

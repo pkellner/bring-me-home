@@ -43,7 +43,16 @@ async function getPublicData() {
         id: true,
         firstName: true,
         lastName: true,
-        primaryPicture: true,
+        personImages: {
+          where: {
+            isActive: true,
+            isPrimary: true,
+          },
+          select: {
+            imageUrl: true,
+          },
+          take: 1,
+        },
         lastSeenDate: true,
         town: {
           select: {
@@ -155,9 +164,9 @@ export default async function HomePage() {
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
               >
                 <div className="h-48 bg-gray-200 flex items-center justify-center">
-                  {person.primaryPicture ? (
+                  {person.personImages?.[0]?.imageUrl ? (
                     <img
-                      src={person.primaryPicture}
+                      src={person.personImages[0].imageUrl}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-cover"
                     />
