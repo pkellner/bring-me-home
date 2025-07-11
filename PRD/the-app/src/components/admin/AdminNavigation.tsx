@@ -43,6 +43,11 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
     performSignOut();
   };
 
+  // Determine user role type for custom menu handling
+  const isSiteAdminUser = hasRole(session, 'site-admin');
+  const isTownAdminUser = hasRole(session, 'town-admin');
+  const isPersonAdminUser = hasRole(session, 'person-admin');
+
   const navigationItems = [
     {
       name: 'Dashboard',
@@ -55,54 +60,63 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       href: '/admin/users',
       icon: 'users' as keyof typeof iconMap,
       show: hasPermission(session, 'users', 'read'),
+      disabled: false,
     },
     {
       name: 'Roles',
       href: '/admin/roles',
       icon: 'shield' as keyof typeof iconMap,
-      show: hasRole(session, 'site-admin'),
+      show: isSiteAdminUser, // Only site admins can manage roles
+      disabled: false,
     },
     {
       name: 'Towns',
       href: '/admin/towns',
       icon: 'buildings' as keyof typeof iconMap,
-      show: hasPermission(session, 'towns', 'read'),
+      show: hasPermission(session, 'towns', 'read') || isTownAdminUser,
+      disabled: false,
     },
     {
       name: 'Persons',
       href: '/admin/persons',
       icon: 'user' as keyof typeof iconMap,
       show: hasPermission(session, 'persons', 'read'),
+      disabled: false,
     },
     {
       name: 'Detention Centers',
       href: '/admin/detention-centers',
       icon: 'detentionCenters' as keyof typeof iconMap,
-      show: hasPermission(session, 'detentionCenters', 'read'),
+      show: hasPermission(session, 'detentionCenters', 'read') || isSiteAdminUser,
+      disabled: !isSiteAdminUser && !hasPermission(session, 'detentionCenters', 'read'),
     },
     {
       name: 'Comments',
       href: '/admin/comments',
       icon: 'chat' as keyof typeof iconMap,
       show: hasPermission(session, 'comments', 'read'),
+      disabled: false,
     },
     {
       name: 'Layouts',
       href: '/admin/layouts',
       icon: 'layouts' as keyof typeof iconMap,
-      show: hasPermission(session, 'system', 'config'),
+      show: isSiteAdminUser, // Only site admins should manage layouts
+      disabled: false,
     },
     {
       name: 'Themes',
       href: '/admin/themes',
       icon: 'themes' as keyof typeof iconMap,
-      show: hasPermission(session, 'system', 'config'),
+      show: isSiteAdminUser, // Only site admins should manage themes
+      disabled: false,
     },
     {
       name: 'System',
       href: '/admin/system',
       icon: 'cog' as keyof typeof iconMap,
-      show: hasPermission(session, 'system', 'config'),
+      show: isSiteAdminUser, // Only site admins should access system config
+      disabled: false,
     },
   ];
 
@@ -121,6 +135,24 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
             <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
               {visibleItems.map(item => {
                 const isActive = pathname === item.href;
+                const isDisabled = 'disabled' in item && item.disabled;
+                
+                if (isDisabled) {
+                  return (
+                    <span
+                      key={item.name}
+                      className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-300 cursor-not-allowed"
+                      title="You don't have permission to access this section"
+                    >
+                      {(() => {
+                        const Icon = iconMap[item.icon];
+                        return <Icon className="h-4 w-4 mr-2" />;
+                      })()}
+                      {item.name}
+                    </span>
+                  );
+                }
+                
                 return (
                   <Link
                     key={item.name}
@@ -178,6 +210,26 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
         <div className="pt-2 pb-3 space-y-1">
           {visibleItems.map(item => {
             const isActive = pathname === item.href;
+            const isDisabled = 'disabled' in item && item.disabled;
+            
+            if (isDisabled) {
+              return (
+                <span
+                  key={item.name}
+                  className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-300 cursor-not-allowed"
+                  title="You don't have permission to access this section"
+                >
+                  <div className="flex items-center">
+                    {(() => {
+                      const Icon = iconMap[item.icon];
+                      return <Icon className="h-4 w-4 mr-2" />;
+                    })()}
+                    {item.name}
+                  </div>
+                </span>
+              );
+            }
+            
             return (
               <Link
                 key={item.name}

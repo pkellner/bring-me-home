@@ -184,19 +184,26 @@ export default function SignInClient({
           </div>
         </form>
 
-        <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">
-            Demo Accounts:
-          </h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <div>
-              <strong>Admin:</strong> admin / admin123
-            </div>
-            <div>
-              <strong>Town Admin:</strong> town_admin_1 / town1123
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">
+              Demo Accounts:
+            </h3>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div>
+                <strong>Admin:</strong> admin / admin123
+              </div>
+              <div>
+                <strong>Town Admin:</strong> town_admin_1 / town1123
+                <span className="text-gray-500"> (Borrego Springs)</span>
+              </div>
+              <div>
+                <strong>Person Admin:</strong> person_admin_1 / person1123
+                <span className="text-gray-500"> (Joe Plumber)</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {showSystemOverrideLink && (
           <div className="mt-4 text-center">

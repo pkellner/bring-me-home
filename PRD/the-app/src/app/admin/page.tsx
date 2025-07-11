@@ -11,12 +11,53 @@ import {
 } from '@heroicons/react/24/outline';
 import { getSiteTextConfig } from '@/lib/config';
 
-async function getDashboardStats() {
+async function getDashboardStats(session: any) {
+  const isSiteAdmin = hasRole(session, 'site-admin');
+  const isTownAdmin = hasRole(session, 'town-admin');
+  const isPersonAdmin = hasRole(session, 'person-admin');
+
+  // Get accessible town IDs for town admins
+  const accessibleTownIds = session?.user?.townAccess?.map((ta: any) => ta.townId) || [];
+  
+  // Get accessible person IDs for person admins
+  const accessiblePersonIds = session?.user?.personAccess?.map((pa: any) => pa.personId) || [];
+
   const [userCount, townCount, personCount, commentCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.town.count(),
-    prisma.person.count(),
-    prisma.comment.count(),
+    // User count - only for those who can read users
+    hasPermission(session, 'users', 'read') ? prisma.user.count() : 0,
+    
+    // Town count - filtered for town admins
+    isSiteAdmin 
+      ? prisma.town.count()
+      : isTownAdmin && accessibleTownIds.length > 0
+      ? prisma.town.count({ where: { id: { in: accessibleTownIds } } })
+      : hasPermission(session, 'towns', 'read')
+      ? prisma.town.count()
+      : 0,
+    
+    // Person count - filtered for town/person admins
+    isSiteAdmin
+      ? prisma.person.count()
+      : isTownAdmin && accessibleTownIds.length > 0
+      ? prisma.person.count({ where: { townId: { in: accessibleTownIds } } })
+      : isPersonAdmin && accessiblePersonIds.length > 0
+      ? prisma.person.count({ where: { id: { in: accessiblePersonIds } } })
+      : hasPermission(session, 'persons', 'read')
+      ? prisma.person.count()
+      : 0,
+    
+    // Comment count - filtered for town/person admins
+    isSiteAdmin
+      ? prisma.comment.count()
+      : isTownAdmin && accessibleTownIds.length > 0
+      ? prisma.comment.count({ 
+          where: { person: { townId: { in: accessibleTownIds } } } 
+        })
+      : isPersonAdmin && accessiblePersonIds.length > 0
+      ? prisma.comment.count({ where: { personId: { in: accessiblePersonIds } } })
+      : hasPermission(session, 'comments', 'read')
+      ? prisma.comment.count()
+      : 0,
   ]);
 
   return {
@@ -29,8 +70,11 @@ async function getDashboardStats() {
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
-  const stats = await getDashboardStats();
+  const stats = await getDashboardStats(session);
   const config = await getSiteTextConfig();
+
+  const isTownAdmin = hasRole(session, 'town-admin');
+  const isPersonAdmin = hasRole(session, 'person-admin');
 
   const dashboardCards = [
     {
@@ -41,14 +85,18 @@ export default async function AdminDashboard() {
       href: '/admin/users',
     },
     {
-      name: 'Towns',
+      name: isTownAdmin ? 'Your Towns' : 'Towns',
       value: stats.townCount,
       icon: 'buildings' as const,
-      show: hasPermission(session, 'towns', 'read'),
+      show: hasPermission(session, 'towns', 'read') || isTownAdmin,
       href: '/admin/towns',
     },
     {
-      name: config.admin_detained_persons_title || 'Detained Persons',
+      name: isPersonAdmin 
+        ? 'Your Assigned Persons' 
+        : isTownAdmin 
+        ? `Persons in Your Towns`
+        : config.admin_detained_persons_title || 'Detained Persons',
       value: stats.personCount,
       icon: 'user' as const,
       show: hasPermission(session, 'persons', 'read'),

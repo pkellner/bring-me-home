@@ -1,8 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { processAndStoreImage } from '../src/lib/image-storage';
+
+const { Decimal } = Prisma;
 
 const prisma = new PrismaClient();
 
@@ -500,6 +502,55 @@ const generatePersons = () => {
       personId++;
     }
   }
+  
+  // Add Joe Plumber specifically to Borrego Springs (town_1)
+  const joePlumber = {
+    id: 'person_joe_plumber',
+    firstName: 'Joe',
+    middleName: null,
+    lastName: 'Plumber',
+    alienIdNumber: 'A123456789',
+    dateOfBirth: new Date(1975, 5, 15), // June 15, 1975
+    placeOfBirth: 'Phoenix, Arizona, USA',
+    height: "5'10\"",
+    weight: '180 lbs',
+    eyeColor: 'Brown',
+    hairColor: 'Black',
+    lastKnownAddress: '123 Desert Vista Rd, Borrego Springs, CA 92004',
+    phoneNumber: '760-555-0123',
+    emailAddress: 'joe.plumber@email.com',
+    story: 'Joe Plumber has been a beloved member of the Borrego Springs community for over 20 years. As a skilled plumber, he helped build and maintain many homes and businesses in our town. Joe is known for his generous spirit, often providing free services to elderly residents and those in need. His detention has left many without reliable plumbing services and has deeply affected our community.',
+    detentionStory: 'Joe was detained during a routine traffic stop despite having no criminal record. He has been held at Otay Mesa Detention Center for the past 6 months, awaiting his immigration hearing. His family and the community are working tirelessly to bring him home.',
+    familyMessage: 'My husband Joe is the backbone of our family and our community. Our three children miss their father terribly, and our plumbing business is struggling without him. We need Joe home where he belongs, helping our neighbors and raising our children.',
+    lastSeenDate: new Date(2024, 0, 15), // January 15, 2024
+    lastSeenLocation: 'Downtown Borrego Springs',
+    townId: 'town_1', // Borrego Springs
+    primaryPicture: `/api/images/${placeholderImageIds.get(1)?.fullImageId}`,
+    secondaryPic1: `/api/images/${placeholderImageIds.get(2)?.fullImageId}`,
+    secondaryPic2: `/api/images/${placeholderImageIds.get(3)?.fullImageId}`,
+    status: 'detained',
+    // Detention information
+    detentionCenterId: 'dc_2', // Otay Mesa Detention Center
+    detentionDate: new Date(2024, 0, 15), // January 15, 2024
+    releaseDate: null,
+    detentionStatus: 'detained',
+    caseNumber: 'ICE-2024-00123',
+    bondAmount: new Decimal(15000),
+    bondStatus: 'pending',
+    // Legal representation
+    legalRepFirm: 'Immigration Law Center',
+    legalRepName: 'Maria Rodriguez',
+    legalRepPhone: '619-555-0200',
+    legalRepEmail: 'mrodriguez@immigrationlawcenter.com',
+    nextCourtDate: new Date(2024, 6, 15), // July 15, 2024
+    courtLocation: 'San Diego Immigration Court',
+    // Additional information
+    isActive: true,
+    lastHeardFromDate: new Date(2024, 3, 1),
+    countryOfOrigin: 'Mexico',
+  };
+  
+  persons.push(joePlumber);
 
   return persons;
 };
@@ -1664,6 +1715,38 @@ async function main() {
       },
     });
   }
+  
+  // Create person-admin user
+  console.log('Creating person admin user...');
+  const personAdminPassword = await bcrypt.hash('person1123', 12);
+  const personAdmin = await prisma.user.create({
+    data: {
+      id: 'user_person_admin_1',
+      username: 'person_admin_1',
+      email: 'personadmin@bringmehome.com',
+      password: personAdminPassword,
+      firstName: 'Person',
+      lastName: 'Admin',
+      isActive: true,
+    },
+  });
+  
+  // Assign person-admin role
+  await prisma.userRole.create({
+    data: {
+      userId: personAdmin.id,
+      roleId: 'role_3', // person-admin role
+    },
+  });
+  
+  // Grant access to Joe Plumber
+  await prisma.personAccess.create({
+    data: {
+      userId: personAdmin.id,
+      personId: 'person_joe_plumber',
+      accessLevel: 'admin',
+    },
+  });
 
   // Create system config
   console.log('Creating system configuration...');

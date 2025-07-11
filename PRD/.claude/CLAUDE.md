@@ -26,10 +26,14 @@ Your output must be a well-formatted markdown response containing two distinct s
 1.  **Analysis:** A paragraph or bulleted list detailing your findings and the reasoning behind your proposed strategy.
 2.  **Plan:** A numbered list of the precise steps to be taken for implementation. The final step must always be presenting the plan for approval.
 
-
 NOTE: If in plan mode, do not implement the plan. You are only allowed to plan. Confirmation comes from a user message.
+
+
+Below are implementation notes for when NOT in plan mode
+
 
 ## Notes about checking work
 
 You should always run npm run lint and npm run build after you have made changes to make sure that no errors were created. If you find errors, you need to fix them.
+
 
