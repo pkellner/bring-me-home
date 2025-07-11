@@ -65,6 +65,7 @@ export type SerializedPerson = Omit<Person, 'bondAmount'> & {
     caption?: string | null;
     isPrimary: boolean;
     displayPublicly: boolean;
+    isActive: boolean;
   }>;
 };
 
@@ -388,7 +389,9 @@ export default function LayoutRenderer({
       const allImages = person.personImages?.filter(img => !img.isPrimary && img.displayPublicly) || [];
       
       // Don't show gallery if no additional images
-      if (allImages.length === 0) return null;
+      if (allImages.length === 0) {
+        return null;
+      }
       
       // Determine layout based on number of images - smaller images
       const getLayoutClass = () => {
@@ -426,6 +429,129 @@ export default function LayoutRenderer({
               </div>
             ))}
           </div>
+        </div>
+      );
+    },
+
+    // Magazine layout components
+    'featured-image': () => {
+      const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
+      return (
+        <div className="featured-image-section">
+          {primaryImage ? (
+            <div className="relative rounded-lg overflow-hidden shadow-xl">
+              <Image
+                src={primaryImage.imageUrl}
+                alt={`${person.firstName} ${person.lastName}`}
+                width={800}
+                height={600}
+                className="w-full h-auto object-cover"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-100">
+              <span className="text-2xl text-gray-400">No Photo Available</span>
+            </div>
+          )}
+        </div>
+      );
+    },
+
+    'article-content': () => {
+      return (
+        <div className="article-content space-y-6">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              {person.firstName} {person.middleName ? `${person.middleName} ` : ''}
+              {person.lastName}
+            </h1>
+            <p className="text-xl text-gray-600">
+              {person.town.name}, {person.town.state}
+            </p>
+          </div>
+          
+          {/* Story section */}
+          {person.stories && person.stories.length > 0 && (
+            <div className="prose max-w-none">
+              <StorySection
+                stories={person.stories}
+                storyType="personal"
+                title="Personal Story"
+              />
+            </div>
+          )}
+
+          {/* Gallery of additional images */}
+          {person.personImages && person.personImages.filter(img => !img.isPrimary && img.displayPublicly).length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-2xl font-semibold mb-4">Photos</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {person.personImages
+                  .filter(img => !img.isPrimary && img.displayPublicly)
+                  .map((image, index) => (
+                    <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg shadow-md">
+                      <Image
+                        src={image.imageUrl}
+                        alt={`Photo ${index + 1}`}
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    },
+
+    'sidebar': () => {
+      return (
+        <div className="sidebar space-y-6">
+          {/* Basic info */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-semibold mb-3">Information</h3>
+            <dl className="space-y-2 text-sm">
+              {person.detentionDate && (
+                <div>
+                  <dt className="font-medium">Detention Date:</dt>
+                  <dd>{formatDate(person.detentionDate)}</dd>
+                </div>
+              )}
+              {person.lastHeardFromDate && (
+                <div>
+                  <dt className="font-medium">Last Contact:</dt>
+                  <dd>{formatDate(person.lastHeardFromDate)}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="font-medium">Legal Representation:</dt>
+                <dd>{person.representedByLawyer ? 'Yes' : 'No'}</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Detention info if available */}
+          {person.detentionCenter && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="font-semibold text-red-800 mb-2">Detention Center</h3>
+              <p className="text-sm text-red-700">{person.detentionCenter.name}</p>
+              <p className="text-sm text-red-700">
+                {person.detentionCenter.city}, {person.detentionCenter.state}
+              </p>
+            </div>
+          )}
+
+          {/* Admin link */}
+          {isAdmin && (
+            <Link
+              href={`/admin/persons/${person.id}/edit`}
+              className="block text-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            >
+              Edit Person
+            </Link>
+          )}
         </div>
       );
     },
