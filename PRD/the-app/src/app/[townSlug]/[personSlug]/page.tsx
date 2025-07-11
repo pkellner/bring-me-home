@@ -240,9 +240,8 @@ export default async function PersonPage({ params }: PersonPageProps) {
       id: 'default',
       name: 'Standard Profile',
       template: JSON.stringify({
-        type: systemDefaults.layout || 'grid',
-        columns: 2,
-        sections: ['image', 'info', 'gallery-grid', 'story', 'comments'],
+        type: 'custom-person',
+        sections: ['top-row', 'story', 'comments'],
       }),
     };
 

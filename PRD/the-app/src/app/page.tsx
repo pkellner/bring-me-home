@@ -168,7 +168,7 @@ export default async function HomePage() {
                     <img
                       src={person.personImages[0].imageUrl}
                       alt={`${person.firstName} ${person.lastName}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : (
                     <div className="text-gray-400">
