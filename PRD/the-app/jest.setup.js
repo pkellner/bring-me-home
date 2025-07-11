@@ -1,0 +1,130 @@
+// Learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom'
+
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+      refresh: jest.fn(),
+    }
+  },
+  useSearchParams() {
+    return {
+      get: jest.fn(),
+    }
+  },
+  usePathname() {
+    return ''
+  },
+  useParams() {
+    return {}
+  },
+}))
+
+// Mock next/image
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (props) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return <img {...props} />
+  },
+}))
+
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+})
+
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
+
+// Suppress console errors in tests unless explicitly testing error cases
+const originalError = console.error
+beforeAll(() => {
+  console.error = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Warning: ReactDOM.render')
+    ) {
+      return
+    }
+    originalError.call(console, ...args)
+  }
+})
+
+afterAll(() => {
+  console.error = originalError
+})
+
+// Set up test environment variables
+process.env.NEXTAUTH_URL = 'http://localhost:3000'
+process.env.NEXTAUTH_SECRET = 'test-secret'
+process.env.DATABASE_URL = 'mysql://test:test@localhost:3306/test'
+
+// Add missing globals for Node.js environment
+const { TextEncoder, TextDecoder } = require('util')
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
+
+// Add Request and Response globals for API route tests
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(url, init = {}) {
+      this.url = url
+      this.method = init.method || 'GET'
+      this.headers = new Map(Object.entries(init.headers || {}))
+      this.body = init.body
+    }
+    
+    async json() {
+      return JSON.parse(this.body)
+    }
+  }
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, init = {}) {
+      this.body = body
+      this.status = init.status || 200
+      this.headers = new Map(Object.entries(init.headers || {}))
+    }
+    
+    async json() {
+      return typeof this.body === 'string' ? JSON.parse(this.body) : this.body
+    }
+    
+    static json(data, init) {
+      return new Response(JSON.stringify(data), {
+        ...init,
+        headers: { ...init?.headers, 'content-type': 'application/json' }
+      })
+    }
+  }
+}

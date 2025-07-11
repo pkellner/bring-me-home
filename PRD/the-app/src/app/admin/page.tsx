@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth';
+import { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission, hasRole } from '@/lib/permissions';
@@ -11,16 +12,38 @@ import {
 } from '@heroicons/react/24/outline';
 import { getSiteTextConfig } from '@/lib/config';
 
-async function getDashboardStats(session: any) {
+interface TownAccess {
+  id: string;
+  townId: string;
+  town: {
+    id: string;
+    name: string;
+    state: string;
+  };
+  accessLevel: string;
+}
+
+interface PersonAccess {
+  id: string;
+  personId: string;
+  person: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  accessLevel: string;
+}
+
+async function getDashboardStats(session: Session | null) {
   const isSiteAdmin = hasRole(session, 'site-admin');
   const isTownAdmin = hasRole(session, 'town-admin');
   const isPersonAdmin = hasRole(session, 'person-admin');
 
   // Get accessible town IDs for town admins
-  const accessibleTownIds = session?.user?.townAccess?.map((ta: any) => ta.townId) || [];
+  const accessibleTownIds = session?.user?.townAccess?.map((ta: TownAccess) => ta.townId) || [];
   
   // Get accessible person IDs for person admins
-  const accessiblePersonIds = session?.user?.personAccess?.map((pa: any) => pa.personId) || [];
+  const accessiblePersonIds = session?.user?.personAccess?.map((pa: PersonAccess) => pa.personId) || [];
 
   const [userCount, townCount, personCount, commentCount] = await Promise.all([
     // User count - only for those who can read users

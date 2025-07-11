@@ -46,7 +46,6 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
   // Determine user role type for custom menu handling
   const isSiteAdminUser = hasRole(session, 'site-admin');
   const isTownAdminUser = hasRole(session, 'town-admin');
-  const isPersonAdminUser = hasRole(session, 'person-admin');
 
   const navigationItems = [
     {
