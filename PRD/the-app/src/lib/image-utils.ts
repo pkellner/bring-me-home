@@ -18,7 +18,7 @@ export interface ProcessedImages {
 }
 
 // Parse image sizing configuration from environment
-const getImageDimensions = () => {
+const getImageSizeConfig = () => {
   // Option 1: Max size (default) - both dimensions set to same value
   if (process.env.IMAGE_FULL_MAX_SIZE) {
     const maxSize = parseInt(process.env.IMAGE_FULL_MAX_SIZE);
@@ -39,7 +39,7 @@ const getImageDimensions = () => {
   return { width: 1200, height: 1200 };
 };
 
-const imageDimensions = getImageDimensions();
+const imageDimensions = getImageSizeConfig();
 
 const DEFAULT_THUMBNAIL_OPTIONS: ThumbnailOptions = {
   width: parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300'),
