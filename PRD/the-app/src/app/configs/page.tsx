@@ -11,6 +11,30 @@ export const metadata: Metadata = {
   description: 'Public system configuration and build information',
 };
 
+function getTimeSinceLastBuild(buildDateISO: string): string {
+  if (buildDateISO === 'Not set') return 'Unknown';
+  
+  try {
+    const buildDate = new Date(buildDateISO);
+    const now = new Date();
+    const diffMs = now.getTime() - buildDate.getTime();
+    
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''}, ${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''}, ${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+    }
+  } catch {
+    return 'Invalid date';
+  }
+}
+
 export default async function ConfigsPage() {
   const config = await getPublicConfig();
   const session = await getServerSession(authOptions);
@@ -26,6 +50,8 @@ export default async function ConfigsPage() {
       return false;
     }
   });
+
+  const timeSinceLastBuild = getTimeSinceLastBuild(config.build.dateISO);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -104,6 +130,16 @@ export default async function ConfigsPage() {
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {config.build.publicDate}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Time Since Last Build
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {timeSinceLastBuild}
+                      </span>
                     </dd>
                   </div>
                 </dl>

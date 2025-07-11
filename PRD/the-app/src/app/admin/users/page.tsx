@@ -39,13 +39,25 @@ export default async function UsersPage() {
     },
   });
 
+  // Serialize Decimal fields for client components
+  const serializedUsers = users.map(user => ({
+    ...user,
+    personAccess: user.personAccess.map(access => ({
+      ...access,
+      person: {
+        ...access.person,
+        bondAmount: access.person.bondAmount ? access.person.bondAmount.toString() : null,
+      },
+    })),
+  }));
+
   const canCreate = hasPermission(session, 'users', 'create');
   const canEdit = hasPermission(session, 'users', 'update');
   const canDelete = hasPermission(session, 'users', 'delete');
 
   return (
     <UsersGrid
-      initialUsers={users}
+      initialUsers={serializedUsers}
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}

@@ -329,6 +329,7 @@ export async function updatePerson(id: string, formData: FormData) {
                     caption: imageData.caption || null,
                     displayPublicly: true, // All images are public now
                     isPrimary: false,
+                    isActive: true,
                     uploadedById: session.user.id,
                   },
                 });

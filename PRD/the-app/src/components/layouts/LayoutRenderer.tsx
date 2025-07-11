@@ -124,15 +124,16 @@ export default function LayoutRenderer({
       const imageUrl = primaryImage?.imageUrl;
       
       return (
-        <div className="image-section">
+        <div className="image-section flex justify-center">
           {imageUrl ? (
-            <div className="relative overflow-hidden rounded-xl shadow-lg max-w-md mx-auto">
+            <div className="relative rounded-xl shadow-lg overflow-hidden">
               <Image
                 src={imageUrl}
                 alt={`${person.firstName} ${person.lastName}`}
-                width={400}
-                height={400}
-                className="w-full h-auto object-cover"
+                width={600}
+                height={600}
+                className="max-w-full h-auto object-contain max-h-[600px]"
+                style={{ width: 'auto', height: 'auto' }}
                 priority
               />
             </div>
@@ -450,31 +451,43 @@ export default function LayoutRenderer({
             {/* Grid sections (image, info, etc.) */}
             {gridSections.length > 0 && (
               <div className={`grid gap-6 ${gridCols}`}>
-                {gridSections.map((section: string) => (
-                  <div key={section} className="layout-section">
-                    {components[section as keyof typeof components]?.()}
-                  </div>
-                ))}
+                {gridSections.map((section: string) => {
+                  const component = components[section as keyof typeof components]?.();
+                  if (!component) return null;
+                  return (
+                    <div key={section} className="layout-section">
+                      {component}
+                    </div>
+                  );
+                })}
               </div>
             )}
             
             {/* Full width sections (gallery, story, comments) */}
-            {fullSections.map((section: string) => (
-              <div key={section} className="layout-section w-full">
-                {components[section as keyof typeof components]?.()}
-              </div>
-            ))}
+            {fullSections.map((section: string) => {
+              const component = components[section as keyof typeof components]?.();
+              if (!component) return null;
+              return (
+                <div key={section} className="layout-section w-full">
+                  {component}
+                </div>
+              );
+            })}
           </div>
         );
 
       case 'stack':
         return (
           <div className="space-y-6">
-            {template.sections.map((section: string) => (
-              <div key={section} className="layout-section">
-                {components[section as keyof typeof components]?.()}
-              </div>
-            ))}
+            {template.sections.map((section: string) => {
+              const component = components[section as keyof typeof components]?.();
+              if (!component) return null;
+              return (
+                <div key={section} className="layout-section">
+                  {component}
+                </div>
+              );
+            })}
           </div>
         );
 
