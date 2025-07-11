@@ -17,17 +17,41 @@ export interface ProcessedImages {
   thumbnail: Buffer;
 }
 
+// Parse image sizing configuration from environment
+const getImageDimensions = () => {
+  // Option 1: Max size (default) - both dimensions set to same value
+  if (process.env.IMAGE_FULL_MAX_SIZE) {
+    const maxSize = parseInt(process.env.IMAGE_FULL_MAX_SIZE);
+    return { width: maxSize, height: maxSize };
+  }
+  
+  // Option 2: Fixed width, auto height
+  if (process.env.IMAGE_FULL_WIDTH) {
+    return { width: parseInt(process.env.IMAGE_FULL_WIDTH), height: undefined };
+  }
+  
+  // Option 3: Fixed height, auto width
+  if (process.env.IMAGE_FULL_HEIGHT) {
+    return { width: undefined, height: parseInt(process.env.IMAGE_FULL_HEIGHT) };
+  }
+  
+  // Default fallback
+  return { width: 1200, height: 1200 };
+};
+
+const imageDimensions = getImageDimensions();
+
 const DEFAULT_THUMBNAIL_OPTIONS: ThumbnailOptions = {
-  width: 300,
-  height: 300,
-  quality: 80,
+  width: parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300'),
+  height: parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300'),
+  quality: parseInt(process.env.IMAGE_THUMBNAIL_QUALITY || '80'),
   format: 'jpeg',
 };
 
 const DEFAULT_FULL_IMAGE_OPTIONS: ThumbnailOptions = {
-  width: 1200,
-  height: 1200,
-  quality: 85,
+  width: imageDimensions.width || 1200,
+  height: imageDimensions.height || 1200,
+  quality: parseInt(process.env.IMAGE_FULL_QUALITY || '85'),
   format: 'jpeg',
 };
 

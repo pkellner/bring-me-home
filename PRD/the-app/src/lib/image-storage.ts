@@ -3,6 +3,33 @@ import sharp from 'sharp';
 
 const prisma = new PrismaClient();
 
+// Parse image sizing configuration from environment
+const getFullImageDimensions = (): { width?: number; height?: number; fit: 'inside' | 'outside' | 'cover' | 'fill' | 'contain' } => {
+  // Option 1: Max size (default) - preserves aspect ratio within boundary
+  if (process.env.IMAGE_FULL_MAX_SIZE) {
+    const maxSize = parseInt(process.env.IMAGE_FULL_MAX_SIZE);
+    return { width: maxSize, height: maxSize, fit: 'inside' };
+  }
+  
+  // Option 2: Fixed width, auto height
+  if (process.env.IMAGE_FULL_WIDTH) {
+    return { width: parseInt(process.env.IMAGE_FULL_WIDTH), height: undefined, fit: 'inside' };
+  }
+  
+  // Option 3: Fixed height, auto width
+  if (process.env.IMAGE_FULL_HEIGHT) {
+    return { width: undefined, height: parseInt(process.env.IMAGE_FULL_HEIGHT), fit: 'inside' };
+  }
+  
+  // Default fallback
+  return { width: 1200, height: 1200, fit: 'inside' };
+};
+
+const fullImageConfig = getFullImageDimensions();
+const thumbnailSize = parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300');
+const fullImageQuality = parseInt(process.env.IMAGE_FULL_QUALITY || '85');
+const thumbnailQuality = parseInt(process.env.IMAGE_THUMBNAIL_QUALITY || '80');
+
 export interface ImageData {
   buffer: Buffer;
   mimeType: string;
@@ -18,24 +45,24 @@ export interface ProcessedImages {
 export async function processAndStoreImage(
   buffer: Buffer
 ): Promise<{ fullImageId: string; thumbnailImageId: string }> {
-  // Process full-size image (convert to JPEG, max 1200x1200)
+  // Process full-size image using environment configuration
   const fullImageBuffer = await sharp(buffer)
-    .resize(1200, 1200, {
-      fit: 'inside',
+    .resize(fullImageConfig.width, fullImageConfig.height, {
+      fit: fullImageConfig.fit,
       withoutEnlargement: true,
     })
-    .jpeg({ quality: 85 })
+    .jpeg({ quality: fullImageQuality })
     .toBuffer();
 
   const fullImageMetadata = await sharp(fullImageBuffer).metadata();
 
-  // Create thumbnail (300x300 JPEG)
+  // Create thumbnail using environment configuration
   const thumbnailBuffer = await sharp(buffer)
-    .resize(300, 300, {
+    .resize(thumbnailSize, thumbnailSize, {
       fit: 'cover',
       position: 'center',
     })
-    .jpeg({ quality: 80 })
+    .jpeg({ quality: thumbnailQuality })
     .toBuffer();
 
   const thumbnailMetadata = await sharp(thumbnailBuffer).metadata();
@@ -101,12 +128,16 @@ export async function processImageBuffer(
   type: 'full' | 'thumbnail'
 ): Promise<ImageData> {
   const processedBuffer = await sharp(buffer)
-    .resize(type === 'full' ? 1200 : 300, type === 'full' ? 1200 : 300, {
-      fit: type === 'full' ? 'inside' : 'cover',
-      withoutEnlargement: type === 'full',
-      position: 'center',
-    })
-    .jpeg({ quality: type === 'full' ? 85 : 80 })
+    .resize(
+      type === 'full' ? fullImageConfig.width : thumbnailSize,
+      type === 'full' ? fullImageConfig.height : thumbnailSize, 
+      {
+        fit: type === 'full' ? fullImageConfig.fit : 'cover',
+        withoutEnlargement: type === 'full',
+        position: 'center',
+      }
+    )
+    .jpeg({ quality: type === 'full' ? fullImageQuality : thumbnailQuality })
     .toBuffer();
 
   const metadata = await sharp(processedBuffer).metadata();

@@ -137,3 +137,5 @@ This completes Phase 1 of the implementation plan. The foundation is now ready f
 4. npx prisma generate
 
 npm run db:seed
+
+

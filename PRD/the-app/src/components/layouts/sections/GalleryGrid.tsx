@@ -12,12 +12,12 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
   const [showLargerPictures, setShowLargerPictures] = useState(false);
   // Use personImages, excluding the primary image
   const allImages = person.personImages?.filter(img => !img.isPrimary && img.displayPublicly) || [];
-  
+
   // Don't show gallery if no additional images
   if (allImages.length === 0) {
     return null;
   }
-  
+
   // Determine layout based on number of images - smaller images
   const getLayoutClass = () => {
     switch (allImages.length) {
@@ -64,7 +64,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
           <span className="text-sm text-gray-700">Show larger pictures</span>
         </label>
       </div>
-      
+
       <div className={`gallery-grid grid ${getLayoutClass()}`}>
         {allImages.map((image, index) => (
           <div
@@ -78,11 +78,11 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
                 width={showLargerPictures ? 600 : 300}
                 height={showLargerPictures ? 800 : 400}
                 className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105"
-                style={{ 
-                  maxHeight: showLargerPictures 
-                    ? 'none' 
-                    : (allImages.length === 1 || allImages.length === 2 ? '200px' : 
-                       allImages.length === 3 ? '150px' : 
+                style={{
+                  maxHeight: showLargerPictures
+                    ? '500px'
+                    : (allImages.length === 1 || allImages.length === 2 ? '200px' :
+                       allImages.length === 3 ? '150px' :
                        allImages.length === 4 ? '125px' : '100px')
                 }}
               />
