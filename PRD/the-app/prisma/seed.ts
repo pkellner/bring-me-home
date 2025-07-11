@@ -854,7 +854,7 @@ const roles = [
     description: 'Administrator for specific persons',
     permissions: JSON.stringify({
       persons: ['read', 'update'],
-      comments: ['read', 'moderate'],
+      comments: ['read', 'update', 'moderate'],
     }),
   },
   {

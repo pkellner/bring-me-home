@@ -48,6 +48,12 @@ export default async function EditPersonPage({
   const townSlug = person.town.name.toLowerCase().replace(/\s+/g, '-');
   const personSlug = `${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`;
 
+  // Serialize Decimal fields to strings for client components
+  const serializedPerson = {
+    ...person,
+    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -80,7 +86,7 @@ export default async function EditPersonPage({
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <PersonForm person={person} towns={towns} />
+        <PersonForm person={serializedPerson} towns={towns} />
       </div>
     </div>
   );

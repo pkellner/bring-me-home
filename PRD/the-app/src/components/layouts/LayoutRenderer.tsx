@@ -98,40 +98,46 @@ export default function LayoutRenderer({
 
   // Common components that can be used in layouts
   const components = {
-    'hero-image': () => (
-      <div className="hero-image relative h-96 w-full overflow-hidden rounded-lg">
-        {person.primaryPicture ? (
-          <Image
-            src={person.primaryPicture}
-            alt={`${person.firstName} ${person.lastName}`}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gray-200">
-            <span className="text-4xl text-gray-400">No Photo Available</span>
-          </div>
-        )}
-      </div>
-    ),
+    'hero-image': () => {
+      const primaryImage = person.personImages?.find(img => img.isPrimary) || person.personImages?.[0];
+      return (
+        <div className="hero-image relative h-96 w-full overflow-hidden rounded-lg">
+          {primaryImage || person.primaryPicture ? (
+            <Image
+              src={primaryImage?.imageUrl || person.primaryPicture || ''}
+              alt={`${person.firstName} ${person.lastName}`}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gray-200">
+              <span className="text-4xl text-gray-400">No Photo Available</span>
+            </div>
+          )}
+        </div>
+      );
+    },
 
-    image: () => (
-      <div className="image-section">
-        {person.primaryPicture ? (
-          <Image
-            src={person.primaryPicture}
-            alt={`${person.firstName} ${person.lastName}`}
-            width={400}
-            height={400}
-            className="rounded-lg object-cover"
-          />
-        ) : (
-          <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-200">
-            <span className="text-2xl text-gray-400">No Photo Available</span>
-          </div>
-        )}
-      </div>
-    ),
+    image: () => {
+      const primaryImage = person.personImages?.find(img => img.isPrimary) || person.personImages?.[0];
+      return (
+        <div className="image-section">
+          {primaryImage || person.primaryPicture ? (
+            <Image
+              src={primaryImage?.imageUrl || person.primaryPicture || ''}
+              alt={`${person.firstName} ${person.lastName}`}
+              width={400}
+              height={400}
+              className="rounded-lg object-cover"
+            />
+          ) : (
+            <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-200">
+              <span className="text-2xl text-gray-400">No Photo Available</span>
+            </div>
+          )}
+        </div>
+      );
+    },
 
     info: () => (
       <div className="info-section space-y-4">
@@ -467,8 +473,11 @@ export default function LayoutRenderer({
   const renderLayout = () => {
     switch (template.type) {
       case 'grid':
+        const gridCols = template.columns === 3 ? 'md:grid-cols-3' : 
+                        template.columns === 4 ? 'md:grid-cols-4' : 
+                        'md:grid-cols-2';
         return (
-          <div className={`grid gap-6 md:grid-cols-${template.columns || 2}`}>
+          <div className={`grid gap-6 ${gridCols}`}>
             {template.sections.map((section: string) => (
               <div key={section} className="layout-section">
                 {components[section as keyof typeof components]?.()}

@@ -16,13 +16,17 @@ import {
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 
+// Serialized version of Person for client components
+type SerializedPerson = Omit<Person, 'bondAmount'> & {
+  bondAmount: string | null;
+  town: Town;
+  detentionCenter?: DetentionCenter | null;
+  stories?: Story[];
+  personImages?: PersonImage[];
+};
+
 interface PersonFormProps {
-  person?: Person & {
-    town: Town;
-    detentionCenter?: DetentionCenter | null;
-    stories?: Story[];
-    personImages?: PersonImage[];
-  };
+  person?: SerializedPerson;
   towns: Town[];
 }
 

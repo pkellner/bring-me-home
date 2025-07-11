@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 
 export async function POST(
   request: NextRequest,
@@ -20,13 +20,21 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get current comment
+    // Get current comment with person info
     const comment = await prisma.comment.findUnique({
       where: { id },
+      include: {
+        person: true,
+      },
     });
 
     if (!comment) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    // Check if user has access to this person (unless they're a site admin)
+    if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+      return NextResponse.json({ error: 'No access to this person' }, { status: 403 });
     }
 
     // Toggle approval status
