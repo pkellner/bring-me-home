@@ -322,31 +322,64 @@ export default function LayoutRenderer({
     return (
       <>
         {themeStyles}
-        <div className="layout-container">
-          <div className="space-y-8">
-            {/* Top row - person photo and info */}
+        <div className="layout-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
+            {/* Hero Section - Featured person photo and essential info */}
             <div className="layout-section w-full">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>{components['image']()}</div>
-                <div>{components['info']()}</div>
+              <div className="grid gap-8 lg:gap-12 lg:grid-cols-[auto_1fr] items-start">
+                {/* Main person photo - smaller and well-proportioned */}
+                <div className="relative group">
+                  <div className="w-64 max-h-96 overflow-hidden rounded-2xl shadow-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center [&_img]:!w-auto [&_img]:!h-auto [&_img]:!max-w-full [&_img]:!max-h-96 [&_img]:!object-contain [&>.image-section]:flex [&>.image-section]:items-center [&>.image-section]:justify-center [&>.image-section>div]:contents">
+                    {components['image']()}
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                </div>
+
+                {/* Person info with better typography */}
+                <div className="space-y-6">
+                  <div className="prose prose-lg max-w-none">
+                    {components['info']()}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Additional photos - smaller */}
+
+
+            {/* Stories Section - clean card-based layout */}
             <div className="layout-section w-full">
-              <div className="scale-75 origin-left">
-                {components['gallery-grid']()}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
+                  Their Story
+                </h2>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                  {components['story']()}
+                </div>
               </div>
             </div>
 
-            {/* Stories - one per row */}
+            {/* Photo Gallery - elegant grid layout */}
             <div className="layout-section w-full">
-              {components['story']()}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
+                  Photo Gallery
+                </h2>
+                <div className="[&>.gallery-section]:mt-0">
+                  {components['gallery-grid']()}
+                </div>
+              </div>
             </div>
 
-            {/* Community support section */}
+            {/* Community Support - modern comment section */}
             <div className="layout-section w-full">
-              {components['comments']()}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
+                  Community Support
+                </h2>
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
+                  {components['comments']()}
+                </div>
+              </div>
             </div>
           </div>
         </div>
