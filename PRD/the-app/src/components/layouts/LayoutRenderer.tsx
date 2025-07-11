@@ -123,15 +123,18 @@ export default function LayoutRenderer({
       return (
         <div className="image-section">
           {primaryImage || person.primaryPicture ? (
-            <Image
-              src={primaryImage?.imageUrl || person.primaryPicture || ''}
-              alt={`${person.firstName} ${person.lastName}`}
-              width={400}
-              height={400}
-              className="rounded-lg object-cover"
-            />
+            <div className="relative overflow-hidden rounded-xl shadow-lg">
+              <Image
+                src={primaryImage?.imageUrl || person.primaryPicture || ''}
+                alt={`${person.firstName} ${person.lastName}`}
+                width={500}
+                height={500}
+                className="w-full h-auto object-cover"
+                priority
+              />
+            </div>
           ) : (
-            <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-200">
+            <div className="flex h-96 w-full items-center justify-center rounded-xl bg-gray-100 shadow-inner">
               <span className="text-2xl text-gray-400">No Photo Available</span>
             </div>
           )}
@@ -228,22 +231,6 @@ export default function LayoutRenderer({
                       </span>
                     </div>
                   )}
-                {person.detentionStatus && (
-                  <div>
-                    <span className="font-semibold text-red-700">Status:</span>{' '}
-                    <span className="text-red-800 capitalize">
-                      {person.detentionStatus.replace(/-/g, ' ')}
-                    </span>
-                  </div>
-                )}
-                {person.caseNumber && (
-                  <div>
-                    <span className="font-semibold text-red-700">
-                      Case Number:
-                    </span>{' '}
-                    <span className="text-red-800">{person.caseNumber}</span>
-                  </div>
-                )}
                 {person.bondAmount && (
                   <div>
                     <span className="font-semibold text-red-700">
@@ -406,61 +393,55 @@ export default function LayoutRenderer({
         if (person.secondaryPic1)
           allImages.push({
             imageUrl: person.secondaryPic1,
-            caption: 'Additional Photo 1',
           });
         if (person.secondaryPic2)
           allImages.push({
             imageUrl: person.secondaryPic2,
-            caption: 'Additional Photo 2',
           });
         if (person.secondaryPic3)
           allImages.push({
             imageUrl: person.secondaryPic3,
-            caption: 'Additional Photo 3',
           });
       }
       
       if (allImages.length === 0) return null;
       
-      // Determine layout based on number of images
+      // Determine layout based on number of images with world-class UI design
       const getLayoutClass = () => {
         switch (allImages.length) {
           case 1:
-            return "grid-cols-1 max-w-md mx-auto";
+            return "grid-cols-1 max-w-xs mx-auto";
           case 2:
-            return "grid-cols-2 gap-4 max-w-2xl mx-auto";
+            return "grid-cols-2 gap-3 max-w-lg mx-auto";
           case 3:
-            return "grid-cols-3 gap-4";
+            return "grid-cols-3 gap-3 max-w-2xl mx-auto";
           case 4:
-            return "grid-cols-2 md:grid-cols-4 gap-4";
+            return "grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto";
+          case 5:
+            return "grid-cols-3 sm:grid-cols-5 gap-3 max-w-4xl mx-auto";
           default:
-            return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+            return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-w-5xl mx-auto";
         }
       };
 
       return (
-        <div className="gallery-section mt-8">
-          <h3 className="text-lg font-semibold mb-4">Additional Photos</h3>
+        <div className="gallery-section mt-6">
           <div className={`gallery-grid grid ${getLayoutClass()}`}>
             {allImages.map((image, index) => (
               <div
                 key={'id' in image && image.id ? image.id : `image-${index}`}
-                className="relative group"
+                className="relative group cursor-pointer"
               >
-                <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                <div className="aspect-square overflow-hidden rounded-lg bg-gray-50 shadow-sm hover:shadow-md transition-all duration-300">
                   <Image
                     src={image.imageUrl}
-                    alt={image.caption || `Additional photo ${index + 1}`}
-                    width={300}
-                    height={300}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    alt={`Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
+                    width={200}
+                    height={200}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 </div>
-                {image.caption && (
-                  <p className="mt-2 text-sm text-gray-600 text-center">
-                    {image.caption}
-                  </p>
-                )}
               </div>
             ))}
           </div>

@@ -246,7 +246,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
       template: JSON.stringify({
         type: systemDefaults.layout || 'grid',
         columns: 2,
-        sections: ['image', 'info', 'story', 'comments'],
+        sections: ['image', 'info', 'gallery-grid', 'story', 'comments'],
       }),
     };
 

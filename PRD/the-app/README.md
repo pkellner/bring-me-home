@@ -135,3 +135,5 @@ This completes Phase 1 of the implementation plan. The foundation is now ready f
 2. npx prisma migrate dev --name devNumberX
 3. npx prisma migrate deploy     {this is not need after above, but is needed on other connections like production}
 4. npx prisma generate
+
+npm run db:seed
