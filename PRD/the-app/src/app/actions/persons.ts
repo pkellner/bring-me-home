@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 import { z } from 'zod';
 import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
@@ -160,6 +160,11 @@ export async function updatePerson(id: string, formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'persons', 'update')) {
     throw new Error('Unauthorized');
+  }
+
+  // Check if user has access to this person (unless they're a site admin)
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, id, 'write')) {
+    throw new Error('No access to this person');
   }
 
   const validatedFields = personSchema.safeParse({
@@ -364,6 +369,11 @@ export async function deletePerson(id: string) {
     throw new Error('Unauthorized');
   }
 
+  // Check if user has access to this person (unless they're a site admin)
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, id, 'admin')) {
+    throw new Error('No access to this person');
+  }
+
   try {
     await prisma.person.delete({
       where: { id },
@@ -390,6 +400,11 @@ export async function togglePersonVisibility(
     throw new Error('Unauthorized');
   }
 
+  // Check if user has access to this person (unless they're a site admin)
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, personId, 'write')) {
+    throw new Error('No access to this person');
+  }
+
   try {
     await prisma.person.update({
       where: { id: personId },
@@ -411,6 +426,15 @@ export async function updateBulkPersonVisibility(
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'persons', 'update')) {
     throw new Error('Unauthorized');
+  }
+
+  // If not site admin, verify access to all persons
+  if (!isSiteAdmin(session)) {
+    for (const personId of personIds) {
+      if (!hasPersonAccess(session, personId, 'write')) {
+        throw new Error('No access to some persons');
+      }
+    }
   }
 
   try {

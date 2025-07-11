@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -133,6 +133,26 @@ export async function approveComment(
     throw new Error('Unauthorized');
   }
 
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    throw new Error('Insufficient permissions');
+  }
+
+  // Get the comment with person info to check access
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: { person: true },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  // Check if user has access to this person (unless they're a site admin)
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+    throw new Error('No access to this person');
+  }
+
   await prisma.comment.update({
     where: { id: commentId },
     data: {
@@ -150,6 +170,26 @@ export async function rejectComment(commentId: string, moderatorNotes: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     throw new Error('Unauthorized');
+  }
+
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    throw new Error('Insufficient permissions');
+  }
+
+  // Get the comment with person info to check access
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: { person: true },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  // Check if user has access to this person (unless they're a site admin)
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+    throw new Error('No access to this person');
   }
 
   await prisma.comment.update({
@@ -177,6 +217,26 @@ export async function updateCommentAndApprove(
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     throw new Error('Unauthorized');
+  }
+
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    throw new Error('Insufficient permissions');
+  }
+
+  // Only site admins can edit comment content
+  if (!isSiteAdmin(session)) {
+    throw new Error('Only site admins can edit comment content');
+  }
+
+  // Get the comment with person info to check access
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: { person: true },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
   }
 
   await prisma.comment.update({
@@ -207,7 +267,27 @@ export async function approveBulkComments(commentIds: string[]) {
     return { success: false, error: 'Unauthorized' };
   }
 
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
   try {
+    // If not site admin, verify access to all comments
+    if (!isSiteAdmin(session)) {
+      const comments = await prisma.comment.findMany({
+        where: { id: { in: commentIds } },
+        select: { personId: true },
+      });
+
+      // Check if user has write access to all persons
+      for (const comment of comments) {
+        if (!hasPersonAccess(session, comment.personId, 'write')) {
+          return { success: false, error: 'No access to some persons' };
+        }
+      }
+    }
+
     await prisma.comment.updateMany({
       where: { id: { in: commentIds } },
       data: {
@@ -234,7 +314,27 @@ export async function rejectBulkComments(
     return { success: false, error: 'Unauthorized' };
   }
 
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
   try {
+    // If not site admin, verify access to all comments
+    if (!isSiteAdmin(session)) {
+      const comments = await prisma.comment.findMany({
+        where: { id: { in: commentIds } },
+        select: { personId: true },
+      });
+
+      // Check if user has write access to all persons
+      for (const comment of comments) {
+        if (!hasPersonAccess(session, comment.personId, 'write')) {
+          return { success: false, error: 'No access to some persons' };
+        }
+      }
+    }
+
     await prisma.comment.updateMany({
       where: { id: { in: commentIds } },
       data: {
@@ -263,6 +363,21 @@ export async function toggleCommentStatus(
   }
 
   try {
+    // Get the comment with person info to check access
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { personId: true },
+    });
+
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+
+    // Check if user has access to this person (unless they're a site admin)
+    if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+      throw new Error('No access to this person');
+    }
+
     await prisma.comment.update({
       where: { id: commentId },
       data: {

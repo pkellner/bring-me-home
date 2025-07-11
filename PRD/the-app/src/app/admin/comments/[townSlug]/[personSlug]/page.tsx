@@ -48,6 +48,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
   }
 
   // Check if user has access to this person or town
+  let isSiteAdmin = false;
   if (session.user?.id) {
     const userWithAccess = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -72,7 +73,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
       },
     });
 
-    const isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
+    isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
     const hasTownAccess = (userWithAccess?.townAccess?.length ?? 0) > 0;
     const hasPersonAccess = (userWithAccess?.personAccess?.length ?? 0) > 0;
 
@@ -164,6 +165,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
         canDelete={canDelete}
         towns={towns}
         personId={person.id}
+        isSiteAdmin={isSiteAdmin}
       />
     </div>
   );

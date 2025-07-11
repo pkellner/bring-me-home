@@ -73,6 +73,7 @@ interface CommentsGridProps {
   canDelete: boolean;
   towns: Town[];
   personId?: string;
+  isSiteAdmin: boolean;
 }
 
 function CommentsGrid({
@@ -81,6 +82,7 @@ function CommentsGrid({
   canDelete,
   towns,
   personId,
+  isSiteAdmin,
 }: CommentsGridProps) {
   const router = useRouter();
   const [comments, setComments] = useState(initialComments);
@@ -582,6 +584,7 @@ function CommentsGrid({
             setSelectedComment(null);
           }}
           onUpdate={handleStatusUpdate}
+          isSiteAdmin={isSiteAdmin}
         />
       )}
     </div>

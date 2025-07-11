@@ -52,6 +52,7 @@ interface CommentModerationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (commentId: string, approved: boolean, updatedData?: Partial<Comment>) => void;
+  isSiteAdmin: boolean;
 }
 
 export default function CommentModerationModal({
@@ -59,6 +60,7 @@ export default function CommentModerationModal({
   isOpen,
   onClose,
   onUpdate,
+  isSiteAdmin,
 }: CommentModerationModalProps) {
   const [editedContent, setEditedContent] = useState(comment.content || '');
   const [editedOccupation, setEditedOccupation] = useState(
@@ -81,37 +83,44 @@ export default function CommentModerationModal({
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      const hasChanges =
-        editedContent !== comment.content ||
-        editedOccupation !== (comment.occupation || '') ||
-        editedBirthdate !==
-          (comment.birthdate
-            ? new Date(comment.birthdate).toISOString().split('T')[0]
-            : '') ||
-        showOccupation !== comment.showOccupation ||
-        showBirthdate !== comment.showBirthdate;
+      if (isSiteAdmin) {
+        // Site admin can edit everything
+        const hasChanges =
+          editedContent !== comment.content ||
+          editedOccupation !== (comment.occupation || '') ||
+          editedBirthdate !==
+            (comment.birthdate
+              ? new Date(comment.birthdate).toISOString().split('T')[0]
+              : '') ||
+          showOccupation !== comment.showOccupation ||
+          showBirthdate !== comment.showBirthdate;
 
-      if (hasChanges) {
-        await updateCommentAndApprove(
-          comment.id,
-          editedContent,
-          moderatorNotes,
-          {
-            occupation: editedOccupation || undefined,
-            birthdate: editedBirthdate || undefined,
+        if (hasChanges) {
+          await updateCommentAndApprove(
+            comment.id,
+            editedContent,
+            moderatorNotes,
+            {
+              occupation: editedOccupation || undefined,
+              birthdate: editedBirthdate || undefined,
+              showOccupation,
+              showBirthdate,
+            }
+          );
+          onUpdate(comment.id, true, {
+            content: editedContent,
+            occupation: editedOccupation || null,
+            birthdate: editedBirthdate ? new Date(editedBirthdate) : null,
             showOccupation,
             showBirthdate,
-          }
-        );
-        onUpdate(comment.id, true, {
-          content: editedContent,
-          occupation: editedOccupation || null,
-          birthdate: editedBirthdate ? new Date(editedBirthdate) : null,
-          showOccupation,
-          showBirthdate,
-          moderatorNotes,
-        });
+            moderatorNotes,
+          });
+        } else {
+          await approveComment(comment.id, moderatorNotes);
+          onUpdate(comment.id, true, { moderatorNotes });
+        }
       } else {
+        // Town/Person admin can only approve and update moderator notes
         await approveComment(comment.id, moderatorNotes);
         onUpdate(comment.id, true, { moderatorNotes });
       }
@@ -234,7 +243,7 @@ export default function CommentModerationModal({
                   htmlFor="content"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Comment Content (you can edit this before approving)
+                  Comment Content {isSiteAdmin && '(you can edit this before approving)'}
                 </label>
                 <textarea
                   id="content"
@@ -243,6 +252,7 @@ export default function CommentModerationModal({
                   onChange={e => setEditedContent(e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   placeholder="No comment provided - supporter is showing support only"
+                  disabled={!isSiteAdmin}
                 />
               </div>
 
@@ -262,6 +272,7 @@ export default function CommentModerationModal({
                     onChange={e => setEditedOccupation(e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     placeholder="e.g., Teacher, Engineer"
+                    disabled={!isSiteAdmin}
                   />
                   <label className="flex items-center mt-1">
                     <input
@@ -269,6 +280,7 @@ export default function CommentModerationModal({
                       checked={showOccupation}
                       onChange={e => setShowOccupation(e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      disabled={!isSiteAdmin}
                     />
                     <span className="ml-2 text-sm text-gray-600">
                       Show occupation publicly
@@ -289,6 +301,7 @@ export default function CommentModerationModal({
                     value={editedBirthdate}
                     onChange={e => setEditedBirthdate(e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    disabled={!isSiteAdmin}
                   />
                   <label className="flex items-center mt-1">
                     <input
@@ -296,6 +309,7 @@ export default function CommentModerationModal({
                       checked={showBirthdate}
                       onChange={e => setShowBirthdate(e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      disabled={!isSiteAdmin}
                     />
                     <span className="ml-2 text-sm text-gray-600">
                       Show birthdate publicly
@@ -331,7 +345,7 @@ export default function CommentModerationModal({
               onClick={handleApprove}
               className="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
-              {isSubmitting ? 'Processing...' : 'Approve & Publish'}
+              {isSubmitting ? 'Processing...' : isSiteAdmin ? 'Approve & Publish' : 'Update'}
             </button>
             <button
               type="button"

@@ -38,6 +38,7 @@ export default async function TownCommentsPage({ params }: PageProps) {
   }
 
   // Check if user has access to this town
+  let isSiteAdmin = false;
   if (session.user?.id) {
     const userWithAccess = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -56,7 +57,7 @@ export default async function TownCommentsPage({ params }: PageProps) {
       },
     });
 
-    const isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
+    isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
     const hasTownAccess = (userWithAccess?.townAccess?.length ?? 0) > 0;
 
     if (!isSiteAdmin && !hasTownAccess) {
@@ -148,6 +149,7 @@ export default async function TownCommentsPage({ params }: PageProps) {
         canApprove={canApprove}
         canDelete={canDelete}
         towns={towns}
+        isSiteAdmin={isSiteAdmin}
       />
     </div>
   );

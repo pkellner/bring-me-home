@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, getUserAccessiblePersons } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PersonsGrid from './PersonsGrid';
@@ -17,7 +17,18 @@ export default async function PersonsPage() {
     redirect('/admin');
   }
 
+  // Get accessible person IDs for the current user
+  const accessiblePersonIds = getUserAccessiblePersons(session);
+  
   const persons = await prisma.person.findMany({
+    where: 
+      accessiblePersonIds.includes('*') 
+        ? {} // Site admin - no filtering needed
+        : {
+            id: {
+              in: accessiblePersonIds
+            }
+          },
     include: {
       town: true,
       comments: {

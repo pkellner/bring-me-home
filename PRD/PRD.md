@@ -8,6 +8,8 @@
 - **Multi-Language Story Support** - Stories can be created and displayed in multiple languages with language toggle
 - **Anonymous Comment System** - Comments with required name fields, optional contact info, and support preferences
 - **Comment Moderation System** - Admin interface for approving/rejecting comments with editing capability
+- **Permission-Based Access Control** - Users only see and manage persons/comments they have access to
+- **Role-Based Comment Editing** - Site admins can edit content, others can only approve/reject
 - Theme and Layout System (10 layouts, 10 themes, admin interfaces)
 - Admin Interface with comprehensive data grids
 - Build Information & Configuration Page (/configs)
@@ -149,6 +151,11 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
     - Birthdate field (optional) with public display toggle
     - Moderators can edit these fields and toggle their visibility before approval
     - Public display respects commenter's privacy preferences
+  - **Role-Based Comment Editing**:
+    - Site admins: Can edit all comment fields (content, occupation, birthdate, display settings)
+    - Town/Person admins: Can only approve/reject and add moderator notes
+    - Edit form UI adapts based on user role (disabled fields, different button text)
+    - Backend enforces permissions on all comment update operations
 - **Visibility Filtering on Public Pages**:
   - Main site homepage only shows towns where isActive is true
   - "Recently Added" section only shows persons from visible towns who are also visible (isActive)
@@ -305,18 +312,42 @@ The application supports simple image management for detained persons with a pri
 - User and role management
 - Global settings configuration
 - All town and person management
+- **Full comment editing capabilities** including content, occupation, birthdate, and display settings
+- Can modify any comment before approval
 
 ### Town Admin
 - Assigned to specific towns
 - Full access to assigned town's persons
-- Comment moderation for assigned areas
+- Comment moderation for assigned areas (approve/reject only)
 - Local settings management
+- **Limited comment editing**: Can only update moderator notes, not comment content
+- Cannot edit commenter information or display settings
 
 ### Person Admin
 - Assigned to specific persons
 - Profile management for assigned persons
 - Comment monitoring and response
 - Family communication coordination
+- **Limited comment editing**: Can only update moderator notes, not comment content
+- Cannot edit commenter information or display settings
+
+### Permission System Implementation
+- **Person Access Filtering**: Users only see persons they have explicit access to
+  - Site admins see all persons
+  - Town admins see all persons in their assigned towns
+  - Person admins see only their assigned persons
+- **Comment Access Filtering**: Comments are filtered based on person access
+  - Users only see comments for persons they have access to
+  - Access level inheritance from person permissions
+- **Backend Permission Enforcement**: All actions verify user permissions
+  - Comment approval/rejection checks person access
+  - Person updates check write access
+  - Bulk operations verify access to all affected records
+- **UI Permission Controls**:
+  - Comment edit form shows "Update" button for non-site admins
+  - Comment edit form shows "Approve & Publish" for site admins
+  - Form fields are disabled based on role (only site admins can edit content)
+  - Edit icons only visible to users with appropriate permissions
 
 ## Data Models
 

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, getUserAccessiblePersons } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from './CommentsGrid';
@@ -38,7 +38,20 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
     }
   }
 
-  const whereClause = personId ? { personId } : {};
+  // Get accessible person IDs for the current user
+  const accessiblePersonIds = getUserAccessiblePersons(session);
+  
+  // Build where clause based on person access
+  const whereClause = personId 
+    ? { personId } 
+    : accessiblePersonIds.includes('*')
+      ? {} // Site admin - no filtering needed
+      : {
+          personId: {
+            in: accessiblePersonIds
+          }
+        };
+        
   const rawComments = await prisma.comment.findMany({
     where: whereClause,
     include: {
@@ -76,6 +89,21 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
 
   const canApprove = hasPermission(session, 'comments', 'update');
   const canDelete = hasPermission(session, 'comments', 'delete');
+  
+  // Check if user is site admin
+  const userWithRoles = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  const isSiteAdmin =
+    userWithRoles?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
 
   return (
     <CommentsGrid
@@ -84,6 +112,7 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
       canDelete={canDelete}
       towns={towns}
       personId={personId}
+      isSiteAdmin={isSiteAdmin}
     />
   );
 }
