@@ -4,10 +4,14 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { processAndStoreImage } from '../src/lib/image-storage';
 import { createTownSlug, createPersonSlug } from '../src/lib/slug-utils';
+import { generateSecurePassword } from '../src/lib/password-generator';
 
 const { Decimal } = Prisma;
 
 const prisma = new PrismaClient();
+
+// Track passwords for final display
+const passwordInfo: { user: string; password: string; source: string }[] = [];
 
 // Store placeholder image IDs
 const placeholderImageIds: Map<
@@ -1627,7 +1631,14 @@ async function main() {
 
   // Create admin user
   console.log('Creating admin user...');
-  const hashedPassword = await bcrypt.hash('admin123', 12);
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || generateSecurePassword();
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+  passwordInfo.push({
+    user: 'admin',
+    password: adminPassword,
+    source: process.env.SEED_ADMIN_PASSWORD ? 'env' : 'generated'
+  });
+  
   const adminUser = await prisma.user.create({
     data: {
       username: 'admin',
@@ -1716,14 +1727,22 @@ async function main() {
     },
   ];
 
+  const demoPassword = process.env.SEED_DEMO_PASSWORD || generateSecurePassword();
+  
   for (const demoUser of demoUsers) {
-    const hashedDemoPassword = await bcrypt.hash('demo123', 12);
+    const hashedDemoPassword = await bcrypt.hash(demoPassword, 12);
     const user = await prisma.user.create({
       data: {
         ...demoUser,
         password: hashedDemoPassword,
         isActive: true,
       },
+    });
+    
+    passwordInfo.push({
+      user: demoUser.username,
+      password: demoPassword,
+      source: process.env.SEED_DEMO_PASSWORD ? 'env' : 'generated'
     });
 
     // Assign viewer role
@@ -1737,9 +1756,11 @@ async function main() {
 
   // Create town admin users
   console.log('Creating town admin users...');
+  const townAdminPassword = process.env.SEED_TOWN_ADMIN_PASSWORD || generateSecurePassword();
+  
   for (let i = 0; i < towns.length; i++) {
     const town = towns[i];
-    const hashedPassword = await bcrypt.hash(`town${i + 1}123`, 12);
+    const hashedPassword = await bcrypt.hash(townAdminPassword, 12);
     const townAdmin = await prisma.user.create({
       data: {
         username: `town_admin_${i + 1}`,
@@ -1749,6 +1770,12 @@ async function main() {
         lastName: 'Admin',
         isActive: true,
       },
+    });
+    
+    passwordInfo.push({
+      user: `town_admin_${i + 1}`,
+      password: townAdminPassword,
+      source: process.env.SEED_TOWN_ADMIN_PASSWORD ? 'env' : 'generated'
     });
 
     // Assign town-admin role
@@ -1771,7 +1798,8 @@ async function main() {
   
   // Create person-admin user
   console.log('Creating person admin user...');
-  const personAdminPassword = await bcrypt.hash('person1123', 12);
+  const personAdminPasswordPlain = process.env.SEED_PERSON_ADMIN_PASSWORD || generateSecurePassword();
+  const personAdminPassword = await bcrypt.hash(personAdminPasswordPlain, 12);
   const personAdmin = await prisma.user.create({
     data: {
       username: 'person_admin_1',
@@ -1781,6 +1809,12 @@ async function main() {
       lastName: 'Admin',
       isActive: true,
     },
+  });
+  
+  passwordInfo.push({
+    user: 'person_admin_1',
+    password: personAdminPasswordPlain,
+    source: process.env.SEED_PERSON_ADMIN_PASSWORD ? 'env' : 'generated'
   });
   
   // Assign person-admin role
@@ -2052,13 +2086,69 @@ async function main() {
   console.log(`- ${layouts.length} layouts`);
   console.log(`- ${detentionCenters.length} detention centers`);
   console.log(`- ${demoUsers.length + towns.length + 1} users`);
-  console.log('\nAdmin login: admin / admin123');
-  console.log(
-    'Demo users: john.doe, jane.smith, mike.jones (password: demo123)'
-  );
-  console.log(
-    'Town admins: town_admin_1 through town_admin_5 (password: town[n]123)'
-  );
+  
+  // Display password information
+  console.log('\n===========================================');
+  console.log('USER CREDENTIALS SUMMARY');
+  console.log('===========================================\n');
+  
+  // Group passwords by type
+  const adminPasswords = passwordInfo.filter(p => p.user === 'admin');
+  const demoPasswords = passwordInfo.filter(p => p.user.includes('john.doe') || p.user.includes('jane.smith') || p.user.includes('mike.jones'));
+  const townAdminPasswords = passwordInfo.filter(p => p.user.includes('town_admin'));
+  const personAdminPasswords = passwordInfo.filter(p => p.user.includes('person_admin'));
+  
+  // Display admin password
+  if (adminPasswords.length > 0) {
+    const { user, password, source } = adminPasswords[0];
+    console.log(`Admin User:`);
+    console.log(`  Username: ${user}`);
+    console.log(`  Password: ${password} ${source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
+  }
+  
+  // Display demo passwords
+  if (demoPasswords.length > 0) {
+    console.log(`\nDemo Users (all use same password):`);
+    console.log(`  Usernames: john.doe, jane.smith, mike.jones`);
+    console.log(`  Password: ${demoPasswords[0].password} ${demoPasswords[0].source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
+  }
+  
+  // Display town admin passwords
+  if (townAdminPasswords.length > 0) {
+    console.log(`\nTown Admin Users (all use same password):`);
+    console.log(`  Usernames: town_admin_1 through town_admin_${towns.length}`);
+    console.log(`  Password: ${townAdminPasswords[0].password} ${townAdminPasswords[0].source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
+  }
+  
+  // Display person admin password
+  if (personAdminPasswords.length > 0) {
+    const { user, password, source } = personAdminPasswords[0];
+    console.log(`\nPerson Admin User:`);
+    console.log(`  Username: ${user}`);
+    console.log(`  Password: ${password} ${source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
+  }
+  
+  // Warning for generated passwords
+  const generatedPasswords = passwordInfo.filter(p => p.source === 'generated');
+  if (generatedPasswords.length > 0) {
+    console.log('\n⚠️  WARNING: Some passwords were GENERATED because they were not found in .env file.');
+    console.log('⚠️  Save these passwords immediately - they will not be shown again!');
+    console.log('\nTo use specific passwords, add these to your .env file:');
+    if (adminPasswords.some(p => p.source === 'generated')) {
+      console.log(`SEED_ADMIN_PASSWORD="${adminPasswords[0].password}"`);
+    }
+    if (demoPasswords.some(p => p.source === 'generated')) {
+      console.log(`SEED_DEMO_PASSWORD="${demoPasswords[0].password}"`);
+    }
+    if (townAdminPasswords.some(p => p.source === 'generated')) {
+      console.log(`SEED_TOWN_ADMIN_PASSWORD="${townAdminPasswords[0].password}"`);
+    }
+    if (personAdminPasswords.some(p => p.source === 'generated')) {
+      console.log(`SEED_PERSON_ADMIN_PASSWORD="${personAdminPasswords[0].password}"`);
+    }
+  }
+  
+  console.log('\n===========================================\n');
 }
 
 main()
