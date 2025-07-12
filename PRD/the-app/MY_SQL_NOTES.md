@@ -1,15 +1,43 @@
 
-``` creating a new user with all privileges on a specific schema
--- 1️⃣  Create the user (replace 'veryStrongPassword!' with an actual secret)
-CREATE USER IF NOT EXISTS 'bringmehomeuser'@'%' IDENTIFIED BY 'veryStrongPassword!';
+``` sql
+/* ---------- change-me section ---------- */
+SET @database_name := `better-rules-prod`;        -- wrap only the value, not the back-ticks
+SET @db_user       := `betterrulesuser`;
+SET @db_host       := '%';
+SET @db_password   := `xxx`;
+/* ---------- nothing below this line usually changes ---------- */
 
--- 2️⃣  Grant all privileges on the target schema
-GRANT ALL PRIVILEGES ON bringmehomeprod.* TO 'bringmehomeuser'@'%';
+-- CREATE if missing
+SET @sql := CONCAT(
+  'CREATE USER IF NOT EXISTS ''', @db_user, '''@''', @db_host,
+  ''' IDENTIFIED BY ''', @db_password, ''';'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 3️⃣  (Optional) Let the new user also GRANT privileges to others
--- GRANT ALL PRIVILEGES ON bringmehomeprod.* TO 'bringmehomeuser'@'%' WITH GRANT OPTION;
+-- ALTER (idempotent refresh of password/attributes)
+SET @sql := CONCAT(
+  'ALTER USER ''', @db_user, '''@''', @db_host,
+  ''' IDENTIFIED BY ''', @db_password, ''';'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 4️⃣  Make sure the privilege table is re-read (redundant in MySQL 8, but harmless)
+-- GRANT privileges (database name safely back-ticked)
+SET @sql := CONCAT(
+  'GRANT ALL PRIVILEGES ON `', @database_name, '`.* TO ''',
+  @db_user, '''@''', @db_host, ''' WITH GRANT OPTION;'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 FLUSH PRIVILEGES;
+```
+
+
+```sql
+SELECT
+  table_schema   AS `Schema`,
+  ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) AS `Size_MB`
+FROM information_schema.tables
+GROUP BY table_schema
+ORDER BY `Size_MB` DESC;
 ```
 

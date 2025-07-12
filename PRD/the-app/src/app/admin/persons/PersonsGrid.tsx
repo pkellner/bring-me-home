@@ -342,7 +342,7 @@ export default function PersonsGrid({
       ),
     },
     ...(isSiteAdmin || isTownAdmin ? [{
-      key: 'isActive' as keyof Person,
+      key: 'isActive',
       label: 'Visibility',
       render: (value: unknown, record: Person) => (
         <PersonVisibilityToggle
