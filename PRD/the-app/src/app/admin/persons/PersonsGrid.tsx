@@ -26,6 +26,7 @@ interface Person extends Record<string, unknown> {
   firstName: string;
   middleName: string | null;
   lastName: string;
+  slug: string;
   alienIdNumber: string | null;
   lastKnownAddress: string;
   story: string | null;
@@ -250,9 +251,7 @@ export default function PersonsGrid({
             <div className="text-sm font-medium text-gray-900">
               {isSiteAdmin ? (
                 <a
-                  href={`/${
-                    record.town.slug
-                  }/${record.firstName.toLowerCase()}-${record.lastName.toLowerCase()}`}
+                  href={`/${record.town.slug}/${record.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-blue-600 hover:underline"
@@ -363,11 +362,7 @@ export default function PersonsGrid({
     {
       type: 'view',
       label: 'View Person',
-      href: person => {
-        const townSlug = person.town.name.toLowerCase().replace(/\s+/g, '-');
-        const personSlug = `${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`;
-        return `/${townSlug}/${personSlug}`;
-      },
+      href: person => `/${person.town.slug}/${person.slug}`,
     },
     {
       type: 'edit',

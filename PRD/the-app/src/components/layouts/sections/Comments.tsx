@@ -14,7 +14,7 @@ export default function Comments({ person, isAdmin }: CommentsProps) {
         <h2 className="text-2xl font-bold">Community Support</h2>
         {isAdmin && (
           <Link
-            href={`/admin/comments/${person.town.name.toLowerCase().replace(/\s+/g, '-')}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
+            href={`/admin/comments/${person.town.slug}/${person.slug}`}
             className="text-sm text-indigo-600 hover:text-indigo-500"
           >
             [Manage Comments]

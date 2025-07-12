@@ -23,13 +23,10 @@ export default async function TownCommentsPage({ params }: PageProps) {
     redirect('/admin');
   }
 
-  // Convert slug to town name
-  const townName = townSlug.replace(/-/g, ' ');
-  
-  // Find the town
+  // Find the town using slug
   const town = await prisma.town.findFirst({
     where: {
-      name: townName,
+      slug: townSlug,
     },
   });
 

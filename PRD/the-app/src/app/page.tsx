@@ -15,6 +15,7 @@ async function getPublicData() {
       select: {
         id: true,
         name: true,
+        slug: true,
         state: true,
         _count: {
           select: {
@@ -43,6 +44,7 @@ async function getPublicData() {
         id: true,
         firstName: true,
         lastName: true,
+        slug: true,
         personImages: {
           where: {
             isActive: true,
@@ -57,6 +59,7 @@ async function getPublicData() {
         town: {
           select: {
             name: true,
+            slug: true,
             state: true,
           },
         },
@@ -136,7 +139,7 @@ export default async function HomePage() {
             {towns.map(town => (
               <Link
                 key={town.id}
-                href={`/${town.name.toLowerCase().replace(/\s+/g, '-')}`}
+                href={`/${town.slug}`}
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6 border border-gray-200"
               >
                 <h4 className="text-lg font-semibold text-gray-900">
@@ -196,12 +199,7 @@ export default async function HomePage() {
                     </p>
                   )}
                   <Link
-                    href={`/${person.town.name
-                      .toLowerCase()
-                      .replace(
-                        /\s+/g,
-                        '-'
-                      )}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
+                    href={`/${person.town.slug}/${person.slug}`}
                     className="mt-3 inline-block text-indigo-600 hover:text-indigo-500 text-sm font-medium"
                   >
                     View Details →

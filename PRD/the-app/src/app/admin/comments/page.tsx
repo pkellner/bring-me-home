@@ -32,9 +32,7 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
 
     if (person) {
       // Redirect to the new URL structure
-      const townSlug = person.town.name.toLowerCase().replace(/\s+/g, '-');
-      const personSlug = `${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`;
-      redirect(`/admin/comments/${townSlug}/${personSlug}`);
+      redirect(`/admin/comments/${person.town.slug}/${person.slug}`);
     }
   }
 

@@ -51,9 +51,11 @@ interface Comment extends Record<string, unknown> {
     id: string;
     firstName: string;
     lastName: string;
+    slug: string;
     town: {
       name: string;
       id: string;
+      slug: string;
       state: string;
     };
   };
@@ -423,11 +425,7 @@ function CommentsGrid({
     {
       type: 'view',
       label: 'View on Profile',
-      href: comment => {
-        const townSlug = comment.person.town.name.toLowerCase().replace(/\s+/g, '-');
-        const personSlug = `${comment.person.firstName.toLowerCase()}-${comment.person.lastName.toLowerCase()}`;
-        return `/${townSlug}/${personSlug}#comments`;
-      },
+      href: comment => `/${comment.person.town.slug}/${comment.person.slug}#comments`,
     },
     {
       type: 'delete',
@@ -470,7 +468,7 @@ function CommentsGrid({
             {viewedPerson.town.name}, {viewedPerson.town.state}
           </p>
           <Link
-            href={`/${viewedPerson.town.name.toLowerCase().replace(/\s+/g, '-')}/${viewedPerson.firstName.toLowerCase()}-${viewedPerson.lastName.toLowerCase()}`}
+            href={`/${viewedPerson.town.slug}/${viewedPerson.slug}`}
             className="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-500"
           >
             View Profile →

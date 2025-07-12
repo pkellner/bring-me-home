@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { processAndStoreImage } from '../src/lib/image-storage';
+import { createTownSlug, createPersonSlug } from '../src/lib/slug-utils';
 
 const { Decimal } = Prisma;
 
@@ -47,10 +48,20 @@ async function storePlaceholderImages() {
   }
 }
 
+// Store created IDs for relationships
+const createdIds = {
+  detentionCenters: new Map<string, string>(),
+  towns: new Map<string, string>(),
+  persons: new Map<string, string>(),
+  roles: new Map<string, string>(),
+  themes: new Map<string, string>(),
+  layouts: new Map<string, string>(),
+  users: new Map<string, string>(),
+};
+
 // Seed data for Southern California detention centers
 const detentionCenters = [
   {
-    id: 'dc_1',
     name: 'Adelanto ICE Processing Center',
     facilityType: 'ICE',
     operatedBy: 'The GEO Group, Inc.',
@@ -69,7 +80,6 @@ const detentionCenters = [
     isActive: true,
   },
   {
-    id: 'dc_2',
     name: 'Otay Mesa Detention Center',
     facilityType: 'Private',
     operatedBy: 'CoreCivic',
@@ -87,7 +97,6 @@ const detentionCenters = [
     isActive: true,
   },
   {
-    id: 'dc_3',
     name: 'Imperial Regional Detention Facility',
     facilityType: 'ICE',
     operatedBy: 'Management & Training Corporation',
@@ -105,7 +114,6 @@ const detentionCenters = [
     isActive: true,
   },
   {
-    id: 'dc_4',
     name: 'Mesa Verde ICE Processing Center',
     facilityType: 'ICE',
     operatedBy: 'The GEO Group, Inc.',
@@ -123,7 +131,6 @@ const detentionCenters = [
     isActive: true,
   },
   {
-    id: 'dc_5',
     name: 'Orange County Jail - James A. Musick Facility',
     facilityType: 'County',
     operatedBy: "Orange County Sheriff's Department",
@@ -145,9 +152,7 @@ const detentionCenters = [
 // Seed data for California towns
 const towns = [
   {
-    id: 'town_1',
     name: 'Borrego Springs',
-    slug: 'borrego-springs',
     state: 'California',
     county: 'San Diego',
     zipCode: '92004',
@@ -159,9 +164,7 @@ const towns = [
     isActive: true,
   },
   {
-    id: 'town_2',
     name: 'Mendocino',
-    slug: 'mendocino',
     state: 'California',
     county: 'Mendocino',
     zipCode: '95460',
@@ -173,9 +176,7 @@ const towns = [
     isActive: true,
   },
   {
-    id: 'town_3',
     name: 'Julian',
-    slug: 'julian',
     state: 'California',
     county: 'San Diego',
     zipCode: '92036',
@@ -187,9 +188,7 @@ const towns = [
     isActive: true,
   },
   {
-    id: 'town_4',
     name: 'Cambria',
-    slug: 'cambria',
     state: 'California',
     county: 'San Luis Obispo',
     zipCode: '93428',
@@ -201,9 +200,7 @@ const towns = [
     isActive: true,
   },
   {
-    id: 'town_5',
     name: 'Ferndale',
-    slug: 'ferndale',
     state: 'California',
     county: 'Humboldt',
     zipCode: '95536',
@@ -323,9 +320,10 @@ const generatePersons = () => {
   ];
 
   const persons = [];
-  let personId = 1;
 
-  for (const town of towns) {
+  for (let townIndex = 0; townIndex < towns.length; townIndex++) {
+    const town = towns[townIndex];
+    const townName = town.name;
     // Generate 2-5 persons per town
     const personsPerTown = Math.floor(Math.random() * 4) + 2;
 
@@ -346,8 +344,8 @@ const generatePersons = () => {
       const detentionStatus = isDetained
         ? randomElement(detentionStatuses)
         : null;
-      const detentionCenterId = isDetained
-        ? randomElement(detentionCenters).id
+      const detentionCenterName = isDetained
+        ? randomElement(detentionCenters).name
         : null;
       const detentionDate = isDetained
         ? randomDate(new Date(2023, 0, 1), lastSeenDate)
@@ -365,7 +363,6 @@ const generatePersons = () => {
           : null;
 
       persons.push({
-        id: `person_${personId}`,
         firstName,
         middleName: Math.random() > 0.5 ? randomElement(middleNames) : null,
         lastName,
@@ -403,7 +400,7 @@ const generatePersons = () => {
         phoneNumber: `${town.zipCode.substring(0, 3)}-555-${String(
           Math.floor(Math.random() * 10000)
         ).padStart(4, '0')}`,
-        emailAddress: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${personId}@email.com`,
+        emailAddress: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${persons.length + 1}@email.com`,
         story: generateStory(
           firstName,
           lastName,
@@ -422,23 +419,23 @@ const generatePersons = () => {
           'Main Street',
           'Shopping Center',
         ])}, ${town.name}`,
-        townId: town.id,
+        townName,
         primaryPicture: `/api/images/${placeholderImageIds.get(
-          (personId % 10) + 1
+          ((persons.length + 1) % 10) + 1
         )?.fullImageId}`,
         secondaryPic1:
           Math.random() > 0.5
-            ? `/api/images/${placeholderImageIds.get(((personId + 1) % 10) + 1)
+            ? `/api/images/${placeholderImageIds.get(((persons.length + 2) % 10) + 1)
                 ?.fullImageId}`
             : null,
         secondaryPic2:
           Math.random() > 0.7
-            ? `/api/images/${placeholderImageIds.get(((personId + 2) % 10) + 1)
+            ? `/api/images/${placeholderImageIds.get(((persons.length + 3) % 10) + 1)
                 ?.fullImageId}`
             : null,
         status: 'detained', // All persons in this system are detained
         // Detention information
-        detentionCenterId,
+        detentionCenterName,
         detentionDate,
         releaseDate,
         detentionStatus,
@@ -498,14 +495,11 @@ const generatePersons = () => {
             : null,
         countryOfOrigin: randomElement(countries),
       });
-
-      personId++;
     }
   }
   
-  // Add Joe Plumber specifically to Borrego Springs (town_1)
+  // Add Joe Plumber specifically to Borrego Springs
   const joePlumber = {
-    id: 'person_joe_plumber',
     firstName: 'Joe',
     middleName: null,
     lastName: 'Plumber',
@@ -524,13 +518,13 @@ const generatePersons = () => {
     familyMessage: 'My husband Joe is the backbone of our family and our community. Our three children miss their father terribly, and our plumbing business is struggling without him. We need Joe home where he belongs, helping our neighbors and raising our children.',
     lastSeenDate: new Date(2024, 0, 15), // January 15, 2024
     lastSeenLocation: 'Downtown Borrego Springs',
-    townId: 'town_1', // Borrego Springs
+    townName: 'Borrego Springs',
     primaryPicture: `/api/images/${placeholderImageIds.get(1)?.fullImageId}`,
     secondaryPic1: `/api/images/${placeholderImageIds.get(2)?.fullImageId}`,
     secondaryPic2: `/api/images/${placeholderImageIds.get(3)?.fullImageId}`,
     status: 'detained',
     // Detention information
-    detentionCenterId: 'dc_2', // Otay Mesa Detention Center
+    detentionCenterName: 'Otay Mesa Detention Center',
     detentionDate: new Date(2024, 0, 15), // January 15, 2024
     releaseDate: null,
     detentionStatus: 'detained',
@@ -637,11 +631,10 @@ function generateFamilyMessage(firstName: string): string {
 
 // Type definitions for seed data
 interface SeedPerson {
-  id: string;
   firstName: string;
   lastName: string;
-  townId: string;
-  detentionCenterId?: string | null;
+  townName: string;
+  detentionCenterName?: string | null;
   detentionDate?: Date | null;
   lastSeenDate?: Date | null;
   story?: string | null;
@@ -678,7 +671,7 @@ const generateSupporters = (persons: SeedPerson[]) => {
 
   for (const person of persons) {
     // Only detained persons get supporters
-    if (!person.detentionCenterId) continue;
+    if (!person.detentionCenterName) continue;
 
     // Generate 10-30 supporters per detained person
     const supportersPerPerson = Math.floor(Math.random() * 21) + 10;
@@ -725,10 +718,9 @@ const generateSupporters = (persons: SeedPerson[]) => {
       );
 
       supporters.push({
-        id: `supporter_${supporterId}`,
         firstName,
         lastName,
-        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${supporterId}@email.com`,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${supporters.length + 1}@email.com`,
         phone:
           Math.random() > 0.5
             ? `555-${String(Math.floor(Math.random() * 10000)).padStart(
@@ -748,7 +740,8 @@ const generateSupporters = (persons: SeedPerson[]) => {
           Math.random() > 0.5 && person.detentionDate
             ? randomDate(person.detentionDate, new Date())
             : null,
-        personId: person.id,
+        personFirstName: person.firstName,
+        personLastName: person.lastName,
         createdAt: randomDate(
           person.detentionDate ||
             person.lastSeenDate ||
@@ -756,8 +749,6 @@ const generateSupporters = (persons: SeedPerson[]) => {
           new Date()
         ),
       });
-
-      supporterId++;
     }
   }
 
@@ -783,7 +774,7 @@ const generateComments = (persons: SeedPerson[]) => {
 
   for (const person of persons) {
     // Only detained persons get comments
-    if (!person.detentionCenterId) continue;
+    if (!person.detentionCenterName) continue;
 
     // Generate 3-8 comments per person
     const commentsPerPerson = Math.floor(Math.random() * 6) + 3;
@@ -801,11 +792,11 @@ const generateComments = (persons: SeedPerson[]) => {
       }
 
       comments.push({
-        id: `comment_${commentId}`,
         content,
         type,
         visibility: randomElement(visibilities),
-        personId: person.id,
+        personFirstName: person.firstName,
+        personLastName: person.lastName,
         isApproved: Math.random() > 0.1, // 90% approved
         createdAt: randomDate(
           person.detentionDate ||
@@ -814,8 +805,6 @@ const generateComments = (persons: SeedPerson[]) => {
           new Date()
         ),
       });
-
-      commentId++;
     }
   }
 
@@ -825,7 +814,6 @@ const generateComments = (persons: SeedPerson[]) => {
 // Seed data for roles
 const roles = [
   {
-    id: 'role_1',
     name: 'site-admin',
     description: 'Full system administrator with all permissions',
     permissions: JSON.stringify({
@@ -839,7 +827,6 @@ const roles = [
     }),
   },
   {
-    id: 'role_2',
     name: 'town-admin',
     description: 'Administrator for specific towns',
     permissions: JSON.stringify({
@@ -849,7 +836,6 @@ const roles = [
     }),
   },
   {
-    id: 'role_3',
     name: 'person-admin',
     description: 'Administrator for specific persons',
     permissions: JSON.stringify({
@@ -858,7 +844,6 @@ const roles = [
     }),
   },
   {
-    id: 'role_4',
     name: 'viewer',
     description: 'Read-only access',
     permissions: JSON.stringify({
@@ -872,7 +857,6 @@ const roles = [
 // Seed data for themes (10 themes)
 const themes = [
   {
-    id: 'theme_1',
     name: 'Desert Sunset',
     description: 'Warm colors inspired by desert landscapes',
     colors: JSON.stringify({
@@ -886,7 +870,7 @@ const themes = [
       ':root { --primary: #D2691E; --secondary: #F4A460; --accent: #FF6347; --background: #FFF8DC; --text: #2F4F4F; }',
   },
   {
-    id: 'theme_2',
+    
     name: 'Ocean Breeze',
     description: 'Cool blues and greens of the California coast',
     colors: JSON.stringify({
@@ -900,7 +884,7 @@ const themes = [
       ':root { --primary: #4682B4; --secondary: #87CEEB; --accent: #20B2AA; --background: #F0F8FF; --text: #191970; }',
   },
   {
-    id: 'theme_3',
+    
     name: 'Mountain Pine',
     description: 'Earthy greens and browns',
     colors: JSON.stringify({
@@ -914,7 +898,7 @@ const themes = [
       ':root { --primary: #228B22; --secondary: #8FBC8F; --accent: #654321; --background: #F5F5DC; --text: #2F4F2F; }',
   },
   {
-    id: 'theme_4',
+    
     name: 'Sunset Gold',
     description: 'Golden hour colors',
     colors: JSON.stringify({
@@ -928,7 +912,7 @@ const themes = [
       ':root { --primary: #FFD700; --secondary: #FFA500; --accent: #FF8C00; --background: #FFFAF0; --text: #333333; }',
   },
   {
-    id: 'theme_5',
+    
     name: 'Purple Twilight',
     description: 'Deep purples and midnight blues',
     colors: JSON.stringify({
@@ -942,7 +926,7 @@ const themes = [
       ':root { --primary: #6B46C1; --secondary: #9333EA; --accent: #7C3AED; --background: #FAF5FF; --text: #1F2937; }',
   },
   {
-    id: 'theme_6',
+    
     name: 'Rose Garden',
     description: 'Soft pinks and roses',
     colors: JSON.stringify({
@@ -956,7 +940,7 @@ const themes = [
       ':root { --primary: #EC4899; --secondary: #F472B6; --accent: #F87171; --background: #FFF1F2; --text: #881337; }',
   },
   {
-    id: 'theme_7',
+    
     name: 'Neutral Gray',
     description: 'Professional grayscale theme',
     colors: JSON.stringify({
@@ -970,7 +954,7 @@ const themes = [
       ':root { --primary: #4B5563; --secondary: #9CA3AF; --accent: #6B7280; --background: #F9FAFB; --text: #111827; }',
   },
   {
-    id: 'theme_8',
+    
     name: 'Forest Deep',
     description: 'Deep forest greens',
     colors: JSON.stringify({
@@ -984,7 +968,7 @@ const themes = [
       ':root { --primary: #064E3B; --secondary: #059669; --accent: #34D399; --background: #ECFDF5; --text: #022C22; }',
   },
   {
-    id: 'theme_9',
+    
     name: 'Warm Terra',
     description: 'Terracotta and warm earth tones',
     colors: JSON.stringify({
@@ -998,7 +982,7 @@ const themes = [
       ':root { --primary: #C2410C; --secondary: #EA580C; --accent: #FB923C; --background: #FFF7ED; --text: #431407; }',
   },
   {
-    id: 'theme_10',
+    
     name: 'Cool Slate',
     description: 'Modern slate blues',
     colors: JSON.stringify({
@@ -1016,7 +1000,6 @@ const themes = [
 // Seed data for layouts (10 layouts)
 const layouts = [
   {
-    id: 'layout_1',
     name: 'Standard Profile',
     description: 'Traditional layout with image on left, info on right',
     template: JSON.stringify({
@@ -1026,7 +1009,6 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_2',
     name: 'Compact Card',
     description: 'Compact layout suitable for mobile viewing',
     template: JSON.stringify({
@@ -1035,7 +1017,6 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_3',
     name: 'Hero Image',
     description: 'Large hero image at top',
     template: JSON.stringify({
@@ -1044,7 +1025,6 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_4',
     name: 'Sidebar Left',
     description: 'Information sidebar on the left',
     template: JSON.stringify({
@@ -1053,7 +1033,6 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_5',
     name: 'Sidebar Right',
     description: 'Information sidebar on the right',
     template: JSON.stringify({
@@ -1062,7 +1041,7 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_6',
+    
     name: 'Timeline',
     description: 'Timeline-based layout',
     template: JSON.stringify({
@@ -1071,7 +1050,7 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_7',
+    
     name: 'Magazine',
     description: 'Magazine-style layout',
     template: JSON.stringify({
@@ -1081,7 +1060,7 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_8',
+    
     name: 'Minimal',
     description: 'Minimal clean layout',
     template: JSON.stringify({
@@ -1090,7 +1069,7 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_9',
+    
     name: 'Gallery Focus',
     description: 'Emphasizes image gallery',
     template: JSON.stringify({
@@ -1099,7 +1078,7 @@ const layouts = [
     }),
   },
   {
-    id: 'layout_10',
+    
     name: 'Full Width',
     description: 'Full width modern layout',
     template: JSON.stringify({
@@ -1119,6 +1098,7 @@ async function cleanDatabase() {
     await prisma.personImage.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.supporter.deleteMany();
+    await prisma.story.deleteMany();
     await prisma.familyPrivacySettings.deleteMany();
     await prisma.personAccess.deleteMany();
     await prisma.townAccess.deleteMany();
@@ -1131,6 +1111,7 @@ async function cleanDatabase() {
     await prisma.theme.deleteMany();
     await prisma.layout.deleteMany();
     await prisma.systemConfig.deleteMany();
+    await prisma.imageStorage.deleteMany();
 
     console.log('Database cleaned.');
   } catch (error) {
@@ -1140,17 +1121,19 @@ async function cleanDatabase() {
 
 // Create comprehensive stories for all persons with special focus on Borrego Springs
 async function createStoriesForPersons(persons: SeedPerson[]) {
-  const borregoSpringsPersons = persons.filter(p => p.townId === 'town_1');
-  const otherPersons = persons.filter(p => p.townId !== 'town_1');
+  const borregoSpringsPersons = persons.filter(p => p.townName === 'Borrego Springs');
+  const otherPersons = persons.filter(p => p.townName !== 'Borrego Springs');
 
   // Create detailed stories for Borrego Springs persons
   for (const person of borregoSpringsPersons) {
-    await createDetailedStoriesForPerson(person);
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    await createDetailedStoriesForPerson(person, personId);
   }
 
   // Create basic stories for other persons (migrate from old fields)
   for (const person of otherPersons) {
-    await createBasicStoriesForPerson(person);
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    await createBasicStoriesForPerson(person, personId);
   }
 
   const totalStories = await prisma.story.count();
@@ -1158,13 +1141,13 @@ async function createStoriesForPersons(persons: SeedPerson[]) {
 }
 
 // Create detailed, comprehensive stories for Borrego Springs persons
-async function createDetailedStoriesForPerson(person: SeedPerson) {
-  const isDetained = !!person.detentionCenterId;
+async function createDetailedStoriesForPerson(person: SeedPerson, personId: string) {
+  const isDetained = !!person.detentionCenterName;
 
   // Personal Story - English
   await prisma.story.create({
     data: {
-      personId: person.id,
+      personId,
       language: 'en',
       storyType: 'personal',
       content: generateDetailedPersonalStory(person, 'en'),
@@ -1175,7 +1158,7 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
   // Personal Story - Spanish
   await prisma.story.create({
     data: {
-      personId: person.id,
+      personId,
       language: 'es',
       storyType: 'personal',
       content: generateDetailedPersonalStory(person, 'es'),
@@ -1187,7 +1170,7 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
     // Detention Story - English
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'en',
         storyType: 'detention',
         content: generateDetailedDetentionStory(person, 'en'),
@@ -1198,7 +1181,7 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
     // Detention Story - Spanish
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'es',
         storyType: 'detention',
         content: generateDetailedDetentionStory(person, 'es'),
@@ -1209,7 +1192,7 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
     // Family Story - English
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'en',
         storyType: 'family',
         content: generateDetailedFamilyStory(person, 'en'),
@@ -1220,7 +1203,7 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
     // Family Story - Spanish
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'es',
         storyType: 'family',
         content: generateDetailedFamilyStory(person, 'es'),
@@ -1231,12 +1214,12 @@ async function createDetailedStoriesForPerson(person: SeedPerson) {
 }
 
 // Create basic stories by migrating from old fields
-async function createBasicStoriesForPerson(person: SeedPerson) {
+async function createBasicStoriesForPerson(person: SeedPerson, personId: string) {
   // Migrate personal story
   if (person.story) {
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'en',
         storyType: 'personal',
         content: person.story,
@@ -1249,7 +1232,7 @@ async function createBasicStoriesForPerson(person: SeedPerson) {
   if (person.detentionStory) {
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'en',
         storyType: 'detention',
         content: person.detentionStory,
@@ -1262,7 +1245,7 @@ async function createBasicStoriesForPerson(person: SeedPerson) {
   if (person.familyMessage) {
     await prisma.story.create({
       data: {
-        personId: person.id,
+        personId,
         language: 'en',
         storyType: 'family',
         content: person.familyMessage,
@@ -1335,7 +1318,7 @@ function generateDetailedDetentionStory(
 ): string {
   const firstName = person.firstName;
   const detentionCenter = detentionCenters.find(
-    dc => dc.id === person.detentionCenterId
+    dc => dc.name === person.detentionCenterName
   );
   const detentionDate = person.detentionDate || new Date();
 
@@ -1401,7 +1384,7 @@ function generateDetailedFamilyStory(
 ): string {
   const firstName = person.firstName;
   const spouseName =
-    person.id.includes('1') || person.id.includes('3') ? 'Maria' : 'Carlos';
+    Math.random() > 0.5 ? 'Maria' : 'Carlos';
 
   if (language === 'es') {
     const stories = [
@@ -1458,19 +1441,22 @@ async function main() {
   // Create roles first
   console.log('Creating roles...');
   for (const role of roles) {
-    await prisma.role.create({ data: role });
+    const created = await prisma.role.create({ data: role });
+    createdIds.roles.set(role.name, created.id);
   }
 
   // Create themes
   console.log('Creating themes...');
   for (const theme of themes) {
-    await prisma.theme.create({ data: theme });
+    const created = await prisma.theme.create({ data: theme });
+    createdIds.themes.set(theme.name, created.id);
   }
 
   // Create layouts
   console.log('Creating layouts...');
   for (const layout of layouts) {
-    await prisma.layout.create({ data: layout });
+    const created = await prisma.layout.create({ data: layout });
+    createdIds.layouts.set(layout.name, created.id);
   }
 
   // Create detention centers with images
@@ -1492,32 +1478,71 @@ async function main() {
     const { fullImageId, thumbnailImageId } =
       await processAndStoreImage(imageBuffer);
 
-    await prisma.detentionCenter.create({
+    const created = await prisma.detentionCenter.create({
       data: {
         ...center,
         facilityImageId: fullImageId,
         thumbnailImageId: thumbnailImageId,
       },
     });
+    createdIds.detentionCenters.set(center.name, created.id);
   }
 
   // Create towns
   console.log('Creating towns...');
+  const layoutNames = Array.from(createdIds.layouts.keys());
+  const themeNames = Array.from(createdIds.themes.keys());
+  
+  // Get existing town slugs for uniqueness check
+  const existingTownSlugs: string[] = [];
+  
   for (const town of towns) {
-    await prisma.town.create({
+    const layoutName = layoutNames[Math.floor(Math.random() * layoutNames.length)];
+    const themeName = themeNames[Math.floor(Math.random() * themeNames.length)];
+    
+    // Generate unique slug
+    const slug = createTownSlug(town.name, existingTownSlugs);
+    existingTownSlugs.push(slug);
+    
+    const created = await prisma.town.create({
       data: {
         ...town,
-        defaultLayoutId: layouts[Math.floor(Math.random() * layouts.length)].id,
-        defaultThemeId: themes[Math.floor(Math.random() * themes.length)].id,
+        slug,
+        defaultLayoutId: createdIds.layouts.get(layoutName),
+        defaultThemeId: createdIds.themes.get(themeName),
       },
     });
+    createdIds.towns.set(town.name, created.id);
   }
 
   // Generate and create persons
   console.log('Generating and creating persons...');
   const persons = generatePersons();
+  
+  // Get existing person slugs for uniqueness check
+  const existingPersonSlugs: string[] = [];
+  
   for (const person of persons) {
-    await prisma.person.create({ data: person });
+    const { townName, detentionCenterName, ...personData } = person;
+    
+    // Generate unique slug
+    const slug = createPersonSlug(
+      person.firstName, 
+      person.middleName, 
+      person.lastName, 
+      existingPersonSlugs
+    );
+    existingPersonSlugs.push(slug);
+    
+    const created = await prisma.person.create({
+      data: {
+        ...personData,
+        slug,
+        townId: createdIds.towns.get(townName)!,
+        detentionCenterId: detentionCenterName ? createdIds.detentionCenters.get(detentionCenterName) : null,
+      },
+    });
+    createdIds.persons.set(`${person.firstName}_${person.lastName}`, created.id);
   }
   console.log(`Created ${persons.length} persons.`);
 
@@ -1529,7 +1554,15 @@ async function main() {
   console.log('Generating and creating supporters...');
   const supporters = generateSupporters(persons);
   for (const supporter of supporters) {
-    await prisma.supporter.create({ data: supporter });
+    const { personFirstName, personLastName, ...supporterData } = supporter;
+    const personId = createdIds.persons.get(`${personFirstName}_${personLastName}`)!;
+    
+    await prisma.supporter.create({
+      data: {
+        ...supporterData,
+        personId,
+      },
+    });
   }
   console.log(`Created ${supporters.length} supporters.`);
 
@@ -1537,17 +1570,27 @@ async function main() {
   console.log('Generating and creating comments...');
   const comments = generateComments(persons);
   for (const comment of comments) {
-    await prisma.comment.create({ data: comment });
+    const { personFirstName, personLastName, ...commentData } = comment;
+    const personId = createdIds.persons.get(`${personFirstName}_${personLastName}`)!;
+    
+    await prisma.comment.create({
+      data: {
+        ...commentData,
+        personId,
+      },
+    });
   }
   console.log(`Created ${comments.length} comments.`);
 
   // Create family privacy settings for detained persons
   console.log('Creating family privacy settings...');
-  const detainedPersons = persons.filter(p => p.detentionCenterId);
+  const detainedPersons = persons.filter(p => p.detentionCenterName);
   for (const person of detainedPersons) {
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    
     await prisma.familyPrivacySettings.create({
       data: {
-        personId: person.id,
+        personId,
         showDetaineeEmail: Math.random() > 0.7, // 30% show email
         showDetaineePhone: Math.random() > 0.8, // 20% show phone
         showDetaineeAddress: false, // Never show address by default
@@ -1561,12 +1604,12 @@ async function main() {
           'supporters',
           'family',
         ]),
-        notifyFamilyEmail: `family.${person.id}@email.com`,
+        notifyFamilyEmail: `family.${person.firstName.toLowerCase()}.${person.lastName.toLowerCase()}@email.com`,
         notifyOnNewSupporter: true,
         notifyOnNewComment: true,
         authorizedEmails: JSON.stringify([
-          `family.${person.id}@email.com`,
-          `spouse.${person.id}@email.com`,
+          `family.${person.firstName.toLowerCase()}.${person.lastName.toLowerCase()}@email.com`,
+          `spouse.${person.firstName.toLowerCase()}.${person.lastName.toLowerCase()}@email.com`,
         ]),
       },
     });
@@ -1578,7 +1621,6 @@ async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.user.create({
     data: {
-      id: 'user_admin',
       username: 'admin',
       email: 'admin@bringmehome.com',
       password: hashedPassword,
@@ -1592,27 +1634,30 @@ async function main() {
   await prisma.userRole.create({
     data: {
       userId: adminUser.id,
-      roleId: 'role_1',
+      roleId: createdIds.roles.get('site-admin')!,
     },
   });
 
   // Create PersonImages for Borrego Springs persons
   console.log('Creating person images for Borrego Springs...');
-  const borregoPersons = persons.filter(p => p.townId === 'town_1');
+  const borregoPersons = persons.filter(p => p.townName === 'Borrego Springs');
 
-  for (const person of borregoPersons) {
+  for (let idx = 0; idx < borregoPersons.length; idx++) {
+    const person = borregoPersons[idx];
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    
     // Create 3-5 additional images per person
     const imageCount = Math.floor(Math.random() * 3) + 3;
 
     for (let i = 0; i < imageCount; i++) {
       // Use different placeholder images for variety
-      const imageNum = ((parseInt(person.id.split('_')[1]) + i) % 10) + 1;
+      const imageNum = ((idx + i) % 10) + 1;
       const imageIds = placeholderImageIds.get(imageNum);
 
       if (imageIds) {
         await prisma.personImage.create({
           data: {
-            personId: person.id,
+            personId,
             imageUrl: `/api/images/${imageIds.fullImageId}`,
             thumbnailUrl: `/api/images/${imageIds.thumbnailImageId}`,
             caption: randomElement([
@@ -1676,7 +1721,7 @@ async function main() {
     await prisma.userRole.create({
       data: {
         userId: user.id,
-        roleId: 'role_4',
+        roleId: createdIds.roles.get('viewer')!,
       },
     });
   }
@@ -1688,7 +1733,6 @@ async function main() {
     const hashedPassword = await bcrypt.hash(`town${i + 1}123`, 12);
     const townAdmin = await prisma.user.create({
       data: {
-        id: `user_town_admin_${i + 1}`,
         username: `town_admin_${i + 1}`,
         email: `town${i + 1}@bringmehome.com`,
         password: hashedPassword,
@@ -1702,7 +1746,7 @@ async function main() {
     await prisma.userRole.create({
       data: {
         userId: townAdmin.id,
-        roleId: 'role_2',
+        roleId: createdIds.roles.get('town-admin')!,
       },
     });
 
@@ -1710,7 +1754,7 @@ async function main() {
     await prisma.townAccess.create({
       data: {
         userId: townAdmin.id,
-        townId: town.id,
+        townId: createdIds.towns.get(town.name)!,
         accessLevel: 'admin',
       },
     });
@@ -1721,7 +1765,6 @@ async function main() {
   const personAdminPassword = await bcrypt.hash('person1123', 12);
   const personAdmin = await prisma.user.create({
     data: {
-      id: 'user_person_admin_1',
       username: 'person_admin_1',
       email: 'personadmin@bringmehome.com',
       password: personAdminPassword,
@@ -1735,15 +1778,16 @@ async function main() {
   await prisma.userRole.create({
     data: {
       userId: personAdmin.id,
-      roleId: 'role_3', // person-admin role
+      roleId: createdIds.roles.get('person-admin')!,
     },
   });
   
   // Grant access to Joe Plumber
+  const joePlumberId = createdIds.persons.get('Joe_Plumber')!;
   await prisma.personAccess.create({
     data: {
       userId: personAdmin.id,
-      personId: 'person_joe_plumber',
+      personId: joePlumberId,
       accessLevel: 'admin',
     },
   });
@@ -1972,12 +2016,14 @@ async function main() {
   }
 
   // Count detained persons and stories
-  const detainedCount = persons.filter(p => p.detentionCenterId).length;
+  const detainedCount = persons.filter(p => p.detentionCenterName).length;
   const storyCount = await prisma.story.count();
   const borregoSpringsStoryCount = await prisma.story.count({
     where: {
       person: {
-        townId: 'town_1',
+        town: {
+          name: 'Borrego Springs',
+        },
       },
     },
   });

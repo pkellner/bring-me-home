@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,353 +7,260 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Authentication and Authorization
 model User {
-  id        String    @id @default(cuid())
-  username  String    @unique
-  email     String?   @unique
-  password  String
-  firstName String?
-  lastName  String?
-  isActive  Boolean   @default(true)
-  lastLogin DateTime?
-
-  // Role relationships
-  userRoles UserRole[]
-
-  // Access relationships
-  townAccess   TownAccess[]
+  id           String         @id @default(cuid())
+  username     String         @unique
+  email        String?        @unique
+  password     String
+  firstName    String?
+  lastName     String?
+  isActive     Boolean        @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   personAccess PersonAccess[]
-
-  // Content relationships
-  supporters   Supporter[]
   personImages PersonImage[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  supporters   Supporter[]
+  townAccess   TownAccess[]
+  userRoles    UserRole[]
 
   @@map("users")
 }
 
-// Role definitions
 model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id          String     @id @default(cuid())
+  name        String     @unique
   description String?
-  permissions String  @db.Text // JSON string of permissions
-
-  // Relationships
-  userRoles UserRole[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  permissions String     @db.Text
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userRoles   UserRole[]
 
   @@map("roles")
 }
 
-// Many-to-many relationship between Users and Roles
 model UserRole {
-  id     String @id @default(cuid())
-  userId String
-  roleId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  // Audit fields
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
   createdAt DateTime @default(now())
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@index([roleId], map: "user_roles_roleId_fkey")
   @@map("user_roles")
 }
 
-// Town model
 model Town {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  state       String
-  county      String?
-  zipCode     String?
-  fullAddress String  @db.Text
-  description String? @db.Text
-  isActive    Boolean @default(true)
-
-  // Geography
-  latitude  Float?
-  longitude Float?
-
-  // Customization
+  id              String       @id @default(cuid())
+  name            String
+  slug            String       @unique
+  state           String
+  county          String?
+  zipCode         String?
+  fullAddress     String       @db.Text
+  description     String?      @db.Text
+  isActive        Boolean      @default(true)
+  latitude        Float?
+  longitude       Float?
   defaultLayoutId String?
   defaultThemeId  String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  persons         Person[]
+  townAccess      TownAccess[]
+  layout          Layout?      @relation(fields: [defaultLayoutId], references: [id])
+  theme           Theme?       @relation(fields: [defaultThemeId], references: [id])
 
-  // Relationships
-  persons    Person[]
-  townAccess TownAccess[]
-  layout     Layout?      @relation(fields: [defaultLayoutId], references: [id])
-  theme      Theme?       @relation(fields: [defaultThemeId], references: [id])
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  @@index([defaultLayoutId], map: "towns_defaultLayoutId_fkey")
+  @@index([defaultThemeId], map: "towns_defaultThemeId_fkey")
   @@map("towns")
 }
 
-// Person model - the core entity
 model Person {
-  id         String  @id @default(cuid())
-  firstName  String
-  middleName String?
-  lastName   String
-
-  // Identification
-  alienIdNumber String?
-  ssn           String? // Should be encrypted
-  dateOfBirth   DateTime?
-  placeOfBirth  String?
-
-  // Physical characteristics
-  height    String?
-  weight    String?
-  eyeColor  String?
-  hairColor String?
-
-  // Address information
-  lastKnownAddress String  @db.Text
-  currentAddress   String? @db.Text
-
-  // Contact information
-  phoneNumber  String?
-  emailAddress String?
-
-  // Images - stored as file paths or URLs
-  primaryPicture String?
-  secondaryPic1  String?
-  secondaryPic2  String?
-  secondaryPic3  String?
-
-  // Story and description (moved to separate Story model for multi-language support)
-  story            String?   @db.Text // Their story and background - TO BE REMOVED AFTER MIGRATION
-  detentionStory   String?   @db.Text // Circumstances of detention - TO BE REMOVED AFTER MIGRATION
-  familyMessage    String?   @db.Text // Message from family to supporters - TO BE REMOVED AFTER MIGRATION
-  lastSeenDate     DateTime? // When they were detained
-  lastSeenLocation String?   // Where they were detained
-
-  // Status
-  isActive Boolean @default(true)
-  isFound  Boolean @default(false)
-  status   String  @default("missing") // missing, found, deceased, etc.
-
-  // Detention information
-  detentionCenterId String?
-  detentionDate     DateTime?
-  lastHeardFromDate DateTime?
-  notesFromLastContact String? @db.Text
-  releaseDate       DateTime?
-  detentionStatus   String?   @default("detained") // detained, released, deported, in-proceedings
-  caseNumber        String?
-  bondAmount        Decimal?  @db.Decimal(10, 2)
-  bondStatus        String? // posted, denied, pending
-
-  // Legal information
-  representedByLawyer Boolean @default(false)
-  representedByNotes  String? @db.Text
-  legalRepName  String?
-  legalRepPhone String?
-  legalRepEmail String?
-  legalRepFirm  String?
-  nextCourtDate DateTime?
-  courtLocation String?
-
-  // International address
-  internationalAddress String? @db.Text
+  id                   String                 @id @default(cuid())
+  firstName            String
+  middleName           String?
+  lastName             String
+  alienIdNumber        String?
+  ssn                  String?
+  dateOfBirth          DateTime?
+  placeOfBirth         String?
+  height               String?
+  weight               String?
+  eyeColor             String?
+  hairColor            String?
+  lastKnownAddress     String                 @db.Text
+  currentAddress       String?                @db.Text
+  phoneNumber          String?
+  emailAddress         String?
+  primaryPicture       String?
+  secondaryPic1        String?
+  secondaryPic2        String?
+  secondaryPic3        String?
+  story                String?                @db.Text
+  lastSeenDate         DateTime?
+  lastSeenLocation     String?
+  isActive             Boolean                @default(true)
+  isFound              Boolean                @default(false)
+  status               String                 @default("missing")
+  layoutId             String?
+  themeId              String?
+  townId               String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  bondAmount           Decimal?               @db.Decimal(10, 2)
+  bondStatus           String?
+  caseNumber           String?
   countryOfOrigin      String?
-
-  // Customization
-  layoutId String?
-  themeId  String?
-
-  // Relationships
-  townId          String
-  town            Town             @relation(fields: [townId], references: [id], onDelete: Cascade)
-  layout          Layout?          @relation(fields: [layoutId], references: [id])
-  theme           Theme?           @relation(fields: [themeId], references: [id])
-  detentionCenter DetentionCenter? @relation(fields: [detentionCenterId], references: [id])
-
-  // Related entities
-  supporters   Supporter[]
-  comments     Comment[]
-  personAccess PersonAccess[]
-  attachments  Attachment[]
-  personImages PersonImage[]
-  familySettings FamilyPrivacySettings?
-  stories      Story[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  courtLocation        String?
+  detentionCenterId    String?
+  detentionDate        DateTime?
+  detentionStatus      String?                @default("detained")
+  internationalAddress String?                @db.Text
+  legalRepEmail        String?
+  legalRepFirm         String?
+  legalRepName         String?
+  legalRepPhone        String?
+  nextCourtDate        DateTime?
+  releaseDate          DateTime?
+  detentionStory       String?                @db.Text
+  familyMessage        String?                @db.Text
+  lastHeardFromDate    DateTime?
+  notesFromLastContact String?                @db.Text
+  representedByLawyer  Boolean                @default(false)
+  representedByNotes   String?                @db.Text
+  slug                 String                 @unique
+  attachments          Attachment[]
+  comments             Comment[]
+  familySettings       FamilyPrivacySettings?
+  personAccess         PersonAccess[]
+  personImages         PersonImage[]
+  detentionCenter      DetentionCenter?       @relation(fields: [detentionCenterId], references: [id])
+  layout               Layout?                @relation(fields: [layoutId], references: [id])
+  theme                Theme?                 @relation(fields: [themeId], references: [id])
+  town                 Town                   @relation(fields: [townId], references: [id], onDelete: Cascade)
+  stories              Story[]
+  supporters           Supporter[]
 
   @@index([townId])
   @@index([firstName, lastName])
+  @@index([slug])
   @@index([status])
   @@index([detentionCenterId])
+  @@index([layoutId], map: "persons_layoutId_fkey")
+  @@index([themeId], map: "persons_themeId_fkey")
   @@map("persons")
 }
 
-// Story model for multi-language support
 model Story {
-  id             String  @id @default(cuid())
-  language       String  @default("en") // ISO 639-1 language code (en, es, fr, etc.)
-  storyType      String  @default("personal") // personal, detention, family
-  content        String  @db.Text
-  isActive       Boolean @default(true)
-  
-  // Relationships
-  personId String
-  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  // Audit fields
+  id        String   @id @default(cuid())
+  language  String   @default("en")
+  storyType String   @default("personal")
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  personId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
   @@unique([personId, language, storyType])
   @@index([personId])
   @@index([language])
   @@map("stories")
 }
 
-// PersonImage model for storing multiple images per person
 model PersonImage {
-  id           String  @id @default(cuid())
-  imageUrl     String  // Will be /api/images/{id}
-  thumbnailUrl String? // Will be /api/images/{id}?thumbnail=true
-  caption      String?
-  isPrimary    Boolean @default(false)
-  isActive     Boolean @default(true)
-  displayPublicly Boolean @default(true) // Whether to display this image on the public profile
-
-  // Image data stored in separate table
+  id               String        @id @default(cuid())
+  imageUrl         String
+  thumbnailUrl     String?
+  caption          String?
+  isPrimary        Boolean       @default(false)
+  isActive         Boolean       @default(true)
+  personId         String
+  uploadedById     String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   fullImageId      String?
   thumbnailImageId String?
+  displayPublicly  Boolean       @default(true)
   fullImage        ImageStorage? @relation("FullImage", fields: [fullImageId], references: [id])
+  person           Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
   thumbnailImage   ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
-
-  // Relationships
-  personId     String
-  person       Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-  uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  uploadedBy       User          @relation(fields: [uploadedById], references: [id])
 
   @@index([personId])
+  @@index([fullImageId], map: "person_images_fullImageId_fkey")
+  @@index([thumbnailImageId], map: "person_images_thumbnailImageId_fkey")
+  @@index([uploadedById], map: "person_images_uploadedById_fkey")
   @@map("person_images")
 }
 
-// Supporter model - people who support the detained person
 model Supporter {
-  id             String  @id @default(cuid())
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  fullAddress    String? @db.Text // Including international addresses
-  country        String?
-  relationship   String? // friend, family, coworker, community member, etc.
-  
-  // Display preferences
-  displayName    String? // How they want their name displayed publicly
-  isPublic       Boolean @default(true) // Whether to show their support publicly
-  
-  // Support message
-  supportMessage String? @db.Text
-  
-  // Privacy settings (can be overridden by family)
-  shareEmail     Boolean @default(false)
-  sharePhone     Boolean @default(false)
-  shareAddress   Boolean @default(false)
-  
-  // Verification
-  isVerified     Boolean @default(false)
-  verificationToken String? @unique
-  verifiedAt     DateTime?
-  
-  // Relationships
-  personId String
-  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-  userId   String? // If supporter has an account
-  user     User?   @relation(fields: [userId], references: [id])
-  
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id                String    @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  fullAddress       String?   @db.Text
+  country           String?
+  relationship      String?
+  displayName       String?
+  isPublic          Boolean   @default(true)
+  supportMessage    String?   @db.Text
+  shareEmail        Boolean   @default(false)
+  sharePhone        Boolean   @default(false)
+  shareAddress      Boolean   @default(false)
+  isVerified        Boolean   @default(false)
+  verificationToken String?   @unique
+  verifiedAt        DateTime?
+  personId          String
+  userId            String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  person            Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  user              User?     @relation(fields: [userId], references: [id])
+
   @@index([personId])
   @@index([email])
+  @@index([userId], map: "supporters_userId_fkey")
   @@map("supporters")
 }
 
-// Comment model for community engagement and updates
 model Comment {
-  id      String @id @default(cuid())
-  content String @db.Text
-  
-  // Commenter information (for anonymous comments)
-  firstName  String?
-  lastName   String?
-  email      String?
-  phone      String?
-  occupation String?
-  birthdate  DateTime?
-  
-  // Address fields
-  streetAddress String?
-  city          String?
-  state         String?
-  zipCode       String?
-  
-  // Display preferences for optional fields
-  showOccupation Boolean @default(false) // Whether to display occupation publicly
-  showBirthdate  Boolean @default(false) // Whether to display birthdate publicly
-  showCityState  Boolean @default(false) // Whether to display city and state publicly
-  
-  // Support options
-  wantsToHelpMore     Boolean @default(false) // I want to help more, please contact me
-  displayNameOnly     Boolean @default(false) // Display just my name as supporting
-  requiresFamilyApproval Boolean @default(true) // Display my name and comment if family approves
-  
-  // Comment type
-  type    String @default("support") // support, update, legal, family
-  
-  // Privacy controls
-  visibility String @default("public") // public, supporters, family, private
-  
-  // Family override settings
-  familyVisibilityOverride String? // If family wants different visibility
-  
-  // Status and moderation
-  isActive       Boolean @default(true)
-  isApproved     Boolean @default(false)
-  moderatorNotes String? @db.Text
-  
-  // Relationships
-  personId String
-  person   Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  // Attachments
-  attachments Attachment[]
-  
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  approvedAt DateTime?
-  approvedBy String? // User ID of approver
-  
+  id                       String       @id @default(cuid())
+  content                  String       @db.Text
+  isActive                 Boolean      @default(true)
+  isApproved               Boolean      @default(false)
+  moderatorNotes           String?      @db.Text
+  personId                 String
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  familyVisibilityOverride String?
+  type                     String       @default("support")
+  visibility               String       @default("public")
+  approvedAt               DateTime?
+  approvedBy               String?
+  birthdate                DateTime?
+  displayNameOnly          Boolean      @default(false)
+  email                    String?
+  firstName                String?
+  lastName                 String?
+  occupation               String?
+  phone                    String?
+  requiresFamilyApproval   Boolean      @default(true)
+  showBirthdate            Boolean      @default(false)
+  showOccupation           Boolean      @default(false)
+  wantsToHelpMore          Boolean      @default(false)
+  city                     String?
+  showCityState            Boolean      @default(false)
+  state                    String?
+  streetAddress            String?
+  zipCode                  String?
+  attachments              Attachment[]
+  person                   Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+
   @@index([personId])
   @@index([visibility])
   @@index([type])
@@ -365,139 +269,110 @@ model Comment {
   @@map("comments")
 }
 
-// File attachments for comments and persons
 model Attachment {
-  id           String @id @default(cuid())
+  id           String   @id @default(cuid())
   fileName     String
   originalName String
   mimeType     String
   fileSize     Int
   filePath     String
-
-  // Metadata
-  description String?
-  isPublic    Boolean @default(true)
-
-  // Relationships (either comment or person, not both)
-  commentId String?
-  personId  String?
-  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  person    Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  description  String?
+  isPublic     Boolean  @default(true)
+  commentId    String?
+  personId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  person       Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([commentId])
   @@index([personId])
   @@map("attachments")
 }
 
-// Town access control
 model TownAccess {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   townId      String
-  accessLevel String @default("read") // read, write, admin
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  town Town @relation(fields: [townId], references: [id], onDelete: Cascade)
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  accessLevel String   @default("read")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  town        Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, townId])
+  @@index([townId], map: "town_access_townId_fkey")
   @@map("town_access")
 }
 
-// Person access control
 model PersonAccess {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   personId    String
-  accessLevel String @default("read") // read, write, admin
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  accessLevel String   @default("read")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, personId])
+  @@index([personId], map: "person_access_personId_fkey")
   @@map("person_access")
 }
 
-// Layout templates
 model Layout {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id          String   @id @default(cuid())
+  name        String   @unique
   description String?
-  cssClasses  String? @db.Text
-  template    String  @db.Text // JSON or HTML template
-  isActive    Boolean @default(true)
-
-  // Relationships
-  towns   Town[]
-  persons Person[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  cssClasses  String?  @db.Text
+  template    String   @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  persons     Person[]
+  towns       Town[]
 
   @@map("layouts")
 }
 
-// Color themes
 model Theme {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id          String   @id @default(cuid())
+  name        String   @unique
   description String?
-  colors      String  @db.Text // JSON object with color definitions
-  cssVars     String? @db.Text // CSS custom properties
-  isActive    Boolean @default(true)
-
-  // Relationships
-  towns   Town[]
-  persons Person[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  colors      String   @db.Text
+  cssVars     String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  persons     Person[]
+  towns       Town[]
 
   @@map("themes")
 }
 
-// System configuration
 model SystemConfig {
-  id          String  @id @default(cuid())
-  key         String  @unique
-  value       String  @db.Text
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
   description String?
-  dataType    String  @default("string") // string, number, boolean, json
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dataType    String   @default("string")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("system_config")
 }
 
-// Audit log for sensitive operations
 model AuditLog {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String?
   action     String
   entityType String
   entityId   String?
-  oldValues  String? @db.Text
-  newValues  String? @db.Text
+  oldValues  String?  @db.Text
+  newValues  String?  @db.Text
   ipAddress  String?
-  userAgent  String? @db.Text
-
-  // Audit fields
-  createdAt DateTime @default(now())
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([entityType, entityId])
@@ -505,63 +380,45 @@ model AuditLog {
   @@map("audit_log")
 }
 
-// Detention Center model
 model DetentionCenter {
-  id           String  @id @default(cuid())
-  name         String
-  facilityType String // ICE, Private, etc.
-  operatedBy   String? // Company or agency operating the facility
-
-  // Address information
-  address String @db.Text
-  city    String
-  state   String
-  zipCode String
-  country String @default("USA")
-
-  // Contact information
-  phoneNumber  String?
-  faxNumber    String?
-  emailAddress String?
-  website      String?
-
-  // Facility details
+  id                String        @id @default(cuid())
+  name              String
+  facilityType      String
+  operatedBy        String?
+  address           String        @db.Text
+  city              String
+  state             String
+  zipCode           String
+  country           String        @default("USA")
+  phoneNumber       String?
+  faxNumber         String?
+  emailAddress      String?
+  website           String?
   capacity          Int?
   currentPopulation Int?
-
-  // Location
-  latitude  Float?
-  longitude Float?
-
-  // Images - stored in database
-  facilityImageId  String?
-  thumbnailImageId String?
-  facilityImage    ImageStorage? @relation("FacilityImage", fields: [facilityImageId], references: [id])
-  thumbnailImage   ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
-
-  // Status
-  isActive      Boolean @default(true)
-  isICEFacility Boolean @default(true)
-
-  // Additional info
-  notes         String? @db.Text
-  transportInfo String? @db.Text
-  visitingHours String? @db.Text
-
-  // Relationships
-  detainees Person[]
-
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  latitude          Float?
+  longitude         Float?
+  isActive          Boolean       @default(true)
+  isICEFacility     Boolean       @default(true)
+  notes             String?       @db.Text
+  transportInfo     String?       @db.Text
+  visitingHours     String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  facilityImageId   String?
+  thumbnailImageId  String?
+  facilityImage     ImageStorage? @relation("FacilityImage", fields: [facilityImageId], references: [id])
+  thumbnailImage    ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
+  detainees         Person[]
 
   @@index([state])
   @@index([city])
   @@index([name])
+  @@index([facilityImageId], map: "detention_centers_facilityImageId_fkey")
+  @@index([thumbnailImageId], map: "detention_centers_thumbnailImageId_fkey")
   @@map("detention_centers")
 }
 
-// Health check for testing database connectivity
 model HealthCheck {
   id         String   @id @default(cuid())
   testData   String
@@ -572,60 +429,42 @@ model HealthCheck {
   @@map("health_checks")
 }
 
-// Family privacy settings - controls what information is shared
 model FamilyPrivacySettings {
-  id       String @id @default(cuid())
-  personId String @unique
-  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  // Contact information visibility
-  showDetaineeEmail    Boolean @default(false)
-  showDetaineePhone    Boolean @default(false)
-  showDetaineeAddress  Boolean @default(false)
-  showAlienId          Boolean @default(false)
-  showLegalInfo        Boolean @default(false)
-  
-  // Supporter information visibility
-  showSupporterEmails  Boolean @default(false)
-  showSupporterPhones  Boolean @default(false)
-  showSupporterAddresses Boolean @default(false)
-  
-  // Comment visibility overrides
-  defaultCommentVisibility String @default("public") // public, supporters, family, private
-  
-  // Update notifications
-  notifyFamilyEmail String? // Email to notify family of new supporters/comments
-  notifyOnNewSupporter Boolean @default(true)
-  notifyOnNewComment   Boolean @default(true)
-  
-  // Authorized family members who can manage settings
-  authorizedEmails String? @db.Text // JSON array of email addresses
-  
-  // Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  updatedBy String? // User ID who last updated
-  
+  id                       String   @id @default(cuid())
+  personId                 String   @unique
+  showDetaineeEmail        Boolean  @default(false)
+  showDetaineePhone        Boolean  @default(false)
+  showDetaineeAddress      Boolean  @default(false)
+  showAlienId              Boolean  @default(false)
+  showLegalInfo            Boolean  @default(false)
+  showSupporterEmails      Boolean  @default(false)
+  showSupporterPhones      Boolean  @default(false)
+  showSupporterAddresses   Boolean  @default(false)
+  defaultCommentVisibility String   @default("public")
+  notifyFamilyEmail        String?
+  notifyOnNewSupporter     Boolean  @default(true)
+  notifyOnNewComment       Boolean  @default(true)
+  authorizedEmails         String?  @db.Text
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  updatedBy                String?
+  person                   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
   @@map("family_privacy_settings")
 }
 
-// Image storage in database
 model ImageStorage {
-  id       String @id @default(cuid())
-  data     Bytes  @db.LongBlob // Store JPEG image data
-  mimeType String @default("image/jpeg")
-  size     Int    // File size in bytes
-  width    Int?   // Image width in pixels
-  height   Int?   // Image height in pixels
-  
-  // Relations
-  fullImagePersonImages      PersonImage[] @relation("FullImage")
-  thumbnailPersonImages      PersonImage[] @relation("ThumbnailImage")
-  facilityImageCenters       DetentionCenter[] @relation("FacilityImage")
-  thumbnailImageCenters      DetentionCenter[] @relation("ThumbnailImage")
-  
-  // Audit fields
-  createdAt DateTime @default(now())
-  
+  id                    String            @id @default(cuid())
+  data                  Bytes
+  mimeType              String            @default("image/jpeg")
+  size                  Int
+  width                 Int?
+  height                Int?
+  createdAt             DateTime          @default(now())
+  facilityImageCenters  DetentionCenter[] @relation("FacilityImage")
+  thumbnailImageCenters DetentionCenter[] @relation("ThumbnailImage")
+  fullImagePersonImages PersonImage[]     @relation("FullImage")
+  thumbnailPersonImages PersonImage[]     @relation("ThumbnailImage")
+
   @@map("image_storage")
 }

@@ -8,6 +8,7 @@ import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 import { z } from 'zod';
 import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
+import { createPersonSlug } from '@/lib/slug-utils';
 
 const personSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -35,6 +36,16 @@ export async function createPerson(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'persons', 'create')) {
     throw new Error('Unauthorized');
+  }
+
+  // Verify session user exists in database
+  const sessionUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true }
+  });
+  
+  if (!sessionUser) {
+    throw new Error('Invalid session. Please log out and log in again.');
   }
 
   const validatedFields = personSchema.safeParse({
@@ -68,9 +79,24 @@ export async function createPerson(formData: FormData) {
   }
 
   try {
+    // Get existing person slugs to ensure uniqueness
+    const existingPersons = await prisma.person.findMany({
+      select: { slug: true },
+    });
+    const existingSlugs = existingPersons.map(p => p.slug);
+
+    // Generate unique slug
+    const slug = createPersonSlug(
+      validatedFields.data.firstName,
+      validatedFields.data.middleName,
+      validatedFields.data.lastName,
+      existingSlugs
+    );
+
     // Process data for database
     const data = {
       ...validatedFields.data,
+      slug,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
         : undefined,
@@ -170,6 +196,16 @@ export async function updatePerson(id: string, formData: FormData) {
     throw new Error('Unauthorized');
   }
 
+  // Verify session user exists in database
+  const sessionUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true }
+  });
+  
+  if (!sessionUser) {
+    throw new Error('Invalid session. Please log out and log in again.');
+  }
+
   // Check if user has access to this person (unless they're a site admin)
   if (!isSiteAdmin(session) && !hasPersonAccess(session, id, 'write')) {
     throw new Error('No access to this person');
@@ -206,9 +242,56 @@ export async function updatePerson(id: string, formData: FormData) {
   }
 
   try {
+    // Get existing person to check if name changed
+    const existingPerson = await prisma.person.findUnique({
+      where: { id },
+      select: { firstName: true, middleName: true, lastName: true, slug: true },
+    });
+
+    if (!existingPerson) {
+      throw new Error('Person not found');
+    }
+
+    // Check if name has changed
+    const nameChanged = 
+      existingPerson.firstName !== validatedFields.data.firstName ||
+      existingPerson.middleName !== validatedFields.data.middleName ||
+      existingPerson.lastName !== validatedFields.data.lastName;
+
+    let slug = existingPerson.slug;
+
+    // If name changed, check if we need a new slug
+    if (nameChanged) {
+      // First, generate the base slug to see if it would be different
+      const baseSlug = createPersonSlug(
+        validatedFields.data.firstName,
+        validatedFields.data.middleName,
+        validatedFields.data.lastName,
+        [] // Empty array to get base slug without uniqueness suffix
+      );
+
+      // Only generate a new slug if the base would be different from current
+      // This handles case-only changes where the slug would remain the same
+      if (baseSlug !== existingPerson.slug) {
+        const existingPersons = await prisma.person.findMany({
+          where: { id: { not: id } }, // Exclude current person
+          select: { slug: true },
+        });
+        const existingSlugs = existingPersons.map(p => p.slug);
+
+        slug = createPersonSlug(
+          validatedFields.data.firstName,
+          validatedFields.data.middleName,
+          validatedFields.data.lastName,
+          existingSlugs
+        );
+      }
+    }
+
     // Process data for database
     const updateData = {
       ...validatedFields.data,
+      slug,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
         : null,

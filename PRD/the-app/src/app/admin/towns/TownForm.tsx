@@ -54,31 +54,6 @@ export default function TownForm({ town, layouts, themes }: TownFormProps) {
 
         <div>
           <label
-            htmlFor="slug"
-            className="block text-sm font-medium text-gray-700"
-          >
-            URL Slug
-          </label>
-          <input
-            type="text"
-            id="slug"
-            name="slug"
-            defaultValue={town?.slug}
-            required
-            pattern="[a-z0-9-]+"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            placeholder="e.g., san-francisco"
-          />
-          <p className="mt-1 text-sm text-gray-500">
-            Lowercase letters, numbers, and hyphens only
-          </p>
-          {errors.slug && (
-            <p className="mt-1 text-sm text-red-600">{errors.slug[0]}</p>
-          )}
-        </div>
-
-        <div>
-          <label
             htmlFor="state"
             className="block text-sm font-medium text-gray-700"
           >

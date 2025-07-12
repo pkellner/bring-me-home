@@ -44,9 +44,9 @@ export default async function EditPersonPage({
     orderBy: { name: 'asc' },
   });
 
-  // Generate slugs for navigation
-  const townSlug = person.town.name.toLowerCase().replace(/\s+/g, '-');
-  const personSlug = `${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`;
+  // Get slugs for navigation
+  const townSlug = person.town.slug;
+  const personSlug = person.slug;
 
   // Serialize Decimal fields to strings for client components
   const serializedPerson = {

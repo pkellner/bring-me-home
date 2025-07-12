@@ -37,9 +37,11 @@ interface Comment extends Record<string, unknown> {
     id: string;
     firstName: string;
     lastName: string;
+    slug: string;
     town: {
       name: string;
       id: string;
+      slug: string;
       state: string;
     };
   };

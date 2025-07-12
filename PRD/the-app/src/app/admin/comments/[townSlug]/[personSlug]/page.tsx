@@ -23,19 +23,12 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     redirect('/admin');
   }
 
-  // Convert slugs to names
-  const townName = townSlug.replace(/-/g, ' ');
-  const [firstName, lastName] = personSlug
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1));
-
-  // Find the person
+  // Find the person using slugs
   const person = await prisma.person.findFirst({
     where: {
-      firstName: firstName,
-      lastName: lastName,
+      slug: personSlug,
       town: {
-        name: townName,
+        slug: townSlug,
       },
     },
     include: {

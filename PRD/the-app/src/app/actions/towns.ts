@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
+import { createTownSlug } from '@/lib/slug-utils';
 
 const townSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -13,11 +14,6 @@ const townSchema = z.object({
   county: z.string().max(100).optional(),
   zipCode: z.string().max(20).optional(),
   fullAddress: z.string().min(1, 'Full address is required'),
-  slug: z
-    .string()
-    .min(1, 'Slug is required')
-    .max(100)
-    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
   description: z.string().max(1000).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
@@ -38,7 +34,6 @@ export async function createTown(formData: FormData) {
     county: formData.get('county') || undefined,
     zipCode: formData.get('zipCode') || undefined,
     fullAddress: formData.get('fullAddress'),
-    slug: formData.get('slug'),
     description: formData.get('description') || undefined,
     latitude: formData.get('latitude')
       ? parseFloat(formData.get('latitude') as string)
@@ -58,8 +53,20 @@ export async function createTown(formData: FormData) {
   }
 
   try {
+    // Get existing town slugs to ensure uniqueness
+    const existingTowns = await prisma.town.findMany({
+      select: { slug: true },
+    });
+    const existingSlugs = existingTowns.map(t => t.slug);
+
+    // Generate unique slug
+    const slug = createTownSlug(validatedFields.data.name, existingSlugs);
+
     await prisma.town.create({
-      data: validatedFields.data,
+      data: {
+        ...validatedFields.data,
+        slug,
+      },
     });
 
     revalidatePath('/admin/towns');
@@ -84,7 +91,6 @@ export async function updateTown(id: string, formData: FormData) {
     county: formData.get('county') || undefined,
     zipCode: formData.get('zipCode') || undefined,
     fullAddress: formData.get('fullAddress'),
-    slug: formData.get('slug'),
     description: formData.get('description') || undefined,
     latitude: formData.get('latitude')
       ? parseFloat(formData.get('latitude') as string)
@@ -104,9 +110,42 @@ export async function updateTown(id: string, formData: FormData) {
   }
 
   try {
+    // Get existing town to check if name changed
+    const existingTown = await prisma.town.findUnique({
+      where: { id },
+      select: { name: true, slug: true },
+    });
+
+    if (!existingTown) {
+      throw new Error('Town not found');
+    }
+
+    let slug = existingTown.slug;
+
+    // If name changed, check if we need a new slug
+    if (existingTown.name !== validatedFields.data.name) {
+      // First, generate the base slug to see if it would be different
+      const baseSlug = createTownSlug(validatedFields.data.name, []);
+
+      // Only generate a new slug if the base would be different from current
+      // This handles case-only changes where the slug would remain the same
+      if (baseSlug !== existingTown.slug) {
+        const existingTowns = await prisma.town.findMany({
+          where: { id: { not: id } }, // Exclude current town
+          select: { slug: true },
+        });
+        const existingSlugs = existingTowns.map(t => t.slug);
+
+        slug = createTownSlug(validatedFields.data.name, existingSlugs);
+      }
+    }
+
     await prisma.town.update({
       where: { id },
-      data: validatedFields.data,
+      data: {
+        ...validatedFields.data,
+        slug,
+      },
     });
 
     revalidatePath('/admin/towns');

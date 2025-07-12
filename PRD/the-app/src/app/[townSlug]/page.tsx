@@ -13,11 +13,9 @@ interface TownPageProps {
 }
 
 async function getTownData(townSlug: string) {
-  const townName = townSlug.replace(/-/g, ' ');
-
   const town = await prisma.town.findFirst({
     where: {
-      name: townName,
+      slug: townSlug,
       isActive: true, // Only show visible towns
     },
     include: {
@@ -42,6 +40,7 @@ async function getTownData(townSlug: string) {
           id: true,
           firstName: true,
           lastName: true,
+          slug: true,
           personImages: {
             where: {
               isActive: true,
@@ -236,7 +235,7 @@ export default async function TownPage({ params }: TownPageProps) {
                     </div>
 
                     <Link
-                      href={`/${townSlug}/${person.firstName.toLowerCase()}-${person.lastName.toLowerCase()}`}
+                      href={`/${townSlug}/${person.slug}`}
                       className="block w-full text-center bg-indigo-600 text-white px-4 py-3 rounded-md font-medium hover:bg-indigo-700 transition-colors"
                     >
                       <div className="text-base">

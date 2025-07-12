@@ -15,17 +15,11 @@ interface PersonPageProps {
 }
 
 async function getPersonData(townSlug: string, personSlug: string) {
-  const townName = townSlug.replace(/-/g, ' ');
-  const [firstName, lastName] = personSlug
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1));
-
   const person = await prisma.person.findFirst({
     where: {
-      firstName: firstName,
-      lastName: lastName,
+      slug: personSlug,
       town: {
-        name: townName,
+        slug: townSlug,
         isActive: true, // Only show persons from visible towns
       },
       isActive: true,
