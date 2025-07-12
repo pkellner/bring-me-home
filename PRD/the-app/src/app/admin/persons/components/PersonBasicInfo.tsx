@@ -11,6 +11,7 @@ interface PersonBasicInfoProps {
     dateOfBirth?: Date | null;
     lastKnownAddress?: string;
     isActive?: boolean;
+    status?: string;
   };
   towns: Town[];
   errors: Record<string, string[]>;
@@ -141,6 +142,30 @@ export default function PersonBasicInfo({ person, towns, errors }: PersonBasicIn
             <p className="mt-1 text-sm text-red-600">
               {errors.lastKnownAddress[0]}
             </p>
+          )}
+        </div>
+
+        <div>
+          <label
+            htmlFor="status"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            required
+            defaultValue={person?.status || 'detained'}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option value="detained">Detained</option>
+            <option value="missing">Missing</option>
+            <option value="released">Released</option>
+            <option value="deported">Deported</option>
+          </select>
+          {errors.status && (
+            <p className="mt-1 text-sm text-red-600">{errors.status[0]}</p>
           )}
         </div>
       </div>

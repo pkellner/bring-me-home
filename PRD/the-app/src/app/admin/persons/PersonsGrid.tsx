@@ -64,6 +64,7 @@ interface PersonsGridProps {
   canEdit: boolean;
   canDelete: boolean;
   isSiteAdmin: boolean;
+  isTownAdmin: boolean;
   gridTitle?: string;
   addButtonText?: string;
 }
@@ -74,6 +75,7 @@ export default function PersonsGrid({
   canEdit,
   canDelete,
   isSiteAdmin,
+  isTownAdmin,
   gridTitle = 'Detained Persons',
   addButtonText = 'Add Detained Person',
 }: PersonsGridProps) {
@@ -339,17 +341,17 @@ export default function PersonsGrid({
         </div>
       ),
     },
-    {
-      key: 'isActive',
+    ...(isSiteAdmin || isTownAdmin ? [{
+      key: 'isActive' as keyof Person,
       label: 'Visibility',
-      render: (value, record) => (
+      render: (value: unknown, record: Person) => (
         <PersonVisibilityToggle
           personId={record.id}
           initialIsActive={record.isActive}
           onUpdate={handlePersonVisibilityUpdate}
         />
       ),
-    },
+    }] : []),
     {
       key: 'createdAt',
       label: 'Created',
@@ -410,13 +412,15 @@ export default function PersonsGrid({
         </div>
       </div>
 
-      <PersonBulkActions
-        onSetAllVisible={handleSetAllVisible}
-        onSetAllInvisible={handleSetAllInvisible}
-        groupByTown={groupByTown}
-        onGroupByTownChange={setGroupByTown}
-        disabled={loading}
-      />
+      {(isSiteAdmin || isTownAdmin) && (
+        <PersonBulkActions
+          onSetAllVisible={handleSetAllVisible}
+          onSetAllInvisible={handleSetAllInvisible}
+          groupByTown={groupByTown}
+          onGroupByTownChange={setGroupByTown}
+          disabled={loading}
+        />
+      )}
 
       {groupByTown ? (
         <div className="space-y-6">
@@ -426,38 +430,40 @@ export default function PersonsGrid({
                 <h3 className="text-lg font-medium text-gray-900">
                   {townName}
                 </h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      const townPersonIds = townPersons.map(p => p.id);
-                      if (
-                        confirm(
-                          `Make all ${townPersonIds.length} persons in ${townName} visible?`
-                        )
-                      ) {
-                        handleBulkVisibilityUpdate(townPersonIds, true);
-                      }
-                    }}
-                    className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-md hover:bg-green-200"
-                  >
-                    Set All Visible
-                  </button>
-                  <button
-                    onClick={() => {
-                      const townPersonIds = townPersons.map(p => p.id);
-                      if (
-                        confirm(
-                          `Make all ${townPersonIds.length} persons in ${townName} invisible?`
-                        )
-                      ) {
-                        handleBulkVisibilityUpdate(townPersonIds, false);
-                      }
-                    }}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
-                  >
-                    Set All Invisible
-                  </button>
-                </div>
+                {(isSiteAdmin || isTownAdmin) && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const townPersonIds = townPersons.map(p => p.id);
+                        if (
+                          confirm(
+                            `Make all ${townPersonIds.length} persons in ${townName} visible?`
+                          )
+                        ) {
+                          handleBulkVisibilityUpdate(townPersonIds, true);
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-md hover:bg-green-200"
+                    >
+                      Set All Visible
+                    </button>
+                    <button
+                      onClick={() => {
+                        const townPersonIds = townPersons.map(p => p.id);
+                        if (
+                          confirm(
+                            `Make all ${townPersonIds.length} persons in ${townName} invisible?`
+                          )
+                        ) {
+                          handleBulkVisibilityUpdate(townPersonIds, false);
+                        }
+                      }}
+                      className="px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
+                    >
+                      Set All Invisible
+                    </button>
+                  </div>
+                )}
               </div>
               <AdminDataGrid<Person>
                 data={townPersons}

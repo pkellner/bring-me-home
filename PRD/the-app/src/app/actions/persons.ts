@@ -17,6 +17,7 @@ const personSchema = z.object({
   townId: z.string().min(1, 'Town is required'),
   dateOfBirth: z.string().optional(),
   lastKnownAddress: z.string().min(1, 'Last known address is required'),
+  status: z.string().default('detained'),
   stories: z.string().optional(), // JSON string of stories array
   layoutId: z.string().optional(),
   themeId: z.string().optional(),
@@ -59,6 +60,7 @@ export async function createPerson(formData: FormData) {
     townId: formData.get('townId'),
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
+    status: formData.get('status') || 'detained',
     stories: formData.get('stories') || undefined,
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,
@@ -246,6 +248,7 @@ export async function updatePerson(id: string, formData: FormData) {
     townId: formData.get('townId'),
     dateOfBirth: formData.get('dateOfBirth') || undefined,
     lastKnownAddress: formData.get('lastKnownAddress'),
+    status: formData.get('status') || 'detained',
     stories: formData.get('stories') || undefined,
     layoutId: formData.get('layoutId') || undefined,
     themeId: formData.get('themeId') || undefined,

@@ -433,7 +433,7 @@ const generatePersons = () => {
             ? `/api/images/${placeholderImageIds.get(((persons.length + 3) % 10) + 1)
                 ?.fullImageId}`
             : null,
-        status: 'detained', // All persons in this system are detained
+        status: isDetained ? 'detained' : 'missing', // Set status based on detention state
         // Detention information
         detentionCenterName,
         detentionDate,
