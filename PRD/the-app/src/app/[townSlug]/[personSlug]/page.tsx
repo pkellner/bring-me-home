@@ -72,6 +72,11 @@ async function getPersonData(townSlug: string, personSlug: string) {
       layoutId: true,
       themeId: true,
       townId: true,
+      slug: true,
+      showDetentionInfo: true,
+      showLastHeardFrom: true,
+      showDetentionDate: true,
+      showCommunitySupport: true,
       createdAt: true,
       updatedAt: true,
       // Include relations

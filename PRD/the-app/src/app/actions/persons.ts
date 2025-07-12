@@ -30,6 +30,10 @@ const personSchema = z.object({
   notesFromLastContact: z.string().optional(),
   representedByLawyer: z.boolean().optional(),
   representedByNotes: z.string().optional(),
+  showDetentionInfo: z.boolean().optional(),
+  showLastHeardFrom: z.boolean().optional(),
+  showDetentionDate: z.boolean().optional(),
+  showCommunitySupport: z.boolean().optional(),
 });
 
 export async function createPerson(formData: FormData) {
@@ -70,6 +74,10 @@ export async function createPerson(formData: FormData) {
     notesFromLastContact: formData.get('notesFromLastContact') || undefined,
     representedByLawyer: formData.get('representedByLawyer') === 'on',
     representedByNotes: formData.get('representedByNotes') || undefined,
+    showDetentionInfo: formData.get('showDetentionInfo') === 'on',
+    showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
+    showDetentionDate: formData.get('showDetentionDate') === 'on',
+    showCommunitySupport: formData.get('showCommunitySupport') === 'on',
   });
 
   if (!validatedFields.success) {
@@ -240,6 +248,10 @@ export async function updatePerson(id: string, formData: FormData) {
     notesFromLastContact: formData.get('notesFromLastContact') || undefined,
     representedByLawyer: formData.get('representedByLawyer') === 'on',
     representedByNotes: formData.get('representedByNotes') || undefined,
+    showDetentionInfo: formData.get('showDetentionInfo') === 'on',
+    showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
+    showDetentionDate: formData.get('showDetentionDate') === 'on',
+    showCommunitySupport: formData.get('showCommunitySupport') === 'on',
   });
 
   if (!validatedFields.success) {

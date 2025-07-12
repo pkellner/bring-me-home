@@ -29,8 +29,11 @@ Your output must be a well-formatted markdown response containing two distinct s
 NOTE: If in plan mode, do not implement the plan. You are only allowed to plan. Confirmation comes from a user message.
 
 
-Below are implementation notes for when NOT in plan mode
+# Gemini NOT IN PLAN MODE, IN Actual building mode
 
+## Best practices
+
+Never use "any" as a typescript type. always be explicit with types. unknown is OK
 
 ## Notes about checking work
 

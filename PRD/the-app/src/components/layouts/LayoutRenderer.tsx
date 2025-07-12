@@ -172,9 +172,11 @@ export default function LayoutRenderer({
             </div>
 
             {/* Community support section - full width */}
-            <div className="layout-section w-full">
-              {components['comments']()}
-            </div>
+            {person.showCommunitySupport && (
+              <div className="layout-section w-full">
+                {components['comments']()}
+              </div>
+            )}
           </div>
         );
 
@@ -364,16 +366,18 @@ export default function LayoutRenderer({
             </div>
 
             {/* Community Support - modern comment section */}
-            <div className="layout-section w-full">
-              <div className="space-y-6">
-                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
-                  Community Support
-                </h2>
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
-                  {components['comments']()}
+            {person.showCommunitySupport && (
+              <div className="layout-section w-full">
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
+                    Community Support
+                  </h2>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
+                    {components['comments']()}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </>

@@ -29,13 +29,13 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-4">
-        {person.detentionDate && (
+        {person.detentionDate && person.showDetentionDate && (
           <div>
             <span className="font-semibold">Detention Date:</span>{' '}
             {formatDate(person.detentionDate)}
           </div>
         )}
-        {person.lastHeardFromDate && (
+        {person.lastHeardFromDate && person.showLastHeardFrom && (
           <div>
             <span className="font-semibold">Last Heard From:</span>{' '}
             {formatDate(person.lastHeardFromDate)}
@@ -55,7 +55,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
         </div>
       </div>
 
-      {person.detentionCenter && (
+      {person.detentionCenter && person.showDetentionInfo && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-start gap-3">
             <div className="flex-grow">
@@ -88,7 +88,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
                     </span>
                   </div>
                 )}
-                {person.detentionDate && (
+                {person.detentionDate && person.showDetentionDate && (
                   <div>
                     <span className="font-semibold text-red-700">
                       Detained Since:

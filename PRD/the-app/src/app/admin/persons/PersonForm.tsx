@@ -15,6 +15,7 @@ import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 import PersonBasicInfo from './components/PersonBasicInfo';
 import PersonDetentionInfo from './components/PersonDetentionInfo';
+import VisibilitySettings from './components/VisibilitySettings';
 import FormActions from './components/FormActions';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
@@ -226,7 +227,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           />
         </div>
 
-
+        <VisibilitySettings person={person} />
 
         <FormActions isSubmitting={isSubmitting} isEditMode={!!person} />
       </form>

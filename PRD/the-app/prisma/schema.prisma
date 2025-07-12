@@ -132,6 +132,10 @@ model Person {
   representedByLawyer  Boolean                @default(false)
   representedByNotes   String?                @db.Text
   slug                 String                 @unique
+  showDetentionInfo    Boolean                @default(true)
+  showLastHeardFrom    Boolean                @default(true)
+  showDetentionDate    Boolean                @default(true)
+  showCommunitySupport Boolean                @default(true)
   attachments          Attachment[]
   comments             Comment[]
   familySettings       FamilyPrivacySettings?
