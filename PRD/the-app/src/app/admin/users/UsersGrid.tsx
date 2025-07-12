@@ -8,6 +8,8 @@ import AdminDataGrid, {
 } from '@/components/admin/AdminDataGrid';
 import { deleteUser, resetUserPassword } from '@/app/actions/users';
 import UserStatusToggle from '@/components/admin/UserStatusToggle';
+import PasswordResetModal from '@/components/admin/PasswordResetModal';
+import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 import {
   BuildingOfficeIcon,
   KeyIcon,
@@ -70,6 +72,10 @@ export default function UsersGrid({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<keyof User>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [resetPasswordModal, setResetPasswordModal] = useState<{
+    isOpen: boolean;
+    user: User | null;
+  }>({ isOpen: false, user: null });
 
   // Sync with initialUsers when they change (e.g., after editing)
   useEffect(() => {
@@ -140,14 +146,13 @@ export default function UsersGrid({
     });
   }, []);
 
-  const handleResetPassword = useCallback(async (user: User) => {
-    const newPassword = prompt('Enter new password (at least 8 characters):');
-    if (!newPassword) return;
+  const handleResetPassword = useCallback((user: User) => {
+    setResetPasswordModal({ isOpen: true, user });
+  }, []);
 
-    if (newPassword.length < 8) {
-      alert('Password must be at least 8 characters long');
-      return;
-    }
+  const handlePasswordResetConfirm = useCallback(async (newPassword: string) => {
+    const user = resetPasswordModal.user;
+    if (!user) return;
 
     setError('');
 
@@ -156,15 +161,23 @@ export default function UsersGrid({
         const result = await resetUserPassword(user.id, newPassword);
 
         if (result.success) {
-          alert('Password reset successfully.');
-        } else {
-          setError(result.error || 'Failed to reset password');
+          showSuccessAlert(`Password reset successfully for user "${user.username}"`, 3000);
+          // Refresh the page to ensure data consistency
+          router.refresh();
+        } else if (result.errors) {
+          // Handle structured errors
+          const errorMessages: string[] = [];
+          Object.entries(result.errors).forEach(([field, messages]) => {
+            errorMessages.push(...messages);
+          });
+          showErrorAlert(errorMessages.join('; '), 5000);
         }
-      } catch {
-        setError('Failed to reset password');
+      } catch (error) {
+        console.error('Password reset error:', error);
+        showErrorAlert('Failed to reset password. Please try again.', 5000);
       }
     });
-  }, []);
+  }, [resetPasswordModal.user, router]);
 
   const handleStatusUpdate = useCallback(
     (userId: string, isActive: boolean) => {
@@ -304,23 +317,35 @@ export default function UsersGrid({
   ];
 
   return (
-    <AdminDataGrid<User>
-      data={sortedUsers}
-      columns={columns}
-      actions={actions}
-      title="Users"
-      loading={isPending}
-      error={error}
-      onRefresh={handleRefresh}
-      onSearch={handleSearch}
-      onSort={handleSort}
-      createUrl="/admin/users/new"
-      createLabel="Create User"
-      showCreate={canCreate}
-      searchQuery={searchQuery}
-      sortKey={String(sortKey)}
-      sortDirection={sortDirection}
-      emptyMessage="No users found"
-    />
+    <>
+      <AdminDataGrid<User>
+        data={sortedUsers}
+        columns={columns}
+        actions={actions}
+        title="Users"
+        loading={isPending}
+        error={error}
+        onRefresh={handleRefresh}
+        onSearch={handleSearch}
+        onSort={handleSort}
+        createUrl="/admin/users/new"
+        createLabel="Create User"
+        showCreate={canCreate}
+        searchQuery={searchQuery}
+        sortKey={String(sortKey)}
+        sortDirection={sortDirection}
+        emptyMessage="No users found"
+      />
+      
+      {/* Password Reset Modal */}
+      {resetPasswordModal.user && (
+        <PasswordResetModal
+          isOpen={resetPasswordModal.isOpen}
+          onClose={() => setResetPasswordModal({ isOpen: false, user: null })}
+          onConfirm={handlePasswordResetConfirm}
+          username={resetPasswordModal.user.username}
+        />
+      )}
+    </>
   );
 }

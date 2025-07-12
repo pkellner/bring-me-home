@@ -13,7 +13,10 @@ export async function createUser(formData: FormData) {
   const session = await getServerSession(authOptions);
 
   if (!hasPermission(session, 'users', 'create')) {
-    return { error: 'Insufficient permissions' };
+    return { 
+      success: false,
+      errors: { _form: ['You do not have permission to create users'] }
+    };
   }
 
   const rawData = {
@@ -26,9 +29,19 @@ export async function createUser(formData: FormData) {
 
   const validation = CreateUserSchema.safeParse(rawData);
   if (!validation.success) {
+    // Format validation errors for display
+    const errors: Record<string, string[]> = {};
+    validation.error.issues.forEach(issue => {
+      const field = issue.path[0] as string;
+      if (!errors[field]) {
+        errors[field] = [];
+      }
+      errors[field].push(issue.message);
+    });
+    
     return {
-      error: 'Invalid input data',
-      details: validation.error.issues,
+      success: false,
+      errors,
     };
   }
 
@@ -41,7 +54,10 @@ export async function createUser(formData: FormData) {
     });
 
     if (existingUser) {
-      return { error: 'Username already exists' };
+      return { 
+        success: false,
+        errors: { username: ['Username already exists'] }
+      };
     }
 
     // Check if email already exists (if provided)
@@ -51,7 +67,10 @@ export async function createUser(formData: FormData) {
       });
 
       if (existingEmail) {
-        return { error: 'Email already exists' };
+        return { 
+          success: false,
+          errors: { email: ['Email already exists'] }
+        };
       }
     }
 
@@ -90,7 +109,10 @@ export async function createUser(formData: FormData) {
     return { success: true, user: { id: user.id, username: user.username } };
   } catch (error) {
     console.error('Create user error:', error);
-    return { error: 'Failed to create user' };
+    return { 
+      success: false,
+      errors: { _form: ['Failed to create user. Please try again.'] }
+    };
   }
 }
 
@@ -341,19 +363,50 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   const session = await getServerSession(authOptions);
 
   if (!hasPermission(session, 'users', 'update')) {
-    return { error: 'Insufficient permissions' };
+    return { 
+      success: false,
+      errors: { _form: ['You do not have permission to reset passwords'] }
+    };
+  }
+
+  if (!newPassword || newPassword.trim().length === 0) {
+    return {
+      success: false,
+      errors: { password: ['Password cannot be empty'] }
+    };
   }
 
   if (newPassword.length < 8) {
-    return { error: 'Password must be at least 8 characters' };
+    return { 
+      success: false,
+      errors: { password: ['Password must be at least 8 characters'] }
+    };
   }
 
   try {
+    // Get user info for response
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true }
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        errors: { _form: ['User not found'] }
+      };
+    }
+
+    // Hash the password with the same settings as user creation
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
+    // Update user password
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { 
+        password: hashedPassword,
+        updatedAt: new Date() // Explicitly update timestamp
+      },
     });
 
     // Create audit log
@@ -366,10 +419,17 @@ export async function resetUserPassword(userId: string, newPassword: string) {
       },
     });
 
-    return { success: true };
+    revalidatePath('/admin/users');
+    return { 
+      success: true,
+      user: { username: user.username }
+    };
   } catch (error) {
     console.error('Reset password error:', error);
-    return { error: 'Failed to reset password' };
+    return { 
+      success: false,
+      errors: { _form: ['Failed to reset password. Please try again.'] }
+    };
   }
 }
 

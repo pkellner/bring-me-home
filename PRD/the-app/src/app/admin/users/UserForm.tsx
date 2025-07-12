@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createUser, updateUser } from '@/app/actions/users';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { ZodIssue } from 'zod';
+import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
 interface Role {
   id: string;
@@ -86,25 +86,11 @@ export default function UserForm({
   );
 
   // Define the return type for the actions
-  type ActionState =
-    | {
-        error: string;
-        details?: undefined;
-        success?: undefined;
-        user?: undefined;
-      }
-    | {
-        error: string;
-        details: ZodIssue[];
-        success?: undefined;
-        user?: undefined;
-      }
-    | {
-        success: boolean;
-        user: { id: string; username: string };
-        error?: undefined;
-        details?: undefined;
-      };
+  type ActionState = {
+    success?: boolean;
+    user?: { id: string; username: string };
+    errors?: Record<string, string[]>;
+  };
 
   // Create wrapper functions for useActionState
   const createUserWrapper = async (
@@ -119,14 +105,14 @@ export default function UserForm({
     formData: FormData
   ): Promise<ActionState> => {
     if (!user?.id) {
-      return { error: 'User ID is required for update' };
+      return { success: false, errors: { _form: ['User ID is required for update'] } };
     }
     return await updateUser(user.id, formData);
   };
 
   const [state, formAction] = useActionState(
     mode === 'create' ? createUserWrapper : updateUserWrapper,
-    { error: '' }
+    {}
   );
 
   const handleSubmit = async (formData: FormData) => {
@@ -205,12 +191,37 @@ export default function UserForm({
     );
   };
 
-  // Handle successful form submission
+  // Handle form submission results
   useEffect(() => {
-    if (state.success) {
-      router.push('/admin/users');
+    if (state.success && state.user) {
+      // Show success alert
+      const message = mode === 'create' 
+        ? `User "${state.user.username}" created successfully!`
+        : `User "${state.user.username}" updated successfully!`;
+      showSuccessAlert(message, 3000);
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/admin/users');
+      }, 500);
+    } else if (state.errors) {
+      // Show error alert
+      const errorMessages: string[] = [];
+      Object.entries(state.errors).forEach(([field, messages]) => {
+        if (field === '_form') {
+          errorMessages.push(...messages);
+        } else {
+          errorMessages.push(`${field}: ${messages.join(', ')}`);
+        }
+      });
+      
+      const message = mode === 'create'
+        ? `Failed to create user: ${errorMessages.join('; ')}`
+        : `Failed to update user: ${errorMessages.join('; ')}`;
+      
+      showErrorAlert(message, 5000);
     }
-  }, [state.success, router]);
+  }, [state, mode, router]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -231,13 +242,23 @@ export default function UserForm({
         >
           <div className="space-y-8 divide-y divide-gray-200 px-6 py-6">
             {/* Error Message */}
-            {state.error && (
+            {state.errors && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <div className="flex">
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                    <h3 className="text-sm font-medium text-red-800">
+                      There were errors with your submission
+                    </h3>
                     <div className="mt-2 text-sm text-red-700">
-                      {state.error}
+                      <ul className="list-disc list-inside space-y-1">
+                        {Object.entries(state.errors).map(([field, messages]) => (
+                          messages.map((message, index) => (
+                            <li key={`${field}-${index}`}>
+                              {field === '_form' ? message : `${field}: ${message}`}
+                            </li>
+                          ))
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </div>
@@ -269,8 +290,15 @@ export default function UserForm({
                     name="username"
                     required
                     defaultValue={user?.username}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                      state.errors?.username ? 'border-red-300' : ''
+                    }`}
                   />
+                  {state.errors?.username && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {state.errors.username[0]}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -285,8 +313,15 @@ export default function UserForm({
                     id="email"
                     name="email"
                     defaultValue={user?.email || ''}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                      state.errors?.email ? 'border-red-300' : ''
+                    }`}
                   />
+                  {state.errors?.email && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {state.errors.email[0]}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -334,8 +369,15 @@ export default function UserForm({
                       id="password"
                       name="password"
                       required
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                        state.errors?.password ? 'border-red-300' : ''
+                      }`}
                     />
+                    {state.errors?.password && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {state.errors.password[0]}
+                      </p>
+                    )}
                   </div>
                 )}
 
