@@ -17,6 +17,7 @@ import PersonBasicInfo from './components/PersonBasicInfo';
 import PersonDetentionInfo from './components/PersonDetentionInfo';
 import FormActions from './components/FormActions';
 import LoadingOverlay from './components/LoadingOverlay';
+import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
 // Serialized version of Person for client components
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
@@ -109,13 +110,11 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           }
         });
 
-        const title = 'Update Failed';
         const message = person
-          ? `Failed to update ${person.firstName} ${person.lastName}`
-          : 'Failed to create person';
-        const fullMessage = `${title}\n\n${message}\n\nErrors:\n${errorDetails.join('\n')}`;
+          ? `Failed to update ${person.firstName} ${person.lastName}: ${errorDetails.join(', ')}`
+          : `Failed to create person: ${errorDetails.join(', ')}`;
         
-        alert(fullMessage);
+        showErrorAlert(message, 5000); // Show error for 5 seconds
       } else if (result.success) {
         // Show success alert with details
         const details: string[] = [];
@@ -130,42 +129,30 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           }
         }
 
-        // Use native alert for now
-        const title = person ? 'Person Updated Successfully' : 'Person Created Successfully';
+        // Show success message
         const message = person 
-          ? `${person.firstName} ${person.lastName} has been updated.`
-          : `New person has been created.`;
-        const fullMessage = `${title}\n\n${message}\n\n${details.length > 0 ? 'Details:\n' + details.join('\n') : ''}`;
+          ? `${person.firstName} ${person.lastName} has been updated successfully!`
+          : `New person has been created successfully!`;
         
-        alert(fullMessage);
+        showSuccessAlert(message, 4000); // Show success for 4 seconds
         
-        // Navigate after alert is dismissed
-        if (person) {
-          router.refresh();
-        } else {
-          router.push('/admin/persons');
-        }
+        // Navigate after a short delay to let user see the message
+        setTimeout(() => {
+          if (person) {
+            router.refresh();
+          } else {
+            router.push('/admin/persons');
+          }
+        }, 1500);
       }
     } catch (error) {
       setIsSubmitting(false);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Unexpected Error\n\nAn unexpected error occurred while processing your request.\n\n${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
+      showErrorAlert(`Unexpected error: ${errorMessage}`, 5000);
     }
   }
 
-  function handleAlertClose() {
-    setAlertDialog(prev => ({ ...prev, isOpen: false }));
-
-    // If success, navigate or refresh
-    if (alertDialog.type === 'success') {
-      if (person) {
-        router.refresh();
-      } else {
-        router.push('/admin/persons');
-      }
-    }
-  }
 
   async function handleDetentionCenterSelect(centerId: string | null) {
     setSelectedDetentionCenterId(centerId);
