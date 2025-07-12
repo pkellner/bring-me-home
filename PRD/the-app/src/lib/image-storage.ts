@@ -7,18 +7,26 @@ const prisma = new PrismaClient();
 const getFullImageDimensions = (): { width?: number; height?: number; fit: 'inside' | 'outside' | 'cover' | 'fill' | 'contain' } => {
   // Option 1: Max size (default) - preserves aspect ratio within boundary
   if (process.env.IMAGE_FULL_MAX_SIZE) {
-    const maxSize = parseInt(process.env.IMAGE_FULL_MAX_SIZE);
-    return { width: maxSize, height: maxSize, fit: 'inside' };
+    const maxSize = parseInt(process.env.IMAGE_FULL_MAX_SIZE) || 1200;
+    if (!isNaN(maxSize)) {
+      return { width: maxSize, height: maxSize, fit: 'inside' };
+    }
   }
   
   // Option 2: Fixed width, auto height
   if (process.env.IMAGE_FULL_WIDTH) {
-    return { width: parseInt(process.env.IMAGE_FULL_WIDTH), height: undefined, fit: 'inside' };
+    const width = parseInt(process.env.IMAGE_FULL_WIDTH) || 1200;
+    if (!isNaN(width)) {
+      return { width, height: undefined, fit: 'inside' };
+    }
   }
   
   // Option 3: Fixed height, auto width
   if (process.env.IMAGE_FULL_HEIGHT) {
-    return { width: undefined, height: parseInt(process.env.IMAGE_FULL_HEIGHT), fit: 'inside' };
+    const height = parseInt(process.env.IMAGE_FULL_HEIGHT) || 1200;
+    if (!isNaN(height)) {
+      return { width: undefined, height, fit: 'inside' };
+    }
   }
   
   // Default fallback
@@ -26,9 +34,9 @@ const getFullImageDimensions = (): { width?: number; height?: number; fit: 'insi
 };
 
 const fullImageConfig = getFullImageDimensions();
-const thumbnailSize = parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300');
-const fullImageQuality = parseInt(process.env.IMAGE_FULL_QUALITY || '85');
-const thumbnailQuality = parseInt(process.env.IMAGE_THUMBNAIL_QUALITY || '80');
+const thumbnailSize = parseInt(process.env.IMAGE_THUMBNAIL_SIZE || '300') || 300;
+const fullImageQuality = parseInt(process.env.IMAGE_FULL_QUALITY || '85') || 85;
+const thumbnailQuality = parseInt(process.env.IMAGE_THUMBNAIL_QUALITY || '80') || 80;
 
 export interface ImageData {
   buffer: Buffer;
@@ -47,6 +55,7 @@ export async function processAndStoreImage(
 ): Promise<{ fullImageId: string; thumbnailImageId: string }> {
   // Process full-size image using environment configuration
   const fullImageBuffer = await sharp(buffer)
+    .rotate() // Auto-rotate based on EXIF orientation
     .resize(fullImageConfig.width, fullImageConfig.height, {
       fit: fullImageConfig.fit,
       withoutEnlargement: true,
@@ -58,6 +67,7 @@ export async function processAndStoreImage(
 
   // Create thumbnail using environment configuration
   const thumbnailBuffer = await sharp(buffer)
+    .rotate() // Auto-rotate based on EXIF orientation
     .resize(thumbnailSize, thumbnailSize, {
       fit: 'cover',
       position: 'center',
@@ -128,6 +138,7 @@ export async function processImageBuffer(
   type: 'full' | 'thumbnail'
 ): Promise<ImageData> {
   const processedBuffer = await sharp(buffer)
+    .rotate() // Auto-rotate based on EXIF orientation
     .resize(
       type === 'full' ? fullImageConfig.width : thumbnailSize,
       type === 'full' ? fullImageConfig.height : thumbnailSize, 

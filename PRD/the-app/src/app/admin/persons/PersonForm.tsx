@@ -34,6 +34,8 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<
     string | null
   >(person?.detentionCenterId || null);
@@ -56,6 +58,10 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
   >([]);
 
   async function handleSubmit(formData: FormData) {
+    setIsSubmitting(true);
+    setErrors({});
+    setSuccessMessage(null);
+
     // Add stories as JSON to form data
     formData.set('stories', JSON.stringify(stories));
     // Add detention center ID to form data
@@ -80,20 +86,32 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
       }
     });
 
-    const result = person
-      ? await updatePerson(person.id, formData)
-      : await createPerson(formData);
+    try {
+      const result = person
+        ? await updatePerson(person.id, formData)
+        : await createPerson(formData);
 
-    if (result.errors) {
-      setErrors(result.errors);
-    } else if (result.success) {
-      if (person) {
-        // For updates, refresh the current page to get fresh data
-        router.refresh();
-      } else {
-        // For new persons, go to the list
-        router.push('/admin/persons');
+      if (result.errors) {
+        setErrors(result.errors);
+        setIsSubmitting(false);
+      } else if (result.success) {
+        setSuccessMessage(person ? 'Person updated successfully!' : 'Person created successfully!');
+        setIsSubmitting(false);
+        
+        // Wait a moment to show the success message
+        setTimeout(() => {
+          if (person) {
+            // For updates, refresh the current page to get fresh data
+            router.refresh();
+          } else {
+            // For new persons, go to the list
+            router.push('/admin/persons');
+          }
+        }, 1500);
       }
+    } catch {
+      setErrors({ _form: ['An unexpected error occurred. Please try again.'] });
+      setIsSubmitting(false);
     }
   }
 
@@ -118,6 +136,22 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
   return (
     <>
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-6 rounded-md bg-green-50 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-800">{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form action={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
@@ -496,9 +530,32 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </label>
         </div>
 
-        {errors._form && (
+        {/* Error Messages */}
+        {Object.keys(errors).length > 0 && (
           <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm text-red-800">{errors._form[0]}</p>
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  {errors._form ? 'Update failed' : 'Please correct the following errors:'}
+                </h3>
+                {errors._form ? (
+                  <p className="mt-1 text-sm text-red-700">{errors._form[0]}</p>
+                ) : (
+                  <ul className="mt-2 list-disc list-inside text-sm text-red-700">
+                    {Object.entries(errors).map(([field, messages]) => (
+                      <li key={field}>
+                        {field}: {messages[0]}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -511,9 +568,24 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
           </Link>
           <button
             type="submit"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            disabled={isSubmitting}
+            className={`px-4 py-2 rounded-md text-white ${
+              isSubmitting 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
           >
-            {person ? 'Update' : 'Create'} Person
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {person ? 'Updating...' : 'Creating...'}
+              </span>
+            ) : (
+              `${person ? 'Update' : 'Create'} Person`
+            )}
           </button>
         </div>
       </form>
