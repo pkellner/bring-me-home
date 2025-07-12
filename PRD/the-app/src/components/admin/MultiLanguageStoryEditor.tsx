@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import RichTextEditor from '@/components/RichTextEditor';
 import { Story } from '@prisma/client';
 
@@ -33,12 +33,9 @@ export default function MultiLanguageStoryEditor({
 }: MultiLanguageStoryEditorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [selectedStoryType, setSelectedStoryType] = useState('personal');
-  const [storyContents, setStoryContents] = useState<
-    Record<string, Record<string, string>>
-  >({});
-
-  useEffect(() => {
-    // Initialize story contents from existing stories
+  
+  // Initialize story contents from props
+  const initialStoryContents = () => {
     const contents: Record<string, Record<string, string>> = {};
     stories.forEach(story => {
       if (!contents[story.language]) {
@@ -46,8 +43,12 @@ export default function MultiLanguageStoryEditor({
       }
       contents[story.language][story.storyType] = story.content;
     });
-    setStoryContents(contents);
-  }, [stories]);
+    return contents;
+  };
+  
+  const [storyContents, setStoryContents] = useState<
+    Record<string, Record<string, string>>
+  >(initialStoryContents);
 
   const handleContentChange = (content: string) => {
     const newContents = {

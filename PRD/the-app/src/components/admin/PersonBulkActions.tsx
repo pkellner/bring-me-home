@@ -41,7 +41,12 @@ export default function PersonBulkActions({
           onChange={e => onGroupByTownChange(e.target.checked)}
           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
         />
-        <span className="text-sm font-medium text-gray-700">Group By Town</span>
+        <span className="text-sm font-medium text-gray-700">
+          Group By Town
+          {groupByTown && (
+            <span className="text-xs text-gray-500 ml-2">(ungroup to add new person)</span>
+          )}
+        </span>
       </label>
     </div>
   );

@@ -103,9 +103,8 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
         ? await updatePerson(person.id, formData)
         : await createPerson(formData);
 
-      setIsSubmitting(false);
-
       if (result.errors) {
+        setIsSubmitting(false);
         setErrors(result.errors);
 
         // Show error alert with details
@@ -138,9 +137,11 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
         }
 
         // Show success message
+        const firstName = formData.get('firstName') as string;
+        const lastName = formData.get('lastName') as string;
         const message = person 
           ? `${person.firstName} ${person.lastName} has been updated successfully!`
-          : `New person has been created successfully!`;
+          : `${firstName} ${lastName} has been created successfully!`;
         
         showSuccessAlert(message, 4000); // Show success for 4 seconds
         
@@ -148,8 +149,26 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
         setTimeout(() => {
           if (person) {
             router.refresh();
+            setIsSubmitting(false);
           } else {
-            router.push('/admin/persons');
+            // Check if this is a create result with person data
+            type CreateResult = {
+              success: boolean;
+              person?: {
+                id: string;
+                slug: string;
+                townSlug: string;
+              };
+            };
+            const createResult = result as CreateResult;
+            if (createResult.person?.townSlug && createResult.person?.slug) {
+              // Redirect to the new person's page
+              router.push(`/${createResult.person.townSlug}/${createResult.person.slug}`);
+            } else {
+              // Fallback to persons list
+              router.push('/admin/persons');
+            }
+            // Note: Don't need to setIsSubmitting(false) for redirects as component will unmount
           }
         }, 1500);
       }
@@ -186,6 +205,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
       <form onSubmit={async (e) => {
         e.preventDefault();
+        if (isSubmitting) return; // Prevent multiple submissions
         const formData = new FormData(e.currentTarget);
         await handleSubmit(formData);
       }} className="space-y-6 relative">

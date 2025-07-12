@@ -188,8 +188,21 @@ export async function createPerson(formData: FormData) {
       });
     }
 
+    // Get the town slug for the redirect
+    const createdPerson = await prisma.person.findUnique({
+      where: { id: person.id },
+      include: { town: true }
+    });
+
     revalidatePath('/admin/persons');
-    return { success: true };
+    return { 
+      success: true, 
+      person: { 
+        id: person.id, 
+        slug: person.slug,
+        townSlug: createdPerson?.town.slug || ''
+      } 
+    };
   } catch (error) {
     console.error('Failed to create person:', error);
     return {
