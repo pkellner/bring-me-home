@@ -1140,76 +1140,52 @@ async function createStoriesForPersons(persons: SeedPerson[]) {
   console.log(`Created ${totalStories} stories in multiple languages.`);
 }
 
+// Helper function to upsert a story
+async function upsertStory(personId: string, language: string, storyType: string, content: string) {
+  await prisma.story.upsert({
+    where: {
+      personId_language_storyType: {
+        personId,
+        language,
+        storyType,
+      },
+    },
+    create: {
+      personId,
+      language,
+      storyType,
+      content,
+      isActive: true,
+    },
+    update: {
+      content,
+      isActive: true,
+    },
+  });
+}
+
 // Create detailed, comprehensive stories for Borrego Springs persons
 async function createDetailedStoriesForPerson(person: SeedPerson, personId: string) {
   const isDetained = !!person.detentionCenterName;
 
   // Personal Story - English
-  await prisma.story.create({
-    data: {
-      personId,
-      language: 'en',
-      storyType: 'personal',
-      content: generateDetailedPersonalStory(person, 'en'),
-      isActive: true,
-    },
-  });
+  await upsertStory(personId, 'en', 'personal', generateDetailedPersonalStory(person, 'en'));
 
   // Personal Story - Spanish
-  await prisma.story.create({
-    data: {
-      personId,
-      language: 'es',
-      storyType: 'personal',
-      content: generateDetailedPersonalStory(person, 'es'),
-      isActive: true,
-    },
-  });
+  await upsertStory(personId, 'es', 'personal', generateDetailedPersonalStory(person, 'es'));
 
   if (isDetained) {
     // Detention Story - English
-    await prisma.story.create({
-      data: {
-        personId,
-        language: 'en',
-        storyType: 'detention',
-        content: generateDetailedDetentionStory(person, 'en'),
-        isActive: true,
-      },
-    });
+    await upsertStory(personId, 'en', 'detention', generateDetailedDetentionStory(person, 'en'));
 
     // Detention Story - Spanish
-    await prisma.story.create({
-      data: {
-        personId,
-        language: 'es',
-        storyType: 'detention',
-        content: generateDetailedDetentionStory(person, 'es'),
-        isActive: true,
-      },
-    });
+    await upsertStory(personId, 'es', 'detention', generateDetailedDetentionStory(person, 'es'));
 
     // Family Story - English
-    await prisma.story.create({
-      data: {
-        personId,
-        language: 'en',
-        storyType: 'family',
-        content: generateDetailedFamilyStory(person, 'en'),
-        isActive: true,
-      },
-    });
+    await upsertStory(personId, 'en', 'family', generateDetailedFamilyStory(person, 'en'));
 
     // Family Story - Spanish
-    await prisma.story.create({
-      data: {
-        personId,
-        language: 'es',
-        storyType: 'family',
-        content: generateDetailedFamilyStory(person, 'es'),
-        isActive: true,
-      },
-    });
+    await upsertStory(personId, 'es', 'family', generateDetailedFamilyStory(person, 'es'));
   }
 }
 
@@ -1217,11 +1193,22 @@ async function createDetailedStoriesForPerson(person: SeedPerson, personId: stri
 async function createBasicStoriesForPerson(person: SeedPerson, personId: string) {
   // Migrate personal story
   if (person.story) {
-    await prisma.story.create({
-      data: {
+    await prisma.story.upsert({
+      where: {
+        personId_language_storyType: {
+          personId,
+          language: 'en',
+          storyType: 'personal',
+        },
+      },
+      create: {
         personId,
         language: 'en',
         storyType: 'personal',
+        content: person.story,
+        isActive: true,
+      },
+      update: {
         content: person.story,
         isActive: true,
       },
@@ -1230,11 +1217,22 @@ async function createBasicStoriesForPerson(person: SeedPerson, personId: string)
 
   // Migrate detention story
   if (person.detentionStory) {
-    await prisma.story.create({
-      data: {
+    await prisma.story.upsert({
+      where: {
+        personId_language_storyType: {
+          personId,
+          language: 'en',
+          storyType: 'detention',
+        },
+      },
+      create: {
         personId,
         language: 'en',
         storyType: 'detention',
+        content: person.detentionStory,
+        isActive: true,
+      },
+      update: {
         content: person.detentionStory,
         isActive: true,
       },
@@ -1243,11 +1241,22 @@ async function createBasicStoriesForPerson(person: SeedPerson, personId: string)
 
   // Migrate family message
   if (person.familyMessage) {
-    await prisma.story.create({
-      data: {
+    await prisma.story.upsert({
+      where: {
+        personId_language_storyType: {
+          personId,
+          language: 'en',
+          storyType: 'family',
+        },
+      },
+      create: {
         personId,
         language: 'en',
         storyType: 'family',
+        content: person.familyMessage,
+        isActive: true,
+      },
+      update: {
         content: person.familyMessage,
         isActive: true,
       },

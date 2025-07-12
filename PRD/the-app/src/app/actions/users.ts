@@ -28,7 +28,7 @@ export async function createUser(formData: FormData) {
   if (!validation.success) {
     return {
       error: 'Invalid input data',
-      details: validation.error.errors,
+      details: validation.error.issues,
     };
   }
 
@@ -116,7 +116,7 @@ export async function updateUser(userId: string, formData: FormData) {
   if (!validation.success) {
     return {
       error: 'Invalid input data',
-      details: validation.error.errors,
+      details: validation.error.issues,
     };
   }
 

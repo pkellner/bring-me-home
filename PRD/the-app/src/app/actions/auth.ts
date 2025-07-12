@@ -18,7 +18,7 @@ export async function registerUser(formData: FormData) {
   if (!validation.success) {
     return {
       error: 'Invalid input data',
-      details: validation.error.errors,
+      details: validation.error.issues,
     };
   }
 
