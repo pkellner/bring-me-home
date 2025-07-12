@@ -165,6 +165,13 @@ export default function Footer({
               >
                 System Configuration
               </Link>
+              <span className="text-gray-600">|</span>
+              <Link
+                href={session ? "/admin" : "/auth/signin"}
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+              >
+                Admin
+              </Link>
               {isAdmin && (
                 <>
                   <span className="text-gray-600">|</span>

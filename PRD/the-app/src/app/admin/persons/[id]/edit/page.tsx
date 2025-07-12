@@ -86,7 +86,11 @@ export default async function EditPersonPage({
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <PersonForm person={serializedPerson} towns={towns} />
+        <PersonForm 
+          key={`person-form-${person.updatedAt?.toISOString() || person.id}`} 
+          person={serializedPerson} 
+          towns={towns} 
+        />
       </div>
     </div>
   );

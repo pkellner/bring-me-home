@@ -48,22 +48,7 @@ export default function HeaderNavigation({ user }: HeaderNavigationProps) {
             </Link>
           )}
         </>
-      ) : (
-        <div className="space-x-2">
-          <Link
-            href="/auth/signin"
-            className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/auth/register"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-          >
-            Register
-          </Link>
-        </div>
-      )}
+      ) : null}
     </nav>
   );
 }

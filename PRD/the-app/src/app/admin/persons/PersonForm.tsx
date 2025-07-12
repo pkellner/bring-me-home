@@ -87,7 +87,13 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
     if (result.errors) {
       setErrors(result.errors);
     } else if (result.success) {
-      router.push('/admin/persons');
+      if (person) {
+        // For updates, refresh the current page to get fresh data
+        router.refresh();
+      } else {
+        // For new persons, go to the list
+        router.push('/admin/persons');
+      }
     }
   }
 
