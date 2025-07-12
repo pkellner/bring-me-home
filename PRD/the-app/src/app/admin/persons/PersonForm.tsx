@@ -45,7 +45,13 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
     useState<DetentionCenter | null>(person?.detentionCenter || null);
   const [stories, setStories] = useState<
     { language: string; storyType: string; content: string }[]
-  >([]);
+  >(
+    person?.stories?.map(story => ({
+      language: story.language,
+      storyType: story.storyType,
+      content: story.content
+    })) || []
+  );
   const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
   const [additionalImages, setAdditionalImages] = useState<
     Array<{
@@ -67,6 +73,7 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
 
     // Add stories as JSON to form data
+    console.log('Saving stories:', stories);
     formData.set('stories', JSON.stringify(stories));
     // Add detention center ID to form data
     if (selectedDetentionCenterId) {

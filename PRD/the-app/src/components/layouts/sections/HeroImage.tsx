@@ -15,6 +15,7 @@ export default function HeroImage({ person }: HeroImageProps) {
           src={primaryImage.imageUrl}
           alt={`${person.firstName} ${person.lastName}`}
           fill
+          sizes="100vw"
           className="object-cover"
         />
       ) : (

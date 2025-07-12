@@ -93,9 +93,14 @@ export async function createPerson(formData: FormData) {
       existingSlugs
     );
 
-    // Process data for database
+    // Extract stories from data first (don't include in person creation)
+    const storiesJson = validatedFields.data.stories;
+
+    // Process data for database (exclude stories)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { stories, ...dataWithoutStories } = validatedFields.data;
     const data = {
-      ...validatedFields.data,
+      ...dataWithoutStories,
       slug,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
@@ -106,17 +111,12 @@ export async function createPerson(formData: FormData) {
       lastHeardFromDate: validatedFields.data.lastHeardFromDate
         ? new Date(validatedFields.data.lastHeardFromDate)
         : undefined,
-      stories: undefined as undefined, // Explicitly remove stories field
     };
 
     // Handle empty detentionCenterId
     if (data.detentionCenterId === '') {
       data.detentionCenterId = undefined;
     }
-
-    // Extract stories from data (don't include in person creation)
-    const storiesJson = data.stories;
-    delete data.stories;
 
     const person = await prisma.person.create({
       data,
@@ -191,6 +191,9 @@ export async function createPerson(formData: FormData) {
 }
 
 export async function updatePerson(id: string, formData: FormData) {
+  console.log('updatePerson called with id:', id);
+  console.log('FormData entries:', Array.from(formData.entries()));
+  
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'persons', 'update')) {
     throw new Error('Unauthorized');
@@ -210,6 +213,10 @@ export async function updatePerson(id: string, formData: FormData) {
   if (!isSiteAdmin(session) && !hasPersonAccess(session, id, 'write')) {
     throw new Error('No access to this person');
   }
+
+  const storiesFromForm = formData.get('stories');
+  console.log('Stories from form:', storiesFromForm);
+  console.log('Stories type:', typeof storiesFromForm);
 
   const validatedFields = personSchema.safeParse({
     firstName: formData.get('firstName'),
@@ -236,10 +243,13 @@ export async function updatePerson(id: string, formData: FormData) {
   });
 
   if (!validatedFields.success) {
+    console.log('Validation failed:', validatedFields.error.flatten());
     return {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
+  
+  console.log('Validated data stories:', validatedFields.data.stories);
 
   try {
     // Get existing person to check if name changed
@@ -288,9 +298,15 @@ export async function updatePerson(id: string, formData: FormData) {
       }
     }
 
-    // Process data for database
+    // Extract stories from data first (don't include in person update)
+    const storiesJson = validatedFields.data.stories;
+    console.log('storiesJson extracted:', storiesJson);
+
+    // Process data for database (exclude stories)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { stories, ...dataWithoutStories } = validatedFields.data;
     const updateData = {
-      ...validatedFields.data,
+      ...dataWithoutStories,
       slug,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
@@ -301,17 +317,12 @@ export async function updatePerson(id: string, formData: FormData) {
       lastHeardFromDate: validatedFields.data.lastHeardFromDate
         ? new Date(validatedFields.data.lastHeardFromDate)
         : null,
-      stories: undefined as undefined, // Explicitly remove stories field
     };
 
     // Handle empty detentionCenterId
     if (updateData.detentionCenterId === '') {
       updateData.detentionCenterId = undefined;
     }
-
-    // Extract stories from data (don't include in person update)
-    const storiesJson = updateData.stories;
-    delete updateData.stories;
 
     // Handle primary picture upload
     const primaryPicture = formData.get('primaryPicture') as File;
@@ -434,37 +445,60 @@ export async function updatePerson(id: string, formData: FormData) {
     }
 
     // Handle stories update
-    if (storiesJson) {
+    console.log('About to handle stories update, storiesJson:', storiesJson);
+    console.log('storiesJson type:', typeof storiesJson);
+    console.log('storiesJson truthy?', !!storiesJson);
+    
+    if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
+      console.log('Updating stories - JSON:', storiesJson);
       try {
         const stories = JSON.parse(storiesJson);
+        console.log('Parsed stories:', stories);
 
         // Delete existing stories for this person
-        await prisma.story.deleteMany({
+        const deleteResult = await prisma.story.deleteMany({
           where: { personId: id },
         });
+        console.log('Deleted stories:', deleteResult);
 
         // Create new stories
         if (Array.isArray(stories) && stories.length > 0) {
-          await prisma.story.createMany({
-            data: stories.map(
-              (story: {
-                language: string;
-                storyType: string;
-                content: string;
-              }) => ({
-                personId: id,
-                language: story.language,
-                storyType: story.storyType,
-                content: story.content,
-                isActive: true,
-              })
-            ),
+          console.log('About to create stories for person:', id);
+          const storiesToCreate = stories.map(
+            (story: {
+              language: string;
+              storyType: string;
+              content: string;
+            }) => ({
+              personId: id,
+              language: story.language,
+              storyType: story.storyType,
+              content: story.content,
+              isActive: true,
+            })
+          );
+          console.log('Stories to create:', storiesToCreate);
+          
+          const createResult = await prisma.story.createMany({
+            data: storiesToCreate,
           });
+          console.log('Created stories:', createResult);
+        } else {
+          console.log('No stories to create');
         }
       } catch (error) {
         console.error('Failed to update stories:', error);
       }
+    } else {
+      console.log('Skipping stories update because storiesJson is:', storiesJson);
     }
+
+    // Verify stories were actually saved
+    const savedStories = await prisma.story.findMany({
+      where: { personId: id },
+      orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
+    });
+    console.log('Stories after save:', savedStories);
 
     revalidatePath('/admin/persons');
     revalidatePath(`/admin/persons/${id}/edit`);

@@ -43,6 +43,7 @@ export default function ArticleContent({ person }: ArticleContentProps) {
                     src={image.imageUrl}
                     alt={`Photo ${index + 1}`}
                     fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
                     className="object-cover hover:scale-105 transition-transform duration-300"
                   />
                 </div>
