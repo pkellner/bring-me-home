@@ -168,7 +168,7 @@ export default function LayoutRenderer({
 
             {/* Stories section - full width */}
             <div className="layout-section w-full">
-              {components['story']()}
+              <sections.StoryWithLanguageToggle person={person} />
             </div>
 
             {/* Community support section - full width */}
@@ -346,16 +346,9 @@ export default function LayoutRenderer({
 
 
 
-            {/* Stories Section - clean card-based layout */}
+            {/* Stories Section - with integrated language toggle */}
             <div className="layout-section w-full">
-              <div className="space-y-6">
-                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
-                  Their Story
-                </h2>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                  {components['story']()}
-                </div>
-              </div>
+              <sections.StoryWithLanguageToggle person={person} />
             </div>
 
             {/* Photo Gallery - elegant grid layout */}

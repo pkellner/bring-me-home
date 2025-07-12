@@ -3,6 +3,7 @@ export { default as PersonInfo } from './PersonInfo';
 export { default as PersonImage } from './PersonImage';
 export { default as HeroImage } from './HeroImage';
 export { default as Story } from './Story';
+export { default as StoryWithLanguageToggle } from './StoryWithLanguageToggle';
 export { default as Comments } from './Comments';
 export { default as BasicInfo } from './BasicInfo';
 export { default as SidebarInfo } from './SidebarInfo';

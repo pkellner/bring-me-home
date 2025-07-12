@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import StorySection from '@/components/person/StorySection';
 import { SerializedPerson } from '../LayoutRenderer';
 
 interface ArticleContentProps {
@@ -7,6 +6,13 @@ interface ArticleContentProps {
 }
 
 export default function ArticleContent({ person }: ArticleContentProps) {
+  // Find the first personal story with content
+  const personalStory = person.stories?.find(story => {
+    if (story.storyType !== 'personal' || !story.content) return false;
+    const text = story.content.replace(/<[^>]*>/g, '').trim();
+    return text.length > 0;
+  });
+
   return (
     <div className="article-content space-y-6">
       <div>
@@ -20,12 +26,11 @@ export default function ArticleContent({ person }: ArticleContentProps) {
       </div>
       
       {/* Story section */}
-      {person.stories && person.stories.length > 0 && (
+      {personalStory && (
         <div className="prose max-w-none">
-          <StorySection
-            stories={person.stories}
-            storyType="personal"
-            title="Personal Story"
+          <h2 className="text-2xl font-semibold mb-4">Personal Story</h2>
+          <div
+            dangerouslySetInnerHTML={{ __html: personalStory.content }}
           />
         </div>
       )}
