@@ -26,7 +26,7 @@ export default function PersonImage({ person }: PersonImageProps) {
         </div>
       ) : (
         <div className="flex h-64 w-full max-w-md mx-auto items-center justify-center rounded-xl bg-gray-100 shadow-inner">
-          <span className="text-xl text-gray-400">No Photo Available</span>
+          <span className="text-xl text-theme-muted">No Photo Available</span>
         </div>
       )}
     </div>

@@ -23,7 +23,7 @@ export default function FeaturedImage({ person }: FeaturedImageProps) {
         </div>
       ) : (
         <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-100">
-          <span className="text-2xl text-gray-400">No Photo Available</span>
+          <span className="text-2xl text-theme-muted">No Photo Available</span>
         </div>
       )}
     </div>

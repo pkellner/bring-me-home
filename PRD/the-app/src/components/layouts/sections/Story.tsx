@@ -77,7 +77,7 @@ export default function Story({ person }: StoryProps) {
   if (!person.stories || person.stories.length === 0) {
     return (
       <div className="story-section">
-        <p className="text-gray-500 italic">No story has been added yet.</p>
+        <p className="text-theme-muted italic">No story has been added yet.</p>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function Story({ person }: StoryProps) {
       {/* Language toggle if multiple languages */}
       {showLanguageToggle && (
         <div className="flex items-center gap-2 justify-end -mt-12 mb-6">
-          <span className="text-sm text-gray-600">Language:</span>
+          <span className="text-sm text-theme-secondary">Language:</span>
           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
             {availableLanguages.map(lang => (
               <button
@@ -100,7 +100,7 @@ export default function Story({ person }: StoryProps) {
                   ${
                     selectedLanguage === lang
                       ? 'bg-indigo-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      : 'text-theme-primary hover:bg-gray-100'
                   }
                 `}
                 title={languageNames[lang] || lang}
@@ -141,7 +141,7 @@ export default function Story({ person }: StoryProps) {
 
       {/* If no stories have content in the selected language */}
       {!storiesByType.personal && !storiesByType.detention && !storiesByType.family && (
-        <p className="text-gray-500 italic">No stories available in {languageNames[selectedLanguage] || selectedLanguage}.</p>
+        <p className="text-theme-muted italic">No stories available in {languageNames[selectedLanguage] || selectedLanguage}.</p>
       )}
     </div>
   );

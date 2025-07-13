@@ -204,7 +204,7 @@ export default function TownsGrid({
       searchable: true,
       render: (value, record) => (
         <div className="flex items-center">
-          <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mr-2" />
+          <BuildingOfficeIcon className="h-5 w-5 text-gray-500 mr-2" />
           <div>
             <div className="text-sm font-medium text-gray-900">
               {String(value)}
@@ -219,7 +219,7 @@ export default function TownsGrid({
       label: 'Address',
       render: value => (
         <div className="flex items-center">
-          <MapPinIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <MapPinIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">{String(value)}</span>
         </div>
       ),
@@ -238,7 +238,7 @@ export default function TownsGrid({
       label: 'Persons',
       render: (value, record) => (
         <div className="flex items-center">
-          <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">{record.persons.length}</span>
         </div>
       ),
@@ -248,7 +248,7 @@ export default function TownsGrid({
       label: 'Admins',
       render: (value, record) => (
         <div className="flex items-center">
-          <UsersIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <UsersIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">
             {record.townAccess.length}
           </span>
@@ -315,13 +315,13 @@ export default function TownsGrid({
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <input
             type="text"
             placeholder="Search towns..."
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-600 focus:outline-none focus:placeholder-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
       </div>

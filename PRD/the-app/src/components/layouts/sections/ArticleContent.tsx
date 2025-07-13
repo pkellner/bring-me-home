@@ -20,7 +20,7 @@ export default function ArticleContent({ person }: ArticleContentProps) {
           {person.firstName} {person.middleName ? `${person.middleName} ` : ''}
           {person.lastName}
         </h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-theme-secondary">
           {person.town.name}, {person.town.state}
         </p>
       </div>

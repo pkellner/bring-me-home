@@ -195,7 +195,7 @@ export default function RichTextEditor({
           value={htmlSource}
           onChange={handleSourceChange}
           onKeyDown={handleKeyDown}
-          className="w-full p-4 font-mono text-sm bg-gray-900 text-gray-100 focus:outline-none resize-none"
+          className="w-full p-4 font-mono text-sm bg-gray-900 text-white placeholder:text-gray-400 focus:outline-none resize-none"
           style={{ minHeight: height }}
           placeholder="Enter HTML code here..."
         />
@@ -214,7 +214,7 @@ export default function RichTextEditor({
           <style jsx>{`
             [contenteditable]:empty:before {
               content: attr(data-placeholder);
-              color: #9ca3af;
+              color: #6b7280;
             }
           `}</style>
         </>

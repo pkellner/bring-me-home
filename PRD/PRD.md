@@ -92,15 +92,33 @@ The "Bring Them Home" application is a web-based platform designed to bring atte
 - Sample data in English, Spanish, and French
 
 ### 5. Visual Customization
-- 10 selectable layout templates
-- 10 color theme options
-- Live theme editing UI on main page (admin only) *(not implemented)*
-- Town-specific and system-wide defaults
-- Responsive design for all screen sizes
+
+#### Layout System (10 Templates)
+1. **Custom Person Layout**: Default responsive layout with organized sections
+2. **Grid Layout**: 2-4 column flexible grid system
+3. **Stack Layout**: Simple vertical stacking
+4. **Sidebar Left/Right**: Main content with sidebar navigation
+5. **Magazine Layout**: Editorial style with featured images
+6. **Hero Layout**: Large banner image focus
+7. **Minimal Layout**: Centered, constrained width
+8. **Gallery Layout**: Optimized for photo galleries
+9. **Full Width Layout**: No container constraints
+10. **Card Layout**: Card-based component display
+
+#### Theme System (Preset Options)
+- Ocean Blue, Forest Green, Sunset Orange, Purple Dream
 - Custom theme creation with color picker
-- Real-time layout and theme preview
-- Environment variable defaults for system-wide settings
-- Theme persistence for town vs. system level *(partial - no live editing)*
+- CSS variable-based implementation
+- Per-town and per-person theme overrides
+- Real-time preview in admin interface
+
+#### Customization Features
+- System-wide defaults via environment variables
+- Town-level overrides
+- Person-level overrides (highest priority)
+- Live theme editing UI on main page (admin only) *(not implemented)*
+- Responsive design for all screen sizes
+- Theme persistence across sessions
 
 ### 6. Admin Interface
 - Grid-based management for all models including detention centers
@@ -293,11 +311,45 @@ The application supports simple image management for detained persons with a pri
 - **HealthCheck**: Connectivity testing table ✅
 
 ### Security & Compliance
+
+### Authentication Security
+- **Password Requirements**:
+  - Minimum length: 8 characters
+  - No complexity requirements enforced (uppercase, lowercase, numbers not required)
+  - Password generator creates 10+ character passwords with complexity
+  - Bcrypt hashing with 12 rounds
+  - No password history or expiration
+  - No account lockout mechanism
+- **Session Management**:
+  - JWT-based sessions with 30-day expiration
+  - Secure, HttpOnly cookies
+  - Different cookie names in production (prefixed with `__Secure-`)
+  - CSRF token protection via NextAuth
+
+### Site Protection Features
+- **Two-Level Protection System**:
+  - Site-wide password protection (optional via SITE_PROTECTION_ENABLED)
+  - System override authentication for emergency admin access
+  - Both use 7-day cookie duration
+  - Simple hash-based token generation
+- **HTTPS Enforcement**: Automatic redirect from HTTP to HTTPS in production
+- **Cookie Security**: SameSite=lax, Secure flag in production, HttpOnly
+
+### Input Validation & Sanitization
+- Zod schemas for all user inputs
+- File upload validation (5MB client, 10MB server limit)
+- Image type validation (JPEG, PNG, WebP only)
 - React Server Functions for all database operations
-- Input validation on both client and server
 - Proper authentication checks for all routes
 - CSRF protection and secure headers
 - Data privacy controls and consent management
+
+### Security Gaps (Documented for Future Implementation)
+- No XSS sanitization for HTML content (dangerouslySetInnerHTML used)
+- No rate limiting on authentication endpoints
+- No two-factor authentication
+- No security headers (CSP, X-Frame-Options, etc.)
+- Basic password policy (only length requirement)
 
 ### Performance & Scalability
 - Optimized image handling with thumbnails
@@ -435,6 +487,76 @@ The application supports simple image management for detained persons with a pri
 - Moderator notes
 - Active status
 - Created/updated timestamps
+
+### Additional Data Models (Implemented)
+
+#### AuditLog Model
+- Comprehensive audit trail for sensitive operations
+- Tracks: userId, action, entityType, entityId, oldValues, newValues
+- Captures IP address and user agent
+- Used for: user registration, updates, deletions, comment approvals
+
+#### ImageStorage Model  
+- Binary image storage in database
+- Stores: image data, mimeType, size, width, height
+- Automatic thumbnail generation
+- Image processing with Sharp library
+
+#### PersonImage Model
+- Up to 5 additional images per person
+- Fields: imageUrl, thumbnailUrl, caption, isPrimary, displayPublicly
+- Upload tracking with user attribution
+- Display order management
+
+#### SystemConfig Model
+- Key-value store for runtime configuration
+- Overrides environment variables
+- Permission-controlled updates
+- Used for default layout/theme settings
+
+#### PersonAccess & TownAccess Models
+- Granular permission control
+- Access levels: read, write, admin (hierarchical)
+- Links users to specific persons/towns
+- Enables fine-grained access control
+
+#### FamilyPrivacySettings Model
+- Per-person privacy preferences
+- Notification settings
+- Authorized email list
+- Default comment visibility
+
+### Slug System
+- Automatic URL-friendly slug generation
+- Uses nanoid for uniqueness (4-char suffix)
+- Format: firstname_middlename_lastname_xxxx
+- Handles special characters and accents
+- Ensures uniqueness across persons/towns
+
+### Image Processing Configuration
+- Configurable via environment variables:
+  - IMAGE_FULL_MAX_SIZE (default: 1200px)
+  - IMAGE_FULL_QUALITY (default: 85)
+  - IMAGE_THUMBNAIL_SIZE (default: 300px)
+  - IMAGE_THUMBNAIL_QUALITY (default: 80)
+- Automatic EXIF orientation correction
+- JPEG output format for all images
+
+### GDPR Compliance Features
+- Cookie consent banner (optional via NEXT_PUBLIC_ENABLE_COOKIE_BANNER)
+- Three-button design: Accept All, Reject All, Manage Preferences
+- Cookie categories: Necessary, Analytics, Marketing
+- Preferences stored in localStorage
+- No cookies loaded before consent
+- Privacy Policy page with legal compliance language
+
+### Code of Conduct
+- Comprehensive community guidelines
+- Zero tolerance for hate speech and personal attacks
+- Clear reporting procedures
+- Enforcement framework with graduated responses
+- Appeals process
+- Accessible from all pages via footer
 
 ## User Experience Requirements
 
@@ -644,30 +766,7 @@ The application provides a flexible layout and theme system that allows for cust
 ### System Configuration
 
 #### Environment Variables
-```
-# Visual defaults
-SYSTEM_DEFAULT_LAYOUT=grid
-SYSTEM_DEFAULT_THEME=default
-
-# Navigation defaults
-TOWN_DEFAULT=borrego-springs
-USER_DEFAULT=fidel
-
-# Authentication overrides
-SYSTEM_USERNAME_OVERRIDE=admin
-SYSTEM_PASSWORD_OVERRIDE=secure_password
-
-# Beta site protection
-SITE_BLOCK_USERNAME=beta_user
-SITE_BLOCK_PASSWORD=beta_pass
-
-# External services
-GITHUB_REPO_URL=https://github.com/org/repo
-
-# Google reCAPTCHA
-GOOGLE_RECAPTCHA_SITE_KEY=your-site-key
-GOOGLE_RECAPTCHA_SECRET_KEY=your-secret-key
-```
+Configuration includes visual defaults, authentication overrides, site protection settings, and external service keys. See CODE_EXAMPLES.md for the complete environment variable configuration.
 
 #### Admin Override Capability
 - System admins can override environment defaults
@@ -691,43 +790,7 @@ GOOGLE_RECAPTCHA_SECRET_KEY=your-secret-key
 ### Implementation Architecture
 
 #### Database Schema Additions
-```prisma
-model Layout {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  template    String   // JSON configuration
-  previewImage String?
-  isActive    Boolean  @default(true)
-  isSystem    Boolean  @default(false)
-  towns       Town[]
-  persons     Person[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Theme {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  colors      String   // JSON color configuration
-  cssVars     String?  // Generated CSS
-  previewImage String?
-  isActive    Boolean  @default(true)
-  isSystem    Boolean  @default(false)
-  towns       Town[]
-  persons     Person[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model SystemConfig {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-  type  String // 'string', 'number', 'boolean', 'json'
-}
-```
+The Layout, Theme, and SystemConfig models have been added to support visual customization. See CODE_EXAMPLES.md for the complete Prisma schema definitions.
 
 #### Layout Renderer Component
 - Dynamic component rendering based on template
@@ -792,105 +855,7 @@ The application maintains build information and environment configuration that n
 ### Implementation Details
 
 #### Configuration Display Page
-```typescript
-// src/app/configs/page.tsx
-export default async function ConfigsPage() {
-  const config = await getPublicConfig();
-  
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1>System Configuration</h1>
-      <section>
-        <h2>Build Information</h2>
-        <dl>
-          <dt>Version</dt>
-          <dd>{config.releaseVersion}</dd>
-          <dt>Build Date</dt>
-          <dd>{config.releaseDate}</dd>
-          <dt>Build Date ISO</dt>
-          <dd>{config.releaseDateISO}</dd>
-        </dl>
-      </section>
-      <section>
-        <h2>Feature Flags</h2>
-        {/* Display feature flags */}
-      </section>
-      <section>
-        <h2>Public Configuration</h2>
-        {/* Display public config values */}
-      </section>
-      {isAdmin && (
-        <>
-          <section>
-            <h2>Redis Health Check</h2>
-            <button onClick={testRedis}>Test Redis Connection</button>
-            {/* Display Redis test results */}
-          </section>
-          <section>
-            <h2>Database Health Check</h2>
-            <button onClick={testDatabase}>Test Database Connection</button>
-            {/* Display database test results */}
-          </section>
-        </>
-      )}
-    </div>
-  );
-}
-```
-
-#### Server Function for Public Config
-```typescript
-// src/app/actions/config.ts
-'use server';
-
-export async function getPublicConfig() {
-  return {
-    // Build information
-    releaseVersion: process.env.RELEASEVERSION || '0',
-    releaseDate: process.env.RELEASEDATE || 'Not set',
-    releaseDateISO: process.env.RELEASEDATEISO || 'Not set',
-    publicReleaseDate: process.env.NEXT_PUBLIC_RELEASEDATE || 'Not set',
-    
-    // Environment info
-    environment: process.env.NODE_ENV || 'development',
-    
-    // Feature flags
-    features: {
-      videoSupport: true,
-      bulkOperations: true,
-      advancedSearch: false,
-      anonymousComments: true,
-      wysiwygEditor: true,
-      detentionCenters: true,
-      liveThemeEditor: true,
-    },
-    
-    // GitHub repository
-    githubRepo: process.env.GITHUB_REPO_URL || 'Not configured',
-    
-    // Redis configuration (admin only)
-    ...(isAdmin && {
-      redis: {
-        host: process.env.REDIS_HOST || 'Not configured',
-        port: process.env.REDIS_PORT || 'Not configured',
-        configured: !!process.env.REDIS_HOST,
-      },
-    }),
-    
-    // Public limits
-    limits: {
-      maxFileUploadSize: '5MB',
-      allowedImageTypes: ['JPEG', 'PNG', 'WebP'],
-      commentsPerPage: 10,
-      personsPerPage: 20,
-    },
-    
-    // System info
-    nodeVersion: process.version,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  };
-}
-```
+The configuration page displays build information, feature flags, and health checks. Admin users see additional system information including Redis and database status. See CODE_EXAMPLES.md for the complete implementation including the ConfigsPage component and getPublicConfig server function.
 
 ### Security Considerations
 
@@ -1089,47 +1054,10 @@ The application uses a dual approach for temporary data:
    - No cleanup jobs needed - Redis handles expiration automatically
 
 #### Redis Connection Implementation
-```typescript
-import IORedis, { Redis } from "ioredis";
-
-let redisConnection: Redis | null = null;
-
-export default function getRedisConnectionLazy(
-  redisHost: string,
-  redisPort: number,
-): Redis {
-  if (!redisConnection) {
-    redisConnection = new IORedis({
-      host: redisHost,
-      port: redisPort,
-      lazyConnect: true,
-      maxRetriesPerRequest: null,
-      retryStrategy(times: number) {
-        if (times > 5) return null;
-        console.log("/get-redis-connection-lazy.ts: retrying in 500ms");
-        return 500;
-      },
-    });
-
-    redisConnection.on("error", (error) => {
-      console.error("Redis Error:", error);
-    });
-  }
-
-  return redisConnection;
-}
-```
+Redis connection is established using ioredis with lazy connection, retry strategies, and error handling. See CODE_EXAMPLES.md for the complete implementation.
 
 #### Environment Variables
-```bash
-# Redis Configuration (optional)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Image Upload Configuration
-IMAGE_UPLOAD_MAX_SIZE_MB=10
-IMAGE_STORAGE_MAX_SIZE_KB=200
-```
+Redis and image upload configuration is managed through environment variables. See CODE_EXAMPLES.md for the complete configuration.
 
 ### Image Upload Configuration
 
@@ -1154,14 +1082,7 @@ The application supports configurable image upload and storage limits at multipl
    - Can be more or less restrictive than town/system limits
 
 #### Limit Application
-When multiple limits exist, the **most restrictive** limit applies:
-```javascript
-const effectiveUploadLimit = Math.min(
-  systemLimit,
-  townLimit || Infinity,
-  userLimit || Infinity
-);
-```
+When multiple limits exist, the **most restrictive** limit applies. See CODE_EXAMPLES.md for the implementation details.
 
 #### Image Processing Pipeline
 1. **Upload Validation**: 
@@ -1193,11 +1114,7 @@ const effectiveUploadLimit = Math.min(
 - **Profile Pictures**: Subject to configured limits
 
 #### Environment Variables
-```bash
-# Image Configuration
-IMAGE_UPLOAD_MAX_SIZE_MB=10     # Max upload size in MB
-IMAGE_STORAGE_MAX_SIZE_KB=200   # Max storage size in KB
-```
+Image upload and storage limits are configured through environment variables. See CODE_EXAMPLES.md for the complete configuration.
 
 #### Security Considerations
 - No browser localStorage usage
@@ -1206,32 +1123,7 @@ IMAGE_STORAGE_MAX_SIZE_KB=200   # Max storage size in KB
 - React state: Cleared on navigation/refresh
 
 #### Redis Key Patterns
-```typescript
-// Comment draft storage
-const commentDraftKey = `session:${sessionId}:comment:${personId}:draft`;
-// Set with 1 hour expiration
-await redis.setex(commentDraftKey, 3600, JSON.stringify(draftData));
-
-// Login flow storage  
-const loginFlowKey = `session:${sessionId}:login_flow`;
-await redis.setex(loginFlowKey, 3600, JSON.stringify(flowData));
-
-// Manual deletion after successful submission
-await redis.del(commentDraftKey);
-```
+Redis uses structured key patterns for comment drafts and login flows with 1-hour TTL. See CODE_EXAMPLES.md for the complete implementation.
 
 #### React State Example
-```typescript
-// When Redis not available
-const [commentDraft, setCommentDraft] = useState<CommentDraft | null>(null);
-
-// Save draft in state
-const saveDraft = (draft: CommentDraft) => {
-  setCommentDraft(draft);
-};
-
-// Clear after submission
-const clearDraft = () => {
-  setCommentDraft(null);
-};
-```
+When Redis is unavailable, the system falls back to React state. See CODE_EXAMPLES.md for the implementation.

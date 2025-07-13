@@ -21,7 +21,7 @@ export default function BasicInfo({ person, isAdmin }: BasicInfoProps) {
           </Link>
         )}
       </h1>
-      <p className="text-xl text-gray-600">
+      <p className="text-xl text-theme-secondary">
         Home Town: {person.town.name}, {person.town.state}
       </p>
     </div>

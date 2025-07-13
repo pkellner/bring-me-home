@@ -1,0 +1,50 @@
+/* Admin-specific styles to ensure proper contrast */
+
+/* Fix input text color for all form fields in admin area */
+.admin-container input[type="text"],
+.admin-container input[type="email"],
+.admin-container input[type="password"],
+.admin-container input[type="number"],
+.admin-container input[type="tel"],
+.admin-container input[type="url"],
+.admin-container input[type="date"],
+.admin-container input[type="datetime-local"],
+.admin-container textarea,
+.admin-container select {
+  color: rgb(17 24 39); /* text-gray-900 */
+}
+
+/* Ensure placeholder text has proper contrast */
+.admin-container input::placeholder,
+.admin-container textarea::placeholder {
+  color: rgb(107 114 128); /* text-gray-500 */
+  opacity: 1;
+}
+
+/* Fix for select elements */
+.admin-container select option {
+  color: rgb(17 24 39); /* text-gray-900 */
+}
+
+/* Ensure disabled inputs are readable */
+.admin-container input:disabled,
+.admin-container textarea:disabled,
+.admin-container select:disabled {
+  color: rgb(107 114 128); /* text-gray-500 */
+  opacity: 1;
+}
+
+/* Fix contentEditable text color in rich text editors */
+.admin-container [contenteditable="true"],
+.admin-container [contenteditable="true"] * {
+  color: rgb(17 24 39); /* text-gray-900 */
+}
+
+/* Ensure proper color for prose content in admin area */
+.admin-container .prose {
+  color: rgb(17 24 39); /* text-gray-900 */
+}
+
+.admin-container .prose * {
+  color: inherit;
+}

@@ -80,12 +80,12 @@ export default function StoryWithLanguageToggle({ person }: StoryWithLanguageTog
     return (
       <div>
         <div className="border-b border-gray-200 pb-3 mb-6">
-          <h2 className="text-2xl font-light tracking-wide text-gray-800">
+          <h2 className="text-2xl font-light tracking-wide text-theme-primary">
             Their Story
           </h2>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <p className="text-gray-500 italic">No story has been added yet.</p>
+          <p className="text-theme-muted italic">No story has been added yet.</p>
         </div>
       </div>
     );
@@ -96,12 +96,12 @@ export default function StoryWithLanguageToggle({ person }: StoryWithLanguageTog
   return (
     <div>
       <div className="border-b border-gray-200 pb-3 mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-light tracking-wide text-gray-800">
+        <h2 className="text-2xl font-light tracking-wide text-theme-primary">
           Their Story
         </h2>
         {showLanguageToggle && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Language:</span>
+            <span className="text-sm text-theme-secondary">Language:</span>
             <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
               {availableLanguages.map(lang => (
                 <button
@@ -112,7 +112,7 @@ export default function StoryWithLanguageToggle({ person }: StoryWithLanguageTog
                     ${
                       selectedLanguage === lang
                         ? 'bg-indigo-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-theme-primary hover:bg-gray-100'
                     }
                   `}
                   title={languageNames[lang] || lang}
@@ -165,7 +165,7 @@ export default function StoryWithLanguageToggle({ person }: StoryWithLanguageTog
 
           {/* If no stories have content in the selected language */}
           {!storiesByType.personal && !storiesByType.detention && !storiesByType.family && (
-            <p className="text-gray-500 italic">No stories available in {languageNames[selectedLanguage] || selectedLanguage}.</p>
+            <p className="text-theme-muted italic">No stories available in {languageNames[selectedLanguage] || selectedLanguage}.</p>
           )}
         </div>
       </div>

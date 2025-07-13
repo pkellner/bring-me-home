@@ -270,7 +270,7 @@ export default function PersonsGrid({
                 </>
               )}
             </div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-500">
               {record.town.name}, {record.town.state}
             </div>
             {record.alienIdNumber && (
@@ -287,7 +287,7 @@ export default function PersonsGrid({
       label: 'Town',
       render: (value, record) => (
         <div className="flex items-center">
-          <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <BuildingOfficeIcon className="h-4 w-4 text-gray-500 mr-2" />
           <div>
             <div className="text-sm text-gray-900">{record.town.name}</div>
             <div className="text-sm text-gray-500">{record.town.state}</div>
@@ -309,7 +309,7 @@ export default function PersonsGrid({
       label: 'Photos',
       render: (value, record) => (
         <div className="flex items-center">
-          <PhotoIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <PhotoIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">
             {(value ? 1 : 0) +
               (record.personImages?.filter(img => !img.isPrimary).length || 0)}
@@ -322,7 +322,7 @@ export default function PersonsGrid({
       label: 'Comments',
       render: (value, record) => (
         <div className="flex items-center">
-          <ChatBubbleLeftRightIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <ChatBubbleLeftRightIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">
             {record.comments.length}
           </span>
@@ -334,7 +334,7 @@ export default function PersonsGrid({
       label: 'Admins',
       render: (value, record) => (
         <div className="flex items-center">
-          <UsersIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <UsersIcon className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-900">
             {record.personAccess.length}
           </span>
@@ -401,13 +401,13 @@ export default function PersonsGrid({
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <input
             type="text"
             placeholder="Search persons..."
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-600 focus:outline-none focus:placeholder-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
       </div>

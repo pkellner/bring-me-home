@@ -30,7 +30,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
             </div>
           ) : (
             <div className="flex items-center justify-center rounded-lg bg-gray-100 shadow-inner w-full max-w-[300px] aspect-square">
-              <span className="text-xl text-gray-400">No Photo Available</span>
+              <span className="text-xl text-theme-muted">No Photo Available</span>
             </div>
           )}
         </div>
@@ -49,7 +49,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
               </Link>
             )}
           </h1>
-          <div className="text-base sm:text-lg text-gray-600 mb-4">
+          <div className="text-base sm:text-lg text-theme-secondary mb-4">
             <span className="font-semibold">Home Town:</span> {person.town.name}, {person.town.state}
           </div>
 
@@ -70,7 +70,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
             {person.notesFromLastContact && (
               <div className="mt-2">
                 <span className="font-semibold">Notes from Last Contact:</span>
-                <p className="mt-1 text-gray-700">{person.notesFromLastContact}</p>
+                <p className="mt-1 text-theme-primary">{person.notesFromLastContact}</p>
               </div>
             )}
           </div>

@@ -1582,6 +1582,320 @@ Please help us. ${firstName} is a good person who only wanted to give their fami
 
 ---
 
+## Visual Customization Models
+
+### Layout and Theme Prisma Models
+
+```prisma
+model Layout {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  template    String   // JSON configuration
+  previewImage String?
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+  towns       Town[]
+  persons     Person[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Theme {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  colors      String   // JSON color configuration
+  cssVars     String?  // Generated CSS
+  previewImage String?
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+  towns       Town[]
+  persons     Person[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  String // 'string', 'number', 'boolean', 'json'
+}
+```
+
+---
+
+## Configuration Display Page
+
+### Server Function for Public Configuration
+
+```typescript
+// app/configs/page.tsx
+import { getPublicConfig } from '@/lib/config';
+import { HealthCheckSection } from '@/components/configs/HealthCheckSection';
+
+export default async function ConfigPage() {
+  const config = await getPublicConfig();
+  
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">System Configuration</h1>
+      
+      <div className="grid gap-6">
+        {/* Environment Information */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Environment</h2>
+          <dl className="grid grid-cols-2 gap-4">
+            <div>
+              <dt className="font-medium">Node Environment:</dt>
+              <dd>{config.nodeEnv}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Version:</dt>
+              <dd>{config.version}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Build Date:</dt>
+              <dd>{config.buildDate}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {/* Public Settings */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Application Settings</h2>
+          <dl className="grid gap-2">
+            <div>
+              <dt className="font-medium">Site Title:</dt>
+              <dd>{config.siteTitle}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Support Email:</dt>
+              <dd>{config.supportEmail}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {/* Health Check */}
+        <HealthCheckSection />
+      </div>
+    </div>
+  );
+}
+```
+
+### Server Function for Config Retrieval
+
+```typescript
+// lib/config.ts
+export async function getPublicConfig() {
+  // Get environment config
+  const envConfig = {
+    nodeEnv: process.env.NODE_ENV || 'development',
+    version: process.env.NEXT_PUBLIC_VERSION || '0.0.0',
+    buildDate: process.env.NEXT_PUBLIC_BUILD_DATE || 'Unknown',
+    siteTitle: process.env.NEXT_PUBLIC_SITE_TITLE || 'Bring Me Home',
+    supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@example.com',
+  };
+
+  // Override with database config if available
+  const dbConfig = await prisma.systemConfig.findMany({
+    where: {
+      key: {
+        in: ['siteTitle', 'supportEmail', 'maintenanceMode']
+      }
+    }
+  });
+
+  // Merge configs (DB takes precedence)
+  const mergedConfig = { ...envConfig };
+  dbConfig.forEach(config => {
+    mergedConfig[config.key] = config.value;
+  });
+
+  return mergedConfig;
+}
+
+// For authenticated admin users
+export async function getFullConfig(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roles: true }
+  });
+
+  if (!hasAdminRole(user)) {
+    throw new Error('Unauthorized');
+  }
+
+  // Return sensitive config too
+  return {
+    ...await getPublicConfig(),
+    database: {
+      url: process.env.DATABASE_URL ? 'Configured' : 'Not configured',
+      provider: 'mysql',
+    },
+    redis: {
+      url: process.env.REDIS_URL ? 'Configured' : 'Not configured',
+    },
+    auth: {
+      secret: process.env.NEXTAUTH_SECRET ? 'Configured' : 'Not configured',
+    }
+  };
+}
+```
+
+---
+
+## Redis Storage Implementation
+
+### Redis Connection
+
+```typescript
+// lib/redis.ts
+import Redis from 'ioredis';
+
+let redis: Redis | null = null;
+
+export function getRedisClient() {
+  if (!redis) {
+    redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: 3,
+      enableOfflineQueue: false,
+    });
+
+    redis.on('error', (err) => {
+      console.error('Redis connection error:', err);
+    });
+  }
+
+  return redis;
+}
+
+// Health check
+export async function checkRedisHealth() {
+  try {
+    const client = getRedisClient();
+    await client.ping();
+    return { status: 'healthy', latency: 0 };
+  } catch (error) {
+    return { status: 'unhealthy', error: error.message };
+  }
+}
+```
+
+### Redis Key Patterns
+
+```typescript
+// Constants for Redis keys
+export const REDIS_KEYS = {
+  // Comment drafts
+  commentDraft: (personId: string, sessionId: string) => 
+    `draft:comment:${personId}:${sessionId}`,
+  
+  // Temporary file uploads
+  tempUpload: (uploadId: string) => 
+    `temp:upload:${uploadId}`,
+  
+  // Session data
+  userSession: (sessionId: string) => 
+    `session:${sessionId}`,
+  
+  // Cache keys
+  personData: (personId: string) => 
+    `cache:person:${personId}`,
+  townData: (townId: string) => 
+    `cache:town:${townId}`,
+};
+
+// TTL values in seconds
+export const REDIS_TTL = {
+  commentDraft: 3600,      // 1 hour
+  tempUpload: 1800,        // 30 minutes
+  sessionData: 86400,      // 24 hours
+  cacheData: 300,          // 5 minutes
+};
+```
+
+---
+
+## Environment Variables Configuration
+
+### Visual Defaults Configuration
+
+```bash
+# Visual Customization Defaults
+DEFAULT_LAYOUT="standard"              # Layout for new towns/persons
+DEFAULT_THEME="light"                  # Theme for new towns/persons
+SYSTEM_DEFAULT_LAYOUT="standard"       # Global fallback layout
+SYSTEM_DEFAULT_THEME="light"          # Global fallback theme
+
+# Admin UI
+ADMIN_GRID_PAGE_SIZE="100"            # Rows per page in admin grids
+ADMIN_SHOW_HELP_TEXT="true"           # Show help text below grids
+
+# Public Display
+HOMEPAGE_RECENT_PERSONS="10"          # Number on homepage
+TOWN_PAGE_PERSONS_PER_PAGE="20"       # Pagination size
+
+# Authentication Overrides (9.5.1)
+SYSTEM_USERNAME_OVERRIDE="admin"
+SYSTEM_PASSWORD_OVERRIDE="[REMOVED]"
+
+# Site Protection (9.5.2)
+SITE_BLOCK_ENABLED="false"
+SITE_BLOCK_USERNAME="beta"
+SITE_BLOCK_PASSWORD="[REMOVED]"
+
+# Google reCAPTCHA (future)
+GOOGLE_RECAPTCHA_SITE_KEY=""
+GOOGLE_RECAPTCHA_SECRET_KEY=""
+```
+
+### Redis Configuration
+
+```bash
+# Redis Configuration
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+REDIS_PASSWORD=""            # Optional
+REDIS_DB="0"                # Database number
+REDIS_KEY_PREFIX="bmh:"     # Prefix for all keys
+REDIS_ENABLE_OFFLINE_QUEUE="false"
+REDIS_CONNECT_TIMEOUT="5000"
+REDIS_MAX_RETRIES="3"
+```
+
+### Image Configuration
+
+```bash
+# Image Processing
+IMAGE_UPLOAD_MAX_SIZE_MB="5"              # Browser enforced
+IMAGE_STORAGE_MAX_SIZE_KB="500"           # After processing
+IMAGE_THUMBNAIL_SIZE="200"                # Square thumbnail
+IMAGE_QUALITY="85"                        # JPEG quality (1-100)
+IMAGE_FORMATS_ALLOWED="jpg,jpeg,png,webp" # Allowed formats
+```
+
+---
+
+## Image Processing Pipeline
+
+### Effective Upload Limit Calculation
+
+```javascript
+// Frontend validation
+const effectiveUploadLimit = Math.min(
+  parseInt(process.env.NEXT_PUBLIC_IMAGE_UPLOAD_MAX_SIZE_MB || '5'),
+  10  // Next.js body size limit
+);
+```
+
+---
+
 ## Notes
 
 - All code examples are simplified for clarity and may need additional error handling and validation in production

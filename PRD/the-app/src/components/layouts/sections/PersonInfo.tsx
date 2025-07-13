@@ -10,8 +10,8 @@ interface PersonInfoProps {
 
 export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
   return (
-    <div className="info-section space-y-4">
-      <h1 className="text-3xl font-bold">
+    <div className="info-section space-y-4 text-theme-primary">
+      <h1 className="text-3xl font-bold text-theme-primary">
         {person.firstName} {person.middleName ? `${person.middleName} ` : ''}
         {person.lastName}
         {isAdmin && (
@@ -23,7 +23,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
           </Link>
         )}
       </h1>
-      <div className="text-lg text-gray-600">
+      <div className="text-lg text-theme-secondary">
         <span className="font-semibold">Home Town:</span> {person.town.name},{' '}
         {person.town.state}
       </div>
@@ -44,7 +44,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
         {person.notesFromLastContact && (
           <div className="mt-2">
             <span className="font-semibold">Notes from Last Contact:</span>
-            <p className="mt-1 text-gray-700">
+            <p className="mt-1 text-theme-primary">
               {person.notesFromLastContact}
             </p>
           </div>
@@ -119,7 +119,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
                 />
               ) : (
                 <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-2xl text-gray-400">🏢</span>
+                  <span className="text-2xl text-theme-muted">🏢</span>
                 </div>
               )}
             </div>

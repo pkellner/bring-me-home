@@ -3,6 +3,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { Session } from 'next-auth';
 import { EnvironmentProvider } from '@/contexts/EnvironmentContext';
+import CookieBanner from '@/components/CookieBanner';
 
 export default function Providers({
   children,
@@ -13,7 +14,10 @@ export default function Providers({
 }) {
   return (
     <SessionProvider session={session}>
-      <EnvironmentProvider>{children}</EnvironmentProvider>
+      <EnvironmentProvider>
+        {children}
+        <CookieBanner />
+      </EnvironmentProvider>
     </SessionProvider>
   );
 }

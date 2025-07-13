@@ -101,6 +101,7 @@ Copy and modify the `.env` file with your database credentials:
 DATABASE_URL="mysql://username:password@localhost:3306/bring_me_home"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
+NEXT_PUBLIC_ENABLE_COOKIE_BANNER="false"  # Set to "true" to enable GDPR cookie consent
 ```
 
 ### Docker Deployment

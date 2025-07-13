@@ -288,7 +288,7 @@ function CommentsGrid({
       label: 'Commenter',
       render: (value, record) => (
         <div className="flex items-center">
-          <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+          <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
           <div>
             <div className="text-sm font-medium text-gray-900">
               {record.firstName} {record.lastName}
@@ -328,7 +328,7 @@ function CommentsGrid({
         const person = value as Comment['person'];
         return (
           <div className="flex items-center">
-            <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+            <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
             <div>
               <div className="text-sm font-medium text-gray-900">
                 {person.firstName} {person.lastName}
@@ -346,7 +346,7 @@ function CommentsGrid({
       label: 'Message',
       render: (value, record) => (
         <div className="flex items-start">
-          <DocumentTextIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+          <DocumentTextIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
           <div className="text-sm text-gray-900">
             {record.content ? (
               <div className="max-w-xs truncate">{record.content}</div>
@@ -479,13 +479,13 @@ function CommentsGrid({
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <input
             type="text"
             placeholder="Search comments..."
             value={searchQuery}
             onChange={e => handleSearch(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-600 focus:outline-none focus:placeholder-gray-600 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
       </div>

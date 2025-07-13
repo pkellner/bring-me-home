@@ -114,15 +114,15 @@ The multi-language story system includes:
 - **StorySection Component**: Displays stories with automatic language detection and a language toggle that only appears when multiple languages are available. It handles story rendering with proper paragraph formatting and shows appropriate messages when stories aren't available in the selected language.
 - **MultiLanguageStoryEditor Component**: Provides an admin interface for creating and editing stories in multiple languages (English, Spanish, French) with three story types (personal, detention, family). It automatically loads existing content when switching between languages or story types and saves stories using server actions.
 
-## Phase 3.5: Person Visibility Management
+## Phase 3.5: Person Visibility Management ✅ COMPLETED
 
 ### Goals
-- Implement individual visibility toggles for each person using the isActive field
-- Add "Group By Town" checkbox for organized person listing
-- Implement bulk visibility actions per town
-- Add global visibility actions for all persons
-- Use optimistic UI updates with rollback on failure
-- Display real-time visibility status in admin grid
+- ✅ Implement individual visibility toggles for each person using the isActive field
+- ✅ Add "Group By Town" checkbox for organized person listing
+- ✅ Implement bulk visibility actions per town
+- ✅ Add global visibility actions for all persons
+- ✅ Use optimistic UI updates with rollback on failure
+- ✅ Display real-time visibility status in admin grid
 
 ### 3.5.1 Create Visibility Toggle Component
 The PersonVisibilityToggle component should be created as a client-side component that manages individual person visibility. It should:
@@ -232,13 +232,79 @@ The database schema has been updated with:
 - Enhance input validation
 - Add security monitoring
 
-## Phase 8: Testing & Documentation (Week 8)
+## Phase 8: Testing & Documentation (Week 8) ❌ NOT STARTED
 
 ### Goals
-- Create comprehensive test suite
-- Write API documentation
-- Create user guides
-- Implement monitoring
+- ❌ Create comprehensive test suite
+- ❌ Write API documentation
+- ❌ Create user guides
+- ❌ Implement monitoring
+
+## Phase 9: Additional Completed Features (Not in Original Plan) ✅ COMPLETED
+
+### 9.1 Slug System ✅ COMPLETED
+- Automatic URL-friendly slug generation
+- Uses nanoid for uniqueness (4-char suffix)
+- Format: firstname_middlename_lastname_xxxx
+- Handles special characters and accents
+- Ensures uniqueness across persons/towns
+
+### 9.2 Audit Logging ✅ COMPLETED
+- Comprehensive audit trail for sensitive operations
+- Tracks: userId, action, entityType, entityId, oldValues, newValues
+- Captures IP address and user agent
+- Used for: user registration, updates, deletions, comment approvals
+
+### 9.3 Image Processing System ✅ COMPLETED
+- Binary image storage in database
+- Automatic processing with Sharp library
+- Configurable dimensions via environment variables
+- Thumbnail generation
+- EXIF orientation correction
+- Support for up to 5 additional images per person
+
+### 9.4 Town Visibility Management ✅ COMPLETED
+- Individual visibility toggle for each town
+- Group by state functionality (default ON)
+- Bulk actions per state
+- Public page filtering based on visibility
+
+### 9.5 GDPR Compliance ✅ COMPLETED
+- Cookie consent banner (optional via env var)
+- Three-button design: Accept All, Reject All, Manage Preferences
+- Privacy Policy page with legal language
+- Code of Conduct page with enforcement framework
+- No cookies loaded before consent
+
+### 9.6 Security Enhancements ✅ COMPLETED
+- HTTPS enforcement in production
+- CSRF protection via NextAuth
+- Secure cookie configuration
+- Site-wide password protection (optional)
+- System override authentication
+- Input validation with Zod schemas
+
+### 9.7 Layout & Theme System ✅ COMPLETED
+- 10 different layout templates
+- Multiple preset themes
+- CSS variable-based implementation
+- Per-town and per-person overrides
+- System defaults via environment variables
+- Live preview in admin interface
+
+### 9.8 Comment Field Enhancements ✅ COMPLETED
+- Added occupation and birthdate fields
+- Privacy toggles for showing fields publicly
+- Street address and location fields
+- Role-based editing permissions
+- Site admins can edit all fields
+- Other admins can only approve/reject
+
+### 9.9 Permission-Based UI ✅ COMPLETED
+- Hide non-functional UI elements
+- Show edit icons only with permissions
+- Filter data based on user access
+- Role-appropriate admin navigation
 
 ### 8.1 Testing Strategy
 - Unit tests for all components

@@ -20,7 +20,7 @@ export default function HeroImage({ person }: HeroImageProps) {
         />
       ) : (
         <div className="flex h-full items-center justify-center bg-gray-200">
-          <span className="text-3xl text-gray-400">No Photo Available</span>
+          <span className="text-3xl text-theme-muted">No Photo Available</span>
         </div>
       )}
     </div>
