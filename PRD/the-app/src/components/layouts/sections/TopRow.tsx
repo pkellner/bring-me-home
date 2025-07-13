@@ -21,7 +21,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
           {profileImage ? (
             <div className="relative rounded-lg shadow-lg overflow-hidden w-full max-w-[300px] aspect-square">
               <Image
-                src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 600, height: 600, quality: 90 })}
+                src={generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
                 alt={`${person.firstName} ${person.lastName}`}
                 fill
                 className="object-cover"
@@ -110,7 +110,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
                   className="relative rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-gray-100 aspect-square w-full max-w-[150px]"
                 >
                   <Image
-                    src={generateImageUrl(image.id, image.updatedAt, { width: 300, height: 300, quality: 85 })}
+                    src={generateImageUrl(image.id, { width: 300, height: 300, quality: 85 })}
                     alt={image.caption || `Additional photo ${index + 1}`}
                     fill
                     className="object-cover"

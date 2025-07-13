@@ -13,7 +13,7 @@ export default function HeroImage({ person }: HeroImageProps) {
     <div className="hero-image relative h-64 sm:h-80 md:h-96 w-full overflow-hidden rounded-lg">
       {profileImage ? (
         <Image
-          src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 1200, height: 600, quality: 90 })}
+          src={generateImageUrl(profileImage.id, { width: 1200, height: 600, quality: 90 })}
           alt={`${person.firstName} ${person.lastName}`}
           fill
           sizes="100vw"

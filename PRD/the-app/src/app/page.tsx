@@ -174,7 +174,7 @@ export default async function HomePage() {
                 <div className="h-48 bg-gray-200 flex items-center justify-center">
                   {person.personImages?.[0]?.image ? (
                     <img
-                      src={generateImageUrl(person.personImages[0].image.id, person.personImages[0].image.updatedAt, { width: 300, height: 300, quality: 80 })}
+                      src={generateImageUrl(person.personImages[0].image.id, { width: 300, height: 300, quality: 80 })}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-contain"
                     />

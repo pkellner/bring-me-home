@@ -159,7 +159,7 @@ export default async function TownPage({ params }: TownPageProps) {
                 <div className="h-64 bg-gray-200 flex items-center justify-center">
                   {person.personImages?.[0]?.image ? (
                     <img
-                      src={generateImageUrl(person.personImages[0].image.id, person.personImages[0].image.updatedAt, { width: 400, height: 300, quality: 85 })}
+                      src={generateImageUrl(person.personImages[0].image.id, { width: 400, height: 300, quality: 85 })}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-cover"
                     />

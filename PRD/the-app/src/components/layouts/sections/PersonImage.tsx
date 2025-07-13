@@ -15,7 +15,7 @@ export default function PersonImage({ person }: PersonImageProps) {
       {profileImage ? (
         <div className="relative rounded-xl shadow-lg overflow-hidden">
           <Image
-            src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 600, height: 600, quality: 90 })}
+            src={generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             width={600}
             height={600}

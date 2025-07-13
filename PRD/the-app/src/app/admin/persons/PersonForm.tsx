@@ -248,13 +248,12 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
             primaryImage={useMemo(() => {
               const profileImg = person?.images?.find(img => (img as ImageStorage & { imageType: string }).imageType === 'primary');
               if (!profileImg) return undefined;
-              const timestamp = profileImg.updatedAt ? new Date(profileImg.updatedAt).toISOString().replace(/[:.]/g, '-') : Date.now();
-              return `/api/images/${profileImg.id}/${timestamp}`;
+              return `/api/images/${profileImg.id}`;
             }, [person?.images])}
             existingImages={useMemo(() => 
               person?.images?.filter(img => (img as ImageStorage & { imageType: string }).imageType === 'gallery')?.map(img => ({
                 id: img.id,
-                imageUrl: `/api/images/${img.id}/${img.updatedAt ? new Date(img.updatedAt).toISOString().replace(/[:.]/g, '-') : Date.now()}`,
+                imageUrl: `/api/images/${img.id}`,
                 caption: img.caption,
               })) || []
             , [person?.images])}

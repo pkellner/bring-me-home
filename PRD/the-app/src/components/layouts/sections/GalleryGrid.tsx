@@ -33,7 +33,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
             >
               <div className="relative h-48 hover:opacity-90 transition-opacity">
                 <Image
-                  src={generateImageUrl(image.id, image.updatedAt, { width: 300, height: 192, quality: 85 })}
+                  src={generateImageUrl(image.id, { width: 300, height: 192, quality: 85 })}
                   alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                   width={300}
                   height={192}
@@ -61,7 +61,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
         >
           <div className="relative max-w-7xl max-h-[90vh]">
             <Image
-              src={generateImageUrl(selectedImageId, galleryImages.find(img => img.id === selectedImageId)?.updatedAt || new Date(), { width: 1200, height: 800, quality: 90 })}
+              src={generateImageUrl(selectedImageId, { width: 1200, height: 800, quality: 90 })}
               alt="Enlarged photo"
               width={1200}
               height={800}
