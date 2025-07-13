@@ -385,7 +385,8 @@ export default function UserForm({
                   <input
                     type="checkbox"
                     id="active"
-                    name="active"
+                    name="isActive"
+                    value="true"
                     defaultChecked={user?.isActive ?? true}
                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                   />

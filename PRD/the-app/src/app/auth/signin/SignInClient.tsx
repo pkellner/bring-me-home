@@ -41,7 +41,12 @@ export default function SignInClient({
     setIsLoading(false);
 
     if (result?.error) {
-      setError('Invalid username or password');
+      // Check if the error contains our custom message
+      if (result.error.includes('inactive')) {
+        setError('Account is inactive (contact customer service)');
+      } else {
+        setError('Invalid username or password');
+      }
     } else {
       router.push('/admin');
       router.refresh();

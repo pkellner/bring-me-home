@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
         
         if (!user.isActive) {
           console.log('[PROD AUTH] User inactive:', credentials.username);
-          return null;
+          throw new Error('Account is inactive (contact customer service)');
         }
 
         console.log('[PROD AUTH] Comparing passwords:', {
