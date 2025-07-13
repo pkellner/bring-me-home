@@ -89,7 +89,8 @@ export default async function EditPersonPage({
         <PersonForm 
           key={`person-form-${person.updatedAt?.toISOString() || person.id}`} 
           person={serializedPerson} 
-          towns={towns} 
+          towns={towns}
+          session={session}
         />
       </div>
     </div>

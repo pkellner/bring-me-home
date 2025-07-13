@@ -24,7 +24,7 @@ export default async function NewPersonPage() {
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <PersonForm towns={towns} />
+        <PersonForm towns={towns} session={session} />
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import PersonBasicInfo from './components/PersonBasicInfo';
 import PersonDetentionInfo from './components/PersonDetentionInfo';
 import VisibilitySettings from './components/VisibilitySettings';
 import FormActions from './components/FormActions';
+import { Session } from 'next-auth';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
@@ -32,9 +33,10 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
 interface PersonFormProps {
   person?: SerializedPerson;
   towns: Town[];
+  session?: Session | null;
 }
 
-export default function PersonForm({ person, towns }: PersonFormProps) {
+export default function PersonForm({ person, towns, session }: PersonFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
@@ -249,7 +251,12 @@ export default function PersonForm({ person, towns }: PersonFormProps) {
 
         <VisibilitySettings person={person} />
 
-        <FormActions isSubmitting={isSubmitting} isEditMode={!!person} />
+        <FormActions 
+          isSubmitting={isSubmitting} 
+          isEditMode={!!person} 
+          person={person}
+          session={session}
+        />
       </form>
 
       <DetentionCenterSelector

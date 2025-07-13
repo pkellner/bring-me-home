@@ -626,3 +626,248 @@ export async function updateBulkPersonVisibility(
     return { success: false, error: 'Failed to update visibility' };
   }
 }
+
+interface ImportPersonData {
+  // Person fields
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  height?: string;
+  weight?: string;
+  eyeColor?: string;
+  hairColor?: string;
+  phoneNumber?: string;
+  emailAddress?: string;
+  lastKnownAddress?: string;
+  currentAddress?: string;
+  internationalAddress?: string;
+  alienIdNumber?: string;
+  ssn?: string;
+  bondAmount?: string;
+  bondStatus?: string;
+  caseNumber?: string;
+  countryOfOrigin?: string;
+  courtLocation?: string;
+  nextCourtDate?: string;
+  detentionDate?: string;
+  detentionStatus?: string;
+  releaseDate?: string;
+  showDetentionInfo?: boolean;
+  showDetentionDate?: boolean;
+  legalRepName?: string;
+  legalRepFirm?: string;
+  legalRepPhone?: string;
+  legalRepEmail?: string;
+  representedByLawyer?: boolean;
+  representedByNotes?: string;
+  story?: string;
+  detentionStory?: string;
+  familyMessage?: string;
+  lastHeardFromDate?: string;
+  notesFromLastContact?: string;
+  showLastHeardFrom?: boolean;
+  status?: string;
+  isActive?: boolean;
+  isFound?: boolean;
+  lastSeenDate?: string;
+  lastSeenLocation?: string;
+  primaryPicture?: string;
+  primaryPictureData?: string;
+  secondaryPic1?: string;
+  secondaryPic2?: string;
+  secondaryPic3?: string;
+  showCommunitySupport?: boolean;
+  // Related data
+  stories?: Array<{
+    language: string;
+    storyType: string;
+    content: string;
+    isActive?: boolean;
+  }>;
+  personImages?: Array<{
+    imageUrl: string;
+    thumbnailUrl?: string | null;
+    caption?: string | null;
+    isPrimary?: boolean;
+    isActive?: boolean;
+    displayPublicly?: boolean;
+    imageData?: string | null;
+  }>;
+  // Export metadata and relations (to be excluded)
+  id?: string;
+  townId?: string;
+  town?: unknown;
+  layoutId?: string;
+  layout?: unknown;
+  themeId?: string;
+  theme?: unknown;
+  detentionCenterId?: string;
+  detentionCenter?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+  exportedAt?: string;
+  exportVersion?: string;
+}
+
+export async function importPersonData(personId: string, importData: ImportPersonData) {
+  const session = await getServerSession(authOptions);
+  
+  // Only system admins can import person data
+  if (!session || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized - only system admins can import person data');
+  }
+
+  try {
+    // Verify the person exists
+    const existingPerson = await prisma.person.findUnique({
+      where: { id: personId },
+      include: {
+        stories: true,
+        personImages: true,
+      }
+    });
+
+    if (!existingPerson) {
+      throw new Error('Person not found');
+    }
+
+    // Start a transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // Extract data categories
+      const { 
+        stories, 
+        personImages,
+        primaryPictureData,
+        // These are intentionally extracted to exclude them from personData
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        id: _id,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        townId: _townId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        town: _town,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        createdAt: _createdAt,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        updatedAt: _updatedAt,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        exportedAt: _exportedAt,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        exportVersion: _exportVersion,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        layoutId: _layoutId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        layout: _layout,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        themeId: _themeId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        theme: _theme,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        detentionCenterId: _detentionCenterId,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        detentionCenter: _detentionCenter,
+        ...personData 
+      } = importData;
+
+      // Process primary picture if provided
+      let primaryPictureUrl = personData.primaryPicture;
+      if (primaryPictureData) {
+        try {
+          const base64Data = primaryPictureData.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          const { fullImageId } = await processAndStoreImage(buffer);
+          primaryPictureUrl = `/api/images/${fullImageId}`;
+        } catch (error) {
+          console.error('Failed to process primary picture:', error);
+        }
+      }
+
+      // Update person data (excluding relationships and metadata)
+      await tx.person.update({
+        where: { id: personId },
+        data: {
+          ...personData,
+          primaryPicture: primaryPictureUrl,
+          dateOfBirth: personData.dateOfBirth ? new Date(personData.dateOfBirth) : null,
+          detentionDate: personData.detentionDate ? new Date(personData.detentionDate) : null,
+          releaseDate: personData.releaseDate ? new Date(personData.releaseDate) : null,
+          nextCourtDate: personData.nextCourtDate ? new Date(personData.nextCourtDate) : null,
+          lastHeardFromDate: personData.lastHeardFromDate ? new Date(personData.lastHeardFromDate) : null,
+          lastSeenDate: personData.lastSeenDate ? new Date(personData.lastSeenDate) : null,
+          bondAmount: personData.bondAmount ? parseFloat(personData.bondAmount) : null,
+        }
+      });
+
+      // Delete existing stories and recreate from import
+      if (stories && Array.isArray(stories)) {
+        await tx.story.deleteMany({
+          where: { personId }
+        });
+
+        for (const story of stories) {
+          await tx.story.create({
+            data: {
+              personId,
+              language: story.language,
+              storyType: story.storyType,
+              content: story.content,
+              isActive: story.isActive ?? true,
+            }
+          });
+        }
+      }
+
+      // Handle person images
+      if (personImages && Array.isArray(personImages)) {
+        // Delete existing images
+        await tx.personImage.deleteMany({
+          where: { personId }
+        });
+
+        // Process and store imported images
+        for (const image of personImages) {
+          if (image.imageData) {
+            try {
+              // Extract base64 data
+              const base64Data = image.imageData.split(',')[1];
+              const buffer = Buffer.from(base64Data, 'base64');
+              
+              // Store the image and get URLs
+              const { fullImageId, thumbnailImageId } = await processAndStoreImage(buffer);
+              const fullImageUrl = `/api/images/${fullImageId}`;
+              const thumbnailUrl = `/api/images/${thumbnailImageId}`;
+
+              // Create person image record
+              await tx.personImage.create({
+                data: {
+                  personId,
+                  imageUrl: fullImageUrl,
+                  thumbnailUrl,
+                  caption: image.caption,
+                  isPrimary: image.isPrimary ?? false,
+                  isActive: image.isActive ?? true,
+                  displayPublicly: image.displayPublicly ?? true,
+                  uploadedById: session.user.id,
+                }
+              });
+            } catch (error) {
+              console.error('Failed to process imported image:', error);
+            }
+          }
+        }
+      }
+    });
+
+    revalidatePath(`/admin/persons/${personId}/edit`);
+    revalidatePath('/admin/persons');
+    
+    return { success: true, message: 'Person data imported successfully' };
+  } catch (error) {
+    console.error('Failed to import person data:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to import person data' 
+    };
+  }
+}
