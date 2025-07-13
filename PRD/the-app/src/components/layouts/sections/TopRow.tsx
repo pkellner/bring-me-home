@@ -10,7 +10,7 @@ interface TopRowProps {
 }
 
 export default function TopRow({ person, isAdmin }: TopRowProps) {
-  const profileImage = person.images?.find(img => img.imageType === 'profile');
+  const profileImage = person.images?.find(img => img.imageType === 'primary');
   const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
   
   return (

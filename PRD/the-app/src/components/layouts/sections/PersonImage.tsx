@@ -7,8 +7,8 @@ interface PersonImageProps {
 }
 
 export default function PersonImage({ person }: PersonImageProps) {
-  // Use profile image
-  const profileImage = person.images?.find(img => img.imageType === 'profile');
+  // Use primary image
+  const profileImage = person.images?.find(img => img.imageType === 'primary');
   
   return (
     <div className="image-section flex justify-center">

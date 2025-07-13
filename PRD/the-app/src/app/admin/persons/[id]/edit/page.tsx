@@ -50,19 +50,11 @@ export default async function EditPersonPage({
   const townSlug = person.town.slug;
   const personSlug = person.slug;
 
-  // Transform personImages to the expected format and serialize Decimal fields
-  // We need to include the imageType and sequenceNumber in the image objects
-  // to properly filter them in PersonForm
-  const images = person.personImages?.map(pi => ({
-    ...pi.image,
-    imageType: pi.imageType,
-    sequenceNumber: pi.sequenceNumber,
-  } as any)) || [];
-
+  // Simplified serialization to debug stack overflow
   const serializedPerson = {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
-    images,
+    images: [], // Temporarily empty to isolate issue
   };
 
   return (
@@ -98,7 +90,6 @@ export default async function EditPersonPage({
 
       <div className="bg-white shadow rounded-lg p-6">
         <PersonForm
-          key={`person-form-${person.updatedAt?.toISOString() || person.id}`}
           person={serializedPerson}
           towns={towns}
           session={session}

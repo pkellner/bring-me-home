@@ -21,12 +21,14 @@ interface PersonImageManagerProps {
     primaryImage: File | null,
     additionalImages: PersonImage[]
   ) => void;
+  disablePrimaryImageEdit?: boolean;
 }
 
 export default function PersonImageManager({
   primaryImage,
   existingImages = [],
   onChange,
+  disablePrimaryImageEdit = false,
 }: PersonImageManagerProps) {
   const [primaryFile, setPrimaryFile] = useState<File | null>(null);
   const [primaryPreview, setPrimaryPreview] = useState<string | null>(null);
@@ -129,23 +131,92 @@ export default function PersonImageManager({
           Primary Picture of Person
         </h3>
         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6">
-          {primaryPreview ? (
-            <div className="space-y-4">
-              <div className="relative w-48 h-48 mx-auto">
-                <Image
-                  src={primaryPreview}
-                  alt="Primary image"
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover rounded-lg"
-                />
+          {disablePrimaryImageEdit ? (
+            // Read-only primary image display
+            primaryPreview ? (
+              <div className="space-y-4">
+                <div className="relative w-48 h-48 mx-auto">
+                  <Image
+                    src={primaryPreview}
+                    alt="Primary image"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover rounded-lg"
+                  />
+                </div>
+                <p className="text-center text-sm text-gray-500">
+                  Primary image editing is currently disabled
+                </p>
               </div>
+            ) : (
               <div className="text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <p className="mt-4 text-sm text-gray-500">
+                  No primary image available
+                </p>
+              </div>
+            )
+          ) : (
+            // Editable primary image
+            primaryPreview ? (
+              <div className="space-y-4">
+                <div className="relative w-48 h-48 mx-auto">
+                  <Image
+                    src={primaryPreview}
+                    alt="Primary image"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover rounded-lg"
+                  />
+                </div>
+                <div className="text-center">
+                  <label
+                    htmlFor="primary-image-upload"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    Change Primary Picture
+                  </label>
+                  <input
+                    id="primary-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePrimaryImageSelect}
+                    className="sr-only"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
                 <label
                   htmlFor="primary-image-upload"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
                 >
-                  Change Primary Picture
+                  Upload Primary Picture
                 </label>
                 <input
                   id="primary-image-upload"
@@ -154,40 +225,11 @@ export default function PersonImageManager({
                   onChange={handlePrimaryImageSelect}
                   className="sr-only"
                 />
+                <p className="mt-2 text-sm text-gray-500">
+                  This will be the main picture shown for this person
+                </p>
               </div>
-            </div>
-          ) : (
-            <div className="text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <label
-                htmlFor="primary-image-upload"
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
-              >
-                Upload Primary Picture
-              </label>
-              <input
-                id="primary-image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handlePrimaryImageSelect}
-                className="sr-only"
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                This will be the main picture shown for this person
-              </p>
-            </div>
+            )
           )}
         </div>
       </div>

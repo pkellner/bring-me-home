@@ -7,7 +7,7 @@ interface FeaturedImageProps {
 }
 
 export default function FeaturedImage({ person }: FeaturedImageProps) {
-  const profileImage = person.images?.find(img => img.imageType === 'profile');
+  const profileImage = person.images?.find(img => img.imageType === 'primary');
   
   return (
     <div className="featured-image-section">

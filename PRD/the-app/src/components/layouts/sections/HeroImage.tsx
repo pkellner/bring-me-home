@@ -7,7 +7,7 @@ interface HeroImageProps {
 }
 
 export default function HeroImage({ person }: HeroImageProps) {
-  const profileImage = person.images?.find(img => img.imageType === 'profile');
+  const profileImage = person.images?.find(img => img.imageType === 'primary');
   
   return (
     <div className="hero-image relative h-64 sm:h-80 md:h-96 w-full overflow-hidden rounded-lg">
