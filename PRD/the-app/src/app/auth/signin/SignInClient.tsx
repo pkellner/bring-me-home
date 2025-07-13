@@ -179,14 +179,6 @@ export default function SignInClient({
             </button>
           </div>
 
-          <div className="text-center">
-            <Link
-              href="/auth/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Don&apos;t have an account? Register here
-            </Link>
-          </div>
         </form>
 
         {process.env.NODE_ENV === 'development' && (

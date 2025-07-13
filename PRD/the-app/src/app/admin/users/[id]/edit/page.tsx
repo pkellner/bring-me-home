@@ -72,6 +72,18 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
   }));
 
+  // Also serialize bondAmount in user's personAccess
+  const serializedUser = {
+    ...user,
+    personAccess: user.personAccess.map(access => ({
+      ...access,
+      person: {
+        ...access.person,
+        bondAmount: access.person.bondAmount ? access.person.bondAmount.toString() : null,
+      },
+    })),
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -83,7 +95,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
 
       <UserForm
         mode="edit"
-        user={user}
+        user={serializedUser}
         roles={roles}
         towns={towns}
         persons={serializedPersons}

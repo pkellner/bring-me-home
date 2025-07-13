@@ -72,7 +72,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       name: 'Towns',
       href: '/admin/towns',
       icon: 'buildings' as keyof typeof iconMap,
-      show: hasPermission(session, 'towns', 'read') || isTownAdminUser,
+      show: isSiteAdminUser || isTownAdminUser,
       disabled: false,
     },
     {
