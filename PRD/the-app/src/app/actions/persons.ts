@@ -173,20 +173,12 @@ export async function createPerson(formData: FormData) {
         };
       }
 
-      const { fullImageId } = await processAndStoreImage(buffer);
-      const fullPath = `/api/images/${fullImageId}`;
-
-      // Create PersonImage record for primary image
-      await prisma.personImage.create({
-        data: {
-          imageUrl: fullPath,
-          thumbnailUrl: fullPath,
-          isPrimary: true,
-          isActive: true,
-          displayPublicly: true,
-          personId: person.id,
-          uploadedById: session.user.id,
-        },
+      // Store the image with person association
+      await processAndStoreImage(buffer, {
+        personId: person.id,
+        imageType: 'primary',
+        sequenceNumber: 0,
+        uploadedById: session.user.id,
       });
     }
 
@@ -365,31 +357,44 @@ export async function updatePerson(id: string, formData: FormData) {
         };
       }
 
-      const { fullImageId } = await processAndStoreImage(buffer);
-      const fullPath = `/api/images/${fullImageId}`;
-      
-      // Mark existing primary images as non-primary
-      await prisma.personImage.updateMany({
+      // Delete existing profile images through PersonImage
+      const existingProfileImages = await prisma.personImage.findMany({
         where: {
           personId: id,
-          isPrimary: true,
-        },
-        data: {
-          isPrimary: false,
+          imageType: 'primary',
         },
       });
       
-      // Create new primary image
-      await prisma.personImage.create({
-        data: {
-          imageUrl: fullPath,
-          thumbnailUrl: fullPath,
-          isPrimary: true,
-          isActive: true,
-          displayPublicly: true,
-          personId: id,
-          uploadedById: session.user.id,
-        },
+      for (const pi of existingProfileImages) {
+        await prisma.personImage.delete({
+          where: { id: pi.id },
+        });
+        
+        // Check if image is used elsewhere
+        const otherUsage = await prisma.personImage.count({
+          where: { imageId: pi.imageId },
+        });
+        
+        if (otherUsage === 0) {
+          // Also check detention center usage
+          const dcUsage = await prisma.detentionCenterImage.count({
+            where: { imageId: pi.imageId },
+          });
+          
+          if (dcUsage === 0) {
+            await prisma.imageStorage.delete({
+              where: { id: pi.imageId },
+            });
+          }
+        }
+      }
+      
+      // Store new profile image
+      await processAndStoreImage(buffer, {
+        personId: id,
+        imageType: 'primary',
+        sequenceNumber: 0,
+        uploadedById: session.user.id,
       });
     }
 
@@ -417,14 +422,25 @@ export async function updatePerson(id: string, formData: FormData) {
       data: updateData,
     });
 
-    // Handle PersonImage records
+    // Handle additional gallery images
     if (additionalImages.length > 0) {
+      // Get current max sequence number for gallery images
+      const maxSeq = await prisma.personImage.aggregate({
+        where: {
+          personId: id,
+          imageType: 'gallery',
+        },
+        _max: {
+          sequenceNumber: true,
+        },
+      });
+      let nextSequence = (maxSeq._max.sequenceNumber ?? -1) + 1;
+
       for (const imageData of additionalImages) {
         if (imageData.toDelete && imageData.id) {
           // Delete existing image
-          await prisma.personImage.update({
+          await prisma.imageStorage.delete({
             where: { id: imageData.id },
-            data: { isActive: false },
           });
         } else if (imageData.isNew && imageData.file) {
           // Process and create new image
@@ -438,22 +454,12 @@ export async function updatePerson(id: string, formData: FormData) {
               const isValidImage = await validateImageBuffer(buffer);
 
               if (isValidImage) {
-                const { fullImageId, thumbnailImageId } =
-                  await processAndStoreImage(buffer);
-
-                await prisma.personImage.create({
-                  data: {
-                    personId: id,
-                    imageUrl: `/api/images/${fullImageId}`,
-                    thumbnailUrl: `/api/images/${thumbnailImageId}`,
-                    fullImageId,
-                    thumbnailImageId,
-                    caption: imageData.caption || null,
-                    displayPublicly: true, // All images are public now
-                    isPrimary: false,
-                    isActive: true,
-                    uploadedById: session.user.id,
-                  },
+                await processAndStoreImage(buffer, {
+                  personId: id,
+                  imageType: 'gallery',
+                  sequenceNumber: nextSequence++,
+                  caption: imageData.caption || undefined,
+                  uploadedById: session.user.id,
                 });
               }
             }
@@ -461,11 +467,11 @@ export async function updatePerson(id: string, formData: FormData) {
             console.error('Failed to process additional image:', error);
           }
         } else if (imageData.id && !imageData.toDelete) {
-          // Update existing image
-          await prisma.personImage.update({
+          // Update existing image caption
+          await prisma.imageStorage.update({
             where: { id: imageData.id },
             data: {
-              caption: imageData.caption || null,
+              caption: imageData.caption || undefined,
             },
           });
         }
@@ -688,7 +694,6 @@ interface ImportPersonData {
   }>;
   personImages?: Array<{
     imageUrl: string;
-    thumbnailUrl?: string | null;
     caption?: string | null;
     isPrimary?: boolean;
     isActive?: boolean;
@@ -725,7 +730,11 @@ export async function importPersonData(personId: string, importData: ImportPerso
       where: { id: personId },
       include: {
         stories: true,
-        personImages: true,
+        personImages: {
+          include: {
+            image: true,
+          },
+        },
       }
     });
 
@@ -733,56 +742,114 @@ export async function importPersonData(personId: string, importData: ImportPerso
       throw new Error('Person not found');
     }
 
-    // Start a transaction to ensure data consistency
-    await prisma.$transaction(async (tx) => {
-      // Extract data categories
-      const { 
-        stories, 
-        personImages,
-        primaryPictureData,
-        // These are intentionally extracted to exclude them from personData
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        id: _id,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        townId: _townId,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        town: _town,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        createdAt: _createdAt,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        updatedAt: _updatedAt,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        exportedAt: _exportedAt,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        exportVersion: _exportVersion,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        layoutId: _layoutId,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        layout: _layout,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        themeId: _themeId,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        theme: _theme,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        detentionCenterId: _detentionCenterId,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        detentionCenter: _detentionCenter,
-        ...personData 
-      } = importData;
+    // Extract data categories
+    const { 
+      stories, 
+      personImages,
+      primaryPictureData,
+      // These are intentionally extracted to exclude them from personData
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      id: _id,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      townId: _townId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      town: _town,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      createdAt: _createdAt,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      updatedAt: _updatedAt,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      exportedAt: _exportedAt,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      exportVersion: _exportVersion,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      layoutId: _layoutId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      layout: _layout,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      themeId: _themeId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      theme: _theme,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      detentionCenterId: _detentionCenterId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      detentionCenter: _detentionCenter,
+      ...personData 
+    } = importData;
 
-      // Process primary picture if provided
-      let primaryPictureUrl = personData.primaryPicture;
-      if (primaryPictureData) {
-        try {
-          const base64Data = primaryPictureData.split(',')[1];
-          const buffer = Buffer.from(base64Data, 'base64');
-          const { fullImageId } = await processAndStoreImage(buffer);
-          primaryPictureUrl = `/api/images/${fullImageId}`;
-        } catch (error) {
-          console.error('Failed to process primary picture:', error);
+    // Process images outside of transaction to avoid timeout
+    const processedImages: Array<{
+      buffer: Buffer;
+      imageType: string;
+      sequenceNumber: number;
+      caption?: string;
+    }> = [];
+
+    // Prepare all images for processing
+    const primaryPictureUrl = personData.primaryPicture;
+    
+    // Process primary picture if provided
+    if (primaryPictureData) {
+      try {
+        const base64Data = primaryPictureData.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        processedImages.push({
+          buffer,
+          imageType: 'primary',
+          sequenceNumber: 0,
+          caption: undefined,
+        });
+      } catch (error) {
+        console.error('Failed to prepare primary picture:', error);
+      }
+    }
+
+    // Pre-process person images
+    if (personImages && Array.isArray(personImages)) {
+      let sequenceNumber = 0;
+      
+      // First, check for profile image from personImages if no primaryPictureData
+      if (!primaryPictureData) {
+        const profileImage = personImages.find(img => img.isPrimary && img.imageData);
+        if (profileImage && profileImage.imageData) {
+          try {
+            const base64Data = profileImage.imageData.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            processedImages.push({
+              buffer,
+              imageType: 'primary',
+              sequenceNumber: 0,
+              caption: profileImage.caption || undefined,
+            });
+          } catch (error) {
+            console.error('Failed to prepare profile image from personImages:', error);
+          }
         }
       }
+      
+      // Process gallery images
+      sequenceNumber = 1; // Start gallery images at 1
+      for (const image of personImages) {
+        if (image.imageData && !image.isPrimary) {
+          try {
+            const base64Data = image.imageData.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            processedImages.push({
+              buffer,
+              imageType: 'gallery',
+              sequenceNumber,
+              caption: image.caption || undefined,
+            });
+            sequenceNumber++;
+          } catch (error) {
+            console.error('Failed to prepare image for import:', error);
+          }
+        }
+      }
+    }
 
+    // Start a transaction with increased timeout
+    await prisma.$transaction(async (tx) => {
       // Update person data (excluding relationships and metadata)
       await tx.person.update({
         where: { id: personId },
@@ -818,46 +885,71 @@ export async function importPersonData(personId: string, importData: ImportPerso
         }
       }
 
-      // Handle person images
-      if (personImages && Array.isArray(personImages)) {
-        // Delete existing images
-        await tx.personImage.deleteMany({
-          where: { personId }
-        });
-
-        // Process and store imported images
-        for (const image of personImages) {
-          if (image.imageData) {
-            try {
-              // Extract base64 data
-              const base64Data = image.imageData.split(',')[1];
-              const buffer = Buffer.from(base64Data, 'base64');
-              
-              // Store the image and get URLs
-              const { fullImageId, thumbnailImageId } = await processAndStoreImage(buffer);
-              const fullImageUrl = `/api/images/${fullImageId}`;
-              const thumbnailUrl = `/api/images/${thumbnailImageId}`;
-
-              // Create person image record
-              await tx.personImage.create({
-                data: {
-                  personId,
-                  imageUrl: fullImageUrl,
-                  thumbnailUrl,
-                  caption: image.caption,
-                  isPrimary: image.isPrimary ?? false,
-                  isActive: image.isActive ?? true,
-                  displayPublicly: image.displayPublicly ?? true,
-                  uploadedById: session.user.id,
-                }
-              });
-            } catch (error) {
-              console.error('Failed to process imported image:', error);
-            }
+      // Delete all existing person-image associations
+      // (We'll re-create them outside the transaction)
+      const personImageAssociations = await tx.personImage.findMany({
+        where: { personId },
+        select: { imageId: true }
+      });
+      
+      await tx.personImage.deleteMany({
+        where: { personId }
+      });
+      
+      // Delete orphaned images
+      for (const assoc of personImageAssociations) {
+        const otherUsage = await tx.personImage.count({
+          where: { 
+            imageId: assoc.imageId,
+            personId: { not: personId }
           }
+        });
+        
+        const dcUsage = await tx.detentionCenterImage.count({
+          where: { imageId: assoc.imageId }
+        });
+        
+        if (otherUsage === 0 && dcUsage === 0) {
+          await tx.imageStorage.delete({
+            where: { id: assoc.imageId }
+          });
         }
       }
+    }, {
+      maxWait: 10000, // Maximum time to wait for a transaction slot (10s)
+      timeout: 30000, // Maximum time for the transaction to complete (30s)
     });
+
+    // Process and store images after transaction
+    let newPrimaryImageId: string | null = null;
+    for (const imageData of processedImages) {
+      try {
+        const { imageId } = await processAndStoreImage(imageData.buffer, {
+          personId,
+          imageType: imageData.imageType,
+          sequenceNumber: imageData.sequenceNumber,
+          caption: imageData.caption,
+          uploadedById: session.user.id,
+        });
+        
+        // Track the profile image ID to update primaryPicture
+        if (imageData.imageType === 'profile' && !newPrimaryImageId) {
+          newPrimaryImageId = imageId;
+        }
+      } catch (error) {
+        console.error('Failed to store imported image:', error);
+      }
+    }
+    
+    // Update primaryPicture URL if we processed a new profile image
+    if (newPrimaryImageId) {
+      await prisma.person.update({
+        where: { id: personId },
+        data: {
+          primaryPicture: `/api/images/${newPrimaryImageId}`
+        }
+      });
+    }
 
     revalidatePath(`/admin/persons/${personId}/edit`);
     revalidatePath('/admin/persons');

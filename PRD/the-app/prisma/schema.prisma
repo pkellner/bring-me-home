@@ -19,7 +19,7 @@ model User {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   personAccess PersonAccess[]
-  personImages PersonImage[]
+  uploadedImages ImageStorage[]
   supporters   Supporter[]
   townAccess   TownAccess[]
   userRoles    UserRole[]
@@ -175,31 +175,6 @@ model Story {
   @@map("stories")
 }
 
-model PersonImage {
-  id               String        @id @default(cuid())
-  imageUrl         String
-  thumbnailUrl     String?
-  caption          String?
-  isPrimary        Boolean       @default(false)
-  isActive         Boolean       @default(true)
-  personId         String
-  uploadedById     String
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  fullImageId      String?
-  thumbnailImageId String?
-  displayPublicly  Boolean       @default(true)
-  fullImage        ImageStorage? @relation("FullImage", fields: [fullImageId], references: [id])
-  person           Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
-  thumbnailImage   ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
-  uploadedBy       User          @relation(fields: [uploadedById], references: [id])
-
-  @@index([personId])
-  @@index([fullImageId], map: "person_images_fullImageId_fkey")
-  @@index([thumbnailImageId], map: "person_images_thumbnailImageId_fkey")
-  @@index([uploadedById], map: "person_images_uploadedById_fkey")
-  @@map("person_images")
-}
 
 model Supporter {
   id                String    @id @default(cuid())
@@ -409,17 +384,14 @@ model DetentionCenter {
   visitingHours     String?       @db.Text
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-  facilityImageId   String?
-  thumbnailImageId  String?
-  facilityImage     ImageStorage? @relation("FacilityImage", fields: [facilityImageId], references: [id])
-  thumbnailImage    ImageStorage? @relation("ThumbnailImage", fields: [thumbnailImageId], references: [id])
+  imageId           String?       // DEPRECATED: Use detentionCenterImage relation instead
   detainees         Person[]
+  detentionCenterImage DetentionCenterImage?
 
   @@index([state])
   @@index([city])
   @@index([name])
-  @@index([facilityImageId], map: "detention_centers_facilityImageId_fkey")
-  @@index([thumbnailImageId], map: "detention_centers_thumbnailImageId_fkey")
+  @@index([imageId])
   @@map("detention_centers")
 }
 
@@ -458,17 +430,56 @@ model FamilyPrivacySettings {
 }
 
 model ImageStorage {
-  id                    String            @id @default(cuid())
-  data                  Bytes
-  mimeType              String            @default("image/jpeg")
-  size                  Int
-  width                 Int?
-  height                Int?
-  createdAt             DateTime          @default(now())
-  facilityImageCenters  DetentionCenter[] @relation("FacilityImage")
-  thumbnailImageCenters DetentionCenter[] @relation("ThumbnailImage")
-  fullImagePersonImages PersonImage[]     @relation("FullImage")
-  thumbnailPersonImages PersonImage[]     @relation("ThumbnailImage")
-
+  id               String            @id @default(cuid())
+  data             Bytes?           // Nullable when using S3
+  mimeType         String            @default("image/jpeg")
+  size             Int
+  width            Int?
+  height           Int?
+  caption          String?
+  uploadedById     String?
+  storageType      String            @default("database") // "database" or "s3"
+  s3Bucket         String?           // S3 bucket name when using S3
+  s3Key            String?           // S3 object key when using S3
+  s3Region         String?           // S3 region when using S3
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  uploadedBy       User?             @relation(fields: [uploadedById], references: [id])
+  personImages     PersonImage[]
+  detentionCenterImages DetentionCenterImage[]
+  
+  @@index([uploadedById])
+  @@index([storageType])
   @@map("image_storage")
+}
+
+model PersonImage {
+  id             String       @id @default(cuid())
+  personId       String
+  imageId        String
+  imageType      String       @default("gallery") // "primary", "gallery"
+  sequenceNumber Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  image          ImageStorage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  
+  @@unique([personId, imageId])
+  @@index([personId])
+  @@index([imageId])
+  @@index([sequenceNumber])
+  @@map("person_images")
+}
+
+model DetentionCenterImage {
+  id                String          @id @default(cuid())
+  detentionCenterId String          @unique
+  imageId           String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  detentionCenter   DetentionCenter @relation(fields: [detentionCenterId], references: [id], onDelete: Cascade)
+  image             ImageStorage    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  
+  @@index([imageId])
+  @@map("detention_center_images")
 }

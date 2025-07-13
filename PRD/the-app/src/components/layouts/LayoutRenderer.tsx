@@ -54,14 +54,12 @@ export type SerializedPerson = Omit<Person, 'bondAmount'> & {
     storyType: string;
     content: string;
   }>;
-  personImages?: Array<{
+  images?: Array<{
     id: string;
-    imageUrl: string;
-    thumbnailUrl?: string | null;
+    imageType?: string | null;
+    sequenceNumber: number;
     caption?: string | null;
-    isPrimary: boolean;
-    displayPublicly: boolean;
-    isActive: boolean;
+    updatedAt: Date | string;
   }>;
 };
 

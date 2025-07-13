@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
 import PersonImageManager from '@/components/admin/PersonImageManager';
 import {
   DetentionCenter,
   Person,
-  PersonImage,
+  ImageStorage,
   Story,
   Town,
 } from '@prisma/client';
@@ -27,7 +27,7 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
   town: Town;
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
-  personImages?: PersonImage[];
+  images?: ImageStorage[];
 };
 
 interface PersonFormProps {
@@ -202,6 +202,11 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     }
   }
 
+  const handleImageChange = useCallback((primaryFile: File | null, images: typeof additionalImages) => {
+    setPrimaryImageFile(primaryFile);
+    setAdditionalImages(images);
+  }, []);
+
   return (
     <>
 
@@ -240,12 +245,20 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
 
         <div className="border-t pt-6">
           <PersonImageManager
-            primaryImage={person?.personImages?.find(img => img.isPrimary)?.imageUrl}
-            existingImages={person?.personImages?.filter(img => !img.isPrimary)}
-            onChange={(primaryFile, images) => {
-              setPrimaryImageFile(primaryFile);
-              setAdditionalImages(images);
-            }}
+            primaryImage={useMemo(() => {
+              const profileImg = person?.images?.find(img => (img as ImageStorage & { imageType: string }).imageType === 'primary');
+              if (!profileImg) return undefined;
+              const timestamp = profileImg.updatedAt ? new Date(profileImg.updatedAt).toISOString().replace(/[:.]/g, '-') : Date.now();
+              return `/api/images/${profileImg.id}/${timestamp}`;
+            }, [person?.images])}
+            existingImages={useMemo(() => 
+              person?.images?.filter(img => (img as ImageStorage & { imageType: string }).imageType === 'gallery')?.map(img => ({
+                id: img.id,
+                imageUrl: `/api/images/${img.id}/${img.updatedAt ? new Date(img.updatedAt).toISOString().replace(/[:.]/g, '-') : Date.now()}`,
+                caption: img.caption,
+              })) || []
+            , [person?.images])}
+            onChange={handleImageChange}
           />
         </div>
 

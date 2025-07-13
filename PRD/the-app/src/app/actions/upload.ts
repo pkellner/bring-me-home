@@ -106,48 +106,73 @@ export async function uploadPersonImage(
       };
     }
 
-    // Process and store images in database
-    const { fullImageId, thumbnailImageId } =
-      await processAndStoreImage(buffer);
-
-    // Create the image record
-    const personImage = await prisma.personImage.create({
-      data: {
-        imageUrl: `/api/images/${fullImageId}`,
-        thumbnailUrl: `/api/images/${thumbnailImageId}`,
-        caption,
-        isPrimary,
-        personId,
-        uploadedById: session.user.id,
-        isActive: true,
-        fullImageId,
-        thumbnailImageId,
-      },
-    });
-
-    // If this is set as primary, update other images and person record
-    if (isPrimary) {
-      await prisma.personImage.updateMany({
+    // Determine sequence number for gallery images
+    let sequenceNumber = 0;
+    if (!isPrimary) {
+      const maxSeq = await prisma.personImage.aggregate({
         where: {
           personId,
-          isPrimary: true,
-          id: { not: personImage.id },
+          imageType: 'gallery',
         },
-        data: {
-          isPrimary: false,
+        _max: {
+          sequenceNumber: true,
         },
       });
+      sequenceNumber = (maxSeq._max.sequenceNumber ?? -1) + 1;
+    }
+
+    // Process and store image in database
+    const { imageId } = await processAndStoreImage(buffer, {
+      personId,
+      imageType: isPrimary ? 'profile' : 'gallery',
+      sequenceNumber,
+      caption,
+      uploadedById: session.user.id,
+    });
+
+    // If this is set as primary, delete other profile images
+    if (isPrimary) {
+      const otherProfileImages = await prisma.personImage.findMany({
+        where: {
+          personId,
+          imageType: 'primary',
+          imageId: { not: imageId },
+        },
+      });
+      
+      for (const pi of otherProfileImages) {
+        await prisma.personImage.delete({
+          where: { id: pi.id },
+        });
+        
+        // Check if image is used elsewhere
+        const otherUsage = await prisma.personImage.count({
+          where: { imageId: pi.imageId },
+        });
+        
+        if (otherUsage === 0) {
+          const dcUsage = await prisma.detentionCenterImage.count({
+            where: { imageId: pi.imageId },
+          });
+          
+          if (dcUsage === 0) {
+            await prisma.imageStorage.delete({
+              where: { id: pi.imageId },
+            });
+          }
+        }
+      }
 
       // Also update person's primary picture
       await prisma.person.update({
         where: { id: personId },
-        data: { primaryPicture: personImage.imageUrl },
+        data: { primaryPicture: `/api/images/${imageId}` },
       });
     }
 
     return {
       success: true,
-      imageUrl: personImage.imageUrl,
+      imageUrl: `/api/images/${imageId}`,
     };
   } catch (error) {
     console.error('Error uploading image:', error);

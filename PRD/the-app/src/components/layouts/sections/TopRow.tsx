@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface TopRowProps {
   person: SerializedPerson;
@@ -9,18 +10,18 @@ interface TopRowProps {
 }
 
 export default function TopRow({ person, isAdmin }: TopRowProps) {
-  const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
-  const additionalImages = person.personImages?.filter(img => !img.isPrimary && img.displayPublicly) || [];
+  const profileImage = person.images?.find(img => img.imageType === 'profile');
+  const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
   
   return (
     <div className="top-row-section w-full">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Primary Image - max 300px */}
         <div className="flex-shrink-0 mx-auto lg:mx-0">
-          {primaryImage ? (
+          {profileImage ? (
             <div className="relative rounded-lg shadow-lg overflow-hidden w-full max-w-[300px] aspect-square">
               <Image
-                src={primaryImage.imageUrl}
+                src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 600, height: 600, quality: 90 })}
                 alt={`${person.firstName} ${person.lastName}`}
                 fill
                 className="object-cover"
@@ -99,18 +100,18 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
         </div>
 
         {/* Additional Photos - max 150px each */}
-        {additionalImages.length > 0 && (
+        {galleryImages.length > 0 && (
           <div className="flex-shrink-0 w-full lg:w-auto">
             <h3 className="text-sm font-semibold mb-2">Additional Photos</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 max-w-full lg:max-w-[320px]">
-              {additionalImages.slice(0, 4).map((image, index) => (
+              {galleryImages.sort((a, b) => a.sequenceNumber - b.sequenceNumber).slice(0, 4).map((image, index) => (
                 <div
                   key={image.id}
                   className="relative rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-gray-100 aspect-square w-full max-w-[150px]"
                 >
                   <Image
-                    src={image.imageUrl}
-                    alt={`Additional photo ${index + 1}`}
+                    src={generateImageUrl(image.id, image.updatedAt, { width: 300, height: 300, quality: 85 })}
+                    alt={image.caption || `Additional photo ${index + 1}`}
                     fill
                     className="object-cover"
                     sizes="150px"

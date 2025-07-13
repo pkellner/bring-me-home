@@ -1,19 +1,20 @@
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface FeaturedImageProps {
   person: SerializedPerson;
 }
 
 export default function FeaturedImage({ person }: FeaturedImageProps) {
-  const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
+  const profileImage = person.images?.find(img => img.imageType === 'profile');
   
   return (
     <div className="featured-image-section">
-      {primaryImage ? (
+      {profileImage ? (
         <div className="relative rounded-lg overflow-hidden shadow-xl">
           <Image
-            src={primaryImage.imageUrl}
+            src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 800, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             width={800}
             height={600}

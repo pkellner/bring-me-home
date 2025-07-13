@@ -90,11 +90,10 @@ async function getPersonData(townSlug: string, personSlug: string) {
       theme: true,
       detentionCenter: true,
       personImages: {
-        where: {
-          isActive: true,
-          displayPublicly: true,
+        include: {
+          image: true,
         },
-        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        orderBy: [{ imageType: 'asc' }, { sequenceNumber: 'asc' }],
       },
       comments: {
         where: {
@@ -225,12 +224,30 @@ export default async function PersonPage({ params }: PersonPageProps) {
     approvedAt: comment.approvedAt ? comment.approvedAt.toISOString() : null,
   }));
 
+  // Transform personImages to the expected format
+  const images = person.personImages?.map(pi => ({
+    id: pi.image.id,
+    imageType: pi.imageType,
+    sequenceNumber: pi.sequenceNumber,
+    caption: pi.image.caption,
+    mimeType: pi.image.mimeType,
+    size: pi.image.size,
+    width: pi.image.width,
+    height: pi.image.height,
+    createdAt: pi.image.createdAt,
+    updatedAt: pi.image.updatedAt,
+  })) || [];
+
+  // Exclude personImages to avoid circular reference
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { personImages, ...personWithoutImages } = person;
+  
   const serializedPerson = {
-    ...person,
+    ...personWithoutImages,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
     stories: person.stories || [],
     comments: serializedComments,
-    personImages: person.personImages || [],
+    images,
   } as unknown as SerializedPerson;
 
   // Determine which layout and theme to use

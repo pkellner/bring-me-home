@@ -161,9 +161,9 @@ export default async function DetentionCentersPage() {
                     className="border rounded-lg p-4 flex items-start space-x-4 hover:bg-gray-50"
                   >
                     <div className="flex-shrink-0">
-                      {center.thumbnailImageId ? (
+                      {center.imageId ? (
                         <Image
-                          src={`/api/images/${center.thumbnailImageId}`}
+                          src={`/api/images/${center.imageId}`}
                           alt={center.name}
                           width={120}
                           height={90}

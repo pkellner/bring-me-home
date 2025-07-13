@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Session } from 'next-auth';
 import { isSiteAdmin } from '@/lib/permissions';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
-import type { Person, Town, DetentionCenter, Story, PersonImage } from '@prisma/client';
+import type { Person, Town, DetentionCenter, Story, ImageStorage } from '@prisma/client';
 import { importPersonData } from '@/app/actions/persons';
 
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
@@ -13,7 +13,7 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
   town: Town;
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
-  personImages?: PersonImage[];
+  images?: ImageStorage[];
 };
 
 interface FormActionsProps {
@@ -56,19 +56,33 @@ export default function FormActions({
 
       // Fetch additional images as base64
       const imagesWithData = await Promise.all(
-        (person.personImages || []).map(async (img) => {
+        (person.images || []).map(async (img) => {
           try {
-            const response = await fetch(img.imageUrl);
+            const response = await fetch(`/api/images/${img.id}`);
             const blob = await response.blob();
             const base64 = await new Promise<string>((resolve) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result as string);
               reader.readAsDataURL(blob);
             });
-            return { ...img, imageData: base64 };
+            return { 
+              imageUrl: `/api/images/${img.id}`,
+              caption: img.caption,
+              isPrimary: (img as ImageStorage & { imageType?: string }).imageType === 'profile',
+              isActive: true,
+              displayPublicly: true,
+              imageData: base64 
+            };
           } catch (error) {
-            console.error('Failed to fetch image:', img.imageUrl, error);
-            return { ...img, imageData: null };
+            console.error('Failed to fetch image:', img.id, error);
+            return { 
+              imageUrl: `/api/images/${img.id}`,
+              caption: img.caption,
+              isPrimary: (img as ImageStorage & { imageType?: string }).imageType === 'profile',
+              isActive: true,
+              displayPublicly: true,
+              imageData: null 
+            };
           }
         })
       );
@@ -97,7 +111,18 @@ export default function FormActions({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${person.firstName}-${person.lastName}-${person.id}.json`;
+      // Format date as YYYY-MM-DD--HH-MM-AM/PM
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      const hour12 = hours % 12 || 12;
+      const dateTimeString = `${year}-${month}-${day}--${hour12}-${minutes}-${ampm}`;
+      
+      a.download = `${person.firstName}-${person.lastName}-${person.id}-${dateTimeString}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

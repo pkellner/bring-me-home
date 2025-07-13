@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { processAndStoreImage } from '../src/lib/image-storage';
+import { ImageStorageService } from '../src/lib/image-storage';
 
 const prisma = new PrismaClient();
+const imageStorageService = new ImageStorageService(prisma);
 
 // We'll use the person placeholder images temporarily for detention centers
 // In production, you would want to use actual facility images
@@ -30,18 +31,19 @@ async function addDetentionCenterImages() {
       );
       const imageBuffer = await readFile(imagePath);
 
-      const { fullImageId, thumbnailImageId } =
-        await processAndStoreImage(imageBuffer);
-
-      await prisma.detentionCenter.update({
+      const detentionCenter = await prisma.detentionCenter.findUnique({
         where: { id: mapping.centerId },
-        data: {
-          facilityImageId: fullImageId,
-          thumbnailImageId: thumbnailImageId,
-        },
       });
 
-      console.log(`Updated detention center ${mapping.centerId} with images`);
+      if (detentionCenter) {
+        await imageStorageService.setDetentionCenterImage(
+          detentionCenter.id,
+          imageBuffer
+        );
+        console.log(`Updated detention center ${mapping.centerId} with image`);
+      } else {
+        console.log(`Detention center ${mapping.centerId} not found`);
+      }
     } catch (error) {
       console.error(
         `Failed to update detention center ${mapping.centerId}:`,

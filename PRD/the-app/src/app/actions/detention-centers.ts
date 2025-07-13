@@ -52,20 +52,12 @@ export async function createDetentionCenter(formData: FormData) {
     faxNumber: formData.get('faxNumber') || undefined,
     emailAddress: formData.get('emailAddress') || undefined,
     website: formData.get('website') || undefined,
-    capacity: formData.get('capacity')
-      ? Number(formData.get('capacity'))
-      : undefined,
-    currentPopulation: formData.get('currentPopulation')
-      ? Number(formData.get('currentPopulation'))
-      : undefined,
-    latitude: formData.get('latitude')
-      ? Number(formData.get('latitude'))
-      : undefined,
-    longitude: formData.get('longitude')
-      ? Number(formData.get('longitude'))
-      : undefined,
-    isActive: formData.get('isActive') === 'on',
-    isICEFacility: formData.get('isICEFacility') === 'on',
+    capacity: formData.get('capacity') || undefined,
+    currentPopulation: formData.get('currentPopulation') || undefined,
+    latitude: formData.get('latitude') || undefined,
+    longitude: formData.get('longitude') || undefined,
+    isActive: formData.get('isActive') === 'true',
+    isICEFacility: formData.get('isICEFacility') === 'true',
     notes: formData.get('notes') || undefined,
     transportInfo: formData.get('transportInfo') || undefined,
     visitingHours: formData.get('visitingHours') || undefined,
@@ -78,35 +70,39 @@ export async function createDetentionCenter(formData: FormData) {
   }
 
   try {
-    // Handle facility image upload
-    let facilityImageId: string | undefined;
-    let thumbnailImageId: string | undefined;
+    // Process empty strings to null
+    if (validatedFields.data.emailAddress === '') {
+      validatedFields.data.emailAddress = undefined;
+    }
+    if (validatedFields.data.website === '') {
+      validatedFields.data.website = undefined;
+    }
 
-    const facilityImageFile = formData.get('facilityImage') as File;
-    if (facilityImageFile && facilityImageFile.size > 0) {
-      const buffer = Buffer.from(await facilityImageFile.arrayBuffer());
+    // Handle image upload
+    let processedImageId: string | undefined;
+    const facilityImage = formData.get('facilityImage') as File;
+    if (facilityImage && facilityImage.size > 0) {
+      const buffer = Buffer.from(await facilityImage.arrayBuffer());
 
       // Validate image
-      const isValid = await validateImageBuffer(buffer);
-      if (!isValid) {
+      const isValidImage = await validateImageBuffer(buffer);
+      if (!isValidImage) {
         return {
-          errors: { facilityImage: ['Invalid image file'] },
+          errors: {
+            _form: ['Invalid image file'],
+          },
         };
       }
 
       // Process and store images
-      const { fullImageId, thumbnailImageId: thumbId } =
-        await processAndStoreImage(buffer);
-
-      facilityImageId = fullImageId;
-      thumbnailImageId = thumbId;
+      const { imageId } = await processAndStoreImage(buffer);
+      processedImageId = imageId;
     }
 
     const detentionCenter = await prisma.detentionCenter.create({
       data: {
         ...validatedFields.data,
-        facilityImageId,
-        thumbnailImageId,
+        imageId: processedImageId,
       },
     });
 
@@ -115,12 +111,17 @@ export async function createDetentionCenter(formData: FormData) {
   } catch (error) {
     console.error('Failed to create detention center:', error);
     return {
-      errors: { _form: ['Failed to create detention center'] },
+      errors: {
+        _form: ['Failed to create detention center'],
+      },
     };
   }
 }
 
-export async function updateDetentionCenter(id: string, formData: FormData) {
+export async function updateDetentionCenter(
+  id: string,
+  formData: FormData
+) {
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'detentionCenters', 'update')) {
     throw new Error('Unauthorized');
@@ -139,20 +140,12 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
     faxNumber: formData.get('faxNumber') || undefined,
     emailAddress: formData.get('emailAddress') || undefined,
     website: formData.get('website') || undefined,
-    capacity: formData.get('capacity')
-      ? Number(formData.get('capacity'))
-      : undefined,
-    currentPopulation: formData.get('currentPopulation')
-      ? Number(formData.get('currentPopulation'))
-      : undefined,
-    latitude: formData.get('latitude')
-      ? Number(formData.get('latitude'))
-      : undefined,
-    longitude: formData.get('longitude')
-      ? Number(formData.get('longitude'))
-      : undefined,
-    isActive: formData.get('isActive') === 'on',
-    isICEFacility: formData.get('isICEFacility') === 'on',
+    capacity: formData.get('capacity') || undefined,
+    currentPopulation: formData.get('currentPopulation') || undefined,
+    latitude: formData.get('latitude') || undefined,
+    longitude: formData.get('longitude') || undefined,
+    isActive: formData.get('isActive') === 'true',
+    isICEFacility: formData.get('isICEFacility') === 'true',
     notes: formData.get('notes') || undefined,
     transportInfo: formData.get('transportInfo') || undefined,
     visitingHours: formData.get('visitingHours') || undefined,
@@ -165,84 +158,92 @@ export async function updateDetentionCenter(id: string, formData: FormData) {
   }
 
   try {
-    // Get existing detention center to check for old images
+    // Process empty strings to null
+    if (validatedFields.data.emailAddress === '') {
+      validatedFields.data.emailAddress = undefined;
+    }
+    if (validatedFields.data.website === '') {
+      validatedFields.data.website = undefined;
+    }
+
+    // Get existing detention center to preserve image if not updating
     const existingCenter = await prisma.detentionCenter.findUnique({
       where: { id },
-      select: { facilityImageId: true, thumbnailImageId: true },
+      select: { imageId: true },
     });
 
-    // Handle facility image upload
-    let facilityImageId = existingCenter?.facilityImageId;
-    let thumbnailImageId = existingCenter?.thumbnailImageId;
-
-    const facilityImageFile = formData.get('facilityImage') as File;
-    console.log('Update - Facility image file:', facilityImageFile?.name, facilityImageFile?.size, facilityImageFile?.type);
+    // Handle image upload
+    let processedImageId = existingCenter?.imageId;
+    const facilityImage = formData.get('facilityImage') as File;
+    const removeImage = formData.get('removeImage') === 'true';
     
-    if (facilityImageFile && facilityImageFile.size > 0) {
-      const buffer = Buffer.from(await facilityImageFile.arrayBuffer());
-      console.log('Update - Buffer size:', buffer.length);
+    if (removeImage) {
+      // Delete existing images if requested
+      processedImageId = null;
+      if (existingCenter?.imageId) {
+        await prisma.$transaction([
+          prisma.imageStorage.deleteMany({
+            where: {
+              id: existingCenter.imageId,
+            },
+          }),
+        ]);
+      }
+    } else if (facilityImage && facilityImage.size > 0) {
+      const buffer = Buffer.from(await facilityImage.arrayBuffer());
 
       // Validate image
-      const isValid = await validateImageBuffer(buffer);
-      console.log('Update - Image validation result:', isValid);
-      
-      if (!isValid) {
+      const isValidImage = await validateImageBuffer(buffer);
+      if (!isValidImage) {
         return {
-          errors: { facilityImage: ['Invalid image file'] },
+          errors: {
+            _form: ['Invalid image file'],
+          },
         };
       }
 
-      // Delete old images if they exist
-      if (existingCenter?.facilityImageId) {
-        await prisma.imageStorage.deleteMany({
-          where: {
-            id: {
-              in: [
-                existingCenter.facilityImageId,
-                existingCenter.thumbnailImageId,
-              ].filter(Boolean) as string[],
+      // Delete old images first if they exist
+      if (existingCenter?.imageId) {
+        await prisma.$transaction([
+          prisma.imageStorage.deleteMany({
+            where: {
+              id: existingCenter.imageId,
             },
-          },
-        });
+          }),
+        ]);
       }
 
       // Process and store new images
-      const { fullImageId, thumbnailImageId: thumbId } =
-        await processAndStoreImage(buffer);
-
-      facilityImageId = fullImageId;
-      thumbnailImageId = thumbId;
-      console.log('Update - New image IDs:', { facilityImageId, thumbnailImageId });
+      const { imageId } = await processAndStoreImage(buffer);
+      processedImageId = imageId;
+      console.log('Update - New image ID:', { imageId });
     } else {
-      console.log('Update - No new image uploaded, keeping existing IDs:', { facilityImageId, thumbnailImageId });
+      console.log('Update - No new image uploaded, keeping existing ID:', { imageId: processedImageId });
     }
-
-    const updateData = {
-      ...validatedFields.data,
-      facilityImageId,
-      thumbnailImageId,
-    };
-    
-    console.log('Update - Final updateData:', updateData);
 
     const detentionCenter = await prisma.detentionCenter.update({
       where: { id },
-      data: updateData,
-    });
-    
-    console.log('Update - Detention center after update:', {
-      id: detentionCenter.id,
-      facilityImageId: detentionCenter.facilityImageId,
-      thumbnailImageId: detentionCenter.thumbnailImageId
+      data: {
+        ...validatedFields.data,
+        imageId: processedImageId,
+      },
     });
 
     revalidatePath('/admin/detention-centers');
     revalidatePath(`/admin/detention-centers/${id}/edit`);
+    
+    console.log('Updated detention center with imageId:', {
+      id: detentionCenter.id,
+      imageId: detentionCenter.imageId,
+    });
+    
     return { success: true, detentionCenter };
   } catch (error) {
     console.error('Failed to update detention center:', error);
     return {
-      errors: { _form: ['Failed to update detention center'] },
+      errors: {
+        _form: ['Failed to update detention center'],
+      },
     };
   }
 }
@@ -254,55 +255,187 @@ export async function deleteDetentionCenter(id: string) {
   }
 
   try {
-    // Check if there are any persons assigned to this detention center
-    const detaineesCount = await prisma.person.count({
-      where: { detentionCenterId: id },
-    });
-
-    if (detaineesCount > 0) {
-      return {
-        errors: {
-          _form: [
-            `Cannot delete detention center with ${detaineesCount} assigned detainee(s)`,
-          ],
-        },
-      };
-    }
-
-    // Get detention center to find images to delete
+    // Get the detention center to find associated images
     const detentionCenter = await prisma.detentionCenter.findUnique({
       where: { id },
-      select: { facilityImageId: true, thumbnailImageId: true },
+      select: { imageId: true },
     });
 
-    // Delete images if they exist
-    if (detentionCenter?.facilityImageId) {
-      await prisma.imageStorage.deleteMany({
-        where: {
-          id: {
-            in: [
-              detentionCenter.facilityImageId,
-              detentionCenter.thumbnailImageId,
-            ].filter(Boolean) as string[],
+    if (detentionCenter?.imageId) {
+      // Delete associated images
+      await prisma.$transaction([
+        prisma.imageStorage.deleteMany({
+          where: {
+            id: detentionCenter.imageId,
           },
-        },
+        }),
+        prisma.detentionCenter.delete({
+          where: { id },
+        }),
+      ]);
+    } else {
+      await prisma.detentionCenter.delete({
+        where: { id },
       });
     }
-
-    // Delete the detention center
-    await prisma.detentionCenter.delete({
-      where: { id },
-    });
 
     revalidatePath('/admin/detention-centers');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete detention center:', error);
-    return {
-      errors: {
-        _form: ['Failed to delete detention center'],
+    return { success: false, error: 'Failed to delete detention center' };
+  }
+}
+
+export async function updateDetentionCenterVisibility(
+  centerId: string,
+  isActive: boolean
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'detentionCenters', 'update')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await prisma.detentionCenter.update({
+      where: { id: centerId },
+      data: { isActive },
+    });
+
+    revalidatePath('/admin/detention-centers');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update detention center visibility:', error);
+    return { success: false, error: 'Failed to update visibility' };
+  }
+}
+
+export async function duplicateDetentionCenter(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'detentionCenters', 'create')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    const original = await prisma.detentionCenter.findUnique({
+      where: { id },
+      select: {
+        name: true,
+        facilityType: true,
+        operatedBy: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
+        phoneNumber: true,
+        faxNumber: true,
+        emailAddress: true,
+        website: true,
+        capacity: true,
+        currentPopulation: true,
+        latitude: true,
+        longitude: true,
+        isActive: true,
+        isICEFacility: true,
+        notes: true,
+        transportInfo: true,
+        visitingHours: true,
+        imageId: true,
       },
-    };
+    });
+
+    if (!original) {
+      throw new Error('Detention center not found');
+    }
+
+    // Determine new image IDs if the original has images
+    let newImageId: string | null = null;
+    const imageIds: string[] = [];
+    if (original.imageId) imageIds.push(original.imageId);
+
+    if (imageIds.length > 0) {
+      // Copy images to new records
+      const images = await prisma.imageStorage.findMany({
+        where: { id: { in: imageIds } },
+      });
+
+      const newImages = await Promise.all(
+        images.map(image =>
+          prisma.imageStorage.create({
+            data: {
+              data: image.data,
+              mimeType: image.mimeType,
+              size: image.size,
+              width: image.width,
+              height: image.height,
+            },
+          })
+        )
+      );
+
+      // Map old IDs to new IDs
+      if (original.imageId) {
+        newImageId = newImages[0].id;
+      }
+    }
+
+    const duplicate = await prisma.detentionCenter.create({
+      data: {
+        ...original,
+        name: `${original.name} (Copy)`,
+        imageId: newImageId,
+      },
+    });
+
+    revalidatePath('/admin/detention-centers');
+    return { success: true, detentionCenter: duplicate };
+  } catch (error) {
+    console.error('Failed to duplicate detention center:', error);
+    return { success: false, error: 'Failed to duplicate detention center' };
+  }
+}
+
+export async function searchDetentionCenters(query: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || !hasPermission(session, 'detentionCenters', 'read')) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    const centers = await prisma.detentionCenter.findMany({
+      where: {
+        OR: [
+          { name: { contains: query } },
+          { city: { contains: query } },
+          { state: { contains: query } },
+        ],
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        state: true,
+        facilityType: true,
+        imageId: true,
+      },
+      take: 10,
+    });
+
+    return centers.map((center) => ({
+      id: center.id,
+      name: center.name,
+      city: center.city,
+      state: center.state,
+      facilityType: center.facilityType,
+      facilityImageUrl: center.imageId
+        ? `/api/images/${center.imageId}`
+        : null,
+    }));
+  } catch (error) {
+    console.error('Failed to search detention centers:', error);
+    return [];
   }
 }
 
@@ -313,140 +446,59 @@ export async function deleteEmptyDetentionCenters(state?: string) {
   }
 
   try {
-    // Find all detention centers without detainees
-    const where: {
-      detainees: { none: Record<string, never> };
-      state?: string;
-    } = {
-      detainees: {
-        none: {},
-      },
-    };
-
-    if (state) {
-      where.state = state;
-    }
-
+    // Find detention centers without detainees
     const emptyDetentionCenters = await prisma.detentionCenter.findMany({
-      where,
+      where: {
+        ...(state ? { state } : {}),
+        detainees: {
+          none: {},
+        },
+      },
       select: {
         id: true,
         name: true,
-        facilityImageId: true,
-        thumbnailImageId: true,
+        imageId: true,
       },
     });
 
-    if (emptyDetentionCenters.length === 0) {
-      return {
-        success: true,
-        deletedCount: 0,
-        message: 'No empty detention centers found',
-      };
-    }
+    // Collect image IDs to delete
+    const imageIds = emptyDetentionCenters
+      .map(center => center.imageId)
+      .filter((id): id is string => id !== null);
 
-    // Collect all image IDs to delete
-    const imageIds: string[] = [];
-    emptyDetentionCenters.forEach(center => {
-      if (center.facilityImageId) imageIds.push(center.facilityImageId);
-      if (center.thumbnailImageId) imageIds.push(center.thumbnailImageId);
-    });
-
-    // Delete images if any exist
-    if (imageIds.length > 0) {
-      await prisma.imageStorage.deleteMany({
+    // Delete in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Delete detention centers
+      const deleteResult = await tx.detentionCenter.deleteMany({
         where: {
           id: {
-            in: imageIds,
+            in: emptyDetentionCenters.map(center => center.id),
           },
         },
       });
-    }
 
-    // Delete all empty detention centers
-    const deleteResult = await prisma.detentionCenter.deleteMany({
-      where,
+      // Delete associated images
+      if (imageIds.length > 0) {
+        await tx.imageStorage.deleteMany({
+          where: {
+            id: {
+              in: imageIds,
+            },
+          },
+        });
+      }
+
+      return deleteResult;
     });
 
     revalidatePath('/admin/detention-centers');
-
-    return {
-      success: true,
-      deletedCount: deleteResult.count,
-      message: `Successfully deleted ${deleteResult.count} empty detention center(s)`,
-      deletedNames: emptyDetentionCenters.map(c => c.name),
+    return { 
+      success: true, 
+      count: result.count,
+      centers: emptyDetentionCenters.map(c => c.name)
     };
   } catch (error) {
     console.error('Failed to delete empty detention centers:', error);
-    return {
-      errors: {
-        _form: ['Failed to delete empty detention centers'],
-      },
-    };
+    return { success: false, error: 'Failed to delete detention centers' };
   }
-}
-
-export async function searchDetentionCenters(searchParams: {
-  query?: string;
-  state?: string;
-  city?: string;
-  isActive?: boolean;
-}) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    throw new Error('Unauthorized');
-  }
-
-  const where: {
-    OR?: Array<{
-      name?: { contains: string; mode: 'insensitive' };
-      city?: { contains: string; mode: 'insensitive' };
-      address?: { contains: string; mode: 'insensitive' };
-    }>;
-    state?: string;
-    city?: { contains: string; mode: 'insensitive' };
-    isActive?: boolean;
-    isICEFacility?: boolean;
-  } = {};
-
-  if (searchParams.query) {
-    where.OR = [
-      { name: { contains: searchParams.query, mode: 'insensitive' } },
-      { city: { contains: searchParams.query, mode: 'insensitive' } },
-      { address: { contains: searchParams.query, mode: 'insensitive' } },
-    ];
-  }
-
-  if (searchParams.state) {
-    where.state = searchParams.state;
-  }
-
-  if (searchParams.city) {
-    where.city = { contains: searchParams.city, mode: 'insensitive' };
-  }
-
-  if (searchParams.isActive !== undefined) {
-    where.isActive = searchParams.isActive;
-  }
-
-  const detentionCenters = await prisma.detentionCenter.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      city: true,
-      state: true,
-      facilityType: true,
-      facilityImageId: true,
-      thumbnailImageId: true,
-      _count: {
-        select: {
-          detainees: true,
-        },
-      },
-    },
-    orderBy: [{ state: 'asc' }, { city: 'asc' }, { name: 'asc' }],
-  });
-
-  return detentionCenters;
 }

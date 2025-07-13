@@ -30,17 +30,17 @@ export default function BulkDeleteButton({
       const result = await deleteEmptyDetentionCenters(state);
 
       if (result.success) {
-        if (result.deletedCount > 0) {
+        if (result.count && result.count > 0) {
           alert(
-            `Successfully deleted ${result.deletedCount} empty detention center(s)`
+            `Successfully deleted ${result.count} empty detention center(s)`
           );
         } else {
           alert('No empty detention centers found to delete');
         }
-      } else if (result.errors) {
+      } else {
         alert(
           `Error: ${
-            result.errors._form?.[0] || 'Failed to delete detention centers'
+            result.error || 'Failed to delete detention centers'
           }`
         );
       }

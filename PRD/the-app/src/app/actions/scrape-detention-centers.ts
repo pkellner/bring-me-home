@@ -318,8 +318,7 @@ export async function importDetentionCenters(
       }
 
       // Try to fetch and store image, but don't fail if it doesn't work
-      let facilityImageId: string | undefined;
-      let thumbnailImageId: string | undefined;
+      let imageId: string | undefined;
 
       if (facility.imageUrl) {
         console.log(
@@ -329,10 +328,8 @@ export async function importDetentionCenters(
 
         if (imageBuffer) {
           try {
-            const { fullImageId, thumbnailImageId: thumbId } =
-              await processAndStoreImage(imageBuffer);
-            facilityImageId = fullImageId;
-            thumbnailImageId = thumbId;
+            const { imageId: imgId } = await processAndStoreImage(imageBuffer);
+            imageId = imgId;
             console.log(`Successfully stored image for ${facility.name}`);
           } catch (error) {
             console.log(`Failed to process image for ${facility.name}:`, error);
@@ -354,8 +351,7 @@ export async function importDetentionCenters(
           phoneNumber: facility.phoneNumber,
           isActive: true,
           isICEFacility: true,
-          facilityImageId,
-          thumbnailImageId,
+          imageId,
         },
       });
 

@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface ArticleContentProps {
   person: SerializedPerson;
@@ -36,17 +37,18 @@ export default function ArticleContent({ person }: ArticleContentProps) {
       )}
 
       {/* Gallery of additional images */}
-      {person.personImages && person.personImages.filter(img => !img.isPrimary && img.displayPublicly).length > 0 && (
+      {person.images && person.images.filter(img => img.imageType === 'gallery').length > 0 && (
         <div className="mt-8">
           <h3 className="text-2xl font-semibold mb-4">Photos</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {person.personImages
-              .filter(img => !img.isPrimary && img.displayPublicly)
+            {person.images
+              .filter(img => img.imageType === 'gallery')
+              .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
               .map((image, index) => (
                 <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg shadow-md">
                   <Image
-                    src={image.imageUrl}
-                    alt={`Photo ${index + 1}`}
+                    src={generateImageUrl(image.id, image.updatedAt, { width: 600, height: 600, quality: 85 })}
+                    alt={image.caption || `Photo ${index + 1}`}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
                     className="object-cover hover:scale-105 transition-transform duration-300"

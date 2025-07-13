@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { processAndStoreImage } from '../src/lib/image-storage';
+import { ImageStorageService } from '../src/lib/image-storage';
 
 const prisma = new PrismaClient();
+const imageStorageService = new ImageStorageService(prisma);
 
 interface DetentionCenterData {
   name: string;
@@ -128,31 +129,7 @@ async function scrapeAndStoreDetentionCenters() {
         continue;
       }
 
-      let facilityImageId: string | undefined;
-      let thumbnailImageId: string | undefined;
-
-      // Try to fetch and store the image
-      if (centerData.imageUrl) {
-        console.log(`Fetching image for ${centerData.name}...`);
-        const imageBuffer = await fetchImageAsBuffer(centerData.imageUrl);
-
-        if (imageBuffer) {
-          try {
-            const { fullImageId, thumbnailImageId: thumbId } =
-              await processAndStoreImage(imageBuffer);
-            facilityImageId = fullImageId;
-            thumbnailImageId = thumbId;
-            console.log(`Successfully stored images for ${centerData.name}`);
-          } catch (error) {
-            console.error(
-              `Failed to process image for ${centerData.name}:`,
-              error
-            );
-          }
-        }
-      }
-
-      // Create the detention center
+      // Create the detention center first
       const detentionCenter = await prisma.detentionCenter.create({
         data: {
           name: centerData.name,
@@ -165,10 +142,29 @@ async function scrapeAndStoreDetentionCenters() {
           country: 'USA',
           isActive: true,
           isICEFacility: true,
-          facilityImageId,
-          thumbnailImageId,
         },
       });
+
+      // Try to fetch and store the image
+      if (centerData.imageUrl) {
+        console.log(`Fetching image for ${centerData.name}...`);
+        const imageBuffer = await fetchImageAsBuffer(centerData.imageUrl);
+
+        if (imageBuffer) {
+          try {
+            await imageStorageService.setDetentionCenterImage(
+              detentionCenter.id,
+              imageBuffer
+            );
+            console.log(`Successfully stored image for ${centerData.name}`);
+          } catch (error) {
+            console.error(
+              `Failed to process image for ${centerData.name}:`,
+              error
+            );
+          }
+        }
+      }
 
       console.log(`Created detention center: ${centerData.name}`);
     } catch (error) {

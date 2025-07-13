@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
@@ -29,15 +29,26 @@ export default function PersonImageManager({
   onChange,
 }: PersonImageManagerProps) {
   const [primaryFile, setPrimaryFile] = useState<File | null>(null);
-  const [primaryPreview, setPrimaryPreview] = useState<string | null>(
-    primaryImage || null
-  );
-  const [additionalImages, setAdditionalImages] =
-    useState<PersonImage[]>(existingImages);
+  const [primaryPreview, setPrimaryPreview] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<PersonImage[]>([]);
+
+  // Sync state with props changes to avoid infinite re-renders
+  useEffect(() => {
+    setPrimaryPreview(primaryImage || null);
+  }, [primaryImage]);
 
   useEffect(() => {
-    onChange(primaryFile, additionalImages);
-  }, [primaryFile, additionalImages, onChange]);
+    // Only update if the existingImages array actually changed
+    // Use JSON.stringify for deep comparison to avoid unnecessary updates
+    setAdditionalImages(prevImages => {
+      const prevIds = prevImages.filter(img => !img.isNew).map(img => img.id).join(',');
+      const newIds = existingImages.map(img => img.id).join(',');
+      if (prevIds !== newIds) {
+        return existingImages;
+      }
+      return prevImages;
+    });
+  }, [existingImages]);
 
   const handlePrimaryImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,6 +56,7 @@ export default function PersonImageManager({
 
     setPrimaryFile(file);
     setPrimaryPreview(URL.createObjectURL(file));
+    onChange(file, additionalImages);
   };
 
   const handleAdditionalImagesSelect = async (
@@ -77,7 +89,9 @@ export default function PersonImageManager({
       });
     }
 
-    setAdditionalImages([...additionalImages, ...newImages]);
+    const updatedImages = [...additionalImages, ...newImages];
+    setAdditionalImages(updatedImages);
+    onChange(primaryFile, updatedImages);
   };
 
   const removeAdditionalImage = (index: number) => {
@@ -92,6 +106,7 @@ export default function PersonImageManager({
     }
 
     setAdditionalImages(newImages);
+    onChange(primaryFile, newImages);
   };
 
   const updateCaption = (index: number, caption: string) => {
@@ -101,6 +116,7 @@ export default function PersonImageManager({
       caption,
     };
     setAdditionalImages(newImages);
+    onChange(primaryFile, newImages);
   };
 
   const activeAdditionalImages = additionalImages.filter(img => !img.toDelete);

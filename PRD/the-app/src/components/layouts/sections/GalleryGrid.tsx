@@ -3,19 +3,20 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface GalleryGridProps {
   person: SerializedPerson;
 }
 
 export default function GalleryGrid({ person }: GalleryGridProps) {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   
-  // Use personImages, excluding the primary image
-  const allImages = person.personImages?.filter(img => !img.isPrimary && img.displayPublicly) || [];
+  // Use gallery images
+  const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
 
   // Don't show gallery if no additional images
-  if (allImages.length === 0) {
+  if (galleryImages.length === 0) {
     return null;
   }
 
@@ -24,20 +25,20 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
       {/* Horizontal scrollable gallery with fixed height */}
       <div className="overflow-x-auto">
         <div className="flex gap-4 pb-4">
-          {allImages.map((image, index) => (
+          {galleryImages.sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((image, index) => (
             <div
               key={`gallery-image-${index}`}
               className="flex-shrink-0 cursor-pointer group"
-              onClick={() => setSelectedImage(image.imageUrl)}
+              onClick={() => setSelectedImageId(image.id)}
             >
               <div className="relative h-48 hover:opacity-90 transition-opacity">
                 <Image
-                  src={image.imageUrl}
+                  src={generateImageUrl(image.id, image.updatedAt, { width: 300, height: 192, quality: 85 })}
                   alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                   width={300}
                   height={192}
                   className="h-48 w-auto object-contain rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                  style={{ maxWidth: 'none' }}
+                  style={{ width: 'auto', height: 'auto', maxWidth: 'none' }}
                 />
                 {image.caption && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -53,21 +54,22 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
       </div>
 
       {/* Lightbox for selected image */}
-      {selectedImage && (
+      {selectedImageId && (
         <div 
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedImage(null)}
+          onClick={() => setSelectedImageId(null)}
         >
           <div className="relative max-w-7xl max-h-[90vh]">
             <Image
-              src={selectedImage}
+              src={generateImageUrl(selectedImageId, galleryImages.find(img => img.id === selectedImageId)?.updatedAt || new Date(), { width: 1200, height: 800, quality: 90 })}
               alt="Enlarged photo"
               width={1200}
               height={800}
               className="w-auto h-auto max-w-full max-h-[90vh] object-contain"
+              style={{ width: 'auto', height: 'auto' }}
             />
             <button
-              onClick={() => setSelectedImage(null)}
+              onClick={() => setSelectedImageId(null)}
               className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
               aria-label="Close"
             >

@@ -39,9 +39,9 @@ export default function PersonDetentionInfo({
           {selectedDetentionCenter ? (
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-start space-x-4">
-                {selectedDetentionCenter.thumbnailImageId && (
+                {selectedDetentionCenter.imageId && (
                   <Image
-                    src={`/api/images/${selectedDetentionCenter.thumbnailImageId}`}
+                    src={`/api/images/${selectedDetentionCenter.imageId}`}
                     alt={selectedDetentionCenter.name}
                     width={80}
                     height={60}

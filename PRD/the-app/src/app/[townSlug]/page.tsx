@@ -7,6 +7,7 @@ import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 import { stripHtml } from '@/lib/stripHtml';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -43,11 +44,15 @@ async function getTownData(townSlug: string) {
           slug: true,
           personImages: {
             where: {
-              isActive: true,
-              isPrimary: true,
+              imageType: 'primary',
             },
-            select: {
-              imageUrl: true,
+            include: {
+              image: {
+                select: {
+                  id: true,
+                  updatedAt: true,
+                },
+              },
             },
             take: 1,
           },
@@ -152,9 +157,9 @@ export default async function TownPage({ params }: TownPageProps) {
                 className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow overflow-hidden"
               >
                 <div className="h-64 bg-gray-200 flex items-center justify-center">
-                  {person.personImages?.[0]?.imageUrl ? (
+                  {person.personImages?.[0]?.image ? (
                     <img
-                      src={person.personImages[0].imageUrl}
+                      src={generateImageUrl(person.personImages[0].image.id, person.personImages[0].image.updatedAt, { width: 400, height: 300, quality: 85 })}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-cover"
                     />

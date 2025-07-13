@@ -42,22 +42,29 @@ export default async function PersonsPage() {
         },
       },
       personImages: {
-        where: {
-          isActive: true,
+        include: {
+          image: true,
         },
         orderBy: [
-          { isPrimary: 'desc' },
-          { createdAt: 'asc' },
+          { imageType: 'asc' },
+          { sequenceNumber: 'asc' },
         ],
       },
     },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   });
 
-  // Convert Decimal bondAmount to string for client components
+  // Convert Decimal bondAmount to string and transform personImages for client components
   const serializedPersons = persons.map(person => ({
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+    personImages: person.personImages?.map(pi => ({
+      id: pi.image.id,
+      imageUrl: `/api/images/${pi.image.id}`,
+      thumbnailUrl: null,
+      isPrimary: pi.imageType === 'profile',
+      isActive: true,
+    })),
   }));
 
   const canCreate = hasPermission(session, 'persons', 'create');

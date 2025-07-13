@@ -2,7 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { processAndStoreImage } from '../src/lib/image-storage';
+import { ImageStorageService } from '../src/lib/image-storage';
 import { createTownSlug, createPersonSlug } from '../src/lib/slug-utils';
 import { generateSecurePassword } from '../src/lib/password-generator';
 
@@ -14,10 +14,10 @@ const prisma = new PrismaClient();
 const passwordInfo: { user: string; password: string; source: string }[] = [];
 
 // Store placeholder image IDs
-const placeholderImageIds: Map<
-  number,
-  { fullImageId: string; thumbnailImageId: string }
-> = new Map();
+const placeholderImageIds: Map<number, string> = new Map();
+
+// Image storage service instance
+let imageStorageService: ImageStorageService;
 
 // Helper function to generate random date within range
 function randomDate(start: Date, end: Date): Date {
@@ -34,6 +34,8 @@ function randomElement<T>(array: T[]): T {
 // Helper function to store placeholder images in database
 async function storePlaceholderImages() {
   console.log('Storing placeholder images in database...');
+  
+  imageStorageService = new ImageStorageService(prisma);
 
   for (let i = 1; i <= 10; i++) {
     const imagePath = join(
@@ -44,10 +46,9 @@ async function storePlaceholderImages() {
     );
     const imageBuffer = await readFile(imagePath);
 
-    const { fullImageId, thumbnailImageId } =
-      await processAndStoreImage(imageBuffer);
+    const storedImage = await imageStorageService.storeImage(imageBuffer);
 
-    placeholderImageIds.set(i, { fullImageId, thumbnailImageId });
+    placeholderImageIds.set(i, storedImage.id);
     console.log(`Stored placeholder image ${i}`);
   }
 }
@@ -424,19 +425,10 @@ const generatePersons = () => {
           'Shopping Center',
         ])}, ${town.name}`,
         townName,
-        primaryPicture: `/api/images/${placeholderImageIds.get(
-          ((persons.length + 1) % 10) + 1
-        )?.fullImageId}`,
-        secondaryPic1:
-          Math.random() > 0.5
-            ? `/api/images/${placeholderImageIds.get(((persons.length + 2) % 10) + 1)
-                ?.fullImageId}`
-            : null,
-        secondaryPic2:
-          Math.random() > 0.7
-            ? `/api/images/${placeholderImageIds.get(((persons.length + 3) % 10) + 1)
-                ?.fullImageId}`
-            : null,
+        primaryPicture: null, // Will be set after image creation
+        secondaryPic1: null,
+        secondaryPic2: null,
+        secondaryPic3: null,
         status: isDetained ? 'detained' : 'missing', // Set status based on detention state
         // Detention information
         detentionCenterName,
@@ -523,9 +515,10 @@ const generatePersons = () => {
     lastSeenDate: new Date(2024, 0, 15), // January 15, 2024
     lastSeenLocation: 'Downtown Borrego Springs',
     townName: 'Borrego Springs',
-    primaryPicture: `/api/images/${placeholderImageIds.get(1)?.fullImageId}`,
-    secondaryPic1: `/api/images/${placeholderImageIds.get(2)?.fullImageId}`,
-    secondaryPic2: `/api/images/${placeholderImageIds.get(3)?.fullImageId}`,
+    primaryPicture: null, // Will be set after image creation
+    secondaryPic1: null,
+    secondaryPic2: null,
+    secondaryPic3: null,
     status: 'detained',
     // Detention information
     detentionCenterName: 'Otay Mesa Detention Center',
@@ -1099,7 +1092,7 @@ async function cleanDatabase() {
     // Delete in correct order to respect foreign key constraints
     await prisma.auditLog.deleteMany();
     await prisma.attachment.deleteMany();
-    await prisma.personImage.deleteMany();
+    // Images are now deleted via cascade from persons
     await prisma.comment.deleteMany();
     await prisma.supporter.deleteMany();
     await prisma.story.deleteMany();
@@ -1488,16 +1481,14 @@ async function main() {
     );
     const imageBuffer = await readFile(imagePath);
 
-    const { fullImageId, thumbnailImageId } =
-      await processAndStoreImage(imageBuffer);
-
     const created = await prisma.detentionCenter.create({
       data: {
         ...center,
-        facilityImageId: fullImageId,
-        thumbnailImageId: thumbnailImageId,
       },
     });
+    
+    // Create detention center image association
+    await imageStorageService.setDetentionCenterImage(created.id, imageBuffer);
     createdIds.detentionCenters.set(center.name, created.id);
   }
 
@@ -1558,6 +1549,85 @@ async function main() {
     createdIds.persons.set(`${person.firstName}_${person.lastName}`, created.id);
   }
   console.log(`Created ${persons.length} persons.`);
+  
+  // Add images to persons
+  console.log('Adding images to persons...');
+  for (let i = 0; i < persons.length; i++) {
+    const person = persons[i];
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    
+    // Add primary image
+    const primaryImageNum = ((i + 1) % 10) + 1;
+    const primaryImageId = placeholderImageIds.get(primaryImageNum)!;
+    if (primaryImageId) {
+      const primaryImagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        `placeholder-person-${primaryImageNum}.jpg`
+      );
+      const primaryImageBuffer = await readFile(primaryImagePath);
+      await imageStorageService.addPersonImage(personId, primaryImageBuffer, 'primary', {
+        sequenceNumber: 0,
+      });
+    }
+    
+    // Add secondary images
+    if (Math.random() > 0.5) {
+      const secondaryImageNum = ((i + 2) % 10) + 1;
+      const secondaryImagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        `placeholder-person-${secondaryImageNum}.jpg`
+      );
+      const secondaryImageBuffer = await readFile(secondaryImagePath);
+      await imageStorageService.addPersonImage(personId, secondaryImageBuffer, 'gallery', {
+        sequenceNumber: 1,
+      });
+    }
+    
+    if (Math.random() > 0.7) {
+      const thirdImageNum = ((i + 3) % 10) + 1;
+      const thirdImagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        `placeholder-person-${thirdImageNum}.jpg`
+      );
+      const thirdImageBuffer = await readFile(thirdImagePath);
+      await imageStorageService.addPersonImage(personId, thirdImageBuffer, 'gallery', {
+        sequenceNumber: 2,
+      });
+    }
+  }
+  console.log('Added images to persons.');
+  
+  // Update primaryPicture URLs for all persons
+  console.log('Updating primary picture URLs...');
+  for (const person of persons) {
+    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
+    
+    // Get the primary image for this person
+    const primaryImage = await prisma.personImage.findFirst({
+      where: {
+        personId,
+        imageType: 'primary',
+      },
+      orderBy: {
+        sequenceNumber: 'asc',
+      },
+    });
+    
+    if (primaryImage) {
+      await prisma.person.update({
+        where: { id: personId },
+        data: {
+          primaryPicture: `/api/images/${primaryImage.imageId}`,
+        },
+      });
+    }
+  }
 
   // Create stories for all persons (especially detailed for Borrego Springs)
   console.log('Creating multi-language stories...');
@@ -1659,7 +1729,7 @@ async function main() {
   });
 
   // Create PersonImages for Borrego Springs persons
-  console.log('Creating person images for Borrego Springs...');
+  console.log('Creating additional person images for Borrego Springs...');
   const borregoPersons = persons.filter(p => p.townName === 'Borrego Springs');
 
   for (let idx = 0; idx < borregoPersons.length; idx++) {
@@ -1672,32 +1742,30 @@ async function main() {
     for (let i = 0; i < imageCount; i++) {
       // Use different placeholder images for variety
       const imageNum = ((idx + i) % 10) + 1;
-      const imageIds = placeholderImageIds.get(imageNum);
-
-      if (imageIds) {
-        await prisma.personImage.create({
-          data: {
-            personId,
-            imageUrl: `/api/images/${imageIds.fullImageId}`,
-            thumbnailUrl: `/api/images/${imageIds.thumbnailImageId}`,
-            caption: randomElement([
-              'Family gathering',
-              'At community event',
-              'With children',
-              'Working in the fields',
-              'Holiday celebration',
-              'Church activities',
-              'Coaching soccer',
-              'Volunteer work',
-              'Birthday party',
-              'School event',
-            ]),
-            displayPublicly: true, // All images are public
-            uploadedById: adminUser.id,
-            isActive: true,
-          },
-        });
-      }
+      const imagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        `placeholder-person-${imageNum}.jpg`
+      );
+      const imageBuffer = await readFile(imagePath);
+      
+      await imageStorageService.addPersonImage(personId, imageBuffer, 'gallery', {
+        sequenceNumber: i + 3, // Start after the initial images
+        caption: randomElement([
+          'Family gathering',
+          'At community event',
+          'With children',
+          'Working in the fields',
+          'Holiday celebration',
+          'Church activities',
+          'Coaching soccer',
+          'Volunteer work',
+          'Birthday party',
+          'School event',
+        ]),
+        uploadedById: adminUser.id,
+      });
     }
   }
   console.log(

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig } from '@/lib/config';
+import { generateImageUrl } from '@/lib/image-url';
 
 async function getPublicData() {
   const [towns, recentPersons, totalDetained] = await Promise.all([
@@ -47,11 +48,15 @@ async function getPublicData() {
         slug: true,
         personImages: {
           where: {
-            isActive: true,
-            isPrimary: true,
+            imageType: 'primary',
           },
-          select: {
-            imageUrl: true,
+          include: {
+            image: {
+              select: {
+                id: true,
+                updatedAt: true,
+              },
+            },
           },
           take: 1,
         },
@@ -167,9 +172,9 @@ export default async function HomePage() {
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
               >
                 <div className="h-48 bg-gray-200 flex items-center justify-center">
-                  {person.personImages?.[0]?.imageUrl ? (
+                  {person.personImages?.[0]?.image ? (
                     <img
-                      src={person.personImages[0].imageUrl}
+                      src={generateImageUrl(person.personImages[0].image.id, person.personImages[0].image.updatedAt, { width: 300, height: 300, quality: 80 })}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-contain"
                     />

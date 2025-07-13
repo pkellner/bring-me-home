@@ -1,18 +1,19 @@
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface HeroImageProps {
   person: SerializedPerson;
 }
 
 export default function HeroImage({ person }: HeroImageProps) {
-  const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
+  const profileImage = person.images?.find(img => img.imageType === 'profile');
   
   return (
     <div className="hero-image relative h-64 sm:h-80 md:h-96 w-full overflow-hidden rounded-lg">
-      {primaryImage ? (
+      {profileImage ? (
         <Image
-          src={primaryImage.imageUrl}
+          src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 1200, height: 600, quality: 90 })}
           alt={`${person.firstName} ${person.lastName}`}
           fill
           sizes="100vw"

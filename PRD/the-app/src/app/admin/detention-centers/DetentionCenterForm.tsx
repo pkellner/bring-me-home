@@ -216,7 +216,7 @@ export default function DetentionCenterForm({
                 {/* Show current image status */}
                 {detentionCenter && (
                   <div className="mb-3 text-sm text-gray-600">
-                    {detentionCenter.facilityImageId ? (
+                    {detentionCenter.imageId ? (
                       <p>✓ Image uploaded</p>
                     ) : (
                       <p>📷 No image available</p>
@@ -225,7 +225,7 @@ export default function DetentionCenterForm({
                 )}
 
                 <div className="flex items-center space-x-4">
-                  {(imagePreview || detentionCenter?.facilityImageId) && (
+                  {(imagePreview || detentionCenter?.imageId) && (
                     <div className="relative w-32 h-24">
                       {imagePreview ? (
                         <Image
@@ -234,9 +234,9 @@ export default function DetentionCenterForm({
                           fill
                           className="rounded object-cover"
                         />
-                      ) : detentionCenter?.facilityImageId ? (
+                      ) : detentionCenter?.imageId ? (
                         <Image
-                          src={`/api/images/${detentionCenter.facilityImageId}`}
+                          src={`/api/images/${detentionCenter.imageId}`}
                           alt="Facility preview"
                           fill
                           className="rounded object-cover"

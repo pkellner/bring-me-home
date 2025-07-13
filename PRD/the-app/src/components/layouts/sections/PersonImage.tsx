@@ -1,21 +1,21 @@
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
+import { generateImageUrl } from '@/lib/image-url';
 
 interface PersonImageProps {
   person: SerializedPerson;
 }
 
 export default function PersonImage({ person }: PersonImageProps) {
-  // Only use personImages for primary image
-  const primaryImage = person.personImages?.find(img => img.isPrimary && img.displayPublicly);
-  const imageUrl = primaryImage?.imageUrl;
+  // Use profile image
+  const profileImage = person.images?.find(img => img.imageType === 'profile');
   
   return (
     <div className="image-section flex justify-center">
-      {imageUrl ? (
+      {profileImage ? (
         <div className="relative rounded-xl shadow-lg overflow-hidden">
           <Image
-            src={imageUrl}
+            src={generateImageUrl(profileImage.id, profileImage.updatedAt, { width: 600, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             width={600}
             height={600}

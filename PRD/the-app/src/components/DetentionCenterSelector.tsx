@@ -12,10 +12,7 @@ interface DetentionCenter {
   city: string;
   state: string;
   facilityType: string;
-  thumbnailImageId: string | null;
-  _count: {
-    detainees: number;
-  };
+  facilityImageUrl: string | null;
 }
 
 interface DetentionCenterSelectorProps {
@@ -97,24 +94,20 @@ export default function DetentionCenterSelector({
   const loadDetentionCenters = useCallback(async () => {
     setLoading(true);
     try {
-      const centers = await searchDetentionCenters({
-        query: searchQuery,
-        state: selectedState || undefined,
-        isActive: true,
-      });
+      const centers = await searchDetentionCenters(searchQuery);
       setDetentionCenters(centers);
     } catch (error) {
       console.error('Failed to load detention centers:', error);
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, selectedState]);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (isOpen) {
       loadDetentionCenters();
     }
-  }, [isOpen, searchQuery, selectedState, loadDetentionCenters]);
+  }, [isOpen, loadDetentionCenters]);
 
   function handleSelect() {
     onSelect(selectedCenterId);
@@ -262,9 +255,9 @@ export default function DetentionCenterSelector({
                                   >
                                     <div className="flex items-start space-x-3">
                                       <div className="flex-shrink-0">
-                                        {center.thumbnailImageId ? (
+                                        {center.facilityImageUrl ? (
                                           <Image
-                                            src={`/api/images/${center.thumbnailImageId}`}
+                                            src={center.facilityImageUrl}
                                             alt={center.name}
                                             width={60}
                                             height={45}
@@ -303,11 +296,7 @@ export default function DetentionCenterSelector({
                                           {center.city}, {center.state}
                                         </p>
                                         <p className="ml-7 text-xs text-gray-500">
-                                          {center.facilityType} •{' '}
-                                          {center._count.detainees} detainee
-                                          {center._count.detainees !== 1
-                                            ? 's'
-                                            : ''}
+                                          {center.facilityType}
                                         </p>
                                       </div>
                                     </div>
