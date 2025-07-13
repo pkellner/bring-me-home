@@ -160,6 +160,20 @@ export default function Footer({
             </p>
             <div className="mt-4 space-x-4">
               <Link
+                href="/code-of-conduct"
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+              >
+                Code of Conduct
+              </Link>
+              <span className="text-gray-600">|</span>
+              <Link
+                href="/privacy-policy"
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-gray-600">|</span>
+              <Link
                 href="/configs"
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
               >
