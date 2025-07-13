@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-// import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
-// import PersonImageManager from '@/components/admin/PersonImageManager';
+import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
+import PersonImageManager from '@/components/admin/PersonImageManager';
 import {
   DetentionCenter,
   Person,
@@ -46,27 +46,27 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
   >(person?.detentionCenterId || null);
   const [selectedDetentionCenter, setSelectedDetentionCenter] =
     useState<DetentionCenter | null>(person?.detentionCenter || null);
-  // const [stories, setStories] = useState<
-  //   { language: string; storyType: string; content: string }[]
-  // >(
-  //   person?.stories?.map(story => ({
-  //     language: story.language,
-  //     storyType: story.storyType,
-  //     content: story.content
-  //   })) || []
-  // );
+  const [stories, setStories] = useState<
+    { language: string; storyType: string; content: string }[]
+  >(
+    person?.stories?.map(story => ({
+      language: story.language,
+      storyType: story.storyType,
+      content: story.content
+    })) || []
+  );
   // Gallery images only - primary image editing disabled
-  // const [additionalImages, setAdditionalImages] = useState<
-  //   Array<{
-  //     id?: string;
-  //     imageUrl: string;
-  //     thumbnailUrl?: string | null;
-  //     caption?: string | null;
-  //     file?: File;
-  //     isNew?: boolean;
-  //     toDelete?: boolean;
-  //   }>
-  // >([]);
+  const [additionalImages, setAdditionalImages] = useState<
+    Array<{
+      id?: string;
+      imageUrl: string;
+      thumbnailUrl?: string | null;
+      caption?: string | null;
+      file?: File;
+      isNew?: boolean;
+      toDelete?: boolean;
+    }>
+  >([]);
 
 
   async function handleSubmit(formData: FormData) {
@@ -76,8 +76,8 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
 
 
     // Add stories as JSON to form data
-    // console.log('Saving stories:', stories);
-    // formData.set('stories', JSON.stringify(stories));
+    console.log('Saving stories:', stories);
+    formData.set('stories', JSON.stringify(stories));
     // Add detention center ID to form data
     if (selectedDetentionCenterId) {
       formData.append('detentionCenterId', selectedDetentionCenterId);
@@ -86,14 +86,14 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     }
 
     // Add additional images data (gallery only)
-    // formData.set('additionalImages', JSON.stringify(additionalImages));
+    formData.set('additionalImages', JSON.stringify(additionalImages));
 
     // Add actual image files for new images
-    // additionalImages.forEach((image, index) => {
-    //   if (image.isNew && image.file && !image.toDelete) {
-    //     formData.append(`image_file_${index}`, image.file);
-    //   }
-    // });
+    additionalImages.forEach((image, index) => {
+      if (image.isNew && image.file && !image.toDelete) {
+        formData.append(`image_file_${index}`, image.file);
+      }
+    });
 
     try {
       const result = person
@@ -128,9 +128,9 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
           if (selectedDetentionCenter) {
             details.push(`Detention Center: ${selectedDetentionCenter.name}`);
           }
-          // if (stories.length > 0) {
-          //   details.push(`Stories: ${stories.length} language(s)`);
-          // }
+          if (stories.length > 0) {
+            details.push(`Stories: ${stories.length} language(s)`);
+          }
         }
 
         // Show success message
@@ -197,10 +197,10 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     }
   }
 
-  // const handleImageChange = useCallback((_primaryFile: File | null, images: typeof additionalImages) => {
-  //   // Primary image editing disabled - only update gallery images
-  //   setAdditionalImages(images);
-  // }, []);
+  const handleImageChange = useCallback((_primaryFile: File | null, images: typeof additionalImages) => {
+    // Primary image editing disabled - only update gallery images
+    setAdditionalImages(images);
+  }, []);
 
   return (
     <>
@@ -224,7 +224,6 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
           onOpenModal={() => setDetentionModalOpen(true)}
         />
 
-        {/* Temporarily disabled to debug stack overflow
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Stories
@@ -238,9 +237,7 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
             between available languages on the profile page.
           </p>
         </div>
-        */}
 
-        {/* Temporarily disabled to debug stack overflow
         <div className="border-t pt-6">
           <PersonImageManager
             primaryImage={useMemo(() => {
@@ -259,7 +256,6 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
             disablePrimaryImageEdit={true}
           />
         </div>
-        */}
 
         <VisibilitySettings person={person} />
 
