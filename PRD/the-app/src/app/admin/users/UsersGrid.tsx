@@ -154,35 +154,11 @@ export default function UsersGrid({
     const user = resetPasswordModal.user;
     if (!user) return;
 
-    console.log('[CLIENT] Password reset confirm:', {
-      username: user.username,
-      passwordLength: newPassword.length,
-      passwordValue: newPassword, // Log full value for debugging
-      passwordType: typeof newPassword,
-      environment: process.env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Log character codes to debug encoding issues
-    const charCodes = [];
-    for (let i = 0; i < newPassword.length; i++) {
-      charCodes.push(newPassword.charCodeAt(i));
-    }
-    console.log('[CLIENT] Password char codes:', charCodes);
-
     setError('');
 
     startTransition(async () => {
       try {
-        // Log right before calling server action
-        console.log('[CLIENT] Calling resetUserPassword with:', {
-          userId: user.id,
-          passwordLength: newPassword.length,
-        });
-        
         const result = await resetUserPassword(user.id, newPassword);
-        
-        console.log('[CLIENT] Server action result:', result);
 
         if (result.success) {
           showSuccessAlert(`Password reset successfully for user "${user.username}"`, 3000);
@@ -191,7 +167,7 @@ export default function UsersGrid({
         } else if (result.errors) {
           // Handle structured errors
           const errorMessages: string[] = [];
-          Object.entries(result.errors).forEach(([field, messages]) => {
+          Object.entries(result.errors).forEach(([, messages]) => {
             errorMessages.push(...messages);
           });
           showErrorAlert(errorMessages.join('; '), 5000);

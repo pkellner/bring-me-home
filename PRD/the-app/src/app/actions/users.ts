@@ -362,18 +362,7 @@ export async function deleteUser(userId: string) {
 export async function resetUserPassword(userId: string, newPassword: string) {
   const session = await getServerSession(authOptions);
 
-  // Production debug logging
-  console.log('[PROD DEBUG] resetUserPassword called:', {
-    userId,
-    passwordReceived: !!newPassword,
-    passwordType: typeof newPassword,
-    passwordLength: newPassword?.length,
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-
   if (!hasPermission(session, 'users', 'update')) {
-    console.log('[PROD DEBUG] Permission denied');
     return { 
       success: false,
       errors: { _form: ['You do not have permission to reset passwords'] }
@@ -381,7 +370,6 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   }
 
   if (!newPassword || newPassword.trim().length === 0) {
-    console.log('[PROD DEBUG] Empty password');
     return {
       success: false,
       errors: { password: ['Password cannot be empty'] }
@@ -389,7 +377,6 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   }
 
   if (newPassword.length < 8) {
-    console.log('[PROD DEBUG] Password too short:', newPassword.length);
     return { 
       success: false,
       errors: { password: ['Password must be at least 8 characters'] }
@@ -404,39 +391,22 @@ export async function resetUserPassword(userId: string, newPassword: string) {
     });
 
     if (!user) {
-      console.log('[PROD DEBUG] User not found:', userId);
       return {
         success: false,
         errors: { _form: ['User not found'] }
       };
     }
 
-    console.log('[PROD DEBUG] Before hashing:', {
-      username: user.username,
-      passwordLength: newPassword.length,
-      passwordSample: `${newPassword.substring(0, 3)}...${newPassword.substring(newPassword.length - 3)}`,
-    });
-
     // Hash the password with the same settings as user creation
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    
-    // Verify hash immediately in production
-    const verifyImmediately = await bcrypt.compare(newPassword, hashedPassword);
-    console.log('[PROD DEBUG] Immediate hash verification:', verifyImmediately);
 
     // Update user password
-    const updateResult = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: { 
         password: hashedPassword,
         updatedAt: new Date() // Explicitly update timestamp
       },
-    });
-    
-    console.log('[PROD DEBUG] Update successful:', {
-      userId: updateResult.id,
-      username: updateResult.username,
-      updatedAt: updateResult.updatedAt,
     });
 
     // Create audit log

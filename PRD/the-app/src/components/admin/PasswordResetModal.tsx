@@ -46,14 +46,6 @@ export default function PasswordResetModal({
     e.preventDefault();
     
     if (validateForm()) {
-      // Production debug logging
-      console.log('[MODAL] Password submit:', {
-        passwordLength: password.length,
-        passwordValue: password, // Log full value for debugging
-        confirmMatch: password === confirmPassword,
-        timestamp: new Date().toISOString(),
-      });
-      
       onConfirm(password);
       handleClose();
     }

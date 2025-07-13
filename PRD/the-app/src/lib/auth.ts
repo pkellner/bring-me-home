@@ -14,16 +14,8 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
-          console.log('[PROD AUTH] Missing credentials');
           return null;
         }
-
-        console.log('[PROD AUTH] Login attempt:', {
-          username: credentials.username,
-          passwordLength: credentials.password.length,
-          environment: process.env.NODE_ENV,
-          timestamp: new Date().toISOString(),
-        });
 
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
@@ -47,32 +39,19 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          console.log('[PROD AUTH] User not found:', credentials.username);
           return null;
         }
         
         if (!user.isActive) {
-          console.log('[PROD AUTH] User inactive:', credentials.username);
           throw new Error('Account is inactive (contact customer service)');
         }
-
-        console.log('[PROD AUTH] Comparing passwords:', {
-          username: user.username,
-          providedLength: credentials.password.length,
-          storedHashLength: user.password.length,
-          lastUpdated: user.updatedAt,
-        });
 
         const passwordMatch = await bcrypt.compare(
           credentials.password,
           user.password
         );
         
-        console.log('[PROD AUTH] Password match result:', passwordMatch);
-        
         if (!passwordMatch) {
-          // Extra debug for failed matches
-          console.log('[PROD AUTH] Password comparison failed for user:', user.username);
           return null;
         }
 
