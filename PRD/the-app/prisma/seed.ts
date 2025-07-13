@@ -1550,54 +1550,48 @@ async function main() {
   }
   console.log(`Created ${persons.length} persons.`);
   
-  // Add images to persons
+  // Add images to persons - deterministic approach
   console.log('Adding images to persons...');
   for (let i = 0; i < persons.length; i++) {
     const person = persons[i];
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
     
-    // Add primary image
+    // Skip images for exactly 3 persons (indices 3, 7, 11)
+    if (i === 3 || i === 7 || i === 11) {
+      console.log(`Skipping images for ${person.firstName} ${person.lastName}`);
+      continue;
+    }
+    
+    // Add primary image with "P" label
     const primaryImageNum = ((i + 1) % 10) + 1;
-    const primaryImageId = placeholderImageIds.get(primaryImageNum)!;
-    if (primaryImageId) {
-      const primaryImagePath = join(
-        process.cwd(),
-        'public',
-        'images',
-        `placeholder-person-${primaryImageNum}.jpg`
-      );
-      const primaryImageBuffer = await readFile(primaryImagePath);
-      await imageStorageService.addPersonImage(personId, primaryImageBuffer, 'primary', {
-        sequenceNumber: 0,
-      });
-    }
+    const primaryImagePath = join(
+      process.cwd(),
+      'public',
+      'images',
+      `placeholder-person-${primaryImageNum}.jpg`
+    );
+    const primaryImageBuffer = await readFile(primaryImagePath);
+    await imageStorageService.addPersonImage(personId, primaryImageBuffer, 'primary', {
+      sequenceNumber: 0,
+      caption: 'P', // Primary image label
+    });
     
-    // Add secondary images
-    if (Math.random() > 0.5) {
-      const secondaryImageNum = ((i + 2) % 10) + 1;
-      const secondaryImagePath = join(
-        process.cwd(),
-        'public',
-        'images',
-        `placeholder-person-${secondaryImageNum}.jpg`
-      );
-      const secondaryImageBuffer = await readFile(secondaryImagePath);
-      await imageStorageService.addPersonImage(personId, secondaryImageBuffer, 'gallery', {
-        sequenceNumber: 1,
-      });
-    }
+    // Deterministic gallery image count based on person index
+    // This ensures consistent results across seeds
+    const galleryImageCount = i % 6; // 0-5 images
     
-    if (Math.random() > 0.7) {
-      const thirdImageNum = ((i + 3) % 10) + 1;
-      const thirdImagePath = join(
+    for (let g = 0; g < galleryImageCount; g++) {
+      const galleryImageNum = ((i + g + 2) % 10) + 1;
+      const galleryImagePath = join(
         process.cwd(),
         'public',
         'images',
-        `placeholder-person-${thirdImageNum}.jpg`
+        `placeholder-person-${galleryImageNum}.jpg`
       );
-      const thirdImageBuffer = await readFile(thirdImagePath);
-      await imageStorageService.addPersonImage(personId, thirdImageBuffer, 'gallery', {
-        sequenceNumber: 2,
+      const galleryImageBuffer = await readFile(galleryImagePath);
+      await imageStorageService.addPersonImage(personId, galleryImageBuffer, 'gallery', {
+        sequenceNumber: g + 1,
+        caption: `G${g + 1}`, // Gallery image labels: G1, G2, etc.
       });
     }
   }
@@ -1728,49 +1722,8 @@ async function main() {
     },
   });
 
-  // Create PersonImages for Borrego Springs persons
-  console.log('Creating additional person images for Borrego Springs...');
-  const borregoPersons = persons.filter(p => p.townName === 'Borrego Springs');
-
-  for (let idx = 0; idx < borregoPersons.length; idx++) {
-    const person = borregoPersons[idx];
-    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
-    
-    // Create 3-5 additional images per person
-    const imageCount = Math.floor(Math.random() * 3) + 3;
-
-    for (let i = 0; i < imageCount; i++) {
-      // Use different placeholder images for variety
-      const imageNum = ((idx + i) % 10) + 1;
-      const imagePath = join(
-        process.cwd(),
-        'public',
-        'images',
-        `placeholder-person-${imageNum}.jpg`
-      );
-      const imageBuffer = await readFile(imagePath);
-      
-      await imageStorageService.addPersonImage(personId, imageBuffer, 'gallery', {
-        sequenceNumber: i + 3, // Start after the initial images
-        caption: randomElement([
-          'Family gathering',
-          'At community event',
-          'With children',
-          'Working in the fields',
-          'Holiday celebration',
-          'Church activities',
-          'Coaching soccer',
-          'Volunteer work',
-          'Birthday party',
-          'School event',
-        ]),
-        uploadedById: adminUser.id,
-      });
-    }
-  }
-  console.log(
-    `Created ${borregoPersons.length * 4} person images for Borrego Springs.`
-  );
+  // Skip additional Borrego Springs images since we now handle all images deterministically above
+  console.log('Skipping additional Borrego Springs images - all images handled deterministically.');
 
   // Create demo users
   console.log('Creating demo users...');
