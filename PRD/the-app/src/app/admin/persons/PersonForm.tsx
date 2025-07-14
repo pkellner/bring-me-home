@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
 import {
@@ -24,6 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TabsProvider, useTabs } from '@/app/admin/persons/[id]/edit/TabsProvider';
 import { PersonImageTab } from '@/app/admin/persons/[id]/edit/PersonImageTab';
 import { GalleryImagesTab } from '@/app/admin/persons/[id]/edit/GalleryImagesTab';
+import { UnsavedChangesIndicator } from '@/app/admin/persons/[id]/edit/UnsavedChangesIndicator';
+import { TabSwitchDialog } from '@/app/admin/persons/[id]/edit/TabSwitchDialog';
 
 // Serialized version of Person for client components
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
@@ -46,6 +48,7 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTabSwitchDialog, setShowTabSwitchDialog] = useState(false);
   const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<
     string | null
   >(person?.detentionCenterId || null);
@@ -60,187 +63,105 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
       content: story.content
     })) || []
   );
-  // Image state removed - display only
+  
   const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<Array<{
     id: string;
     caption: string;
+    originalCaption?: string;
     toDelete?: boolean;
     isNew?: boolean;
     file?: File;
   }>>([]);
 
+  const { 
+    activeTab, 
+    setActiveTab, 
+    triggerImageUpdate, 
+    hasChanges, 
+    setHasChanges, 
+    pendingTabSwitch,
+    setPendingTabSwitch,
+    resetTabChanges
+  } = useTabs();
 
-  async function handleSubmit(formData: FormData) {
+  // Store original values for comparison
+  const originalValues = useRef({
+    stories: JSON.stringify(person?.stories || []),
+    detentionCenterId: person?.detentionCenterId || null,
+    formFields: {} as Record<string, string>
+  });
 
-    setIsSubmitting(true);
-    setErrors({});
+  // Form ref to track changes
+  const formRef = useRef<HTMLFormElement>(null);
 
-    try {
-      // Sequential update of all three tabs
-      let finalResult: { success?: boolean; errors?: Record<string, string[]>; person?: { id: string; slug: string; townSlug: string } } = { success: true };
-
-      // 1. Update details tab (but not images)
-      const detailsFormData = new FormData();
-      
-      // Copy all form fields except image-related ones
-      for (const [key, value] of formData.entries()) {
-        if (!key.startsWith('primaryPicture') && !key.startsWith('galleryImage')) {
-          detailsFormData.append(key, value);
-        }
-      }
-      
-      // Add stories and detention center
-      console.log('Saving stories:', stories);
-      detailsFormData.set('stories', JSON.stringify(stories));
-      if (selectedDetentionCenterId) {
-        detailsFormData.append('detentionCenterId', selectedDetentionCenterId);
-      } else {
-        detailsFormData.append('detentionCenterId', '');
-      }
-
-      const detailsResult = person
-        ? await updatePerson(person.id, detailsFormData)
-        : await createPerson(detailsFormData);
-
-      if (detailsResult.errors) {
-        setErrors(detailsResult.errors);
-        finalResult = detailsResult;
-      } else {
-        // If creating new person, get the ID for subsequent updates
-        const personId = person?.id || (detailsResult as { person?: { id: string } }).person?.id;
+  // Initialize original form values after mount
+  useEffect(() => {
+    // Use a small timeout to ensure form is fully rendered
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        const formData = new FormData(formRef.current);
+        const fields: Record<string, string> = {};
         
-        if (personId) {
-          // 2. Update person image
-          if (primaryImageFile) {
-            const imageFormData = new FormData();
-            imageFormData.set('primaryPicture', primaryImageFile);
-            
-            const imageResult = await updatePerson(personId, imageFormData);
-            if (imageResult.errors) {
-              setErrors(prev => ({ ...prev, ...imageResult.errors }));
-              showErrorAlert('Failed to update person image', 3000);
-            } else {
-              showSuccessAlert('Person image updated successfully', 2000);
-              triggerImageUpdate(); // Trigger image reload for other tabs
-            }
-          }
-
-          // 3. Update gallery images
-          if (galleryImages.length > 0) {
-            const galleryFormData = new FormData();
-            const galleryData = galleryImages.map((img, index) => {
-              if (img.file) {
-                galleryFormData.append(`galleryImage_${index}`, img.file);
-              }
-              return {
-                id: img.id,
-                caption: img.caption,
-                toDelete: img.toDelete,
-                isNew: img.isNew
-              };
-            });
-            galleryFormData.set('additionalImages', JSON.stringify(galleryData));
-            
-            const galleryResult = await updatePerson(personId, galleryFormData);
-            if (galleryResult.errors) {
-              setErrors(prev => ({ ...prev, ...galleryResult.errors }));
-              showErrorAlert('Failed to update gallery images', 3000);
-            } else {
-              showSuccessAlert('Gallery images updated successfully', 2000);
-              triggerImageUpdate(); // Trigger image reload for other tabs
-            }
+        for (const [key, value] of formData.entries()) {
+          if (key !== 'stories' && key !== 'detentionCenterId') {
+            fields[key] = String(value);
           }
         }
         
-        finalResult = detailsResult;
+        originalValues.current.formFields = fields;
       }
+    }, 100);
 
-      const result = finalResult;
+    return () => clearTimeout(timer);
+  }, []);
 
-      if (result.errors) {
-        setIsSubmitting(false);
-        setErrors(result.errors);
+  const primaryImage = person?.personImages?.find(pi => pi.imageType === 'primary');
+  const galleryImagesList = person?.personImages?.filter(pi => pi.imageType === 'gallery') || [];
 
-        // Show error alert with details
-        const errorDetails: string[] = [];
-        Object.entries(result.errors).forEach(([field, messages]) => {
-          if (field === '_form' && Array.isArray(messages)) {
-            errorDetails.push(...messages);
-          } else if (Array.isArray(messages)) {
-            errorDetails.push(`${field}: ${messages.join(', ')}`);
-          }
-        });
-
-        const message = person
-          ? `Failed to update ${person.firstName} ${person.lastName}: ${errorDetails.join(', ')}`
-          : `Failed to create person: ${errorDetails.join(', ')}`;
-        
-        showErrorAlert(message, 5000); // Show error for 5 seconds
-      } else if (result.success) {
-        // Show success alert with details
-        const details: string[] = [];
-        if (person) {
-          details.push(`Name: ${formData.get('firstName')} ${formData.get('lastName')}`);
-          details.push(`Town: ${towns.find(t => t.id === formData.get('townId'))?.name || 'Unknown'}`);
-          if (selectedDetentionCenter) {
-            details.push(`Detention Center: ${selectedDetentionCenter.name}`);
-          }
-          if (stories.length > 0) {
-            details.push(`Stories: ${stories.length} language(s)`);
-          }
+  // Check if form fields have changed
+  const checkFormFieldsChanged = useCallback(() => {
+    if (!formRef.current) return false;
+    
+    const formData = new FormData(formRef.current);
+    for (const [key, value] of formData.entries()) {
+      if (key !== 'stories' && key !== 'detentionCenterId') {
+        const originalValue = originalValues.current.formFields[key];
+        if (originalValue !== undefined && String(originalValue) !== String(value)) {
+          return true;
         }
-
-        // Show success message
-        const firstName = formData.get('firstName') as string;
-        const lastName = formData.get('lastName') as string;
-        const message = person 
-          ? `${person.firstName} ${person.lastName} has been updated successfully!`
-          : `${firstName} ${lastName} has been created successfully!`;
-        
-        showSuccessAlert(message, 4000); // Show success for 4 seconds
-        
-        // Navigate after a short delay to let user see the message
-        setTimeout(() => {
-          if (person) {
-            router.refresh();
-            setIsSubmitting(false);
-          } else {
-            // Check if this is a create result with person data
-            type CreateResult = {
-              success: boolean;
-              person?: {
-                id: string;
-                slug: string;
-                townSlug: string;
-              };
-            };
-            const createResult = result as CreateResult;
-            if (createResult.person?.townSlug && createResult.person?.slug) {
-              // Redirect to the new person's page
-              router.push(`/${createResult.person.townSlug}/${createResult.person.slug}`);
-            } else {
-              // Fallback to persons list
-              router.push('/admin/persons');
-            }
-            // Note: Don't need to setIsSubmitting(false) for redirects as component will unmount
-          }
-        }, 1500);
       }
-    } catch (error) {
-      setIsSubmitting(false);
-
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      showErrorAlert(`Unexpected error: ${errorMessage}`, 5000);
     }
-  }
+    return false;
+  }, []);
 
+  // Handle stories change
+  const handleStoriesChange = useCallback((newStories: typeof stories) => {
+    setStories(newStories);
+    if (activeTab === 'details') {
+      const hasChanged = JSON.stringify(newStories) !== originalValues.current.stories;
+      setHasChanges('details', hasChanged || 
+        selectedDetentionCenterId !== originalValues.current.detentionCenterId ||
+        checkFormFieldsChanged());
+    }
+  }, [activeTab, selectedDetentionCenterId, setHasChanges, checkFormFieldsChanged]);
 
-  async function handleDetentionCenterSelect(centerId: string | null) {
+  // Handle form field changes
+  const handleFormChange = useCallback(() => {
+    if (activeTab === 'details') {
+      const hasFormChanges = checkFormFieldsChanged();
+      const hasStoriesChanged = JSON.stringify(stories) !== originalValues.current.stories;
+      const hasDetentionChanged = selectedDetentionCenterId !== originalValues.current.detentionCenterId;
+      
+      setHasChanges('details', hasFormChanges || hasStoriesChanged || hasDetentionChanged);
+    }
+  }, [activeTab, stories, selectedDetentionCenterId, checkFormFieldsChanged, setHasChanges]);
+
+  // Handle detention center change
+  const handleDetentionCenterChange = useCallback(async (centerId: string | null) => {
     setSelectedDetentionCenterId(centerId);
 
     if (centerId) {
-      // Fetch the detention center details
       try {
         const response = await fetch(`/api/detention-centers/${centerId}`);
         if (response.ok) {
@@ -253,28 +174,219 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
     } else {
       setSelectedDetentionCenter(null);
     }
+
+    if (activeTab === 'details') {
+      const hasChanged = centerId !== originalValues.current.detentionCenterId;
+      setHasChanges('details', hasChanged || 
+        JSON.stringify(stories) !== originalValues.current.stories ||
+        checkFormFieldsChanged());
+    }
+  }, [activeTab, stories, checkFormFieldsChanged, setHasChanges]);
+
+  // Handle primary image change
+  const handlePrimaryImageChange = useCallback((file: File | null) => {
+    setPrimaryImageFile(file);
+    if (activeTab === 'person-image') {
+      setHasChanges('person-image', file !== null);
+    }
+  }, [activeTab, setHasChanges]);
+
+  // Handle gallery images change
+  const handleGalleryImagesChange = useCallback((images: typeof galleryImages) => {
+    setGalleryImages(images);
+    if (activeTab === 'gallery-images') {
+      const hasChanges = images.some(img => img.isNew || img.toDelete || img.caption !== img.originalCaption);
+      setHasChanges('gallery-images', hasChanges);
+    }
+  }, [activeTab, setHasChanges]);
+
+  async function handleSubmit(formData: FormData) {
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      let result: { success?: boolean; errors?: Record<string, string[]>; person?: { id: string; slug: string; townSlug: string } };
+
+      // Only update the current tab
+      if (activeTab === 'details') {
+        // Update details only
+        console.log('Saving stories:', stories);
+        formData.set('stories', JSON.stringify(stories));
+        if (selectedDetentionCenterId) {
+          formData.append('detentionCenterId', selectedDetentionCenterId);
+        } else {
+          formData.append('detentionCenterId', '');
+        }
+
+        result = person
+          ? await updatePerson(person.id, formData)
+          : await createPerson(formData);
+
+        if (result.success) {
+          // Update original values after successful save
+          originalValues.current.stories = JSON.stringify(stories);
+          originalValues.current.detentionCenterId = selectedDetentionCenterId;
+          
+          if (formRef.current) {
+            const newFormData = new FormData(formRef.current);
+            const fields: Record<string, string> = {};
+            
+            for (const [key, value] of newFormData.entries()) {
+              if (key !== 'stories' && key !== 'detentionCenterId') {
+                fields[key] = String(value);
+              }
+            }
+            
+            originalValues.current.formFields = fields;
+          }
+          
+          resetTabChanges('details');
+        }
+      } else if (activeTab === 'person-image' && person) {
+        // Update person image only
+        const imageFormData = new FormData();
+        if (primaryImageFile) {
+          imageFormData.set('primaryPicture', primaryImageFile);
+        }
+        
+        result = await updatePerson(person.id, imageFormData);
+        
+        if (result.success) {
+          setPrimaryImageFile(null);
+          resetTabChanges('person-image');
+          triggerImageUpdate();
+        }
+      } else if (activeTab === 'gallery-images' && person) {
+        // Update gallery images only
+        const galleryFormData = new FormData();
+        const galleryData = galleryImages.map((img, index) => {
+          if (img.file) {
+            galleryFormData.append(`galleryImage_${index}`, img.file);
+          }
+          return {
+            id: img.id,
+            caption: img.caption,
+            toDelete: img.toDelete,
+            isNew: img.isNew
+          };
+        });
+        galleryFormData.set('additionalImages', JSON.stringify(galleryData));
+        
+        result = await updatePerson(person.id, galleryFormData);
+        
+        if (result.success) {
+          setGalleryImages([]);
+          resetTabChanges('gallery-images');
+          triggerImageUpdate();
+        }
+      } else {
+        result = { errors: { _form: ['No changes to save'] } };
+      }
+
+      if (result.errors) {
+        setIsSubmitting(false);
+        setErrors(result.errors);
+
+        const errorDetails: string[] = [];
+        Object.entries(result.errors).forEach(([field, messages]) => {
+          if (field === '_form') {
+            errorDetails.push(...messages);
+          } else {
+            errorDetails.push(`${field}: ${messages.join(', ')}`);
+          }
+        });
+
+        const message = `Failed to update: ${errorDetails.join(', ')}`;
+        showErrorAlert(message, 5000);
+      } else if (result.success) {
+        const tabName = activeTab === 'details' ? 'Details' : 
+                       activeTab === 'person-image' ? 'Person image' : 
+                       'Gallery images';
+        showSuccessAlert(`${tabName} updated successfully!`, 3000);
+        
+        setIsSubmitting(false);
+        router.refresh();
+      }
+    } catch (error) {
+      setIsSubmitting(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showErrorAlert(`Unexpected error: ${errorMessage}`, 5000);
+    }
   }
 
-  // Image change handler removed - display only
-  const { activeTab, setActiveTab, triggerImageUpdate } = useTabs();
 
-  const primaryImage = person?.personImages?.find(pi => pi.imageType === 'primary');
-  const galleryImagesList = person?.personImages?.filter(pi => pi.imageType === 'gallery') || [];
+  const handleTabChange = (newTab: string) => {
+    const currentTabHasChanges = hasChanges[activeTab as keyof typeof hasChanges];
+    
+    if (currentTabHasChanges) {
+      setPendingTabSwitch(newTab);
+      setShowTabSwitchDialog(true);
+    } else {
+      setActiveTab(newTab);
+    }
+  };
+
+  const handleSaveAndSwitch = async () => {
+    setShowTabSwitchDialog(false);
+    if (formRef.current) {
+      const formData = new FormData(formRef.current);
+      await handleSubmit(formData);
+    }
+    if (pendingTabSwitch) {
+      setActiveTab(pendingTabSwitch);
+      setPendingTabSwitch(null);
+    }
+  };
+
+  const handleDiscardAndSwitch = () => {
+    setShowTabSwitchDialog(false);
+    resetTabChanges(activeTab as keyof typeof hasChanges);
+    
+    // Reset state based on current tab
+    if (activeTab === 'details') {
+      // Reset to original values
+      setStories(person?.stories?.map(story => ({
+        language: story.language,
+        storyType: story.storyType,
+        content: story.content
+      })) || []);
+      setSelectedDetentionCenterId(person?.detentionCenterId || null);
+      setSelectedDetentionCenter(person?.detentionCenter || null);
+    } else if (activeTab === 'person-image') {
+      setPrimaryImageFile(null);
+    } else if (activeTab === 'gallery-images') {
+      setGalleryImages([]);
+    }
+    
+    if (pendingTabSwitch) {
+      setActiveTab(pendingTabSwitch);
+      setPendingTabSwitch(null);
+    }
+  };
+
+  const getTabDisplayName = (tab: string) => {
+    return tab === 'details' ? 'Details' :
+           tab === 'person-image' ? 'Person Image' :
+           'Gallery Images';
+  };
+
+  const currentTabHasChanges = hasChanges[activeTab as keyof typeof hasChanges];
 
   return (
     <>
-
-      <form onSubmit={async (e) => {
+      <UnsavedChangesIndicator />
+      
+      <form ref={formRef} onSubmit={async (e) => {
         e.preventDefault();
-        if (isSubmitting) return; // Prevent multiple submissions
+        if (isSubmitting) return;
         const formData = new FormData(e.currentTarget);
         await handleSubmit(formData);
-      }} className="space-y-6 relative">
+      }} onChange={handleFormChange} className="space-y-6 relative">
         <LoadingOverlay
           isLoading={isSubmitting}
           message={person ? 'Updating person...' : 'Creating person...'}
         />
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="person-image">Person Image</TabsTrigger>
@@ -297,7 +409,7 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
               </label>
               <MultiLanguageStoryEditor
                 stories={person?.stories}
-                onChange={setStories}
+                onChange={handleStoriesChange}
               />
               <p className="mt-2 text-sm text-gray-500">
                 Add stories in multiple languages. Visitors will be able to switch
@@ -310,17 +422,15 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
           
           <TabsContent value="person-image" className="space-y-6">
             <PersonImageTab
-              personId={person?.id || ''}
               currentImage={primaryImage}
-              onImageChange={setPrimaryImageFile}
+              onImageChange={handlePrimaryImageChange}
             />
           </TabsContent>
           
           <TabsContent value="gallery-images" className="space-y-6">
             <GalleryImagesTab
-              personId={person?.id || ''}
               currentImages={galleryImagesList}
-              onImagesChange={setGalleryImages}
+              onImagesChange={handleGalleryImagesChange}
             />
           </TabsContent>
         </Tabs>
@@ -330,14 +440,26 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
           isEditMode={!!person} 
           person={person}
           session={session}
+          disabled={!currentTabHasChanges}
         />
       </form>
 
       <DetentionCenterSelector
         isOpen={detentionModalOpen}
         onClose={() => setDetentionModalOpen(false)}
-        onSelect={handleDetentionCenterSelect}
+        onSelect={handleDetentionCenterChange}
         currentDetentionCenterId={selectedDetentionCenterId}
+      />
+      
+      <TabSwitchDialog
+        isOpen={showTabSwitchDialog}
+        onSave={handleSaveAndSwitch}
+        onDiscard={handleDiscardAndSwitch}
+        onCancel={() => {
+          setShowTabSwitchDialog(false);
+          setPendingTabSwitch(null);
+        }}
+        currentTabName={getTabDisplayName(activeTab)}
       />
     </>
   );

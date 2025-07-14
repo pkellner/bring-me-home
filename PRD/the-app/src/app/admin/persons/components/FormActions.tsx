@@ -21,13 +21,15 @@ interface FormActionsProps {
   isEditMode: boolean;
   person?: SerializedPerson;
   session?: Session | null;
+  disabled?: boolean;
 }
 
 export default function FormActions({ 
   isSubmitting, 
   isEditMode, 
   person,
-  session 
+  session,
+  disabled = false
 }: FormActionsProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -216,9 +218,9 @@ export default function FormActions({
         </Link>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || disabled}
           className={`px-4 py-2 rounded-md text-white ${
-            isSubmitting 
+            isSubmitting || disabled
               ? 'bg-gray-400 cursor-not-allowed' 
               : 'bg-indigo-600 hover:bg-indigo-700'
           }`}

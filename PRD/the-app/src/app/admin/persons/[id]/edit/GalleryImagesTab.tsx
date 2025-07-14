@@ -14,13 +14,13 @@ interface GalleryImage {
   file?: File;
   preview?: string;
   caption: string;
+  originalCaption?: string;
   isNew?: boolean;
   toDelete?: boolean;
   personImage?: PersonImage;
 }
 
 interface GalleryImagesTabProps {
-  personId: string;
   currentImages: (PersonImage & { image: ImageStorage })[];
   onImagesChange?: (images: GalleryImage[]) => void;
 }
@@ -38,6 +38,7 @@ export function GalleryImagesTab({ currentImages, onImagesChange }: GalleryImage
       .map(img => ({
         id: img.image.id, // Use image id, not personImage id
         caption: img.image.caption || '',
+        originalCaption: img.image.caption || '',
         personImage: img,
         preview: `/api/images/${img.imageId}?t=${new Date().getTime()}`
       }));

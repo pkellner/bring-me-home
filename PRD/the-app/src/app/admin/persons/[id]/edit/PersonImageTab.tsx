@@ -9,7 +9,6 @@ import { PersonImage, ImageStorage } from '@prisma/client';
 import { useTabs } from './TabsProvider';
 
 interface PersonImageTabProps {
-  personId: string;
   currentImage?: PersonImage & { image: ImageStorage };
   onImageChange?: (image: File | null) => void;
 }
