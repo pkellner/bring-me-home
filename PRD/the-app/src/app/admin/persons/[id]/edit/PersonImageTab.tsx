@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,9 +10,19 @@ import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
 interface PersonImageTabProps {
   personId: string;
+  onChangeDetected?: (hasChanges: boolean) => void;
+  onSaveRegistered?: (save: () => Promise<void>) => void;
+  onSavingChange?: (isSaving: boolean) => void;
+  hideButtons?: boolean;
 }
 
-export function PersonImageTab({ personId }: PersonImageTabProps) {
+export function PersonImageTab({ 
+  personId,
+  onChangeDetected,
+  onSaveRegistered,
+  onSavingChange,
+  hideButtons = false
+}: PersonImageTabProps) {
   const [currentImage, setCurrentImage] = useState<(PersonImage & { image: ImageStorage }) | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -54,10 +64,20 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
     fetchPrimaryImage();
   }, [personId]);
 
+  // Notify parent of changes
+  useEffect(() => {
+    onChangeDetected?.(hasChanges);
+  }, [hasChanges, onChangeDetected]);
+
+  // Notify parent of saving state
+  useEffect(() => {
+    onSavingChange?.(isSaving);
+  }, [isSaving, onSavingChange]);
+
   // Handle browser navigation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasChanges) {
+      if (hasChanges && !hideButtons) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -65,7 +85,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasChanges]);
+  }, [hasChanges, hideButtons]);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -97,7 +117,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
     fileInputRef.current?.click();
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
     setError(null);
 
@@ -138,7 +158,12 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [personId, selectedFile, shouldClearImage]);
+
+  // Register save function with parent
+  useEffect(() => {
+    onSaveRegistered?.(handleSave);
+  }, [onSaveRegistered, handleSave]);
 
   const imageToShow = imagePreview || (currentImage && !shouldClearImage ? `/api/images/${currentImage.imageId}?t=${new Date().getTime()}` : null);
 
@@ -234,7 +259,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
               </Button>
             </div>
             
-            {hasChanges && (
+            {hasChanges && !hideButtons && (
               <div className="w-full border-t pt-4 mt-4">
                 <Button
                   onClick={handleSave}
@@ -251,7 +276,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
         </CardContent>
       </Card>
       
-      {hasChanges && (
+      {hasChanges && !hideButtons && (
         <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
           You have unsaved changes. Please save before leaving this page.
         </div>

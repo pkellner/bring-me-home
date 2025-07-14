@@ -3,10 +3,9 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { hasPermission } from '@/lib/permissions';
 import { prisma } from '@/lib/prisma';
-import PersonForm from '../../PersonForm';
+import { PersonEditClient } from './PersonEditClient';
 import Link from 'next/link';
 import { ChatBubbleLeftRightIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
-import { Button } from '@/components/ui/button';
 
 export default async function EditPersonPage({
   params,
@@ -51,14 +50,8 @@ export default async function EditPersonPage({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Person</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            {person.firstName} {person.lastName} • {person.town.name}, {person.town.state}
-          </p>
-        </div>
+    <>
+      <div className="flex justify-between items-center mb-6">
         <div className="flex gap-2">
           <Link
             href={`/${townSlug}/${personSlug}`}
@@ -81,23 +74,10 @@ export default async function EditPersonPage({
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <Button variant="default" disabled>Person Details</Button>
-        <Link href={`/admin/persons/${id}/edit/person-image`}>
-          <Button variant="outline">Primary Image</Button>
-        </Link>
-        <Link href={`/admin/persons/${id}/edit/gallery-images`}>
-          <Button variant="outline">Gallery Images</Button>
-        </Link>
-      </div>
-
-      <div className="bg-white shadow rounded-lg p-6">
-        <PersonForm
-          person={serializedPerson}
-          towns={towns}
-          session={session}
-        />
-      </div>
-    </div>
+      <PersonEditClient
+        person={serializedPerson}
+        towns={towns}
+      />
+    </>
   );
 }

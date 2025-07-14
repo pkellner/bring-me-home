@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,9 +22,19 @@ interface GalleryImage {
 
 interface GalleryImagesTabProps {
   personId: string;
+  onChangeDetected?: (hasChanges: boolean) => void;
+  onSaveRegistered?: (save: () => Promise<void>) => void;
+  onSavingChange?: (isSaving: boolean) => void;
+  hideButtons?: boolean;
 }
 
-export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
+export function GalleryImagesTab({ 
+  personId,
+  onChangeDetected,
+  onSaveRegistered,
+  onSavingChange,
+  hideButtons = false
+}: GalleryImagesTabProps) {
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -89,10 +99,20 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
     setHasChanges(currentState !== initialImagesRef.current);
   }, [galleryImages]);
 
+  // Notify parent of changes
+  useEffect(() => {
+    onChangeDetected?.(hasChanges);
+  }, [hasChanges, onChangeDetected]);
+
+  // Notify parent of saving state
+  useEffect(() => {
+    onSavingChange?.(isSaving);
+  }, [isSaving, onSavingChange]);
+
   // Handle browser navigation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasChanges) {
+      if (hasChanges && !hideButtons) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -100,7 +120,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasChanges]);
+  }, [hasChanges, hideButtons]);
 
   const handleAddImage = () => {
     fileInputRef.current?.click();
@@ -143,7 +163,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
     ));
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
     setError(null);
 
@@ -211,7 +231,12 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [personId, galleryImages]);
+
+  // Register save function with parent
+  useEffect(() => {
+    onSaveRegistered?.(handleSave);
+  }, [onSaveRegistered, handleSave]);
 
   const visibleImages = galleryImages.filter(img => !img.toDelete);
 
@@ -269,7 +294,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
             <Plus className="mr-2 h-4 w-4" />
             Add New Image
           </Button>
-          {hasChanges && (
+          {hasChanges && !hideButtons && (
             <Button onClick={handleSave} disabled={isSaving} variant="default">
               <Save className="mr-2 h-4 w-4" />
               {isSaving ? 'Saving...' : 'Save Changes'}
@@ -330,7 +355,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
         </Card>
       )}
       
-      {hasChanges && (
+      {hasChanges && !hideButtons && (
         <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
           You have unsaved changes. Please save before leaving this page.
         </div>
