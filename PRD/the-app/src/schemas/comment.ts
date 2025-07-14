@@ -11,10 +11,6 @@ export const CreateCommentSchema = z.object({
   isAnonymous: z.boolean().default(false),
   privacyLevel: z.enum(['public', 'family', 'officials']).default('public'),
   personId: z.string().cuid('Invalid person ID'),
-  attachments: z
-    .array(z.string().url('Invalid attachment URL'))
-    .max(3)
-    .optional(),
 });
 
 export const UpdateCommentSchema = CreateCommentSchema.partial();

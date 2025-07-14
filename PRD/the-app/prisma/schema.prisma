@@ -132,7 +132,6 @@ model Person {
   showLastHeardFrom    Boolean                @default(true)
   showDetentionDate    Boolean                @default(true)
   showCommunitySupport Boolean                @default(true)
-  attachments          Attachment[]
   comments             Comment[]
   familySettings       FamilyPrivacySettings?
   personAccess         PersonAccess[]
@@ -233,7 +232,6 @@ model Comment {
   state                    String?
   streetAddress            String?
   zipCode                  String?
-  attachments              Attachment[]
   person                   Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])
@@ -244,26 +242,6 @@ model Comment {
   @@map("comments")
 }
 
-model Attachment {
-  id           String   @id @default(cuid())
-  fileName     String
-  originalName String
-  mimeType     String
-  fileSize     Int
-  filePath     String
-  description  String?
-  isPublic     Boolean  @default(true)
-  commentId    String?
-  personId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  person       Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  @@index([commentId])
-  @@index([personId])
-  @@map("attachments")
-}
 
 model TownAccess {
   id          String   @id @default(cuid())

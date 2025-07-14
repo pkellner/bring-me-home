@@ -1140,7 +1140,6 @@ async function cleanDatabase() {
   try {
     // Delete in correct order to respect foreign key constraints
     await prisma.auditLog.deleteMany();
-    await prisma.attachment.deleteMany();
     // Images are now deleted via cascade from persons
     await prisma.comment.deleteMany();
     await prisma.supporter.deleteMany();
