@@ -478,7 +478,6 @@ const generatePersons = () => {
           'Shopping Center',
         ])}, ${town.name}`,
         townName,
-        primaryPicture: null, // Will be set after image creation
         status: isDetained ? 'detained' : 'missing', // Set status based on detention state
         // Detention information
         detentionCenterName,
@@ -565,7 +564,6 @@ const generatePersons = () => {
     lastSeenDate: new Date(2024, 0, 15), // January 15, 2024
     lastSeenLocation: 'Downtown Borrego Springs',
     townName: 'Borrego Springs',
-    primaryPicture: null, // Will be set after image creation
     status: 'detained',
     // Detention information
     detentionCenterName: 'Otay Mesa Detention Center',
@@ -1661,32 +1659,6 @@ async function main() {
     }
   }
   console.log('Added images to persons.');
-
-  // Update primaryPicture URLs for all persons
-  console.log('Updating primary picture URLs...');
-  for (const person of persons) {
-    const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
-
-    // Get the primary image for this person
-    const primaryImage = await prisma.personImage.findFirst({
-      where: {
-        personId,
-        imageType: 'primary',
-      },
-      orderBy: {
-        sequenceNumber: 'asc',
-      },
-    });
-
-    if (primaryImage) {
-      await prisma.person.update({
-        where: { id: personId },
-        data: {
-          primaryPicture: `/api/images/${primaryImage.imageId}`,
-        },
-      });
-    }
-  }
 
   // Create stories for all persons (especially detailed for Borrego Springs)
   console.log('Creating multi-language stories...');

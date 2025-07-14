@@ -10,7 +10,7 @@ import { useTabs } from './TabsProvider';
 
 interface PersonImageTabProps {
   currentImage?: PersonImage & { image: ImageStorage };
-  onImageChange?: (image: File | null) => void;
+  onImageChange?: (image: File | null, shouldClear?: boolean) => void;
 }
 
 export function PersonImageTab({ currentImage, onImageChange }: PersonImageTabProps) {
@@ -43,7 +43,7 @@ export function PersonImageTab({ currentImage, onImageChange }: PersonImageTabPr
 
   const handleClearImage = () => {
     setImagePreview(null);
-    onImageChange?.(null);
+    onImageChange?.(null, true); // Pass true to indicate we want to clear the image
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

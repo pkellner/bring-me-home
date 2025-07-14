@@ -65,6 +65,7 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
   );
   
   const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
+  const [shouldClearPrimaryImage, setShouldClearPrimaryImage] = useState(false);
   const [galleryImages, setGalleryImages] = useState<Array<{
     id: string;
     caption: string;
@@ -184,10 +185,11 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
   }, [activeTab, stories, checkFormFieldsChanged, setHasChanges]);
 
   // Handle primary image change
-  const handlePrimaryImageChange = useCallback((file: File | null) => {
+  const handlePrimaryImageChange = useCallback((file: File | null, shouldClear?: boolean) => {
     setPrimaryImageFile(file);
+    setShouldClearPrimaryImage(shouldClear === true);
     if (activeTab === 'person-image') {
-      setHasChanges('person-image', file !== null);
+      setHasChanges('person-image', file !== null || shouldClear === true);
     }
   }, [activeTab, setHasChanges]);
 
@@ -247,27 +249,32 @@ function PersonFormContent({ person, towns, session }: PersonFormProps) {
         const imageFormData = new FormData();
         if (primaryImageFile) {
           imageFormData.set('primaryPicture', primaryImageFile);
+        } else if (shouldClearPrimaryImage) {
+          // If explicitly set to clear, we want to delete the image
+          imageFormData.set('clearPrimaryPicture', 'true');
         }
         
         result = await updatePerson(person.id, imageFormData);
         
         if (result.success) {
           setPrimaryImageFile(null);
+          setShouldClearPrimaryImage(false);
           resetTabChanges('person-image');
           triggerImageUpdate();
         }
       } else if (activeTab === 'gallery-images' && person) {
         // Update gallery images only
         const galleryFormData = new FormData();
-        const galleryData = galleryImages.map((img, index) => {
+        const galleryData = galleryImages.map((img) => {
           if (img.file) {
-            galleryFormData.append(`galleryImage_${index}`, img.file);
+            galleryFormData.append(`galleryImage_${img.id}`, img.file);
           }
           return {
             id: img.id,
             caption: img.caption,
             toDelete: img.toDelete,
-            isNew: img.isNew
+            isNew: img.isNew,
+            file: img.file ? true : undefined
           };
         });
         galleryFormData.set('additionalImages', JSON.stringify(galleryData));

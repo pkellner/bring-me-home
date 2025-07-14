@@ -233,46 +233,61 @@ export async function updatePerson(id: string, formData: FormData) {
   console.log('Stories from form:', storiesFromForm);
   console.log('Stories type:', typeof storiesFromForm);
 
-  const validatedFields = personSchema.safeParse({
-    firstName: formData.get('firstName'),
-    lastName: formData.get('lastName'),
-    middleName: formData.get('middleName') || undefined,
-    townId: formData.get('townId'),
-    dateOfBirth: formData.get('dateOfBirth') || undefined,
-    lastKnownAddress: formData.get('lastKnownAddress'),
-    status: formData.get('status') || 'detained',
-    stories: formData.get('stories') || undefined,
-    layoutId: formData.get('layoutId') || undefined,
-    themeId: formData.get('themeId') || undefined,
-    isActive: formData.get('isActive') === 'on',
-    detentionCenterId: formData.get('detentionCenterId') || undefined,
-    detentionDate: formData.get('detentionDate') || undefined,
-    detentionStatus: formData.get('detentionStatus') || undefined,
-    caseNumber: formData.get('caseNumber') || undefined,
-    bondAmount: formData.get('bondAmount')
-      ? Number(formData.get('bondAmount'))
-      : undefined,
-    lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
-    notesFromLastContact: formData.get('notesFromLastContact') || undefined,
-    representedByLawyer: formData.get('representedByLawyer') === 'on',
-    representedByNotes: formData.get('representedByNotes') || undefined,
-    showDetentionInfo: formData.get('showDetentionInfo') === 'on',
-    showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
-    showDetentionDate: formData.get('showDetentionDate') === 'on',
-    showCommunitySupport: formData.get('showCommunitySupport') === 'on',
-  });
+  // Check if this is a partial update (only images)
+  const hasPersonFields = formData.has('firstName') || formData.has('lastName') || 
+                         formData.has('townId') || formData.has('lastKnownAddress');
+  
+  type ValidatedFieldsType = {
+    success: boolean;
+    data?: z.infer<typeof personSchema>;
+    error?: z.ZodError<z.infer<typeof personSchema>>;
+  };
+  
+  let validatedFields: ValidatedFieldsType = { success: true, data: {} as z.infer<typeof personSchema> };
+  
+  if (hasPersonFields) {
+    // Full update with validation
+    validatedFields = personSchema.safeParse({
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+      middleName: formData.get('middleName') || undefined,
+      townId: formData.get('townId'),
+      dateOfBirth: formData.get('dateOfBirth') || undefined,
+      lastKnownAddress: formData.get('lastKnownAddress'),
+      status: formData.get('status') || 'detained',
+      stories: formData.get('stories') || undefined,
+      layoutId: formData.get('layoutId') || undefined,
+      themeId: formData.get('themeId') || undefined,
+      isActive: formData.get('isActive') === 'on',
+      detentionCenterId: formData.get('detentionCenterId') || undefined,
+      detentionDate: formData.get('detentionDate') || undefined,
+      detentionStatus: formData.get('detentionStatus') || undefined,
+      caseNumber: formData.get('caseNumber') || undefined,
+      bondAmount: formData.get('bondAmount')
+        ? Number(formData.get('bondAmount'))
+        : undefined,
+      lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
+      notesFromLastContact: formData.get('notesFromLastContact') || undefined,
+      representedByLawyer: formData.get('representedByLawyer') === 'on',
+      representedByNotes: formData.get('representedByNotes') || undefined,
+      showDetentionInfo: formData.get('showDetentionInfo') === 'on',
+      showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
+      showDetentionDate: formData.get('showDetentionDate') === 'on',
+      showCommunitySupport: formData.get('showCommunitySupport') === 'on',
+    });
 
-  if (!validatedFields.success) {
-    console.log('Validation failed:', validatedFields.error.flatten());
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
+    if (!validatedFields.success) {
+      console.log('Validation failed:', validatedFields.error?.flatten());
+      return {
+        errors: validatedFields.error?.flatten().fieldErrors || {},
+      };
+    }
   }
   
-  console.log('Validated data stories:', validatedFields.data.stories);
+  console.log('Validated data stories:', validatedFields.data?.stories);
 
   try {
-    // Get existing person to check if name changed
+    // Get existing person for validation
     const existingPerson = await prisma.person.findUnique({
       where: { id },
       select: { firstName: true, middleName: true, lastName: true, slug: true },
@@ -282,81 +297,103 @@ export async function updatePerson(id: string, formData: FormData) {
       throw new Error('Person not found');
     }
 
-    // Check if name has changed
-    const nameChanged = 
-      existingPerson.firstName !== validatedFields.data.firstName ||
-      existingPerson.middleName !== validatedFields.data.middleName ||
-      existingPerson.lastName !== validatedFields.data.lastName;
-
+    let updateData: Partial<{
+      firstName: string;
+      lastName: string;
+      middleName?: string;
+      townId: string;
+      dateOfBirth: Date | null;
+      lastKnownAddress: string;
+      status: string;
+      layoutId?: string;
+      themeId?: string;
+      isActive?: boolean;
+      detentionCenterId?: string;
+      detentionDate: Date | null;
+      detentionStatus?: string;
+      caseNumber?: string;
+      bondAmount?: number;
+      lastHeardFromDate: Date | null;
+      notesFromLastContact?: string;
+      representedByLawyer?: boolean;
+      representedByNotes?: string;
+      showDetentionInfo?: boolean;
+      showLastHeardFrom?: boolean;
+      showDetentionDate?: boolean;
+      showCommunitySupport?: boolean;
+      slug: string;
+    }> = {};
     let slug = existingPerson.slug;
+    let storiesJson: string | undefined;
 
-    // If name changed, check if we need a new slug
-    if (nameChanged) {
-      // First, generate the base slug to see if it would be different
-      const baseSlug = createPersonSlug(
-        validatedFields.data.firstName,
-        validatedFields.data.middleName,
-        validatedFields.data.lastName,
-        [] // Empty array to get base slug without uniqueness suffix
-      );
+    // Only process person fields if they are present
+    if (hasPersonFields && validatedFields.data) {
+      // Check if name has changed
+      const nameChanged = 
+        existingPerson.firstName !== validatedFields.data.firstName ||
+        existingPerson.middleName !== validatedFields.data.middleName ||
+        existingPerson.lastName !== validatedFields.data.lastName;
 
-      // Only generate a new slug if the base would be different from current
-      // This handles case-only changes where the slug would remain the same
-      if (baseSlug !== existingPerson.slug) {
-        const existingPersons = await prisma.person.findMany({
-          where: { id: { not: id } }, // Exclude current person
-          select: { slug: true },
-        });
-        const existingSlugs = existingPersons.map(p => p.slug);
-
-        slug = createPersonSlug(
+      // If name changed, check if we need a new slug
+      if (nameChanged) {
+        // First, generate the base slug to see if it would be different
+        const baseSlug = createPersonSlug(
           validatedFields.data.firstName,
           validatedFields.data.middleName,
           validatedFields.data.lastName,
-          existingSlugs
+          [] // Empty array to get base slug without uniqueness suffix
         );
+
+        // Only generate a new slug if the base would be different from current
+        // This handles case-only changes where the slug would remain the same
+        if (baseSlug !== existingPerson.slug) {
+          const existingPersons = await prisma.person.findMany({
+            where: { id: { not: id } }, // Exclude current person
+            select: { slug: true },
+          });
+          const existingSlugs = existingPersons.map(p => p.slug);
+
+          slug = createPersonSlug(
+            validatedFields.data.firstName,
+            validatedFields.data.middleName,
+            validatedFields.data.lastName,
+            existingSlugs
+          );
+        }
+      }
+
+      // Extract stories from data first (don't include in person update)
+      storiesJson = validatedFields.data.stories;
+      console.log('storiesJson extracted:', storiesJson);
+
+      // Process data for database (exclude stories)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { stories, ...dataWithoutStories } = validatedFields.data;
+      updateData = {
+        ...dataWithoutStories,
+        slug,
+        dateOfBirth: validatedFields.data.dateOfBirth
+          ? new Date(validatedFields.data.dateOfBirth)
+          : null,
+        detentionDate: validatedFields.data.detentionDate
+          ? new Date(validatedFields.data.detentionDate)
+          : null,
+        lastHeardFromDate: validatedFields.data.lastHeardFromDate
+          ? new Date(validatedFields.data.lastHeardFromDate)
+          : null,
+      };
+
+      // Handle empty detentionCenterId
+      if (updateData.detentionCenterId === '') {
+        updateData.detentionCenterId = undefined;
       }
     }
 
-    // Extract stories from data first (don't include in person update)
-    const storiesJson = validatedFields.data.stories;
-    console.log('storiesJson extracted:', storiesJson);
-
-    // Process data for database (exclude stories)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { stories, ...dataWithoutStories } = validatedFields.data;
-    const updateData = {
-      ...dataWithoutStories,
-      slug,
-      dateOfBirth: validatedFields.data.dateOfBirth
-        ? new Date(validatedFields.data.dateOfBirth)
-        : null,
-      detentionDate: validatedFields.data.detentionDate
-        ? new Date(validatedFields.data.detentionDate)
-        : null,
-      lastHeardFromDate: validatedFields.data.lastHeardFromDate
-        ? new Date(validatedFields.data.lastHeardFromDate)
-        : null,
-    };
-
-    // Handle empty detentionCenterId
-    if (updateData.detentionCenterId === '') {
-      updateData.detentionCenterId = undefined;
-    }
-
-    // Handle primary picture upload
+    // Handle primary picture upload or clear
     const primaryPicture = formData.get('primaryPicture') as File;
-    if (primaryPicture && primaryPicture.size > 0) {
-      const buffer = Buffer.from(await primaryPicture.arrayBuffer());
-
-      // Validate image
-      const isValidImage = await validateImageBuffer(buffer);
-      if (!isValidImage) {
-        return {
-          errors: { _form: ['Invalid image file'] },
-        };
-      }
-
+    const clearPrimaryPicture = formData.get('clearPrimaryPicture') === 'true';
+    
+    if ((primaryPicture && primaryPicture.size > 0) || clearPrimaryPicture) {
       // Delete existing profile images through PersonImage
       const existingProfileImages = await prisma.personImage.findMany({
         where: {
@@ -389,13 +426,26 @@ export async function updatePerson(id: string, formData: FormData) {
         }
       }
       
-      // Store new profile image
-      await processAndStoreImage(buffer, {
-        personId: id,
-        imageType: 'primary',
-        sequenceNumber: 0,
-        uploadedById: session.user.id,
-      });
+      // Only store new image if we're not just clearing
+      if (primaryPicture && primaryPicture.size > 0 && !clearPrimaryPicture) {
+        const buffer = Buffer.from(await primaryPicture.arrayBuffer());
+
+        // Validate image
+        const isValidImage = await validateImageBuffer(buffer);
+        if (!isValidImage) {
+          return {
+            errors: { _form: ['Invalid image file'] },
+          };
+        }
+        
+        // Store new profile image
+        await processAndStoreImage(buffer, {
+          personId: id,
+          imageType: 'primary',
+          sequenceNumber: 0,
+          uploadedById: session.user.id,
+        });
+      }
     }
 
     // Handle additional images
@@ -416,11 +466,13 @@ export async function updatePerson(id: string, formData: FormData) {
       }
     }
 
-    // Update person first
-    await prisma.person.update({
-      where: { id },
-      data: updateData,
-    });
+    // Update person only if we have person fields
+    if (hasPersonFields && Object.keys(updateData).length > 0) {
+      await prisma.person.update({
+        where: { id },
+        data: updateData,
+      });
+    }
 
     // Handle additional gallery images
     if (additionalImages.length > 0) {
@@ -472,9 +524,9 @@ export async function updatePerson(id: string, formData: FormData) {
         } else if (imageData.isNew && imageData.file) {
           // Process and create new image
           try {
-            // Get the file from FormData
+            // Get the file from FormData using the image ID
             const imageFile = formData.get(
-              `galleryImage_${additionalImages.indexOf(imageData)}`
+              `galleryImage_${imageData.id}`
             ) as File;
             if (imageFile && imageFile.size > 0) {
               const buffer = Buffer.from(await imageFile.arrayBuffer());
@@ -505,53 +557,55 @@ export async function updatePerson(id: string, formData: FormData) {
       }
     }
 
-    // Handle stories update
-    console.log('About to handle stories update, storiesJson:', storiesJson);
-    console.log('storiesJson type:', typeof storiesJson);
-    console.log('storiesJson truthy?', !!storiesJson);
-    
-    if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
-      console.log('Updating stories - JSON:', storiesJson);
-      try {
-        const stories = JSON.parse(storiesJson);
-        console.log('Parsed stories:', stories);
+    // Handle stories update only if we have person fields
+    if (hasPersonFields) {
+      console.log('About to handle stories update, storiesJson:', storiesJson);
+      console.log('storiesJson type:', typeof storiesJson);
+      console.log('storiesJson truthy?', !!storiesJson);
+      
+      if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
+        console.log('Updating stories - JSON:', storiesJson);
+        try {
+          const stories = JSON.parse(storiesJson);
+          console.log('Parsed stories:', stories);
 
-        // Delete existing stories for this person
-        const deleteResult = await prisma.story.deleteMany({
-          where: { personId: id },
-        });
-        console.log('Deleted stories:', deleteResult);
-
-        // Create new stories
-        if (Array.isArray(stories) && stories.length > 0) {
-          console.log('About to create stories for person:', id);
-          const storiesToCreate = stories.map(
-            (story: {
-              language: string;
-              storyType: string;
-              content: string;
-            }) => ({
-              personId: id,
-              language: story.language,
-              storyType: story.storyType,
-              content: story.content,
-              isActive: true,
-            })
-          );
-          console.log('Stories to create:', storiesToCreate);
-          
-          const createResult = await prisma.story.createMany({
-            data: storiesToCreate,
+          // Delete existing stories for this person
+          const deleteResult = await prisma.story.deleteMany({
+            where: { personId: id },
           });
-          console.log('Created stories:', createResult);
-        } else {
-          console.log('No stories to create');
+          console.log('Deleted stories:', deleteResult);
+
+          // Create new stories
+          if (Array.isArray(stories) && stories.length > 0) {
+            console.log('About to create stories for person:', id);
+            const storiesToCreate = stories.map(
+              (story: {
+                language: string;
+                storyType: string;
+                content: string;
+              }) => ({
+                personId: id,
+                language: story.language,
+                storyType: story.storyType,
+                content: story.content,
+                isActive: true,
+              })
+            );
+            console.log('Stories to create:', storiesToCreate);
+            
+            const createResult = await prisma.story.createMany({
+              data: storiesToCreate,
+            });
+            console.log('Created stories:', createResult);
+          } else {
+            console.log('No stories to create');
+          }
+        } catch (error) {
+          console.error('Failed to update stories:', error);
         }
-      } catch (error) {
-        console.error('Failed to update stories:', error);
+      } else {
+        console.log('Skipping stories update because storiesJson is:', storiesJson);
       }
-    } else {
-      console.log('Skipping stories update because storiesJson is:', storiesJson);
     }
 
     // Verify stories were actually saved
@@ -706,7 +760,6 @@ interface ImportPersonData {
   isFound?: boolean;
   lastSeenDate?: string;
   lastSeenLocation?: string;
-  primaryPicture?: string;
   primaryPictureData?: string;
   showCommunitySupport?: boolean;
   // Related data
@@ -810,7 +863,6 @@ export async function importPersonData(personId: string, importData: ImportPerso
     }> = [];
 
     // Prepare all images for processing
-    const primaryPictureUrl = personData.primaryPicture;
     
     // Process primary picture if provided
     if (primaryPictureData) {
@@ -879,7 +931,6 @@ export async function importPersonData(personId: string, importData: ImportPerso
         where: { id: personId },
         data: {
           ...personData,
-          primaryPicture: primaryPictureUrl,
           dateOfBirth: personData.dateOfBirth ? new Date(personData.dateOfBirth) : null,
           detentionDate: personData.detentionDate ? new Date(personData.detentionDate) : null,
           releaseDate: personData.releaseDate ? new Date(personData.releaseDate) : null,
@@ -963,16 +1014,6 @@ export async function importPersonData(personId: string, importData: ImportPerso
       } catch (error) {
         console.error('Failed to store imported image:', error);
       }
-    }
-    
-    // Update primaryPicture URL if we processed a new profile image
-    if (newPrimaryImageId) {
-      await prisma.person.update({
-        where: { id: personId },
-        data: {
-          primaryPicture: `/api/images/${newPrimaryImageId}`
-        }
-      });
     }
 
     revalidatePath(`/admin/persons/${personId}/edit`);

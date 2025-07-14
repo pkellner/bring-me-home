@@ -13,7 +13,7 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
   town: Town;
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
-  images?: ImageStorage[];
+  images?: (ImageStorage & { imageType?: string; sequenceNumber?: number })[];
 };
 
 interface FormActionsProps {
@@ -42,9 +42,10 @@ export default function FormActions({
     try {
       // Fetch primary picture as base64 if it exists
       let primaryPictureData = null;
-      if (person.primaryPicture) {
+      const primaryImage = person.images?.find(img => img.imageType === 'primary');
+      if (primaryImage) {
         try {
-          const response = await fetch(person.primaryPicture);
+          const response = await fetch(`/api/images/${primaryImage.id}`);
           const blob = await response.blob();
           primaryPictureData = await new Promise<string>((resolve) => {
             const reader = new FileReader();

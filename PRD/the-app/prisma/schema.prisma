@@ -95,7 +95,6 @@ model Person {
   currentAddress       String?                @db.Text
   phoneNumber          String?
   emailAddress         String?
-  primaryPicture       String?
   story                String?                @db.Text
   lastSeenDate         DateTime?
   lastSeenLocation     String?

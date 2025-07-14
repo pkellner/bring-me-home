@@ -162,12 +162,6 @@ export async function uploadPersonImage(
           }
         }
       }
-
-      // Also update person's primary picture
-      await prisma.person.update({
-        where: { id: personId },
-        data: { primaryPicture: `/api/images/${imageId}` },
-      });
     }
 
     return {
