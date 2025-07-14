@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface TabChanges {
   details: boolean;
@@ -24,7 +24,8 @@ interface TabsContextType {
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
 
 export function TabsProvider({ children }: { children: React.ReactNode }) {
-  const [activeTab, setActiveTab] = useState('details');
+  // Always start with 'details' to ensure server/client consistency
+  const [activeTab, setActiveTabState] = useState('details');
   const [imageUpdateTrigger, setImageUpdateTrigger] = useState(0);
   const [hasChanges, setHasChangesState] = useState<TabChanges>({
     details: false,
@@ -32,6 +33,44 @@ export function TabsProvider({ children }: { children: React.ReactNode }) {
     'gallery-images': false,
   });
   const [pendingTabSwitch, setPendingTabSwitch] = useState<string | null>(null);
+
+  // Update URL hash when tab changes
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      const newUrl = new URL(window.location.href);
+      if (tab === 'details') {
+        // Remove hash for details tab
+        newUrl.hash = '';
+      } else {
+        newUrl.hash = tab;
+      }
+      window.history.pushState({}, '', newUrl);
+    }
+  }, []);
+
+  // Set initial tab based on hash after mount
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash === 'person-image' || hash === 'gallery-images') {
+      setActiveTabState(hash);
+    }
+  }, []);
+
+  // Listen for hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash === 'person-image' || hash === 'gallery-images') {
+        setActiveTabState(hash);
+      } else {
+        setActiveTabState('details');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const triggerImageUpdate = useCallback(() => {
     setImageUpdateTrigger(prev => prev + 1);
