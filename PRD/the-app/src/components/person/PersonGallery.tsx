@@ -68,14 +68,15 @@ export default function PersonGallery({
               <ImageUpload personId={personId} personName={personName} />
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="flex flex-wrap gap-4">
             {images.map(image => (
               <div
                 key={image.id}
-                className="relative cursor-pointer group"
+                className="relative cursor-pointer group overflow-hidden rounded-lg"
                 onClick={() => setSelectedImage(image)}
+                style={{ width: '300px' }}
               >
-                <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                <div className="w-full h-[300px] bg-gray-200 overflow-hidden">
                   <img
                     src={image.imageUrl}
                     alt={image.caption || `Photo of ${personName}`}
@@ -89,7 +90,13 @@ export default function PersonGallery({
                     </span>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-200 rounded-lg" />
+                {/* Caption overlay that appears on hover */}
+                {image.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200 rounded-b-lg">
+                    <p className="text-sm">{image.caption}</p>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-200 rounded-lg pointer-events-none" />
               </div>
             ))}
           </div>

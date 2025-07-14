@@ -72,9 +72,11 @@ export class ImageStorageService {
       const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
       const endpoint = process.env.AWS_S3_ENDPOINT;
 
-      if (!bucket || !accessKeyId || !secretAccessKey) {
-        console.warn('S3 configuration incomplete, falling back to database storage');
-        return { storageType: 'database' };
+      if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+        throw new Error(
+          'S3 configuration incomplete. When IMAGE_STORAGE_TYPE is set to "s3", the following environment variables are required: ' +
+          'AWS_S3_BUCKET, AWS_S3_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY'
+        );
       }
 
       return {

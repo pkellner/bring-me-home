@@ -25,6 +25,20 @@ export class S3StorageAdapter implements ImageStorageAdapter {
     private prisma: PrismaClient,
     config: NonNullable<ImageStorageConfig['s3Config']>
   ) {
+    // Validate required S3 configuration
+    if (!config.bucket) {
+      throw new Error('S3 bucket is required when using S3 storage. Please set AWS_S3_BUCKET environment variable.');
+    }
+    if (!config.region) {
+      throw new Error('S3 region is required when using S3 storage. Please set AWS_S3_REGION environment variable.');
+    }
+    if (!config.accessKeyId) {
+      throw new Error('S3 access key ID is required when using S3 storage. Please set AWS_ACCESS_KEY_ID environment variable.');
+    }
+    if (!config.secretAccessKey) {
+      throw new Error('S3 secret access key is required when using S3 storage. Please set AWS_SECRET_ACCESS_KEY environment variable.');
+    }
+
     this.bucket = config.bucket;
     this.region = config.region;
     
@@ -78,9 +92,7 @@ export class S3StorageAdapter implements ImageStorageAdapter {
         caption: options?.caption,
         uploadedById: options?.uploadedById,
         storageType: 's3',
-        s3Bucket: this.bucket,
         s3Key: s3Key,
-        s3Region: this.region,
       },
     });
 
