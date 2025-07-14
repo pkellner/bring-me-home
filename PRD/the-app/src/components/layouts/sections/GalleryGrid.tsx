@@ -10,7 +10,7 @@ interface GalleryGridProps {
 }
 
 export default function GalleryGrid({ person }: GalleryGridProps) {
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
   
   // Use gallery images
   const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
@@ -22,59 +22,74 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
 
   return (
     <div className="gallery-section w-full">
-      {/* Horizontal scrollable gallery with fixed height */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-4 pb-4">
-          {galleryImages.sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((image, index) => (
-            <div
-              key={`gallery-image-${index}`}
-              className="flex-shrink-0 cursor-pointer group"
-              onClick={() => setSelectedImageId(image.id)}
-            >
-              <div className="relative h-48 hover:opacity-90 transition-opacity">
-                <Image
-                  src={generateImageUrl(image.id, { width: 300, height: 192, quality: 85 })}
-                  alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
-                  width={300}
-                  height={192}
-                  className="h-48 w-auto object-contain rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                  style={{ width: 'auto', height: 'auto', maxWidth: 'none' }}
-                />
-                {image.caption && (
-                  <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-semibold">
-                    {image.caption}
-                  </div>
-                )}
-              </div>
+      {/* Responsive grid gallery */}
+      <div className="flex flex-wrap gap-6">
+        {galleryImages.sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((image, index) => (
+          <div
+            key={`gallery-image-${index}`}
+            className="relative cursor-pointer group rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-white p-2"
+            onClick={() => setSelectedImage(image)}
+          >
+            <div className="relative w-[200px] h-[200px] bg-gray-50 rounded overflow-hidden">
+              <Image
+                src={generateImageUrl(image.id, { width: 400, height: 400, quality: 90 })}
+                alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
+                fill
+                className="object-contain group-hover:scale-105 transition-transform duration-300"
+                sizes="200px"
+              />
+              {/* Caption overlay that appears on hover */}
+              {image.caption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-black/50 text-white p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <p className="text-sm font-medium">{image.caption}</p>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Lightbox for selected image */}
-      {selectedImageId && (
+      {selectedImage && (
         <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedImageId(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={() => setSelectedImage(null)}
         >
-          <div className="relative max-w-7xl max-h-[90vh]">
-            <Image
-              src={generateImageUrl(selectedImageId, { width: 1200, height: 800, quality: 90 })}
-              alt="Enlarged photo"
-              width={1200}
-              height={800}
-              className="w-auto h-auto max-w-full max-h-[90vh] object-contain"
-              style={{ width: 'auto', height: 'auto' }}
-            />
+          <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+            {/* Close button */}
             <button
-              onClick={() => setSelectedImageId(null)}
-              className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
+              onClick={e => {
+                e.stopPropagation();
+                setSelectedImage(null);
+              }}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
               aria-label="Close"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+
+            {/* Image container - 70% of viewport */}
+            <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
+              <Image
+                src={generateImageUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
+                alt={selectedImage.caption || `Photo of ${person.firstName} ${person.lastName}`}
+                width={1200}
+                height={800}
+                className="max-w-full max-h-full object-contain"
+                style={{ maxWidth: '70vw', maxHeight: '70vh' }}
+              />
+            </div>
+
+            {/* Caption below image */}
+            {selectedImage.caption && (
+              <div className="mt-4 max-w-[70vw] text-center">
+                <p className="text-white text-lg">
+                  {selectedImage.caption}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

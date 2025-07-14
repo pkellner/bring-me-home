@@ -104,6 +104,7 @@ export default function LayoutRenderer({
     'basic-info': () => <sections.BasicInfo person={person} isAdmin={isAdmin} />,
     'sidebar-info': () => <sections.SidebarInfo person={person} />,
     'gallery-grid': () => <sections.GalleryGrid person={person} />,
+    'photo-gallery': () => <sections.PhotoGallery person={person} />,
     'featured-image': () => <sections.FeaturedImage person={person} />,
     'article-content': () => <sections.ArticleContent person={person} />,
     'sidebar': () => <sections.Sidebar person={person} isAdmin={isAdmin} />,
@@ -162,6 +163,11 @@ export default function LayoutRenderer({
             {/* Top row with image, info, and additional photos */}
             <div className="layout-section w-full">
               {components['top-row']()}
+            </div>
+
+            {/* Photo Gallery section - full width */}
+            <div className="layout-section w-full">
+              {components['photo-gallery']()}
             </div>
 
             {/* Stories section - full width */}

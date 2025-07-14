@@ -129,6 +129,12 @@ export function GalleryImagesTab({
   }, [hasChanges, hideButtons]);
 
   const handleAddImage = () => {
+    // Check if we've reached the 15 image limit
+    const currentImageCount = galleryImages.filter(img => !img.toDelete).length;
+    if (currentImageCount >= 15) {
+      showErrorAlert('You can upload a maximum of 15 gallery images', 5000);
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -136,7 +142,21 @@ export function GalleryImagesTab({
     const files = event.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file, index) => {
+    const currentImageCount = galleryImages.filter(img => !img.toDelete).length;
+    const remainingSlots = 15 - currentImageCount;
+    
+    if (remainingSlots <= 0) {
+      showErrorAlert('You have reached the maximum limit of 15 gallery images', 5000);
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+    
+    if (files.length > remainingSlots) {
+      showErrorAlert(`Only ${remainingSlots} images were selected due to the 15 image limit`, 5000);
+    }
+
+    filesToUpload.forEach((file, index) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newImage: GalleryImage = {
@@ -300,9 +320,19 @@ export function GalleryImagesTab({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Gallery Images</h3>
+        <div>
+          <h3 className="text-lg font-semibold">Gallery Images</h3>
+          <p className="text-sm text-gray-500">
+            {visibleImages.length} of 15 images (maximum)
+          </p>
+        </div>
         <div className="flex gap-4">
-          <Button type="button" onClick={handleAddImage} disabled={isSaving}>
+          <Button 
+            type="button" 
+            onClick={handleAddImage} 
+            disabled={isSaving || visibleImages.length >= 15}
+            title={visibleImages.length >= 15 ? "Maximum 15 images allowed" : "Add new image"}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add New Image
           </Button>

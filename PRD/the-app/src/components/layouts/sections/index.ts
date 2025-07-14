@@ -8,6 +8,7 @@ export { default as Comments } from './Comments';
 export { default as BasicInfo } from './BasicInfo';
 export { default as SidebarInfo } from './SidebarInfo';
 export { default as GalleryGrid } from './GalleryGrid';
+export { default as PhotoGallery } from './PhotoGallery';
 export { default as FeaturedImage } from './FeaturedImage';
 export { default as ArticleContent } from './ArticleContent';
 export { default as Sidebar } from './Sidebar';

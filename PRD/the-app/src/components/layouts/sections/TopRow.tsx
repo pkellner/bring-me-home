@@ -11,7 +11,6 @@ interface TopRowProps {
 
 export default function TopRow({ person, isAdmin }: TopRowProps) {
   const profileImage = person.images?.find(img => img.imageType === 'primary');
-  const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
   
   return (
     <div className="top-row-section w-full">
@@ -103,34 +102,6 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
             </div>
           )}
         </div>
-
-        {/* Additional Photos - max 150px each */}
-        {galleryImages.length > 0 && (
-          <div className="flex-shrink-0 w-full lg:w-auto">
-            <h3 className="text-sm font-semibold mb-2">Additional Photos</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 max-w-full lg:max-w-[320px]">
-              {galleryImages.sort((a, b) => a.sequenceNumber - b.sequenceNumber).slice(0, 4).map((image, index) => (
-                <div
-                  key={image.id}
-                  className="relative rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-gray-100 aspect-square w-full max-w-[150px]"
-                >
-                  <Image
-                    src={generateImageUrl(image.id, { width: 300, height: 300, quality: 85 })}
-                    alt={image.caption || `Additional photo ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="150px"
-                  />
-                  {image.caption && (
-                    <div className="absolute top-1 left-1 bg-black/70 text-white px-2 py-0.5 rounded text-xs font-semibold">
-                      {image.caption}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

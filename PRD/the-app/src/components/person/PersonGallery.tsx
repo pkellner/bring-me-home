@@ -68,21 +68,19 @@ export default function PersonGallery({
               <ImageUpload personId={personId} personName={personName} />
             )}
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map(image => (
               <div
                 key={image.id}
-                className="relative cursor-pointer group overflow-hidden rounded-lg"
+                className="relative cursor-pointer group overflow-hidden rounded-lg aspect-square"
                 onClick={() => setSelectedImage(image)}
-                style={{ width: '300px' }}
               >
-                <div className="w-full h-[300px] bg-gray-200 overflow-hidden">
-                  <img
-                    src={image.imageUrl}
-                    alt={image.caption || `Photo of ${personName}`}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                </div>
+                <img
+                  src={image.imageUrl}
+                  alt={image.caption || `Photo of ${personName}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  style={{ width: '300px', height: '300px' }}
+                />
                 {image.isPrimary && (
                   <div className="absolute top-2 left-2">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
@@ -92,7 +90,7 @@ export default function PersonGallery({
                 )}
                 {/* Caption overlay that appears on hover */}
                 {image.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200 rounded-b-lg">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200">
                     <p className="text-sm">{image.caption}</p>
                   </div>
                 )}
@@ -106,69 +104,52 @@ export default function PersonGallery({
       {/* Image Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
           onClick={() => setSelectedImage(null)}
         >
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
+          <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+            {/* Close button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setSelectedImage(null);
+              }}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+            >
+              <svg
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
 
-            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all w-full max-w-4xl">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {selectedImage.caption || `Photo of ${personName}`}
-                  </h3>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedImage(null);
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="max-h-96 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={selectedImage.imageUrl}
-                    alt={selectedImage.caption || `Photo of ${personName}`}
-                    className="max-h-full max-w-full object-contain"
-                    onClick={e => e.stopPropagation()}
-                  />
-                </div>
-
-                {selectedImage.caption && (
-                  <p className="mt-4 text-sm text-gray-600">
-                    {selectedImage.caption}
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    setSelectedImage(null);
-                  }}
-                  className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm"
-                >
-                  Close
-                </button>
-              </div>
+            {/* Image container - 70% of viewport */}
+            <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
+              <img
+                src={selectedImage.imageUrl}
+                alt={selectedImage.caption || `Photo of ${personName}`}
+                className="max-w-full max-h-full object-contain"
+                onClick={e => e.stopPropagation()}
+                style={{ maxWidth: '70vw', maxHeight: '70vh' }}
+              />
             </div>
+
+            {/* Caption below image */}
+            {selectedImage.caption && (
+              <div className="mt-4 max-w-[70vw] text-center">
+                <p className="text-white text-lg">
+                  {selectedImage.caption}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
