@@ -63,6 +63,7 @@ export default async function EditPersonPage({
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
     images,
+    personImages: person.personImages, // Keep the original personImages for the new tab components
   };
 
   return (

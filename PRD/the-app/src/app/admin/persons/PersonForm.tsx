@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
-import PersonImageManager from '@/components/admin/PersonImageManager';
 import {
   DetentionCenter,
   Person,
   ImageStorage,
   Story,
   Town,
+  PersonImage,
 } from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
@@ -20,6 +20,10 @@ import FormActions from './components/FormActions';
 import { Session } from 'next-auth';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabsProvider, useTabs } from '@/app/admin/persons/[id]/edit/TabsProvider';
+import { PersonImageTab } from '@/app/admin/persons/[id]/edit/PersonImageTab';
+import { GalleryImagesTab } from '@/app/admin/persons/[id]/edit/GalleryImagesTab';
 
 // Serialized version of Person for client components
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
@@ -28,6 +32,7 @@ type SerializedPerson = Omit<Person, 'bondAmount'> & {
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
   images?: ImageStorage[];
+  personImages?: (PersonImage & { image: ImageStorage })[];
 };
 
 interface PersonFormProps {
@@ -36,7 +41,7 @@ interface PersonFormProps {
   session?: Session | null;
 }
 
-export default function PersonForm({ person, towns, session }: PersonFormProps) {
+function PersonFormContent({ person, towns, session }: PersonFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
@@ -56,6 +61,14 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     })) || []
   );
   // Image state removed - display only
+  const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
+  const [galleryImages, setGalleryImages] = useState<Array<{
+    id: string;
+    caption: string;
+    toDelete?: boolean;
+    isNew?: boolean;
+    file?: File;
+  }>>([]);
 
 
   async function handleSubmit(formData: FormData) {
@@ -63,23 +76,87 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     setIsSubmitting(true);
     setErrors({});
 
-
-    // Add stories as JSON to form data
-    console.log('Saving stories:', stories);
-    formData.set('stories', JSON.stringify(stories));
-    // Add detention center ID to form data
-    if (selectedDetentionCenterId) {
-      formData.append('detentionCenterId', selectedDetentionCenterId);
-    } else {
-      formData.append('detentionCenterId', '');
-    }
-
-    // Image processing removed - display only
-
     try {
-      const result = person
-        ? await updatePerson(person.id, formData)
-        : await createPerson(formData);
+      // Sequential update of all three tabs
+      let finalResult: { success?: boolean; errors?: Record<string, string[]>; person?: { id: string; slug: string; townSlug: string } } = { success: true };
+
+      // 1. Update details tab (but not images)
+      const detailsFormData = new FormData();
+      
+      // Copy all form fields except image-related ones
+      for (const [key, value] of formData.entries()) {
+        if (!key.startsWith('primaryPicture') && !key.startsWith('galleryImage')) {
+          detailsFormData.append(key, value);
+        }
+      }
+      
+      // Add stories and detention center
+      console.log('Saving stories:', stories);
+      detailsFormData.set('stories', JSON.stringify(stories));
+      if (selectedDetentionCenterId) {
+        detailsFormData.append('detentionCenterId', selectedDetentionCenterId);
+      } else {
+        detailsFormData.append('detentionCenterId', '');
+      }
+
+      const detailsResult = person
+        ? await updatePerson(person.id, detailsFormData)
+        : await createPerson(detailsFormData);
+
+      if (detailsResult.errors) {
+        setErrors(detailsResult.errors);
+        finalResult = detailsResult;
+      } else {
+        // If creating new person, get the ID for subsequent updates
+        const personId = person?.id || (detailsResult as { person?: { id: string } }).person?.id;
+        
+        if (personId) {
+          // 2. Update person image
+          if (primaryImageFile) {
+            const imageFormData = new FormData();
+            imageFormData.set('primaryPicture', primaryImageFile);
+            
+            const imageResult = await updatePerson(personId, imageFormData);
+            if (imageResult.errors) {
+              setErrors(prev => ({ ...prev, ...imageResult.errors }));
+              showErrorAlert('Failed to update person image', 3000);
+            } else {
+              showSuccessAlert('Person image updated successfully', 2000);
+              triggerImageUpdate(); // Trigger image reload for other tabs
+            }
+          }
+
+          // 3. Update gallery images
+          if (galleryImages.length > 0) {
+            const galleryFormData = new FormData();
+            const galleryData = galleryImages.map((img, index) => {
+              if (img.file) {
+                galleryFormData.append(`galleryImage_${index}`, img.file);
+              }
+              return {
+                id: img.id,
+                caption: img.caption,
+                toDelete: img.toDelete,
+                isNew: img.isNew
+              };
+            });
+            galleryFormData.set('additionalImages', JSON.stringify(galleryData));
+            
+            const galleryResult = await updatePerson(personId, galleryFormData);
+            if (galleryResult.errors) {
+              setErrors(prev => ({ ...prev, ...galleryResult.errors }));
+              showErrorAlert('Failed to update gallery images', 3000);
+            } else {
+              showSuccessAlert('Gallery images updated successfully', 2000);
+              triggerImageUpdate(); // Trigger image reload for other tabs
+            }
+          }
+        }
+        
+        finalResult = detailsResult;
+      }
+
+      const result = finalResult;
 
       if (result.errors) {
         setIsSubmitting(false);
@@ -88,9 +165,9 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
         // Show error alert with details
         const errorDetails: string[] = [];
         Object.entries(result.errors).forEach(([field, messages]) => {
-          if (field === '_form') {
+          if (field === '_form' && Array.isArray(messages)) {
             errorDetails.push(...messages);
-          } else {
+          } else if (Array.isArray(messages)) {
             errorDetails.push(`${field}: ${messages.join(', ')}`);
           }
         });
@@ -179,6 +256,10 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
   }
 
   // Image change handler removed - display only
+  const { activeTab, setActiveTab, triggerImageUpdate } = useTabs();
+
+  const primaryImage = person?.personImages?.find(pi => pi.imageType === 'primary');
+  const galleryImagesList = person?.personImages?.filter(pi => pi.imageType === 'gallery') || [];
 
   return (
     <>
@@ -193,48 +274,56 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
           isLoading={isSubmitting}
           message={person ? 'Updating person...' : 'Creating person...'}
         />
-        <PersonBasicInfo person={person} towns={towns} errors={errors} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="person-image">Person Image</TabsTrigger>
+            <TabsTrigger value="gallery-images">Gallery Images</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details" className="space-y-6">
+            <PersonBasicInfo person={person} towns={towns} errors={errors} />
 
-        <PersonDetentionInfo
-          person={person}
-          selectedDetentionCenter={selectedDetentionCenter}
-          selectedDetentionCenterId={selectedDetentionCenterId}
-          onOpenModal={() => setDetentionModalOpen(true)}
-        />
+            <PersonDetentionInfo
+              person={person}
+              selectedDetentionCenter={selectedDetentionCenter}
+              selectedDetentionCenterId={selectedDetentionCenterId}
+              onOpenModal={() => setDetentionModalOpen(true)}
+            />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Stories
-          </label>
-          <MultiLanguageStoryEditor
-            stories={person?.stories}
-            onChange={setStories}
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            Add stories in multiple languages. Visitors will be able to switch
-            between available languages on the profile page.
-          </p>
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Stories
+              </label>
+              <MultiLanguageStoryEditor
+                stories={person?.stories}
+                onChange={setStories}
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Add stories in multiple languages. Visitors will be able to switch
+                between available languages on the profile page.
+              </p>
+            </div>
 
-        <div className="border-t pt-6">
-          <PersonImageManager
-            primaryImage={useMemo(() => {
-              const profileImg = person?.images?.find(img => (img as ImageStorage & { imageType: string }).imageType === 'primary');
-              if (!profileImg) return undefined;
-              return `/api/images/${profileImg.id}`;
-            }, [person?.images])}
-            existingImages={useMemo(() => 
-              person?.images?.filter(img => (img as ImageStorage & { imageType: string }).imageType === 'gallery')?.map(img => ({
-                id: img.id,
-                imageUrl: `/api/images/${img.id}`,
-                caption: img.caption,
-              })) || []
-            , [person?.images])}
-            // Display only - no onChange handler
-          />
-        </div>
-
-        <VisibilitySettings person={person} />
+            <VisibilitySettings person={person} />
+          </TabsContent>
+          
+          <TabsContent value="person-image" className="space-y-6">
+            <PersonImageTab
+              personId={person?.id || ''}
+              currentImage={primaryImage}
+              onImageChange={setPrimaryImageFile}
+            />
+          </TabsContent>
+          
+          <TabsContent value="gallery-images" className="space-y-6">
+            <GalleryImagesTab
+              personId={person?.id || ''}
+              currentImages={galleryImagesList}
+              onImagesChange={setGalleryImages}
+            />
+          </TabsContent>
+        </Tabs>
 
         <FormActions 
           isSubmitting={isSubmitting} 
@@ -251,5 +340,13 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
         currentDetentionCenterId={selectedDetentionCenterId}
       />
     </>
+  );
+}
+
+export default function PersonForm(props: PersonFormProps) {
+  return (
+    <TabsProvider>
+      <PersonFormContent {...props} />
+    </TabsProvider>
   );
 }

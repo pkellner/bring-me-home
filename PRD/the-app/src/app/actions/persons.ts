@@ -438,16 +438,43 @@ export async function updatePerson(id: string, formData: FormData) {
 
       for (const imageData of additionalImages) {
         if (imageData.toDelete && imageData.id) {
-          // Delete existing image
-          await prisma.imageStorage.delete({
-            where: { id: imageData.id },
+          // Delete the PersonImage relationship
+          const personImage = await prisma.personImage.findFirst({
+            where: {
+              personId: id,
+              imageId: imageData.id,
+            },
           });
+          
+          if (personImage) {
+            await prisma.personImage.delete({
+              where: { id: personImage.id },
+            });
+            
+            // Check if image is used elsewhere
+            const otherUsage = await prisma.personImage.count({
+              where: { imageId: imageData.id },
+            });
+            
+            if (otherUsage === 0) {
+              // Also check detention center usage
+              const dcUsage = await prisma.detentionCenterImage.count({
+                where: { imageId: imageData.id },
+              });
+              
+              if (dcUsage === 0) {
+                await prisma.imageStorage.delete({
+                  where: { id: imageData.id },
+                });
+              }
+            }
+          }
         } else if (imageData.isNew && imageData.file) {
           // Process and create new image
           try {
             // Get the file from FormData
             const imageFile = formData.get(
-              `image_file_${additionalImages.indexOf(imageData)}`
+              `galleryImage_${additionalImages.indexOf(imageData)}`
             ) as File;
             if (imageFile && imageFile.size > 0) {
               const buffer = Buffer.from(await imageFile.arrayBuffer());
@@ -466,7 +493,7 @@ export async function updatePerson(id: string, formData: FormData) {
           } catch (error) {
             console.error('Failed to process additional image:', error);
           }
-        } else if (imageData.id && !imageData.toDelete) {
+        } else if (imageData.id && !imageData.toDelete && !imageData.isNew) {
           // Update existing image caption
           await prisma.imageStorage.update({
             where: { id: imageData.id },

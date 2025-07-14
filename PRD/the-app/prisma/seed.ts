@@ -35,7 +35,7 @@ const SEED_VALUES = {
     0.211, 0.544, 0.877, 0.100, 0.423, 0.746, 0.979, 0.302, 0.625, 0.878,
   ],
   currentIndex: 0,
-  
+
   // Pre-generated integers for various ranges
   personsPerTown: [3, 5, 2, 4, 3], // 2-5 persons per town
   alienNumbers: [234567890, 345678901, 456789012, 567890123, 678901234, 789012345, 890123456, 901234567, 123456789, 234567891],
@@ -46,7 +46,7 @@ const SEED_VALUES = {
   lawyerNumbers: [10, 25, 47, 63, 82, 91, 15, 38, 54, 77],
   supportersPerPerson: [15, 22, 10, 28, 18, 25, 12, 20, 16, 24],
   commentsPerPerson: [5, 3, 7, 4, 6, 8, 3, 5, 4, 6],
-  
+
   // Boolean decisions (true/false)
   booleans: [
     true, false, true, true, false, true, false, false, true, true,
@@ -87,7 +87,7 @@ function randomElement<T>(array: T[]): T {
 // Helper function to store placeholder images in database
 async function storePlaceholderImages() {
   console.log('Storing placeholder images in database...');
-  
+
   imageStorageService = new ImageStorageService(prisma);
 
   for (let i = 1; i <= 10; i++) {
@@ -546,7 +546,7 @@ const generatePersons = () => {
       });
     }
   }
-  
+
   // Add Joe Plumber specifically to Borrego Springs
   const joePlumber = {
     firstName: 'Joe',
@@ -593,7 +593,7 @@ const generatePersons = () => {
     lastHeardFromDate: new Date(2024, 3, 1),
     countryOfOrigin: 'Mexico',
   };
-  
+
   persons.push(joePlumber);
 
   return persons;
@@ -717,7 +717,7 @@ const generateSupporters = (persons: SeedPerson[]) => {
   ];
 
   const supporters = [];
-  let supporterId = 1;
+  //const supporterId = 1;
   let detainedIndex = 0;
 
   for (const person of persons) {
@@ -822,7 +822,7 @@ const generateComments = (persons: SeedPerson[]) => {
   ];
 
   const comments = [];
-  let commentId = 1;
+  //let commentId = 1;
   let personIndex = 0;
 
   for (const person of persons) {
@@ -924,7 +924,7 @@ const themes = [
       ':root { --primary: #D2691E; --secondary: #F4A460; --accent: #FF6347; --background: #FFF8DC; --text: #2F4F4F; }',
   },
   {
-    
+
     name: 'Ocean Breeze',
     description: 'Cool blues and greens of the California coast',
     colors: JSON.stringify({
@@ -938,7 +938,7 @@ const themes = [
       ':root { --primary: #4682B4; --secondary: #87CEEB; --accent: #20B2AA; --background: #F0F8FF; --text: #191970; }',
   },
   {
-    
+
     name: 'Mountain Pine',
     description: 'Earthy greens and browns',
     colors: JSON.stringify({
@@ -952,7 +952,7 @@ const themes = [
       ':root { --primary: #228B22; --secondary: #8FBC8F; --accent: #654321; --background: #F5F5DC; --text: #2F4F2F; }',
   },
   {
-    
+
     name: 'Sunset Gold',
     description: 'Golden hour colors',
     colors: JSON.stringify({
@@ -966,7 +966,7 @@ const themes = [
       ':root { --primary: #FFD700; --secondary: #FFA500; --accent: #FF8C00; --background: #FFFAF0; --text: #333333; }',
   },
   {
-    
+
     name: 'Purple Twilight',
     description: 'Deep purples and midnight blues',
     colors: JSON.stringify({
@@ -980,7 +980,7 @@ const themes = [
       ':root { --primary: #6B46C1; --secondary: #9333EA; --accent: #7C3AED; --background: #FAF5FF; --text: #1F2937; }',
   },
   {
-    
+
     name: 'Rose Garden',
     description: 'Soft pinks and roses',
     colors: JSON.stringify({
@@ -994,7 +994,7 @@ const themes = [
       ':root { --primary: #EC4899; --secondary: #F472B6; --accent: #F87171; --background: #FFF1F2; --text: #881337; }',
   },
   {
-    
+
     name: 'Neutral Gray',
     description: 'Professional grayscale theme',
     colors: JSON.stringify({
@@ -1008,7 +1008,7 @@ const themes = [
       ':root { --primary: #4B5563; --secondary: #9CA3AF; --accent: #6B7280; --background: #F9FAFB; --text: #111827; }',
   },
   {
-    
+
     name: 'Forest Deep',
     description: 'Deep forest greens',
     colors: JSON.stringify({
@@ -1022,7 +1022,7 @@ const themes = [
       ':root { --primary: #064E3B; --secondary: #059669; --accent: #34D399; --background: #ECFDF5; --text: #022C22; }',
   },
   {
-    
+
     name: 'Warm Terra',
     description: 'Terracotta and warm earth tones',
     colors: JSON.stringify({
@@ -1036,7 +1036,7 @@ const themes = [
       ':root { --primary: #C2410C; --secondary: #EA580C; --accent: #FB923C; --background: #FFF7ED; --text: #431407; }',
   },
   {
-    
+
     name: 'Cool Slate',
     description: 'Modern slate blues',
     colors: JSON.stringify({
@@ -1095,7 +1095,7 @@ const layouts = [
     }),
   },
   {
-    
+
     name: 'Timeline',
     description: 'Timeline-based layout',
     template: JSON.stringify({
@@ -1104,7 +1104,7 @@ const layouts = [
     }),
   },
   {
-    
+
     name: 'Magazine',
     description: 'Magazine-style layout',
     template: JSON.stringify({
@@ -1114,7 +1114,7 @@ const layouts = [
     }),
   },
   {
-    
+
     name: 'Minimal',
     description: 'Minimal clean layout',
     template: JSON.stringify({
@@ -1123,7 +1123,7 @@ const layouts = [
     }),
   },
   {
-    
+
     name: 'Gallery Focus',
     description: 'Emphasizes image gallery',
     template: JSON.stringify({
@@ -1132,7 +1132,7 @@ const layouts = [
     }),
   },
   {
-    
+
     name: 'Full Width',
     description: 'Full width modern layout',
     template: JSON.stringify({
@@ -1543,7 +1543,7 @@ async function main() {
         ...center,
       },
     });
-    
+
     // Create detention center image association
     await imageStorageService.setDetentionCenterImage(created.id, imageBuffer);
     createdIds.detentionCenters.set(center.name, created.id);
@@ -1553,18 +1553,18 @@ async function main() {
   console.log('Creating towns...');
   const layoutNames = Array.from(createdIds.layouts.keys());
   const themeNames = Array.from(createdIds.themes.keys());
-  
+
   // Get existing town slugs for uniqueness check
   const existingTownSlugs: string[] = [];
-  
+
   for (const town of towns) {
     const layoutName = layoutNames[town.name.charCodeAt(0) % layoutNames.length];
     const themeName = themeNames[town.name.charCodeAt(1) % themeNames.length];
-    
+
     // Generate unique slug
     const slug = createTownSlug(town.name, existingTownSlugs);
     existingTownSlugs.push(slug);
-    
+
     const created = await prisma.town.create({
       data: {
         ...town,
@@ -1579,22 +1579,22 @@ async function main() {
   // Generate and create persons
   console.log('Generating and creating persons...');
   const persons = generatePersons();
-  
+
   // Get existing person slugs for uniqueness check
   const existingPersonSlugs: string[] = [];
-  
+
   for (const person of persons) {
     const { townName, detentionCenterName, ...personData } = person;
-    
+
     // Generate unique slug
     const slug = createPersonSlug(
-      person.firstName, 
-      person.middleName, 
-      person.lastName, 
+      person.firstName,
+      person.middleName,
+      person.lastName,
       existingPersonSlugs
     );
     existingPersonSlugs.push(slug);
-    
+
     const created = await prisma.person.create({
       data: {
         ...personData,
@@ -1606,7 +1606,7 @@ async function main() {
     createdIds.persons.set(`${person.firstName}_${person.lastName}`, created.id);
   }
   console.log(`Created ${persons.length} persons.`);
-  
+
   // Hardcoded gallery image counts for deterministic seeding
   // Generated once and hardcoded to ensure consistency across seeds
   const galleryImageCounts = [
@@ -1616,22 +1616,22 @@ async function main() {
     2, 3, 1, 4, 0, 5, 2, 3, 1, 4,  // indices 30-39
     3, 2, 5, 1, 0, 4, 2, 3, 5, 1,  // indices 40-49
   ];
-  
+
   // Persons to skip images (indices 3, 7, 11)
   const skipImageIndices = [3, 7, 11];
-  
+
   // Add images to persons - fully deterministic approach
   console.log('Adding images to persons...');
   for (let i = 0; i < persons.length; i++) {
     const person = persons[i];
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
-    
+
     // Skip images for specific persons
     if (skipImageIndices.includes(i)) {
       console.log(`Skipping images for ${person.firstName} ${person.lastName}`);
       continue;
     }
-    
+
     // Add primary image with "P" label
     const primaryImageNum = ((i + 1) % 10) + 1;
     const primaryImagePath = join(
@@ -1645,12 +1645,12 @@ async function main() {
       sequenceNumber: 0,
       caption: 'P', // Primary image label
     });
-    
+
     // Get gallery image count from hardcoded array
-    const galleryImageCount = i < galleryImageCounts.length 
-      ? galleryImageCounts[i] 
+    const galleryImageCount = i < galleryImageCounts.length
+      ? galleryImageCounts[i]
       : galleryImageCounts[i % galleryImageCounts.length];
-    
+
     for (let g = 0; g < galleryImageCount; g++) {
       const galleryImageNum = ((i + g + 2) % 10) + 1;
       const galleryImagePath = join(
@@ -1667,12 +1667,12 @@ async function main() {
     }
   }
   console.log('Added images to persons.');
-  
+
   // Update primaryPicture URLs for all persons
   console.log('Updating primary picture URLs...');
   for (const person of persons) {
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
-    
+
     // Get the primary image for this person
     const primaryImage = await prisma.personImage.findFirst({
       where: {
@@ -1683,7 +1683,7 @@ async function main() {
         sequenceNumber: 'asc',
       },
     });
-    
+
     if (primaryImage) {
       await prisma.person.update({
         where: { id: personId },
@@ -1704,7 +1704,7 @@ async function main() {
   for (const supporter of supporters) {
     const { personFirstName, personLastName, ...supporterData } = supporter;
     const personId = createdIds.persons.get(`${personFirstName}_${personLastName}`)!;
-    
+
     await prisma.supporter.create({
       data: {
         ...supporterData,
@@ -1720,7 +1720,7 @@ async function main() {
   for (const comment of comments) {
     const { personFirstName, personLastName, ...commentData } = comment;
     const personId = createdIds.persons.get(`${personFirstName}_${personLastName}`)!;
-    
+
     await prisma.comment.create({
       data: {
         ...commentData,
@@ -1735,7 +1735,7 @@ async function main() {
   const detainedPersons = persons.filter(p => p.detentionCenterName);
   for (const person of detainedPersons) {
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
-    
+
     await prisma.familyPrivacySettings.upsert({
       where: { personId },
       update: {}, // Don't update if it already exists
@@ -1775,7 +1775,7 @@ async function main() {
     password: adminPassword,
     source: process.env.SEED_ADMIN_PASSWORD ? 'env' : 'generated'
   });
-  
+
   const adminUser = await prisma.user.create({
     data: {
       username: 'admin',
@@ -1822,7 +1822,7 @@ async function main() {
   ];
 
   const demoPassword = process.env.SEED_DEMO_PASSWORD || generateSecurePassword();
-  
+
   for (const demoUser of demoUsers) {
     const hashedDemoPassword = await bcrypt.hash(demoPassword, 12);
     const user = await prisma.user.create({
@@ -1832,7 +1832,7 @@ async function main() {
         isActive: true,
       },
     });
-    
+
     passwordInfo.push({
       user: demoUser.username,
       password: demoPassword,
@@ -1851,7 +1851,7 @@ async function main() {
   // Create town admin users
   console.log('Creating town admin users...');
   const townAdminPassword = process.env.SEED_TOWN_ADMIN_PASSWORD || generateSecurePassword();
-  
+
   for (let i = 0; i < towns.length; i++) {
     const town = towns[i];
     const hashedPassword = await bcrypt.hash(townAdminPassword, 12);
@@ -1865,7 +1865,7 @@ async function main() {
         isActive: true,
       },
     });
-    
+
     passwordInfo.push({
       user: `town_admin_${i + 1}`,
       password: townAdminPassword,
@@ -1889,7 +1889,7 @@ async function main() {
       },
     });
   }
-  
+
   // Create person-admin user
   console.log('Creating person admin user...');
   const personAdminPasswordPlain = process.env.SEED_PERSON_ADMIN_PASSWORD || generateSecurePassword();
@@ -1904,13 +1904,13 @@ async function main() {
       isActive: true,
     },
   });
-  
+
   passwordInfo.push({
     user: 'person_admin_1',
     password: personAdminPasswordPlain,
     source: process.env.SEED_PERSON_ADMIN_PASSWORD ? 'env' : 'generated'
   });
-  
+
   // Assign person-admin role
   await prisma.userRole.create({
     data: {
@@ -1918,7 +1918,7 @@ async function main() {
       roleId: createdIds.roles.get('person-admin')!,
     },
   });
-  
+
   // Grant access to Joe Plumber
   const joePlumberId = createdIds.persons.get('Joe_Plumber')!;
   await prisma.personAccess.create({
@@ -2180,18 +2180,18 @@ async function main() {
   console.log(`- ${layouts.length} layouts`);
   console.log(`- ${detentionCenters.length} detention centers`);
   console.log(`- ${demoUsers.length + towns.length + 1} users`);
-  
+
   // Display password information
   console.log('\n===========================================');
   console.log('USER CREDENTIALS SUMMARY');
   console.log('===========================================\n');
-  
+
   // Group passwords by type
   const adminPasswords = passwordInfo.filter(p => p.user === 'admin');
   const demoPasswords = passwordInfo.filter(p => p.user.includes('john.doe') || p.user.includes('jane.smith') || p.user.includes('mike.jones'));
   const townAdminPasswords = passwordInfo.filter(p => p.user.includes('town_admin'));
   const personAdminPasswords = passwordInfo.filter(p => p.user.includes('person_admin'));
-  
+
   // Display admin password
   if (adminPasswords.length > 0) {
     const { user, password, source } = adminPasswords[0];
@@ -2199,21 +2199,21 @@ async function main() {
     console.log(`  Username: ${user}`);
     console.log(`  Password: ${password} ${source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
   }
-  
+
   // Display demo passwords
   if (demoPasswords.length > 0) {
     console.log(`\nDemo Users (all use same password):`);
     console.log(`  Usernames: john.doe, jane.smith, mike.jones`);
     console.log(`  Password: ${demoPasswords[0].password} ${demoPasswords[0].source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
   }
-  
+
   // Display town admin passwords
   if (townAdminPasswords.length > 0) {
     console.log(`\nTown Admin Users (all use same password):`);
     console.log(`  Usernames: town_admin_1 through town_admin_${towns.length}`);
     console.log(`  Password: ${townAdminPasswords[0].password} ${townAdminPasswords[0].source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
   }
-  
+
   // Display person admin password
   if (personAdminPasswords.length > 0) {
     const { user, password, source } = personAdminPasswords[0];
@@ -2221,7 +2221,7 @@ async function main() {
     console.log(`  Username: ${user}`);
     console.log(`  Password: ${password} ${source === 'env' ? '(from .env)' : '(GENERATED - Save this!)'}`);
   }
-  
+
   // Warning for generated passwords
   const generatedPasswords = passwordInfo.filter(p => p.source === 'generated');
   if (generatedPasswords.length > 0) {
@@ -2241,7 +2241,7 @@ async function main() {
       console.log(`SEED_PERSON_ADMIN_PASSWORD="${personAdminPasswords[0].password}"`);
     }
   }
-  
+
   console.log('\n===========================================\n');
 }
 

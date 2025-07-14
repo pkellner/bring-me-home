@@ -1,3 +1,5 @@
+import { type ClassValue, clsx } from 'clsx';
+
 export function formatDate(date: Date | null): string {
   if (!date) return '';
   return new Date(date).toLocaleDateString('en-US', {
@@ -22,4 +24,8 @@ export function classNames(
   ...classes: (string | undefined | null | false)[]
 ): string {
   return classes.filter(Boolean).join(' ');
+}
+
+export function cn(...inputs: ClassValue[]) {
+  return clsx(inputs);
 }
