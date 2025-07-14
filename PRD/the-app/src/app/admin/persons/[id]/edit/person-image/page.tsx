@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { PersonImageClient } from '../PersonImageClient';
+import { PersonViewLinks } from '../PersonViewLinks';
 
 export const metadata: Metadata = {
   title: 'Edit Person Image',
@@ -28,6 +29,12 @@ export default async function PersonImagePage({
       id: true,
       firstName: true,
       lastName: true,
+      slug: true,
+      town: {
+        select: {
+          slug: true,
+        },
+      },
     },
   });
 
@@ -36,11 +43,17 @@ export default async function PersonImagePage({
   }
 
   const personName = `${person.firstName} ${person.lastName}`;
+  const townSlug = person.town.slug;
+  const personSlug = person.slug;
 
   return (
-    <PersonImageClient 
-      personId={id}
-      personName={personName}
-    />
+    <>
+      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} />
+      
+      <PersonImageClient 
+        personId={id}
+        personName={personName}
+      />
+    </>
   );
 }

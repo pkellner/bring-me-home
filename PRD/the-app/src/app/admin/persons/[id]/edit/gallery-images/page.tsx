@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { GalleryImagesClient } from '../GalleryImagesClient';
+import { PersonViewLinks } from '../PersonViewLinks';
 
 export const metadata: Metadata = {
   title: 'Edit Gallery Images',
@@ -28,6 +29,12 @@ export default async function GalleryImagesPage({
       id: true,
       firstName: true,
       lastName: true,
+      slug: true,
+      town: {
+        select: {
+          slug: true,
+        },
+      },
     },
   });
 
@@ -36,11 +43,17 @@ export default async function GalleryImagesPage({
   }
 
   const personName = `${person.firstName} ${person.lastName}`;
+  const townSlug = person.town.slug;
+  const personSlug = person.slug;
 
   return (
-    <GalleryImagesClient 
-      personId={id}
-      personName={personName}
-    />
+    <>
+      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} />
+      
+      <GalleryImagesClient 
+        personId={id}
+        personName={personName}
+      />
+    </>
   );
 }

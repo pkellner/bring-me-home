@@ -75,7 +75,13 @@ export function GalleryImagesTab({
           }));
           
         setGalleryImages(initialImages);
-        initialImagesRef.current = JSON.stringify(initialImages);
+        // Store only the relevant fields for comparison
+        initialImagesRef.current = JSON.stringify(initialImages.map(img => ({
+          id: img.id,
+          caption: img.caption,
+          isNew: img.isNew,
+          toDelete: img.toDelete
+        })));
       } catch (err) {
         console.error('Error fetching gallery images:', err);
         setError('Failed to load gallery images');
@@ -222,7 +228,13 @@ export function GalleryImagesTab({
           }));
           
         setGalleryImages(refreshedImages);
-        initialImagesRef.current = JSON.stringify(refreshedImages);
+        // Store only the relevant fields for comparison
+        initialImagesRef.current = JSON.stringify(refreshedImages.map(img => ({
+          id: img.id,
+          caption: img.caption,
+          isNew: img.isNew,
+          toDelete: img.toDelete
+        })));
       }
     } catch (err) {
       console.error('Error saving gallery images:', err);
@@ -327,11 +339,12 @@ export function GalleryImagesTab({
                   type="button"
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 hover:scale-110 text-white shadow-lg border-2 border-white transition-all duration-200"
                   onClick={() => handleDeleteImage(image.id)}
                   disabled={isSaving}
+                  title="Delete this image"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </div>
               <Input

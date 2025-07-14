@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { useState, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { PersonEditNavigation } from './PersonEditNavigation';
 import { UnsavedChangesDialog } from './UnsavedChangesDialog';
 
@@ -23,39 +23,13 @@ export function PersonEditLayout({
   children
 }: PersonEditLayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const [showDialog, setShowDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
-  // Handle navigation clicks
-  useEffect(() => {
-    const handleLinkClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest('a');
-      
-      if (!link) return;
-      
-      const href = link.getAttribute('href');
-      if (!href) return;
-      
-      // Check if it's a navigation between our edit pages
-      const isEditPageNav = href.includes(`/admin/persons/${personId}/edit`);
-      const isCurrentPage = href === pathname;
-      
-      if (isEditPageNav && !isCurrentPage && hasChanges) {
-        e.preventDefault();
-        setPendingNavigation(href);
-        setShowDialog(true);
-      }
-    };
-
-    // Add event listener to navigation links only
-    const navElement = document.querySelector('nav');
-    if (navElement) {
-      navElement.addEventListener('click', handleLinkClick, true);
-      return () => navElement.removeEventListener('click', handleLinkClick, true);
-    }
-  }, [hasChanges, pathname, personId]);
+  const handleNavigate = (href: string) => {
+    setPendingNavigation(href);
+    setShowDialog(true);
+  };
 
   const handleSaveAndNavigate = async () => {
     if (onSave) {
@@ -96,6 +70,7 @@ export function PersonEditLayout({
               hasChanges={hasChanges}
               onSave={onSave}
               isSaving={isSaving}
+              onNavigate={handleNavigate}
             />
             
             {children}
