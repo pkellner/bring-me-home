@@ -4,8 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Upload } from 'lucide-react';
+import { Trash2, Upload, Save } from 'lucide-react';
 import { PersonImage, ImageStorage } from '@prisma/client';
+import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
 interface PersonImageTabProps {
   personId: string;
@@ -14,8 +15,12 @@ interface PersonImageTabProps {
 export function PersonImageTab({ personId }: PersonImageTabProps) {
   const [currentImage, setCurrentImage] = useState<(PersonImage & { image: ImageStorage }) | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [shouldClearImage, setShouldClearImage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch primary image when component mounts or personId changes
@@ -49,9 +54,26 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
     fetchPrimaryImage();
   }, [personId]);
 
+  // Handle browser navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
+      setShouldClearImage(false);
+      setHasChanges(true);
+      
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -63,6 +85,9 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
 
   const handleClearImage = () => {
     setImagePreview(null);
+    setSelectedFile(null);
+    setShouldClearImage(true);
+    setHasChanges(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -72,7 +97,50 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
     fileInputRef.current?.click();
   };
 
-  const imageToShow = imagePreview || (currentImage ? `/api/images/${currentImage.imageId}?t=${new Date().getTime()}` : null);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      
+      if (selectedFile) {
+        formData.append('primaryPicture', selectedFile);
+      } else if (shouldClearImage) {
+        formData.append('clearPrimaryPicture', 'true');
+      }
+
+      const response = await fetch(`/api/persons/${personId}/images`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save image');
+      }
+
+      showSuccessAlert('Primary image updated successfully!', 3000);
+      setHasChanges(false);
+      setShouldClearImage(false);
+      setSelectedFile(null);
+      
+      // Refresh the current image
+      const imageResponse = await fetch(`/api/persons/${personId}/images?type=primary`);
+      if (imageResponse.ok) {
+        const primaryImage = await imageResponse.json();
+        setCurrentImage(primaryImage);
+        setImagePreview(null);
+      }
+    } catch (err) {
+      console.error('Error saving image:', err);
+      setError('Failed to save image');
+      showErrorAlert('Failed to save image', 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const imageToShow = imagePreview || (currentImage && !shouldClearImage ? `/api/images/${currentImage.imageId}?t=${new Date().getTime()}` : null);
 
   // Loading state
   if (isLoading) {
@@ -94,7 +162,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
   }
 
   // Error state
-  if (error) {
+  if (error && !hasChanges) {
     return (
       <div className="space-y-6">
         <Card>
@@ -150,7 +218,7 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
                 type="button"
                 variant="outline"
                 onClick={handleClearImage}
-                disabled={!imageToShow}
+                disabled={!imageToShow || isSaving}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear Image
@@ -159,14 +227,35 @@ export function PersonImageTab({ personId }: PersonImageTabProps) {
                 type="button"
                 variant="default"
                 onClick={handleSelectImageClick}
+                disabled={isSaving}
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Select Image
               </Button>
             </div>
+            
+            {hasChanges && (
+              <div className="w-full border-t pt-4 mt-4">
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full"
+                  variant="default"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+      
+      {hasChanges && (
+        <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+          You have unsaved changes. Please save before leaving this page.
+        </div>
+      )}
     </div>
   );
 }

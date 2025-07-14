@@ -5,8 +5,9 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Save } from 'lucide-react';
 import { PersonImage, ImageStorage } from '@prisma/client';
+import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 
 interface GalleryImage {
   id: string;
@@ -26,8 +27,11 @@ interface GalleryImagesTabProps {
 export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initialImagesRef = useRef<string>('');
 
   // Fetch images when component mounts or personId changes
   useEffect(() => {
@@ -41,7 +45,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/persons/${personId}/images`);
+        const response = await fetch(`/api/persons/${personId}/images?type=gallery`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch images');
@@ -61,6 +65,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
           }));
           
         setGalleryImages(initialImages);
+        initialImagesRef.current = JSON.stringify(initialImages);
       } catch (err) {
         console.error('Error fetching gallery images:', err);
         setError('Failed to load gallery images');
@@ -71,6 +76,31 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
 
     fetchImages();
   }, [personId]);
+
+  // Track changes
+  useEffect(() => {
+    const currentState = JSON.stringify(galleryImages.map(img => ({
+      id: img.id,
+      caption: img.caption,
+      isNew: img.isNew,
+      toDelete: img.toDelete
+    })));
+    
+    setHasChanges(currentState !== initialImagesRef.current);
+  }, [galleryImages]);
+
+  // Handle browser navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
   const handleAddImage = () => {
     fileInputRef.current?.click();
@@ -113,6 +143,76 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
     ));
   };
 
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      
+      // Add new images
+      const newImages = galleryImages.filter(img => img.isNew && !img.toDelete);
+      newImages.forEach((img) => {
+        if (img.file) {
+          formData.append(`galleryImage_${img.id}`, img.file);
+          formData.append(`galleryCaption_${img.id}`, img.caption);
+        }
+      });
+
+      // Add images to delete
+      const imagesToDelete = galleryImages.filter(img => img.toDelete && !img.isNew);
+      imagesToDelete.forEach(img => {
+        formData.append('deleteImages', img.personImage?.imageId || '');
+      });
+
+      // Add caption updates
+      const captionUpdates = galleryImages.filter(img => 
+        !img.isNew && !img.toDelete && img.caption !== img.originalCaption
+      );
+      captionUpdates.forEach(img => {
+        formData.append(`updateCaption_${img.id}`, img.caption);
+      });
+
+      const response = await fetch(`/api/persons/${personId}/gallery`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save gallery images');
+      }
+
+      showSuccessAlert('Gallery images updated successfully!', 3000);
+      setHasChanges(false);
+      
+      // Refresh the images
+      const imageResponse = await fetch(`/api/persons/${personId}/images?type=gallery`);
+      if (imageResponse.ok) {
+        const personImages: (PersonImage & { image: ImageStorage })[] = await imageResponse.json();
+        
+        const refreshedImages: GalleryImage[] = personImages
+          .filter(img => img.imageType === 'gallery')
+          .sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0))
+          .map(img => ({
+            id: img.image.id,
+            caption: img.image.caption || '',
+            originalCaption: img.image.caption || '',
+            personImage: img,
+            preview: `/api/images/${img.imageId}?t=${new Date().getTime()}`
+          }));
+          
+        setGalleryImages(refreshedImages);
+        initialImagesRef.current = JSON.stringify(refreshedImages);
+      }
+    } catch (err) {
+      console.error('Error saving gallery images:', err);
+      setError('Failed to save gallery images');
+      showErrorAlert('Failed to save gallery images', 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const visibleImages = galleryImages.filter(img => !img.toDelete);
 
   // Loading state
@@ -139,7 +239,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
   }
 
   // Error state
-  if (error) {
+  if (error && !hasChanges) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -164,10 +264,18 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Gallery Images</h3>
-        <Button type="button" onClick={handleAddImage}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Image
-        </Button>
+        <div className="flex gap-4">
+          <Button type="button" onClick={handleAddImage} disabled={isSaving}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Image
+          </Button>
+          {hasChanges && (
+            <Button onClick={handleSave} disabled={isSaving} variant="default">
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )}
+        </div>
       </div>
 
       <input
@@ -196,6 +304,7 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
                   size="icon"
                   className="absolute top-2 right-2"
                   onClick={() => handleDeleteImage(image.id)}
+                  disabled={isSaving}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -206,14 +315,8 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
                 onChange={(e) => handleCaptionChange(image.id, e.target.value)}
                 placeholder="Enter caption..."
                 className="w-full"
+                disabled={isSaving}
               />
-              {image.isNew && (
-                <input
-                  type="hidden"
-                  name={`galleryImage_${image.id}`}
-                  value={image.file?.name || ''}
-                />
-              )}
             </CardContent>
           </Card>
         ))}
@@ -225,6 +328,12 @@ export function GalleryImagesTab({ personId }: GalleryImagesTabProps) {
             <p className="text-gray-500">No gallery images yet. Click &quot;Add New Image&quot; to get started.</p>
           </CardContent>
         </Card>
+      )}
+      
+      {hasChanges && (
+        <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+          You have unsaved changes. Please save before leaving this page.
+        </div>
       )}
     </div>
   );
