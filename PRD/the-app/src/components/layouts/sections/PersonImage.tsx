@@ -23,6 +23,11 @@ export default function PersonImage({ person }: PersonImageProps) {
             style={{ width: 'auto', height: 'auto' }}
             priority
           />
+          {profileImage.caption && (
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-semibold">
+              {profileImage.caption}
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex h-64 w-full max-w-md mx-auto items-center justify-center rounded-xl bg-gray-100 shadow-inner">

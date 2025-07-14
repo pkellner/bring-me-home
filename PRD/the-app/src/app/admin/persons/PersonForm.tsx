@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
 import PersonImageManager from '@/components/admin/PersonImageManager';
@@ -55,18 +55,7 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
       content: story.content
     })) || []
   );
-  // Gallery images only - primary image editing disabled
-  const [additionalImages, setAdditionalImages] = useState<
-    Array<{
-      id?: string;
-      imageUrl: string;
-      thumbnailUrl?: string | null;
-      caption?: string | null;
-      file?: File;
-      isNew?: boolean;
-      toDelete?: boolean;
-    }>
-  >([]);
+  // Image state removed - display only
 
 
   async function handleSubmit(formData: FormData) {
@@ -85,15 +74,7 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
       formData.append('detentionCenterId', '');
     }
 
-    // Add additional images data (gallery only)
-    formData.set('additionalImages', JSON.stringify(additionalImages));
-
-    // Add actual image files for new images
-    additionalImages.forEach((image, index) => {
-      if (image.isNew && image.file && !image.toDelete) {
-        formData.append(`image_file_${index}`, image.file);
-      }
-    });
+    // Image processing removed - display only
 
     try {
       const result = person
@@ -197,10 +178,7 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
     }
   }
 
-  const handleImageChange = useCallback((_primaryFile: File | null, images: typeof additionalImages) => {
-    // Primary image editing disabled - only update gallery images
-    setAdditionalImages(images);
-  }, []);
+  // Image change handler removed - display only
 
   return (
     <>
@@ -252,8 +230,7 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
                 caption: img.caption,
               })) || []
             , [person?.images])}
-            onChange={handleImageChange}
-            disablePrimaryImageEdit={true}
+            // Display only - no onChange handler
           />
         </div>
 

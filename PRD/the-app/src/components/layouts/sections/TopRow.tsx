@@ -28,6 +28,11 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
                 sizes="(max-width: 300px) 100vw, 300px"
                 priority
               />
+              {profileImage.caption && (
+                <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-semibold">
+                  {profileImage.caption}
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center rounded-lg bg-gray-100 shadow-inner w-full max-w-[300px] aspect-square">
@@ -116,6 +121,11 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
                     className="object-cover"
                     sizes="150px"
                   />
+                  {image.caption && (
+                    <div className="absolute top-1 left-1 bg-black/70 text-white px-2 py-0.5 rounded text-xs font-semibold">
+                      {image.caption}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

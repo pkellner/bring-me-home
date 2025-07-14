@@ -19,16 +19,69 @@ const placeholderImageIds: Map<number, string> = new Map();
 // Image storage service instance
 let imageStorageService: ImageStorageService;
 
-// Helper function to generate random date within range
+// Hardcoded random values for deterministic seeding
+const SEED_VALUES = {
+  // Random floats between 0 and 1 (pre-generated)
+  floats: [
+    0.234, 0.567, 0.890, 0.123, 0.456, 0.789, 0.012, 0.345, 0.678, 0.901,
+    0.135, 0.468, 0.791, 0.024, 0.357, 0.680, 0.913, 0.246, 0.579, 0.802,
+    0.147, 0.470, 0.793, 0.026, 0.359, 0.682, 0.915, 0.248, 0.581, 0.804,
+    0.159, 0.482, 0.805, 0.038, 0.361, 0.694, 0.927, 0.250, 0.583, 0.816,
+    0.161, 0.494, 0.817, 0.040, 0.373, 0.696, 0.929, 0.262, 0.595, 0.828,
+    0.173, 0.506, 0.829, 0.052, 0.385, 0.708, 0.931, 0.264, 0.597, 0.830,
+    0.185, 0.518, 0.841, 0.064, 0.397, 0.710, 0.943, 0.276, 0.599, 0.842,
+    0.197, 0.520, 0.853, 0.076, 0.409, 0.722, 0.955, 0.288, 0.601, 0.854,
+    0.209, 0.532, 0.865, 0.088, 0.411, 0.734, 0.967, 0.290, 0.613, 0.866,
+    0.211, 0.544, 0.877, 0.100, 0.423, 0.746, 0.979, 0.302, 0.625, 0.878,
+  ],
+  currentIndex: 0,
+  
+  // Pre-generated integers for various ranges
+  personsPerTown: [3, 5, 2, 4, 3], // 2-5 persons per town
+  alienNumbers: [234567890, 345678901, 456789012, 567890123, 678901234, 789012345, 890123456, 901234567, 123456789, 234567891],
+  addressNumbers: [1234, 5678, 9012, 3456, 7890, 2345, 6789, 1345, 5789, 9123],
+  phoneNumbers: [1234, 5678, 9012, 3456, 7890, 2345, 6789, 1345, 5789, 9123],
+  caseNumbers: [12345, 23456, 34567, 45678, 56789, 67890, 78901, 89012, 90123, 10234],
+  bondAmounts: [15000, 8000, 12000, 20000, 5000, 18000, 10000, 7500, 16000, 9000],
+  lawyerNumbers: [10, 25, 47, 63, 82, 91, 15, 38, 54, 77],
+  supportersPerPerson: [15, 22, 10, 28, 18, 25, 12, 20, 16, 24],
+  commentsPerPerson: [5, 3, 7, 4, 6, 8, 3, 5, 4, 6],
+  
+  // Boolean decisions (true/false)
+  booleans: [
+    true, false, true, true, false, true, false, false, true, true,
+    false, true, false, true, true, false, true, false, false, true,
+    true, true, false, false, true, false, true, true, false, true,
+    false, false, true, false, true, true, false, true, false, true,
+    true, false, false, true, false, true, true, false, true, false,
+  ],
+  booleanIndex: 0,
+};
+
+// Get next float value
+function getNextFloat(): number {
+  const value = SEED_VALUES.floats[SEED_VALUES.currentIndex % SEED_VALUES.floats.length];
+  SEED_VALUES.currentIndex++;
+  return value;
+}
+
+// Get next boolean value
+function getNextBoolean(): boolean {
+  const value = SEED_VALUES.booleans[SEED_VALUES.booleanIndex % SEED_VALUES.booleans.length];
+  SEED_VALUES.booleanIndex++;
+  return value;
+}
+
+// Helper function to generate deterministic dates
 function randomDate(start: Date, end: Date): Date {
   return new Date(
-    start.getTime() + Math.random() * (end.getTime() - start.getTime())
+    start.getTime() + getNextFloat() * (end.getTime() - start.getTime())
   );
 }
 
-// Helper function to get random element from array
+// Helper function to get deterministic element from array
 function randomElement<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
+  return array[Math.floor(getNextFloat() * array.length)];
 }
 
 // Helper function to store placeholder images in database
@@ -329,8 +382,8 @@ const generatePersons = () => {
   for (let townIndex = 0; townIndex < towns.length; townIndex++) {
     const town = towns[townIndex];
     const townName = town.name;
-    // Generate 2-5 persons per town
-    const personsPerTown = Math.floor(Math.random() * 4) + 2;
+    // Get deterministic number of persons per town
+    const personsPerTown = SEED_VALUES.personsPerTown[townIndex % SEED_VALUES.personsPerTown.length];
 
     for (let i = 0; i < personsPerTown; i++) {
       const firstName = randomElement(firstNames);
@@ -344,8 +397,8 @@ const generatePersons = () => {
         new Date(2024, 3, 1)
       );
 
-      // Determine if this person is detained (30% chance)
-      const isDetained = Math.random() < 0.3;
+      // Determine if this person is detained (using deterministic boolean)
+      const isDetained = getNextBoolean() && getNextBoolean(); // ~25% chance (both need to be true)
       const detentionStatus = isDetained
         ? randomElement(detentionStatuses)
         : null;
@@ -360,8 +413,8 @@ const generatePersons = () => {
           ? randomDate(detentionDate!, new Date())
           : null;
 
-      // Legal representation for detained persons (70% chance)
-      const hasLegalRep = isDetained && Math.random() < 0.7;
+      // Legal representation for detained persons (deterministic)
+      const hasLegalRep = isDetained && getNextBoolean();
       const nextCourtDate =
         isDetained && detentionStatus === 'in-proceedings'
           ? randomDate(new Date(), new Date(2025, 0, 1))
@@ -369,9 +422,9 @@ const generatePersons = () => {
 
       persons.push({
         firstName,
-        middleName: Math.random() > 0.5 ? randomElement(middleNames) : null,
+        middleName: getNextBoolean() ? randomElement(middleNames) : null,
         lastName,
-        alienIdNumber: `A${Math.floor(Math.random() * 900000000) + 100000000}`,
+        alienIdNumber: `A${SEED_VALUES.alienNumbers[persons.length % SEED_VALUES.alienNumbers.length]}`,
         dateOfBirth,
         placeOfBirth: `${randomElement([
           'Mexico City',
@@ -390,7 +443,7 @@ const generatePersons = () => {
         eyeColor: randomElement(eyeColors),
         hairColor: randomElement(hairColors),
         lastKnownAddress: `${
-          Math.floor(Math.random() * 9999) + 100
+          SEED_VALUES.addressNumbers[persons.length % SEED_VALUES.addressNumbers.length]
         } ${randomElement([
           'Main',
           'Oak',
@@ -403,7 +456,7 @@ const generatePersons = () => {
           town.zipCode
         }`,
         phoneNumber: `${town.zipCode.substring(0, 3)}-555-${String(
-          Math.floor(Math.random() * 10000)
+          SEED_VALUES.phoneNumbers[persons.length % SEED_VALUES.phoneNumbers.length]
         ).padStart(4, '0')}`,
         emailAddress: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${persons.length + 1}@email.com`,
         story: generateStory(
@@ -437,12 +490,12 @@ const generatePersons = () => {
         detentionStatus,
         caseNumber: isDetained
           ? `ICE-${new Date().getFullYear()}-${String(
-              Math.floor(Math.random() * 100000)
+              SEED_VALUES.caseNumbers[persons.length % SEED_VALUES.caseNumbers.length]
             ).padStart(5, '0')}`
           : null,
         bondAmount:
           isDetained && detentionStatus === 'detained'
-            ? Math.floor(Math.random() * 20000 + 5000)
+            ? SEED_VALUES.bondAmounts[persons.length % SEED_VALUES.bondAmounts.length]
             : null,
         bondStatus:
           isDetained && detentionStatus === 'detained'
@@ -458,10 +511,10 @@ const generatePersons = () => {
             ])} ${randomElement(['Smith', 'Johnson', 'Williams', 'Brown'])}`
           : null,
         legalRepPhone: hasLegalRep
-          ? `555-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`
+          ? `555-${String(SEED_VALUES.phoneNumbers[(persons.length + 1) % SEED_VALUES.phoneNumbers.length]).padStart(4, '0')}`
           : null,
         legalRepEmail: hasLegalRep
-          ? `lawyer${Math.floor(Math.random() * 100)}@${randomElement(lawFirms)
+          ? `lawyer${SEED_VALUES.lawyerNumbers[persons.length % SEED_VALUES.lawyerNumbers.length]}@${randomElement(lawFirms)
               .toLowerCase()
               .replace(/\s+/g, '')}.com`
           : null,
@@ -472,8 +525,8 @@ const generatePersons = () => {
           : null,
         // International address
         internationalAddress:
-          Math.random() > 0.3
-            ? `${Math.floor(Math.random() * 999) + 1} ${randomElement([
+          getNextBoolean()
+            ? `${SEED_VALUES.addressNumbers[(persons.length + 2) % SEED_VALUES.addressNumbers.length]} ${randomElement([
                 'Calle',
                 'Avenida',
                 'Boulevard',
@@ -575,7 +628,7 @@ function generateStory(
 
   const profession = randomElement(professions);
   const family = randomElement(familyDetails);
-  const years = Math.floor(Math.random() * 20) + 5;
+  const years = 5 + (SEED_VALUES.addressNumbers[firstName.length % SEED_VALUES.addressNumbers.length] % 20);
 
   return (
     `${firstName} ${lastName} has lived in ${townName} for ${years} years, working as a ${profession} and ${family}. ` +
@@ -665,13 +718,15 @@ const generateSupporters = (persons: SeedPerson[]) => {
 
   const supporters = [];
   let supporterId = 1;
+  let detainedIndex = 0;
 
   for (const person of persons) {
     // Only detained persons get supporters
     if (!person.detentionCenterName) continue;
 
-    // Generate 10-30 supporters per detained person
-    const supportersPerPerson = Math.floor(Math.random() * 21) + 10;
+    // Get deterministic number of supporters per detained person
+    const supportersPerPerson = SEED_VALUES.supportersPerPerson[detainedIndex % SEED_VALUES.supportersPerPerson.length];
+    detainedIndex++;
     for (let i = 0; i < supportersPerPerson; i++) {
       const firstName = randomElement([
         'John',
@@ -719,8 +774,8 @@ const generateSupporters = (persons: SeedPerson[]) => {
         lastName,
         email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${supporters.length + 1}@email.com`,
         phone:
-          Math.random() > 0.5
-            ? `555-${String(Math.floor(Math.random() * 10000)).padStart(
+          getNextBoolean()
+            ? `555-${String(SEED_VALUES.phoneNumbers[(supporters.length) % SEED_VALUES.phoneNumbers.length]).padStart(
                 4,
                 '0'
               )}`
@@ -728,13 +783,13 @@ const generateSupporters = (persons: SeedPerson[]) => {
         country: 'USA',
         relationship: randomElement(relationships),
         displayName: `${firstName} ${lastName.charAt(0)}.`,
-        isPublic: Math.random() > 0.2, // 80% public
+        isPublic: getNextBoolean() || getNextBoolean(), // ~75% public
         supportMessage,
-        shareEmail: Math.random() > 0.7, // 30% share email
-        sharePhone: Math.random() > 0.9, // 10% share phone
-        isVerified: Math.random() > 0.5, // 50% verified
+        shareEmail: !getNextBoolean() && getNextBoolean(), // ~25% share email
+        sharePhone: !getNextBoolean() && !getNextBoolean(), // ~25% share phone
+        isVerified: getNextBoolean(), // 50% verified
         verifiedAt:
-          Math.random() > 0.5 && person.detentionDate
+          getNextBoolean() && person.detentionDate
             ? randomDate(person.detentionDate, new Date())
             : null,
         personFirstName: person.firstName,
@@ -768,13 +823,15 @@ const generateComments = (persons: SeedPerson[]) => {
 
   const comments = [];
   let commentId = 1;
+  let personIndex = 0;
 
   for (const person of persons) {
     // Only detained persons get comments
     if (!person.detentionCenterName) continue;
 
-    // Generate 3-8 comments per person
-    const commentsPerPerson = Math.floor(Math.random() * 6) + 3;
+    // Get deterministic number of comments per person
+    const commentsPerPerson = SEED_VALUES.commentsPerPerson[personIndex % SEED_VALUES.commentsPerPerson.length];
+    personIndex++;
     for (let i = 0; i < commentsPerPerson; i++) {
       const type = randomElement(commentTypes);
       let content;
@@ -794,7 +851,7 @@ const generateComments = (persons: SeedPerson[]) => {
         visibility: randomElement(visibilities),
         personFirstName: person.firstName,
         personLastName: person.lastName,
-        isApproved: Math.random() > 0.1, // 90% approved
+        isApproved: getNextBoolean() || getNextBoolean(), // ~75% approved
         createdAt: randomDate(
           person.detentionDate ||
             person.lastSeenDate ||
@@ -1390,7 +1447,7 @@ function generateDetailedFamilyStory(
 ): string {
   const firstName = person.firstName;
   const spouseName =
-    Math.random() > 0.5 ? 'Maria' : 'Carlos';
+    getNextBoolean() ? 'Maria' : 'Carlos';
 
   if (language === 'es') {
     const stories = [
@@ -1501,8 +1558,8 @@ async function main() {
   const existingTownSlugs: string[] = [];
   
   for (const town of towns) {
-    const layoutName = layoutNames[Math.floor(Math.random() * layoutNames.length)];
-    const themeName = themeNames[Math.floor(Math.random() * themeNames.length)];
+    const layoutName = layoutNames[town.name.charCodeAt(0) % layoutNames.length];
+    const themeName = themeNames[town.name.charCodeAt(1) % themeNames.length];
     
     // Generate unique slug
     const slug = createTownSlug(town.name, existingTownSlugs);
@@ -1550,14 +1607,27 @@ async function main() {
   }
   console.log(`Created ${persons.length} persons.`);
   
-  // Add images to persons - deterministic approach
+  // Hardcoded gallery image counts for deterministic seeding
+  // Generated once and hardcoded to ensure consistency across seeds
+  const galleryImageCounts = [
+    3, 2, 5, 0, 1, 4, 3, 0, 2, 5,  // indices 0-9
+    1, 0, 3, 4, 2, 5, 1, 3, 4, 2,  // indices 10-19 (Joe at 18 gets 4)
+    0, 5, 3, 1, 2, 4, 3, 2, 1, 5,  // indices 20-29
+    2, 3, 1, 4, 0, 5, 2, 3, 1, 4,  // indices 30-39
+    3, 2, 5, 1, 0, 4, 2, 3, 5, 1,  // indices 40-49
+  ];
+  
+  // Persons to skip images (indices 3, 7, 11)
+  const skipImageIndices = [3, 7, 11];
+  
+  // Add images to persons - fully deterministic approach
   console.log('Adding images to persons...');
   for (let i = 0; i < persons.length; i++) {
     const person = persons[i];
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
     
-    // Skip images for exactly 3 persons (indices 3, 7, 11)
-    if (i === 3 || i === 7 || i === 11) {
+    // Skip images for specific persons
+    if (skipImageIndices.includes(i)) {
       console.log(`Skipping images for ${person.firstName} ${person.lastName}`);
       continue;
     }
@@ -1576,9 +1646,10 @@ async function main() {
       caption: 'P', // Primary image label
     });
     
-    // Deterministic gallery image count based on person index
-    // This ensures consistent results across seeds
-    const galleryImageCount = i % 6; // 0-5 images
+    // Get gallery image count from hardcoded array
+    const galleryImageCount = i < galleryImageCounts.length 
+      ? galleryImageCounts[i] 
+      : galleryImageCounts[i % galleryImageCounts.length];
     
     for (let g = 0; g < galleryImageCount; g++) {
       const galleryImageNum = ((i + g + 2) % 10) + 1;
@@ -1591,7 +1662,7 @@ async function main() {
       const galleryImageBuffer = await readFile(galleryImagePath);
       await imageStorageService.addPersonImage(personId, galleryImageBuffer, 'gallery', {
         sequenceNumber: g + 1,
-        caption: `G${g + 1}`, // Gallery image labels: G1, G2, etc.
+        caption: `${g + 1}/${galleryImageCount}`, // Shows "1/4", "2/4", etc.
       });
     }
   }
@@ -1665,15 +1736,17 @@ async function main() {
   for (const person of detainedPersons) {
     const personId = createdIds.persons.get(`${person.firstName}_${person.lastName}`)!;
     
-    await prisma.familyPrivacySettings.create({
-      data: {
+    await prisma.familyPrivacySettings.upsert({
+      where: { personId },
+      update: {}, // Don't update if it already exists
+      create: {
         personId,
-        showDetaineeEmail: Math.random() > 0.7, // 30% show email
-        showDetaineePhone: Math.random() > 0.8, // 20% show phone
+        showDetaineeEmail: !getNextBoolean() && getNextBoolean(), // ~25% show email
+        showDetaineePhone: !getNextBoolean() && !getNextBoolean(), // ~25% show phone
         showDetaineeAddress: false, // Never show address by default
         showAlienId: false, // Never show alien ID by default
-        showLegalInfo: Math.random() > 0.5, // 50% show legal info
-        showSupporterEmails: Math.random() > 0.7, // 30% show supporter emails
+        showLegalInfo: getNextBoolean(), // 50% show legal info
+        showSupporterEmails: !getNextBoolean() && getNextBoolean(), // ~25% show supporter emails
         showSupporterPhones: false, // Never show supporter phones by default
         showSupporterAddresses: false, // Never show supporter addresses
         defaultCommentVisibility: randomElement([
@@ -1688,7 +1761,7 @@ async function main() {
           `family.${person.firstName.toLowerCase()}.${person.lastName.toLowerCase()}@email.com`,
           `spouse.${person.firstName.toLowerCase()}.${person.lastName.toLowerCase()}@email.com`,
         ]),
-      },
+      }
     });
   }
   console.log(`Created ${detainedPersons.length} family privacy settings.`);

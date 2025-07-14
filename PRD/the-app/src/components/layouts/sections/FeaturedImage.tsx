@@ -21,6 +21,11 @@ export default function FeaturedImage({ person }: FeaturedImageProps) {
             className="w-full h-auto object-cover"
             priority
           />
+          {profileImage.caption && (
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 rounded-md text-sm font-semibold">
+              {profileImage.caption}
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex h-96 w-full items-center justify-center rounded-lg bg-gray-100">

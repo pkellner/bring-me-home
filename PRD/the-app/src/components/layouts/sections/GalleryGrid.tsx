@@ -41,10 +41,8 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
                   style={{ width: 'auto', height: 'auto', maxWidth: 'none' }}
                 />
                 {image.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-xs text-center line-clamp-1">
-                      {image.caption}
-                    </p>
+                  <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-semibold">
+                    {image.caption}
                   </div>
                 )}
               </div>
