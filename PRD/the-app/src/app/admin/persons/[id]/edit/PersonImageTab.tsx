@@ -6,32 +6,52 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Upload } from 'lucide-react';
 import { PersonImage, ImageStorage } from '@prisma/client';
-import { useTabs } from './TabsProvider';
 
 interface PersonImageTabProps {
-  currentImage?: PersonImage & { image: ImageStorage };
-  onImageChange?: (image: File | null, shouldClear?: boolean) => void;
+  personId: string;
 }
 
-export function PersonImageTab({ currentImage, onImageChange }: PersonImageTabProps) {
-  const { imageUpdateTrigger } = useTabs();
+export function PersonImageTab({ personId }: PersonImageTabProps) {
+  const [currentImage, setCurrentImage] = useState<(PersonImage & { image: ImageStorage }) | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [displayImage, setDisplayImage] = useState(currentImage);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reload image when trigger changes
+  // Fetch primary image when component mounts or personId changes
   useEffect(() => {
-    if (imageUpdateTrigger > 0) {
-      // Force reload by adding timestamp to image URL
-      setDisplayImage(currentImage ? { ...currentImage, updatedAt: new Date() } : undefined);
-    }
-  }, [imageUpdateTrigger, currentImage]);
+    const fetchPrimaryImage = async () => {
+      if (!personId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/persons/${personId}/images?type=primary`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch primary image');
+        }
+
+        const primaryImage = await response.json();
+        setCurrentImage(primaryImage);
+      } catch (err) {
+        console.error('Error fetching primary image:', err);
+        setError('Failed to load primary image');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPrimaryImage();
+  }, [personId]);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onImageChange?.(file);
-      
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -43,7 +63,6 @@ export function PersonImageTab({ currentImage, onImageChange }: PersonImageTabPr
 
   const handleClearImage = () => {
     setImagePreview(null);
-    onImageChange?.(null, true); // Pass true to indicate we want to clear the image
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -53,7 +72,49 @@ export function PersonImageTab({ currentImage, onImageChange }: PersonImageTabPr
     fileInputRef.current?.click();
   };
 
-  const imageToShow = imagePreview || (displayImage ? `/api/images/${displayImage.imageId}?t=${displayImage.updatedAt?.getTime()}` : null);
+  const imageToShow = imagePreview || (currentImage ? `/api/images/${currentImage.imageId}?t=${new Date().getTime()}` : null);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg" />
+              <div className="flex gap-4">
+                <div className="h-10 w-28 bg-gray-200 animate-pulse rounded-md" />
+                <div className="h-10 w-28 bg-gray-200 animate-pulse rounded-md" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                <span className="text-red-500">{error}</span>
+              </div>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+              >
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

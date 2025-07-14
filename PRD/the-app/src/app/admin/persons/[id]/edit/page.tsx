@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import PersonForm from '../../PersonForm';
 import Link from 'next/link';
 import { ChatBubbleLeftRightIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { Button } from '@/components/ui/button';
 
 export default async function EditPersonPage({
   params,
@@ -28,12 +29,6 @@ export default async function EditPersonPage({
         where: { isActive: true },
         orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
       },
-      personImages: {
-        include: {
-          image: true,
-        },
-        orderBy: [{ imageType: 'asc' }, { sequenceNumber: 'asc' }],
-      },
     },
   });
 
@@ -50,20 +45,9 @@ export default async function EditPersonPage({
   const townSlug = person.town.slug;
   const personSlug = person.slug;
 
-  // Transform personImages to the expected format and serialize Decimal fields
-  // We need to include the imageType and sequenceNumber in the image objects
-  // to properly filter them in PersonForm
-  const images = person.personImages?.map(pi => ({
-    ...pi.image,
-    imageType: pi.imageType,
-    sequenceNumber: pi.sequenceNumber,
-  })) || [];
-
   const serializedPerson = {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
-    images,
-    personImages: person.personImages, // Keep the original personImages for the new tab components
   };
 
   return (
@@ -95,6 +79,16 @@ export default async function EditPersonPage({
             View Comments
           </Link>
         </div>
+      </div>
+
+      <div className="flex gap-4 mb-6">
+        <Button variant="default" disabled>Person Details</Button>
+        <Link href={`/admin/persons/${id}/edit/person-image`}>
+          <Button variant="outline">Primary Image</Button>
+        </Link>
+        <Link href={`/admin/persons/${id}/edit/gallery-images`}>
+          <Button variant="outline">Gallery Images</Button>
+        </Link>
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
