@@ -479,9 +479,6 @@ const generatePersons = () => {
         ])}, ${town.name}`,
         townName,
         primaryPicture: null, // Will be set after image creation
-        secondaryPic1: null,
-        secondaryPic2: null,
-        secondaryPic3: null,
         status: isDetained ? 'detained' : 'missing', // Set status based on detention state
         // Detention information
         detentionCenterName,
@@ -569,9 +566,6 @@ const generatePersons = () => {
     lastSeenLocation: 'Downtown Borrego Springs',
     townName: 'Borrego Springs',
     primaryPicture: null, // Will be set after image creation
-    secondaryPic1: null,
-    secondaryPic2: null,
-    secondaryPic3: null,
     status: 'detained',
     // Detention information
     detentionCenterName: 'Otay Mesa Detention Center',

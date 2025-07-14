@@ -708,9 +708,6 @@ interface ImportPersonData {
   lastSeenLocation?: string;
   primaryPicture?: string;
   primaryPictureData?: string;
-  secondaryPic1?: string;
-  secondaryPic2?: string;
-  secondaryPic3?: string;
   showCommunitySupport?: boolean;
   // Related data
   stories?: Array<{

@@ -96,9 +96,6 @@ model Person {
   phoneNumber          String?
   emailAddress         String?
   primaryPicture       String?
-  secondaryPic1        String?
-  secondaryPic2        String?
-  secondaryPic3        String?
   story                String?                @db.Text
   lastSeenDate         DateTime?
   lastSeenLocation     String?
