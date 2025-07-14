@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { getImageUrl } from '@/lib/image-url-client';
 
 interface PhotoGalleryProps {
   person: SerializedPerson;
@@ -19,7 +19,26 @@ type GalleryImage = {
 
 export default function PhotoGallery({ person }: PhotoGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
-  const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
+  
+  // Use useMemo to avoid dependency issues
+  const galleryImages = useMemo(() => 
+    person.images?.filter(img => img.imageType === 'gallery') || [],
+    [person.images]
+  );
+
+  // Log all gallery images
+  useEffect(() => {
+    galleryImages.forEach((image, index) => {
+      const imageUrl = getImageUrl(image, { width: 600, height: 600, quality: 90 });
+      console.log(`[Client] PhotoGallery - ${person.firstName} ${person.lastName} - Image ${index + 1}:`, {
+        imageId: image.id,
+        url: imageUrl,
+        type: imageUrl?.includes('amazonaws.com') ? 'S3' : imageUrl?.startsWith('/api/images/') ? 'API/Database' : 'Unknown',
+        isPresignedUrl: imageUrl?.includes('X-Amz-Signature'),
+        caption: image.caption
+      });
+    });
+  }, [galleryImages, person.firstName, person.lastName]);
 
   if (galleryImages.length === 0) {
     return null;
@@ -38,7 +57,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
             >
               <div className="relative w-full aspect-square">
                 <Image
-                  src={generateImageUrl(image.id, { width: 600, height: 600, quality: 90 })}
+                  src={getImageUrl(image, { width: 600, height: 600, quality: 90 }) || ''}
                   alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-200"
@@ -90,7 +109,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
             {/* Image container - 70% of viewport */}
             <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
               <Image
-                src={generateImageUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
+                src={getImageUrl(selectedImage, { width: 1200, height: 800, quality: 90 }) || ''}
                 alt={selectedImage.caption || `Photo of ${person.firstName} ${person.lastName}`}
                 width={1200}
                 height={800}

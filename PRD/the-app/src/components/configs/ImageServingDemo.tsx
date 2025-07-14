@@ -80,7 +80,7 @@ export default async function ImageServingDemo({ s3DirectServing }: ImageServing
             {/* Public Page Image */}
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-900">
-                Public Pages (S3 Direct)
+                Public Pages (S3 Presigned URLs)
               </h3>
               <div className="aspect-square bg-white rounded-lg shadow overflow-hidden">
                 <img
@@ -93,7 +93,7 @@ export default async function ImageServingDemo({ s3DirectServing }: ImageServing
                 <span className="font-medium">URL:</span> {publicPageUrl.substring(0, 80)}...
               </div>
               <div className="text-xs text-green-600">
-                <span className="font-medium">✓ Served directly from S3</span>
+                <span className="font-medium">✓ Served via S3 presigned URLs</span>
               </div>
             </div>
 
@@ -144,7 +144,7 @@ export default async function ImageServingDemo({ s3DirectServing }: ImageServing
           <p className="text-sm text-blue-800">
             <strong>Configuration:</strong> AWS_SERVER_IMAGES_FROM_S3_DIRECTLY = {s3DirectServing ? 'true' : 'false'}
             {s3DirectServing && (
-              <><br />Public pages use S3 presigned URLs for better performance while admin pages always use the API for security.</>
+              <><br />Public pages use S3 presigned URLs for secure, temporary access while admin pages always use the API for additional security.</>
             )}
           </p>
         </div>

@@ -71,8 +71,12 @@ export async function POST(
     const result = await updatePerson(personId, formData);
     
     if (result.errors) {
+      console.error('Update person errors:', result.errors);
+      const errorMessage = '_form' in result.errors && result.errors._form 
+        ? result.errors._form[0] 
+        : 'Failed to update image';
       return NextResponse.json(
-        { error: 'Failed to update image', details: result.errors },
+        { error: errorMessage, details: result.errors },
         { status: 400 }
       );
     }
@@ -81,7 +85,7 @@ export async function POST(
   } catch (error) {
     console.error('Error updating person image:', error);
     return NextResponse.json(
-      { error: 'Failed to update person image' },
+      { error: error instanceof Error ? error.message : 'Failed to update person image' },
       { status: 500 }
     );
   }

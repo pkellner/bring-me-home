@@ -87,5 +87,7 @@ export function generateS3PublicUrl(s3Key: string): string | null {
  * Check if we should serve images directly from S3
  */
 export function shouldServeFromS3(): boolean {
-  return process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY === 'true';
+  const value = process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY;
+  const result = value === 'true';
+  return result;
 }

@@ -162,6 +162,9 @@ async function getPersonData(townSlug: string, personSlug: string) {
   return person;
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PersonPage({ params }: PersonPageProps) {
   const { townSlug, personSlug } = await params;
   const person = await getPersonData(townSlug, personSlug);
@@ -227,19 +230,23 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
   // Transform personImages to the expected format
   const images = await Promise.all(
-    person.personImages?.map(async (pi) => ({
-      id: pi.image.id,
-      imageType: pi.imageType,
-      sequenceNumber: pi.sequenceNumber,
-      caption: pi.image.caption,
-      mimeType: pi.image.mimeType,
-      size: pi.image.size,
-      width: pi.image.width,
-      height: pi.image.height,
-      createdAt: pi.image.createdAt,
-      updatedAt: pi.image.updatedAt,
-      imageUrl: await generateImageUrlServer(pi.image.id),
-    })) || []
+    person.personImages?.map(async (pi) => {
+      const imageUrl = await generateImageUrlServer(pi.image.id);
+      
+      return {
+        id: pi.image.id,
+        imageType: pi.imageType,
+        sequenceNumber: pi.sequenceNumber,
+        caption: pi.image.caption,
+        mimeType: pi.image.mimeType,
+        size: pi.image.size,
+        width: pi.image.width,
+        height: pi.image.height,
+        createdAt: pi.image.createdAt,
+        updatedAt: pi.image.updatedAt,
+        imageUrl,
+      };
+    }) || []
   );
 
   // Exclude personImages to avoid circular reference

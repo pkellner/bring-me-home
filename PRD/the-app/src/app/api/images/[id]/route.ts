@@ -28,11 +28,38 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid quality' }, { status: 400 });
     }
 
+    // First check the image metadata to determine storage type
+    const imageMetadata = await prisma.imageStorage.findUnique({
+      where: { id },
+      select: { 
+        storageType: true, 
+        s3Key: true,
+        mimeType: true,
+        size: true
+      }
+    });
+
+    if (!imageMetadata) {
+      console.log(`Image ${id} not found in database`);
+      return NextResponse.json({ error: 'Image not found' }, { status: 404 });
+    }
+
+    console.log(`Serving image ${id}:`, {
+      storageType: imageMetadata.storageType,
+      s3Key: imageMetadata.s3Key,
+      mimeType: imageMetadata.mimeType,
+      size: imageMetadata.size,
+      s3Url: imageMetadata.storageType === 's3' && imageMetadata.s3Key 
+        ? `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${imageMetadata.s3Key}`
+        : null
+    });
+
     // Use ImageStorageService to retrieve the image
     const imageStorageService = new ImageStorageService(prisma);
     const imageData = await imageStorageService.getImage(id);
 
     if (!imageData) {
+      console.log(`Failed to retrieve image data for ${id} from ${imageMetadata.storageType}`);
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 

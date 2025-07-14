@@ -1,6 +1,9 @@
+'use client';
+
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { getImageUrl } from '@/lib/image-url-client';
+import { useImageLogging } from '@/hooks/useImageLogging';
 
 interface PersonImageProps {
   person: SerializedPerson;
@@ -9,13 +12,21 @@ interface PersonImageProps {
 export default function PersonImage({ person }: PersonImageProps) {
   // Use primary image
   const profileImage = person.images?.find(img => img.imageType === 'primary');
+  // Use the client-side image URL helper that respects server decisions
+  const imageUrl = getImageUrl(profileImage, { width: 600, height: 600, quality: 90 });
+  
+  useImageLogging(
+    imageUrl, 
+    `PersonImage component - ${person.firstName} ${person.lastName}`,
+    profileImage?.id
+  );
   
   return (
     <div className="image-section flex justify-center">
       {profileImage ? (
         <div className="relative rounded-xl shadow-lg overflow-hidden">
           <Image
-            src={generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
+            src={imageUrl!}
             alt={`${person.firstName} ${person.lastName}`}
             width={600}
             height={600}

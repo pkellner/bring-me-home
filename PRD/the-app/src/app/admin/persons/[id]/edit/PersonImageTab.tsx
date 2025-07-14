@@ -136,7 +136,9 @@ export function PersonImageTab({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save image');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Image save error:', errorData);
+        throw new Error(errorData.error || 'Failed to save image');
       }
 
       showSuccessAlert('Primary image updated successfully!', 3000);

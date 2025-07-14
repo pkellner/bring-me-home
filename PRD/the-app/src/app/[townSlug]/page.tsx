@@ -93,6 +93,9 @@ async function getTownData(townSlug: string) {
   return town;
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TownPage({ params }: TownPageProps) {
   const { townSlug } = await params;
   const town = await getTownData(townSlug);
@@ -105,12 +108,34 @@ export default async function TownPage({ params }: TownPageProps) {
 
   // Generate S3 URLs for person images
   const personsWithImageUrls = await Promise.all(
-    town.persons.map(async (person) => ({
-      ...person,
-      imageUrl: person.personImages?.[0]?.image?.id
-        ? await generateImageUrlServer(person.personImages[0].image.id)
-        : null,
-    }))
+    town.persons.map(async (person) => {
+      const imageId = person.personImages?.[0]?.image?.id;
+      let imageUrl = null;
+      
+      if (imageId) {
+        imageUrl = await generateImageUrlServer(imageId);
+        
+        // Log image details
+        const imageDetails = await prisma.imageStorage.findUnique({
+          where: { id: imageId },
+          select: { storageType: true, s3Key: true }
+        });
+        
+        console.log(`Person ${person.firstName} ${person.lastName} image:`, {
+          imageId,
+          storageType: imageDetails?.storageType,
+          s3Key: imageDetails?.s3Key,
+          generatedUrl: imageUrl,
+          isS3Url: imageUrl?.includes('amazonaws.com'),
+          isPresignedUrl: imageUrl?.includes('X-Amz-Signature')
+        });
+      }
+      
+      return {
+        ...person,
+        imageUrl
+      };
+    })
   );
 
   return (
