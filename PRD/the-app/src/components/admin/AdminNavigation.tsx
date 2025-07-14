@@ -124,14 +124,14 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
+        <div className="flex justify-between min-h-16 py-2 flex-wrap gap-4">
+          <div className="flex flex-1 flex-wrap items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/admin" className="text-xl font-bold text-gray-900">
+              <Link href="/admin" className="hidden lg:block text-xl font-bold text-gray-900">
                 Bring Me Home Admin
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
+            <div className="hidden sm:flex sm:flex-wrap sm:gap-2 lg:ml-6">
               {visibleItems.map(item => {
                 const isActive = pathname === item.href;
                 const isDisabled = 'disabled' in item && item.disabled;
@@ -140,7 +140,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
                   return (
                     <span
                       key={item.name}
-                      className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-300 cursor-not-allowed"
+                      className="inline-flex items-center px-3 py-1 my-1 border rounded-md text-sm font-medium border-gray-200 text-gray-300 cursor-not-allowed"
                       title="You don't have permission to access this section"
                     >
                       {(() => {
@@ -156,10 +156,10 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    className={`inline-flex items-center px-3 py-1 my-1 border rounded-md text-sm font-medium ${
                       isActive
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     {(() => {
@@ -173,7 +173,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 flex-shrink-0">
             <Link
               href="/"
               className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"

@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
 import HealthCheckSection from '@/components/configs/HealthCheckSection';
+import ImageServingDemo from '@/components/configs/ImageServingDemo';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -422,6 +423,64 @@ export default async function ConfigsPage() {
                 </div>
               </div>
             </section>
+
+            {/* Image Serving Configuration */}
+            <section>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Image Serving Configuration
+              </h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Storage Type
+                    </dt>
+                    <dd className="mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        config.imageServing.storageType === 's3'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {config.imageServing.storageType.toUpperCase()}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      S3 Direct Serving
+                    </dt>
+                    <dd className="mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        config.imageServing.s3DirectServing
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {config.imageServing.s3DirectServing ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      S3 Bucket
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {config.imageServing.s3Bucket}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      S3 Region
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {config.imageServing.s3Region}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+
+            {/* Image Serving Demo */}
+            <ImageServingDemo s3DirectServing={config.imageServing.s3DirectServing} />
 
             {/* Health Checks */}
             {isAdmin && <HealthCheckSection />}

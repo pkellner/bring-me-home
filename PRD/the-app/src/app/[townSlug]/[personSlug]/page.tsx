@@ -9,6 +9,7 @@ import LayoutRenderer, {
 import Footer from '@/components/Footer';
 import DelayedAdminLink from '@/components/person/DelayedAdminLink';
 import { getSystemLayoutTheme } from '@/app/actions/systemConfig';
+import { generateImageUrlServer } from '@/lib/image-url-server';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -225,18 +226,21 @@ export default async function PersonPage({ params }: PersonPageProps) {
   }));
 
   // Transform personImages to the expected format
-  const images = person.personImages?.map(pi => ({
-    id: pi.image.id,
-    imageType: pi.imageType,
-    sequenceNumber: pi.sequenceNumber,
-    caption: pi.image.caption,
-    mimeType: pi.image.mimeType,
-    size: pi.image.size,
-    width: pi.image.width,
-    height: pi.image.height,
-    createdAt: pi.image.createdAt,
-    updatedAt: pi.image.updatedAt,
-  })) || [];
+  const images = await Promise.all(
+    person.personImages?.map(async (pi) => ({
+      id: pi.image.id,
+      imageType: pi.imageType,
+      sequenceNumber: pi.sequenceNumber,
+      caption: pi.image.caption,
+      mimeType: pi.image.mimeType,
+      size: pi.image.size,
+      width: pi.image.width,
+      height: pi.image.height,
+      createdAt: pi.image.createdAt,
+      updatedAt: pi.image.updatedAt,
+      imageUrl: await generateImageUrlServer(pi.image.id),
+    })) || []
+  );
 
   // Exclude personImages to avoid circular reference
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

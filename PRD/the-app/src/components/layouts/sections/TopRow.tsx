@@ -20,7 +20,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
           {profileImage ? (
             <div className="relative rounded-lg shadow-lg overflow-hidden w-full max-w-[300px] aspect-square">
               <Image
-                src={generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
+                src={profileImage.imageUrl || generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
                 alt={`${person.firstName} ${person.lastName}`}
                 fill
                 className="object-cover"

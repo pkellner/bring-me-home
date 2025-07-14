@@ -9,8 +9,16 @@ interface GalleryGridProps {
   person: SerializedPerson;
 }
 
+type GalleryImage = {
+  id: string;
+  imageType?: string | null;
+  sequenceNumber: number;
+  caption?: string | null;
+  imageUrl?: string;
+};
+
 export default function GalleryGrid({ person }: GalleryGridProps) {
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   
   // Use gallery images
   const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
@@ -32,7 +40,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
           >
             <div className="relative w-[200px] h-[200px] bg-gray-50 rounded overflow-hidden">
               <Image
-                src={generateImageUrl(image.id, { width: 400, height: 400, quality: 90 })}
+                src={image.imageUrl || generateImageUrl(image.id, { width: 400, height: 400, quality: 90 })}
                 alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                 fill
                 className="object-contain group-hover:scale-105 transition-transform duration-300"
@@ -73,7 +81,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
             {/* Image container - 70% of viewport */}
             <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
               <Image
-                src={generateImageUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
+                src={selectedImage.imageUrl || generateImageUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
                 alt={selectedImage.caption || `Photo of ${person.firstName} ${person.lastName}`}
                 width={1200}
                 height={800}

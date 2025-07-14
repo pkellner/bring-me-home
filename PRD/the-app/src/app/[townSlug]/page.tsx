@@ -7,7 +7,7 @@ import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 import { stripHtml } from '@/lib/stripHtml';
-import { generateImageUrl } from '@/lib/image-url';
+import { generateImageUrlServer } from '@/lib/image-url-server';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -103,6 +103,16 @@ export default async function TownPage({ params }: TownPageProps) {
     notFound();
   }
 
+  // Generate S3 URLs for person images
+  const personsWithImageUrls = await Promise.all(
+    town.persons.map(async (person) => ({
+      ...person,
+      imageUrl: person.personImages?.[0]?.image?.id
+        ? await generateImageUrlServer(person.personImages[0].image.id)
+        : null,
+    }))
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -149,17 +159,17 @@ export default async function TownPage({ params }: TownPageProps) {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
-        {town.persons.length > 0 ? (
+        {personsWithImageUrls.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {town.persons.map(person => (
+            {personsWithImageUrls.map(person => (
               <div
                 key={person.id}
                 className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow overflow-hidden"
               >
                 <div className="h-64 bg-gray-200 flex items-center justify-center">
-                  {person.personImages?.[0]?.image ? (
+                  {person.imageUrl ? (
                     <img
-                      src={generateImageUrl(person.personImages[0].image.id, { width: 400, height: 300, quality: 85 })}
+                      src={person.imageUrl}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-cover"
                     />

@@ -48,7 +48,7 @@ export async function createPerson(formData: FormData) {
     where: { id: session.user.id },
     select: { id: true }
   });
-  
+
   if (!sessionUser) {
     throw new Error('Invalid session. Please log out and log in again.');
   }
@@ -189,13 +189,13 @@ export async function createPerson(formData: FormData) {
     });
 
     revalidatePath('/admin/persons');
-    return { 
-      success: true, 
-      person: { 
-        id: person.id, 
+    return {
+      success: true,
+      person: {
+        id: person.id,
         slug: person.slug,
         townSlug: createdPerson?.town.slug || ''
-      } 
+      }
     };
   } catch (error) {
     console.error('Failed to create person:', error);
@@ -206,9 +206,7 @@ export async function createPerson(formData: FormData) {
 }
 
 export async function updatePerson(id: string, formData: FormData) {
-  console.log('updatePerson called with id:', id);
-  console.log('FormData entries:', Array.from(formData.entries()));
-  
+
   const session = await getServerSession(authOptions);
   if (!session || !hasPermission(session, 'persons', 'update')) {
     throw new Error('Unauthorized');
@@ -219,7 +217,7 @@ export async function updatePerson(id: string, formData: FormData) {
     where: { id: session.user.id },
     select: { id: true }
   });
-  
+
   if (!sessionUser) {
     throw new Error('Invalid session. Please log out and log in again.');
   }
@@ -234,17 +232,17 @@ export async function updatePerson(id: string, formData: FormData) {
   console.log('Stories type:', typeof storiesFromForm);
 
   // Check if this is a partial update (only images)
-  const hasPersonFields = formData.has('firstName') || formData.has('lastName') || 
+  const hasPersonFields = formData.has('firstName') || formData.has('lastName') ||
                          formData.has('townId') || formData.has('lastKnownAddress');
-  
+
   type ValidatedFieldsType = {
     success: boolean;
     data?: z.infer<typeof personSchema>;
     error?: z.ZodError<z.infer<typeof personSchema>>;
   };
-  
+
   let validatedFields: ValidatedFieldsType = { success: true, data: {} as z.infer<typeof personSchema> };
-  
+
   if (hasPersonFields) {
     // Full update with validation
     validatedFields = personSchema.safeParse({
@@ -283,7 +281,7 @@ export async function updatePerson(id: string, formData: FormData) {
       };
     }
   }
-  
+
   console.log('Validated data stories:', validatedFields.data?.stories);
 
   try {
@@ -329,7 +327,7 @@ export async function updatePerson(id: string, formData: FormData) {
     // Only process person fields if they are present
     if (hasPersonFields && validatedFields.data) {
       // Check if name has changed
-      const nameChanged = 
+      const nameChanged =
         existingPerson.firstName !== validatedFields.data.firstName ||
         existingPerson.middleName !== validatedFields.data.middleName ||
         existingPerson.lastName !== validatedFields.data.lastName;
@@ -392,7 +390,7 @@ export async function updatePerson(id: string, formData: FormData) {
     // Handle primary picture upload or clear
     const primaryPicture = formData.get('primaryPicture') as File;
     const clearPrimaryPicture = formData.get('clearPrimaryPicture') === 'true';
-    
+
     if ((primaryPicture && primaryPicture.size > 0) || clearPrimaryPicture) {
       // Delete existing profile images through PersonImage
       const existingProfileImages = await prisma.personImage.findMany({
@@ -401,23 +399,23 @@ export async function updatePerson(id: string, formData: FormData) {
           imageType: 'primary',
         },
       });
-      
+
       for (const pi of existingProfileImages) {
         await prisma.personImage.delete({
           where: { id: pi.id },
         });
-        
+
         // Check if image is used elsewhere
         const otherUsage = await prisma.personImage.count({
           where: { imageId: pi.imageId },
         });
-        
+
         if (otherUsage === 0) {
           // Also check detention center usage
           const dcUsage = await prisma.detentionCenterImage.count({
             where: { imageId: pi.imageId },
           });
-          
+
           if (dcUsage === 0) {
             await prisma.imageStorage.delete({
               where: { id: pi.imageId },
@@ -425,7 +423,7 @@ export async function updatePerson(id: string, formData: FormData) {
           }
         }
       }
-      
+
       // Only store new image if we're not just clearing
       if (primaryPicture && primaryPicture.size > 0 && !clearPrimaryPicture) {
         const buffer = Buffer.from(await primaryPicture.arrayBuffer());
@@ -437,14 +435,23 @@ export async function updatePerson(id: string, formData: FormData) {
             errors: { _form: ['Invalid image file'] },
           };
         }
-        
+
         // Store new profile image
+        console.log('Updating person - storing new profile image with S3');
+        console.log('Environment check:', {
+          IMAGE_STORAGE_TYPE: process.env.IMAGE_STORAGE_TYPE,
+          AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+          AWS_S3_REGION: process.env.AWS_S3_REGION,
+          hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+          AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY,
+        });
         await processAndStoreImage(buffer, {
           personId: id,
           imageType: 'primary',
           sequenceNumber: 0,
           uploadedById: session.user.id,
         });
+        console.log('Profile image stored successfully');
       }
     }
 
@@ -497,23 +504,23 @@ export async function updatePerson(id: string, formData: FormData) {
               imageId: imageData.id,
             },
           });
-          
+
           if (personImage) {
             await prisma.personImage.delete({
               where: { id: personImage.id },
             });
-            
+
             // Check if image is used elsewhere
             const otherUsage = await prisma.personImage.count({
               where: { imageId: imageData.id },
             });
-            
+
             if (otherUsage === 0) {
               // Also check detention center usage
               const dcUsage = await prisma.detentionCenterImage.count({
                 where: { imageId: imageData.id },
               });
-              
+
               if (dcUsage === 0) {
                 await prisma.imageStorage.delete({
                   where: { id: imageData.id },
@@ -562,7 +569,7 @@ export async function updatePerson(id: string, formData: FormData) {
       console.log('About to handle stories update, storiesJson:', storiesJson);
       console.log('storiesJson type:', typeof storiesJson);
       console.log('storiesJson truthy?', !!storiesJson);
-      
+
       if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
         console.log('Updating stories - JSON:', storiesJson);
         try {
@@ -592,7 +599,7 @@ export async function updatePerson(id: string, formData: FormData) {
               })
             );
             console.log('Stories to create:', storiesToCreate);
-            
+
             const createResult = await prisma.story.createMany({
               data: storiesToCreate,
             });
@@ -795,7 +802,7 @@ interface ImportPersonData {
 
 export async function importPersonData(personId: string, importData: ImportPersonData) {
   const session = await getServerSession(authOptions);
-  
+
   // Only system admins can import person data
   if (!session || !isSiteAdmin(session)) {
     throw new Error('Unauthorized - only system admins can import person data');
@@ -820,8 +827,8 @@ export async function importPersonData(personId: string, importData: ImportPerso
     }
 
     // Extract data categories
-    const { 
-      stories, 
+    const {
+      stories,
       personImages,
       primaryPictureData,
       // These are intentionally extracted to exclude them from personData
@@ -851,7 +858,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
       detentionCenterId: _detentionCenterId,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       detentionCenter: _detentionCenter,
-      ...personData 
+      ...personData
     } = importData;
 
     // Process images outside of transaction to avoid timeout
@@ -863,7 +870,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
     }> = [];
 
     // Prepare all images for processing
-    
+
     // Process primary picture if provided
     if (primaryPictureData) {
       try {
@@ -883,7 +890,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
     // Pre-process person images
     if (personImages && Array.isArray(personImages)) {
       let sequenceNumber = 0;
-      
+
       // First, check for profile image from personImages if no primaryPictureData
       if (!primaryPictureData) {
         const profileImage = personImages.find(img => img.isPrimary && img.imageData);
@@ -902,7 +909,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
           }
         }
       }
-      
+
       // Process gallery images
       sequenceNumber = 1; // Start gallery images at 1
       for (const image of personImages) {
@@ -966,24 +973,24 @@ export async function importPersonData(personId: string, importData: ImportPerso
         where: { personId },
         select: { imageId: true }
       });
-      
+
       await tx.personImage.deleteMany({
         where: { personId }
       });
-      
+
       // Delete orphaned images
       for (const assoc of personImageAssociations) {
         const otherUsage = await tx.personImage.count({
-          where: { 
+          where: {
             imageId: assoc.imageId,
             personId: { not: personId }
           }
         });
-        
+
         const dcUsage = await tx.detentionCenterImage.count({
           where: { imageId: assoc.imageId }
         });
-        
+
         if (otherUsage === 0 && dcUsage === 0) {
           await tx.imageStorage.delete({
             where: { id: assoc.imageId }
@@ -1006,7 +1013,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
           caption: imageData.caption,
           uploadedById: session.user.id,
         });
-        
+
         // Track the profile image ID to update primaryPicture
         if (imageData.imageType === 'profile' && !newPrimaryImageId) {
           newPrimaryImageId = imageId;
@@ -1018,13 +1025,13 @@ export async function importPersonData(personId: string, importData: ImportPerso
 
     revalidatePath(`/admin/persons/${personId}/edit`);
     revalidatePath('/admin/persons');
-    
+
     return { success: true, message: 'Person data imported successfully' };
   } catch (error) {
     console.error('Failed to import person data:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to import person data' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to import person data'
     };
   }
 }

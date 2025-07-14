@@ -9,8 +9,16 @@ interface PhotoGalleryProps {
   person: SerializedPerson;
 }
 
+type GalleryImage = {
+  id: string;
+  imageType?: string | null;
+  sequenceNumber: number;
+  caption?: string | null;
+  imageUrl?: string;
+};
+
 export default function PhotoGallery({ person }: PhotoGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
 
   if (galleryImages.length === 0) {

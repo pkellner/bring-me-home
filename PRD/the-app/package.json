@@ -62,6 +62,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.844.0",
+    "@aws-sdk/client-sts": "^3.844.0",
+    "@aws-sdk/s3-request-presigner": "^3.844.0",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.11.1",

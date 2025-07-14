@@ -98,6 +98,14 @@ export async function getPublicConfig() {
       github: 'https://github.com/anthropics/bring-me-home',
     },
 
+    // Image serving configuration
+    imageServing: {
+      storageType: process.env.IMAGE_STORAGE_TYPE || 'database',
+      s3DirectServing: process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY === 'true',
+      s3Bucket: process.env.AWS_S3_BUCKET ? 'Configured' : 'Not configured',
+      s3Region: process.env.AWS_S3_REGION || 'Not configured',
+    },
+
     // Timestamp of when this config was generated
     generated: new Date().toISOString(),
   };

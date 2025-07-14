@@ -60,6 +60,7 @@ export type SerializedPerson = Omit<Person, 'bondAmount'> & {
     sequenceNumber: number;
     caption?: string | null;
     updatedAt: Date | string;
+    imageUrl?: string;
   }>;
 };
 
