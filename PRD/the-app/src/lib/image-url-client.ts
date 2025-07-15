@@ -18,7 +18,7 @@ export interface ImageWithUrl {
 
 /**
  * Client-side function to get the appropriate image URL
- * Respects the server-generated imageUrl when available (which considers AWS_SERVER_IMAGES_FROM_S3_DIRECTLY)
+ * Respects the server-generated imageUrl when available (which considers NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY)
  * Falls back to API URL generation for client-side operations
  */
 export function getImageUrl(

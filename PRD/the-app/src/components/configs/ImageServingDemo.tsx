@@ -142,7 +142,7 @@ export default async function ImageServingDemo({ s3DirectServing }: ImageServing
 
         <div className="mt-4 p-3 bg-blue-50 rounded-md">
           <p className="text-sm text-blue-800">
-            <strong>Configuration:</strong> AWS_SERVER_IMAGES_FROM_S3_DIRECTLY = {s3DirectServing ? 'true' : 'false'}
+            <strong>Configuration:</strong> NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY = {s3DirectServing ? 'true' : 'false'}
             {s3DirectServing && (
               <><br />Public pages use S3 presigned URLs for secure, temporary access while admin pages always use the API for additional security.</>
             )}

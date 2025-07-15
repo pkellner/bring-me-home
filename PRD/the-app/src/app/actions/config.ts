@@ -101,7 +101,7 @@ export async function getPublicConfig() {
     // Image serving configuration
     imageServing: {
       storageType: process.env.IMAGE_STORAGE_TYPE || 'database',
-      s3DirectServing: process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY === 'true',
+      s3DirectServing: process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY === 'true',
       s3Bucket: process.env.AWS_S3_BUCKET ? 'Configured' : 'Not configured',
       s3Region: process.env.AWS_S3_REGION || 'Not configured',
     },

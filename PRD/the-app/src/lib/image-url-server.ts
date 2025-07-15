@@ -49,7 +49,7 @@ function debugLog(...args: unknown[]) {
  * When `hasTransformations === true` we **must** go through `/api/images` so
  * CloudFront can cache the transformed result. When `false` we are free to
  * return a presigned S3 URL—*provided* the image actually lives in S3 **and**
- * the `AWS_SERVER_IMAGES_FROM_S3_DIRECTLY` feature flag is enabled.
+ * the `NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY` feature flag is enabled.
  *
  * @param imageId – The image ID from the database
  * @param options – Optional transformation parameters
@@ -81,7 +81,7 @@ export async function generateImageUrlServer(
     imageId,
     storageType: image?.storageType,
     hasS3Key: !!image?.s3Key,
-    AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: serveFromS3,
+    NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: serveFromS3,
     hasTransformations,
     decision: 'unknown',
   };
@@ -105,7 +105,7 @@ export async function generateImageUrlServer(
     return apiUrl;
   }
 
-  // 2. If storage type is 's3' and AWS_SERVER_IMAGES_FROM_S3_DIRECTLY is false, use API URL
+  // 2. If storage type is 's3' and NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY is false, use API URL
   if (image.storageType === 's3' && !serveFromS3) {
     decisionLogic.decision = 'API_URL_S3_DIRECT_DISABLED';
     debugLog('[IMAGE URL DECISION]', decisionLogic);
@@ -123,7 +123,7 @@ export async function generateImageUrlServer(
     return apiUrl;
   }
 
-  // 3. If storage type is 's3' and AWS_SERVER_IMAGES_FROM_S3_DIRECTLY is true
+  // 3. If storage type is 's3' and NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY is true
   if (image.storageType === 's3' && serveFromS3 && image.s3Key) {
     // 3a. If transformations are requested, must use API URL
     if (hasTransformations) {

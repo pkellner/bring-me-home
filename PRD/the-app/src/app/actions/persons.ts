@@ -443,7 +443,7 @@ export async function updatePerson(id: string, formData: FormData) {
           AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
           AWS_S3_REGION: process.env.AWS_S3_REGION,
           hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-          AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: process.env.AWS_SERVER_IMAGES_FROM_S3_DIRECTLY,
+          NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY,
         });
         await processAndStoreImage(buffer, {
           personId: id,

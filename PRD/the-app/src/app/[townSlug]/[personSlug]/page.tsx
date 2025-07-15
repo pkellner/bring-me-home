@@ -180,7 +180,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   let isSiteAdmin = false;
   let isTownAdmin = false;
   let isPersonAdmin = false;
-  
+
   if (session?.user?.id) {
     const userWithAccess = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -210,7 +210,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
       false;
     isTownAdmin = (userWithAccess?.townAccess?.length ?? 0) > 0;
     isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
-    
+
     isAdmin = isSiteAdmin || isTownAdmin || isPersonAdmin;
   }
 
@@ -230,9 +230,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
   // Transform personImages to the expected format
   const images = await Promise.all(
-    person.personImages?.map(async (pi) => {
+    person.personImages?.map(async pi => {
       const imageUrl = await generateImageUrlServer(pi.image.id);
-      
+
       return {
         id: pi.image.id,
         imageType: pi.imageType,
@@ -252,7 +252,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   // Exclude personImages to avoid circular reference
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { personImages, ...personWithoutImages } = person;
-  
+
   const serializedPerson = {
     ...personWithoutImages,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,

@@ -14,13 +14,14 @@ export default function PersonImage({ person }: PersonImageProps) {
   const profileImage = person.images?.find(img => img.imageType === 'primary');
   // Use the client-side image URL helper that respects server decisions
   const imageUrl = getImageUrl(profileImage, { width: 600, height: 600, quality: 90 });
-  
+  //console.log("/src/components/layouts/sections/PersonImage.tsx: imageUrl", imageUrl);
+
   useImageLogging(
-    imageUrl, 
+    imageUrl,
     `PersonImage component - ${person.firstName} ${person.lastName}`,
     profileImage?.id
   );
-  
+
   return (
     <div className="image-section flex justify-center">
       {profileImage ? (
