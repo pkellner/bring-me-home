@@ -115,11 +115,6 @@ export default async function TownPage({ params }: TownPageProps) {
       if (imageId) {
         imageUrl = await generateImageUrlServer(imageId);
 
-        // Log image details
-        const imageDetails = await prisma.imageStorage.findUnique({
-          where: { id: imageId },
-          select: { storageType: true, s3Key: true }
-        });
       }
 
       return {

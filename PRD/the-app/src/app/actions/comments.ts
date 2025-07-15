@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 
+const debugCaptcha = true;
+
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -28,6 +30,86 @@ const commentSchema = z.object({
   showCityState: z.boolean().default(false),
 });
 
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  
+  if (debugCaptcha) {
+    console.log('[verifyRecaptcha] Starting verification');
+    console.log('[verifyRecaptcha] Secret key present:', !!secretKey);
+    console.log('[verifyRecaptcha] Secret key length:', secretKey?.length);
+    console.log('[verifyRecaptcha] Token received:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+    console.log('[verifyRecaptcha] Token length:', token?.length);
+    console.log('[verifyRecaptcha] Token sample:', token ? token.substring(0, 50) : 'NO TOKEN');
+  }
+  
+  if (!secretKey) {
+    console.error('RECAPTCHA_SECRET_KEY not configured');
+    return false;
+  }
+
+  try {
+    const verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
+    
+    // Properly encode the parameters
+    const params = new URLSearchParams();
+    params.append('secret', secretKey);
+    params.append('response', token);
+    
+    if (debugCaptcha) {
+      console.log('[verifyRecaptcha] Sending request to:', verifyUrl);
+      console.log('[verifyRecaptcha] Request params:', params.toString().substring(0, 100) + '...');
+      console.log('[verifyRecaptcha] Secret key in body (first 10 chars):', secretKey ? secretKey.substring(0, 10) : 'NO KEY');
+      // Log if token contains any special characters that might need encoding
+      console.log('[verifyRecaptcha] Token contains special chars:', /[^a-zA-Z0-9_-]/.test(token));
+    }
+    
+    const response = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    const data = await response.json();
+    
+    if (debugCaptcha) {
+      console.log('[verifyRecaptcha] Response status:', response.status);
+      console.log('[verifyRecaptcha] Response data:', {
+        success: data.success,
+        score: data.score,
+        action: data.action,
+        hostname: data.hostname,
+        challenge_ts: data.challenge_ts,
+        error_codes: data['error-codes'],
+      });
+    }
+    
+    // Google reCAPTCHA v3 returns a score from 0.0 to 1.0
+    // 0.5 is a reasonable threshold, adjust as needed
+    const isValid = data.success && data.score >= 0.5;
+    
+    if (debugCaptcha) {
+      console.log('[verifyRecaptcha] Verification result:', isValid);
+      if (!data.success) {
+        console.log('[verifyRecaptcha] Verification failed, error codes:', data['error-codes']);
+      }
+    }
+    
+    return isValid;
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    if (debugCaptcha) {
+      console.error('[verifyRecaptcha] Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+    return false;
+  }
+}
+
 export async function submitComment(
   prevState: {
     success?: boolean;
@@ -37,6 +119,44 @@ export async function submitComment(
   formData: FormData
 ) {
   try {
+    // Verify reCAPTCHA token
+    const recaptchaToken = formData.get('recaptchaToken') as string;
+    
+    if (debugCaptcha) {
+      console.log('[submitComment] Starting comment submission');
+      console.log('[submitComment] reCAPTCHA token present:', !!recaptchaToken);
+      console.log('[submitComment] Token from formData length:', recaptchaToken?.length);
+      console.log('[submitComment] Token from formData (first 50):', recaptchaToken ? recaptchaToken.substring(0, 50) : 'NO TOKEN');
+      
+      // Check all formData entries
+      console.log('[submitComment] All formData keys:', Array.from(formData.keys()));
+    }
+    
+    if (!recaptchaToken) {
+      if (debugCaptcha) {
+        console.error('[submitComment] No reCAPTCHA token provided');
+      }
+      return {
+        success: false,
+        error: 'Security verification failed. Please refresh the page and try again.',
+      };
+    }
+
+    const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
+    if (!isValidRecaptcha) {
+      if (debugCaptcha) {
+        console.error('[submitComment] reCAPTCHA verification failed');
+      }
+      return {
+        success: false,
+        error: 'Security verification failed. Please try again.',
+      };
+    }
+    
+    if (debugCaptcha) {
+      console.log('[submitComment] reCAPTCHA verification passed, proceeding with comment submission');
+    }
+
     const rawData = {
       personId: formData.get('personId') as string,
       firstName: formData.get('firstName') as string,

@@ -1,7 +1,10 @@
 'use client';
 
 import { startTransition, useEffect, useRef, useState } from 'react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import CommentConfirmationModal from './CommentConfirmationModal';
+
+const debugCaptcha = true;
 
 interface AnonymousCommentFormProps {
   personId: string;
@@ -25,7 +28,13 @@ export default function AnonymousCommentForm({
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [commentLength, setCommentLength] = useState(0);
   const [displayNameOnly, setDisplayNameOnly] = useState(false);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  if (debugCaptcha) {
+    console.log('[AnonymousCommentForm] Component mounted, executeRecaptcha available:', !!executeRecaptcha);
+  }
 
   // Reset form and hide when submission is successful
   useEffect(() => {
@@ -99,10 +108,52 @@ export default function AnonymousCommentForm({
 
       <form
         ref={formRef}
-        action={formData => {
-          // Capture form data and show confirmation modal instead of submitting
-          setPendingFormData(formData);
-          setShowConfirmModal(true);
+        action={async formData => {
+          setRecaptchaError(null);
+          
+          if (debugCaptcha) {
+            console.log('[AnonymousCommentForm] Form submitted, checking reCAPTCHA...');
+            console.log('[AnonymousCommentForm] executeRecaptcha available:', !!executeRecaptcha);
+          }
+          
+          // Execute reCAPTCHA
+          if (!executeRecaptcha) {
+            const errorMsg = 'reCAPTCHA not loaded. Please refresh the page and try again.';
+            if (debugCaptcha) {
+              console.error('[AnonymousCommentForm] Error:', errorMsg);
+            }
+            setRecaptchaError(errorMsg);
+            return;
+          }
+          
+          try {
+            if (debugCaptcha) {
+              console.log('[AnonymousCommentForm] Executing reCAPTCHA with action: submit_comment');
+            }
+            
+            const token = await executeRecaptcha('submit_comment');
+            
+            if (debugCaptcha) {
+              console.log('[AnonymousCommentForm] reCAPTCHA token received:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+              console.log('[AnonymousCommentForm] Token length:', token?.length);
+              console.log('[AnonymousCommentForm] Token type:', typeof token);
+              console.log('[AnonymousCommentForm] Full token (first 100 chars):', token ? token.substring(0, 100) : 'NO TOKEN');
+            }
+            
+            // Add the token to the form data
+            formData.append('recaptchaToken', token);
+            
+            // Capture form data and show confirmation modal
+            setPendingFormData(formData);
+            setShowConfirmModal(true);
+          } catch (error) {
+            if (debugCaptcha) {
+              console.error('[AnonymousCommentForm] reCAPTCHA execution error:', error);
+              console.error('[AnonymousCommentForm] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+              console.error('[AnonymousCommentForm] Error message:', error instanceof Error ? error.message : String(error));
+            }
+            setRecaptchaError('reCAPTCHA verification failed. Please try again.');
+          }
         }}
         className="space-y-4"
       >
@@ -466,6 +517,12 @@ export default function AnonymousCommentForm({
         {state?.error && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">{state.error}</div>
+          </div>
+        )}
+
+        {recaptchaError && (
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">{recaptchaError}</div>
           </div>
         )}
 
