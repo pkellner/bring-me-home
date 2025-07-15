@@ -25,15 +25,6 @@ export class S3StorageAdapter implements ImageStorageAdapter {
     private prisma: PrismaClient,
     config: NonNullable<ImageStorageConfig['s3Config']>
   ) {
-    console.log('S3StorageAdapter constructor called with config:', {
-      bucket: config.bucket,
-      region: config.region,
-      hasAccessKeyId: !!config.accessKeyId,
-      accessKeyIdLength: config.accessKeyId?.length,
-      accessKeyIdPrefix: config.accessKeyId?.substring(0, 10) + '...',
-      hasSecretKey: !!config.secretAccessKey,
-      endpoint: config.endpoint,
-    });
 
     // Validate required S3 configuration
     if (!config.bucket) {
@@ -61,7 +52,6 @@ export class S3StorageAdapter implements ImageStorageAdapter {
       endpoint: config.endpoint,
     });
     
-    console.log('S3Client initialized successfully');
   }
 
   private generateS3Key(imageId: string, mimeType: string): string {
@@ -80,21 +70,9 @@ export class S3StorageAdapter implements ImageStorageAdapter {
     const imageId = randomUUID();
     const s3Key = this.generateS3Key(imageId, metadata.mimeType);
 
-    console.log('S3StorageAdapter.store() called:', {
-      imageId,
-      s3Key,
-      bucket: this.bucket,
-      region: this.region,
-      mimeType: metadata.mimeType,
-      size: metadata.size,
-      width: metadata.width,
-      height: metadata.height,
-      uploadedById: options?.uploadedById,
-    });
 
     try {
       // Upload to S3
-      console.log('Uploading to S3...');
       await this.s3Client.send(new PutObjectCommand({
         Bucket: this.bucket,
         Key: s3Key,
@@ -106,7 +84,6 @@ export class S3StorageAdapter implements ImageStorageAdapter {
           height: metadata.height?.toString() || '',
         },
       }));
-      console.log('Successfully uploaded to S3:', s3Key);
     } catch (error) {
       console.error('S3 upload error:', {
         error,

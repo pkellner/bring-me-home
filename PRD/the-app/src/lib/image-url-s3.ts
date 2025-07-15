@@ -93,27 +93,15 @@ export function shouldServeFromS3(): boolean {
   //   console.warn("/src/lib/image-url-s3.ts: shouldServeFromS3 called on client-side, returning false");
   //   return false; // Should not be called on client-side
   // } else {
-  //   console.log("/src/lib/image-url-s3.ts: shouldServeFromS3 called on server-side");
   // }
 
-  console.log("/src/lib/image-url-s3.ts: Checking if images should be served from S3 directly: process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY:", process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY);
   const value = process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY;
 
-  // Add detailed logging
-  console.log("/src/lib/image-url-s3.ts: Raw value:", value);
-  console.log("/src/lib/image-url-s3.ts: Value type:", typeof value);
-  console.log("/src/lib/image-url-s3.ts: Value length:", value?.length);
-  console.log("/src/lib/image-url-s3.ts: Value JSON.stringify:", JSON.stringify(value));
-  console.log("/src/lib/image-url-s3.ts: Value === 'false':", value === 'false');
-  console.log("/src/lib/image-url-s3.ts: Value === 'true':", value === 'true');
 
   if (value === undefined) {
     console.warn("/src/lib/image-url-s3.ts: NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY is not defined, defaulting to false");
     return false; // Default to false if not set
   }
-  console.log("/src/lib/image-url-s3.ts: NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY value:", value);
   const result = value === 'true';
-  console.log("/src/lib/image-url-s3.ts: Should serve from S3:", result);
-  console.log("/src/lib/image-url-s3.ts: Stack trace:", new Error().stack);
   return result;
 }

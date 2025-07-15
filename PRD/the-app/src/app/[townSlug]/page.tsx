@@ -111,26 +111,17 @@ export default async function TownPage({ params }: TownPageProps) {
     town.persons.map(async (person) => {
       const imageId = person.personImages?.[0]?.image?.id;
       let imageUrl = null;
-      
+
       if (imageId) {
         imageUrl = await generateImageUrlServer(imageId);
-        
+
         // Log image details
         const imageDetails = await prisma.imageStorage.findUnique({
           where: { id: imageId },
           select: { storageType: true, s3Key: true }
         });
-        
-        console.log(`Person ${person.firstName} ${person.lastName} image:`, {
-          imageId,
-          storageType: imageDetails?.storageType,
-          s3Key: imageDetails?.s3Key,
-          generatedUrl: imageUrl,
-          isS3Url: imageUrl?.includes('amazonaws.com'),
-          isPresignedUrl: imageUrl?.includes('X-Amz-Signature')
-        });
       }
-      
+
       return {
         ...person,
         imageUrl

@@ -55,36 +55,21 @@ export class ImageStorageService {
 
     const config = this.getStorageConfig();
     
-    console.log('ImageStorageService initialized with:', {
-      storageType: config.storageType,
-      IMAGE_STORAGE_TYPE: process.env.IMAGE_STORAGE_TYPE,
-      hasS3Config: !!config.s3Config,
-      s3Bucket: config.s3Config?.bucket,
-      s3Region: config.s3Config?.region,
-      hasAccessKey: !!config.s3Config?.accessKeyId,
-      accessKeyPrefix: config.s3Config?.accessKeyId?.substring(0, 10) + '...',
-    });
 
     if (config.storageType === 's3' && config.s3Config) {
-      console.log('Using S3 storage adapter');
       this.adapter = new S3StorageAdapter(prisma, config.s3Config);
     } else {
-      console.log('Using database storage adapter');
       this.adapter = new PrismaStorageAdapter(prisma);
     }
   }
 
   private getStorageConfig(): ImageStorageConfig {
     const rawStorageType = process.env.IMAGE_STORAGE_TYPE;
-    console.log('Raw IMAGE_STORAGE_TYPE:', rawStorageType);
-    console.log('Raw IMAGE_STORAGE_TYPE length:', rawStorageType?.length);
-    console.log('Raw IMAGE_STORAGE_TYPE charCodes:', rawStorageType ? Array.from(rawStorageType).map(c => c.charCodeAt(0)) : 'undefined');
     
     // Clean up the storage type - remove any extra characters
     const cleanedStorageType = rawStorageType ? rawStorageType.replace(/[^a-zA-Z0-9]/g, '') : 'database';
     const storageType = cleanedStorageType as 'database' | 's3';
     
-    console.log('Cleaned storage type:', storageType);
 
     if (storageType === 's3') {
       const bucket = process.env.AWS_S3_BUCKET;

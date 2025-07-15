@@ -934,6 +934,7 @@ export async function importPersonData(personId: string, importData: ImportPerso
     // Start a transaction with increased timeout
     await prisma.$transaction(async (tx) => {
       // Update person data (excluding relationships and metadata)
+      // personData already has the excluded fields removed from earlier extraction
       await tx.person.update({
         where: { id: personId },
         data: {

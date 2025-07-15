@@ -5,15 +5,28 @@ import { useState } from 'react';
 import { Session } from 'next-auth';
 import { isSiteAdmin } from '@/lib/permissions';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
-import type { Person, Town, DetentionCenter, Story, ImageStorage } from '@prisma/client';
-import { importPersonData } from '@/app/actions/persons';
+import type { Person, Town, DetentionCenter, Story } from '@prisma/client';
+import { exportPersonData, importPersonData } from '@/app/actions/person-export-import';
+
+type ImageData = {
+  id: string;
+  imageType: string;
+  sequenceNumber: number;
+  caption?: string | null;
+  mimeType: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
   bondAmount: string | null;
   town: Town;
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
-  images?: (ImageStorage & { imageType?: string; sequenceNumber?: number })[];
+  images?: ImageData[];
 };
 
 interface FormActionsProps {
@@ -40,98 +53,38 @@ export default function FormActions({
     
     setIsExporting(true);
     try {
-      // Fetch primary picture as base64 if it exists
-      let primaryPictureData = null;
-      const primaryImage = person.images?.find(img => img.imageType === 'primary');
-      if (primaryImage) {
-        try {
-          const response = await fetch(`/api/images/${primaryImage.id}`);
-          const blob = await response.blob();
-          primaryPictureData = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error('Failed to fetch primary picture:', error);
-        }
+      const result = await exportPersonData(person.id);
+      
+      if (result.success && result.data) {
+        // Convert to JSON and download
+        const blob = new Blob([JSON.stringify(result.data, null, 2)], { 
+          type: 'application/json' 
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Format date as YYYY-MM-DD--HH-MM-AM/PM
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        const hour12 = hours % 12 || 12;
+        const dateTimeString = `${year}-${month}-${day}--${hour12}-${minutes}-${ampm}`;
+        
+        a.download = `${person.firstName}-${person.lastName}-${person.id}-${dateTimeString}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showSuccessAlert('Person data exported successfully');
+      } else {
+        showErrorAlert(result.error || 'Failed to export person data');
       }
-
-      // Fetch additional images as base64
-      const imagesWithData = await Promise.all(
-        (person.images || []).map(async (img) => {
-          try {
-            const response = await fetch(`/api/images/${img.id}`);
-            const blob = await response.blob();
-            const base64 = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-            return { 
-              imageUrl: `/api/images/${img.id}`,
-              caption: img.caption,
-              isPrimary: (img as ImageStorage & { imageType?: string }).imageType === 'profile',
-              isActive: true,
-              displayPublicly: true,
-              imageData: base64 
-            };
-          } catch (error) {
-            console.error('Failed to fetch image:', img.id, error);
-            return { 
-              imageUrl: `/api/images/${img.id}`,
-              caption: img.caption,
-              isPrimary: (img as ImageStorage & { imageType?: string }).imageType === 'profile',
-              isActive: true,
-              displayPublicly: true,
-              imageData: null 
-            };
-          }
-        })
-      );
-
-      // Prepare export data (exclude town, layout, theme, and detention center)
-      const exportData = {
-        ...person,
-        primaryPictureData,
-        personImages: imagesWithData,
-        townId: undefined,
-        town: undefined,
-        layoutId: undefined,
-        layout: undefined,
-        themeId: undefined,
-        theme: undefined,
-        detentionCenterId: undefined,
-        detentionCenter: undefined,
-        exportedAt: new Date().toISOString(),
-        exportVersion: '1.0'
-      };
-
-      // Convert to JSON and download
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-        type: 'application/json' 
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      // Format date as YYYY-MM-DD--HH-MM-AM/PM
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = now.getHours();
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'pm' : 'am';
-      const hour12 = hours % 12 || 12;
-      const dateTimeString = `${year}-${month}-${day}--${hour12}-${minutes}-${ampm}`;
-      
-      a.download = `${person.firstName}-${person.lastName}-${person.id}-${dateTimeString}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      showSuccessAlert('Person data exported successfully');
     } catch (error) {
       console.error('Export failed:', error);
       showErrorAlert('Failed to export person data');

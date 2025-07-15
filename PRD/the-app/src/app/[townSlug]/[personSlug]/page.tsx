@@ -207,6 +207,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
     isSiteAdmin =
       userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') ||
+      session.user.roles?.some(role => role.name === 'site-admin') ||
       false;
     isTownAdmin = (userWithAccess?.townAccess?.length ?? 0) > 0;
     isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;

@@ -2,11 +2,11 @@ import { prisma } from '@/lib/prisma';
 import { generateS3PresignedUrl, shouldServeFromS3 } from './image-url-s3';
 
 // Local debug logger that prefixes every message with an ISO timestamp and the
-// calling helper's name. Keeps noisy `console.log` statements out of the core
+// calling helper's name. Keeps noisy logging statements out of the core
 // logic.
-function debugLog(...args: unknown[]) {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [generateImageUrlServer]`, ...args);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function debugLog(..._args: unknown[]) {
+  // Logging disabled
 }
 
 /**

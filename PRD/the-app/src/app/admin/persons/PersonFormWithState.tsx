@@ -14,19 +14,36 @@ import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 import PersonBasicInfo from './components/PersonBasicInfo';
 import PersonDetentionInfo from './components/PersonDetentionInfo';
 import VisibilitySettings from './components/VisibilitySettings';
+import FormActions from './components/FormActions';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
+import { Session } from 'next-auth';
+
+type ImageData = {
+  id: string;
+  imageType: string;
+  sequenceNumber: number;
+  caption?: string | null;
+  mimeType: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type SerializedPerson = Omit<Person, 'bondAmount'> & {
   bondAmount: string | null;
   town: Town;
   detentionCenter?: DetentionCenter | null;
   stories?: Story[];
+  images?: ImageData[];
 };
 
 interface PersonFormProps {
   person?: SerializedPerson;
   towns: Town[];
+  session?: Session | null;
   onChangeDetected?: (hasChanges: boolean) => void;
 }
 
@@ -36,7 +53,7 @@ export interface PersonFormHandle {
 }
 
 const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
-  ({ person, towns, onChangeDetected }, ref) => {
+  ({ person, towns, session, onChangeDetected }, ref) => {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [detentionModalOpen, setDetentionModalOpen] = useState(false);
@@ -221,6 +238,14 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
 
           <VisibilitySettings person={person} />
         </div>
+
+        <FormActions 
+          isSubmitting={isSubmitting} 
+          isEditMode={!!person} 
+          person={person}
+          session={session}
+          disabled={!checkHasChanges()}
+        />
       </form>
 
       <DetentionCenterSelector

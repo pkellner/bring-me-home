@@ -27,6 +27,12 @@ export default async function EditPersonPage({
         where: { isActive: true },
         orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
       },
+      personImages: {
+        include: {
+          image: true,
+        },
+        orderBy: [{ imageType: 'asc' }, { sequenceNumber: 'asc' }],
+      },
     },
   });
 
@@ -43,9 +49,24 @@ export default async function EditPersonPage({
   const townSlug = person.town.slug;
   const personSlug = person.slug;
 
+  // Transform personImages to the expected format
+  const images = person.personImages?.map(pi => ({
+    id: pi.image.id,
+    imageType: pi.imageType,
+    sequenceNumber: pi.sequenceNumber,
+    caption: pi.image.caption,
+    mimeType: pi.image.mimeType,
+    size: pi.image.size,
+    width: pi.image.width,
+    height: pi.image.height,
+    createdAt: pi.image.createdAt,
+    updatedAt: pi.image.updatedAt,
+  })) || [];
+
   const serializedPerson = {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
+    images,
   };
 
   return (
@@ -55,6 +76,7 @@ export default async function EditPersonPage({
       <PersonEditClient
         person={serializedPerson}
         towns={towns}
+        session={session}
       />
     </>
   );
