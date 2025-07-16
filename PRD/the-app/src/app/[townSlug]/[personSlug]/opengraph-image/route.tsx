@@ -12,7 +12,7 @@ interface Props {
 
 async function getPersonOGData(townSlug: string, personSlug: string) {
   console.log(`Fetching OG data for: ${townSlug}/${personSlug}`);
-  
+
   const person = await prisma.person.findFirst({
     where: {
       slug: personSlug,
@@ -53,174 +53,174 @@ export async function GET(_request: Request, { params }: Props) {
       notFound();
     }
 
-  const personName = `${person.firstName} ${person.lastName}`;
-  const hometown = person.town.name;
-  const primaryImage = person.personImages[0];
-  
-  let imageUrl = null;
-  if (primaryImage?.image?.id) {
-    try {
-      // generateImageUrlServer expects an image ID, not an S3 key
-      const relativeUrl = await generateImageUrlServer(primaryImage.image.id);
-      
-      // Convert to absolute URL for OG image generation
-      if (relativeUrl) {
-        // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
-        const baseUrl = process.env.NODE_ENV === 'production'
-          ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
-          : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
-        
-        // Ensure the URL is absolute
-        if (relativeUrl.startsWith('http')) {
-          imageUrl = relativeUrl;
-        } else {
-          imageUrl = `${baseUrl}${relativeUrl}`;
+    const personName = `${person.firstName} ${person.lastName}`;
+    const hometown = person.town.name;
+    const primaryImage = person.personImages[0];
+
+    let imageUrl = null;
+    if (primaryImage?.image?.id) {
+      try {
+        // generateImageUrlServer expects an image ID, not an S3 key
+        const relativeUrl = await generateImageUrlServer(primaryImage.image.id);
+
+        // Convert to absolute URL for OG image generation
+        if (relativeUrl) {
+          // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
+          const baseUrl = process.env.NODE_ENV === 'production'
+            ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
+            : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+
+          // Ensure the URL is absolute
+          if (relativeUrl.startsWith('http')) {
+            imageUrl = relativeUrl;
+          } else {
+            imageUrl = `${baseUrl}${relativeUrl}`;
+          }
+
+          console.log(`Generated image URL: ${imageUrl}`);
         }
-        
-        console.log(`Generated image URL: ${imageUrl}`);
+      } catch (error) {
+        console.error('Error generating image URL for OG image:', error);
+        // Continue without image rather than failing entirely
       }
-    } catch (error) {
-      console.error('Error generating image URL for OG image:', error);
-      // Continue without image rather than failing entirely
     }
-  }
 
-  const themeColors = person.theme ? JSON.parse(person.theme.colors) : null;
-  const primaryColor = themeColors?.primary || '#4338CA';
-  const secondaryColor = themeColors?.secondary || '#6366F1';
+    const themeColors = person.theme ? JSON.parse(person.theme.colors) : null;
+    const primaryColor = themeColors?.primary || '#4338CA';
+    const secondaryColor = themeColors?.secondary || '#6366F1';
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          background: `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          padding: '40px',
-        }}
-      >
+    return new ImageResponse(
+      (
         <div
           style={{
+            background: `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`,
+            width: '100%',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'white',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
             padding: '40px',
-            borderRadius: '20px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxWidth: '90%',
           }}
         >
-          <p
+          <div
             style={{
-              fontSize: '28px',
-              color: '#6B7280',
-              margin: '0 0 20px 0',
-              textAlign: 'center',
-              fontWeight: '600',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'white',
+              padding: '40px',
+              borderRadius: '20px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              maxWidth: '90%',
             }}
           >
-            ICE Detention Information
-          </p>
-
-          {imageUrl && (
-            <div
+            <p
               style={{
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: `6px solid ${primaryColor}`,
-                marginBottom: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#F3F4F6',
+                fontSize: '28px',
+                color: '#6B7280',
+                margin: '0 0 20px 0',
+                textAlign: 'center',
+                fontWeight: '600',
               }}
             >
-              <img
-                src={imageUrl}
-                alt={personName}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-            </div>
-          )}
+              ICE Detention Information
+            </p>
 
-          {!imageUrl && (
-            <div
-              style={{
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
-                backgroundColor: '#E5E7EB',
-                marginBottom: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: `6px solid ${primaryColor}`,
-              }}
-            >
+            {imageUrl && (
               <div
                 style={{
-                  fontSize: '120px',
-                  color: '#9CA3AF',
-                  fontWeight: 'bold',
+                  width: '300px',
+                  height: '300px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: `6px solid ${primaryColor}`,
+                  marginBottom: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#F3F4F6',
                 }}
               >
-                {person.firstName[0]}{person.lastName[0]}
+                <img
+                  src={imageUrl}
+                  alt={personName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
               </div>
-            </div>
-          )}
+            )}
 
-          <h1
-            style={{
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: '#111827',
-              margin: '0',
-              textAlign: 'center',
-            }}
-          >
-            {personName}
-          </h1>
-          <p
-            style={{
-              fontSize: '32px',
-              color: '#6B7280',
-              margin: '10px 0 0 0',
-              textAlign: 'center',
-            }}
-          >
-            {hometown}
-          </p>
-          <p
-            style={{
-              fontSize: '18px',
-              color: '#9CA3AF',
-              margin: '15px 0 0 0',
-              textAlign: 'center',
-            }}
-          >
-            from: https://bring-me-home.com
-          </p>
+            {!imageUrl && (
+              <div
+                style={{
+                  width: '300px',
+                  height: '300px',
+                  borderRadius: '50%',
+                  backgroundColor: '#E5E7EB',
+                  marginBottom: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `6px solid ${primaryColor}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '120px',
+                    color: '#9CA3AF',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {person.firstName[0]}{person.lastName[0]}
+                </span>
+              </div>
+            )}
+
+            <h1
+              style={{
+                fontSize: '48px',
+                fontWeight: 'bold',
+                color: '#111827',
+                margin: '0',
+                textAlign: 'center',
+              }}
+            >
+              {personName}
+            </h1>
+            <p
+              style={{
+                fontSize: '32px',
+                color: '#6B7280',
+                margin: '10px 0 0 0',
+                textAlign: 'center',
+              }}
+            >
+              {hometown}
+            </p>
+            <p
+              style={{
+                fontSize: '18px',
+                color: '#9CA3AF',
+                margin: '15px 0 0 0',
+                textAlign: 'center',
+              }}
+            >
+              from: https://bring-me-home.com
+            </p>
+          </div>
         </div>
-      </div>
-    ),
-    {
-      width: 1200,
-      height: 630,
-    }
-  );
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    );
   } catch (error) {
     console.error('Error generating OG image:', error);
     // Return a basic fallback image on error

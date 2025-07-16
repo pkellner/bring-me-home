@@ -162,12 +162,13 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api/auth (NextAuth.js routes)
+     * - api/images (image serving routes)
+     * - opengraph-image (OpenGraph image generation routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
-     * - api/images (image serving routes)
      */
-    '/((?!api/auth|api/images|_next/static|_next/image|favicon.ico|public/).*)',
+    '/((?!api/auth|api/images|opengraph-image|_next/static|_next/image|favicon.ico|public/).*)',
   ],
 };
