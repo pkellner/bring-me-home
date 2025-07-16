@@ -114,17 +114,17 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
               </div>
             </div>
             <div className="flex-shrink-0">
-              {person.detentionCenter.detentionCenterImage?.imageId ? (
+              {person.detentionCenter.imageId ? (
                 <Image
-                  src={generateUrl(person.detentionCenter.detentionCenterImage.imageId, { width: 160, height: 160, quality: 90 })}
+                  src={generateUrl(person.detentionCenter.imageId, { width: 300, height: 300, quality: 90 })}
                   alt={person.detentionCenter.name}
-                  width={80}
-                  height={80}
-                  className="rounded-lg object-cover"
+                  width={120}
+                  height={120}
+                  className="rounded-lg object-cover shadow-sm"
                 />
               ) : (
-                <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-2xl text-theme-muted">🏢</span>
+                <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
+                  <span className="text-4xl text-theme-muted">🏢</span>
                 </div>
               )}
             </div>

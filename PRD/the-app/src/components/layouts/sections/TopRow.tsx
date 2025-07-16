@@ -85,22 +85,41 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
 
           {person.detentionCenter && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <h3 className="text-sm font-bold text-red-800 mb-2">Detention Information</h3>
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="font-semibold text-red-700">Detention Center:</span> 
-                  <span className="text-red-800"> {person.detentionCenter.name}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-red-700">Location:</span> 
-                  <span className="text-red-800"> {person.detentionCenter.city}, {person.detentionCenter.state}</span>
-                </div>
-                {person.bondAmount && (
-                  <div>
-                    <span className="font-semibold text-red-700">Bond Amount:</span> 
-                    <span className="text-red-800"> ${person.bondAmount}</span>
+              <div className="flex items-start gap-3">
+                <div className="flex-grow">
+                  <h3 className="text-sm font-bold text-red-800 mb-2">Detention Information</h3>
+                  <div className="space-y-1 text-sm">
+                    <div>
+                      <span className="font-semibold text-red-700">Detention Center:</span> 
+                      <span className="text-red-800"> {person.detentionCenter.name}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-red-700">Location:</span> 
+                      <span className="text-red-800"> {person.detentionCenter.city}, {person.detentionCenter.state}</span>
+                    </div>
+                    {person.bondAmount && (
+                      <div>
+                        <span className="font-semibold text-red-700">Bond Amount:</span> 
+                        <span className="text-red-800"> ${person.bondAmount}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+                <div className="flex-shrink-0">
+                  {person.detentionCenter.imageId ? (
+                    <Image
+                      src={generateUrl(person.detentionCenter.imageId, { width: 300, height: 300, quality: 90 })}
+                      alt={person.detentionCenter.name}
+                      width={120}
+                      height={120}
+                      className="rounded-lg object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
+                      <span className="text-4xl text-gray-400">🏢</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

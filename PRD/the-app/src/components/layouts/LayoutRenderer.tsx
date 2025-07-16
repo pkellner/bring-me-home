@@ -34,6 +34,7 @@ type SerializedDetentionCenter = {
   transportInfo?: string | null;
   visitingHours?: string | null;
   thumbnailImageId?: string | null;
+  imageId?: string | null; // Deprecated field for backward compatibility
   detentionCenterImage?: {
     id: string;
     detentionCenterId: string;
