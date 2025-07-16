@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface PersonInfoProps {
   person: SerializedPerson;
@@ -9,6 +12,8 @@ interface PersonInfoProps {
 }
 
 export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
+  const { generateUrl } = useImageUrl();
+  
   return (
     <div className="info-section space-y-4 text-theme-primary">
       <h1 className="text-3xl font-bold text-theme-primary">
@@ -111,7 +116,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
             <div className="flex-shrink-0">
               {person.detentionCenter.detentionCenterImage?.imageId ? (
                 <Image
-                  src={`/api/images/${person.detentionCenter.detentionCenterImage.imageId}`}
+                  src={generateUrl(person.detentionCenter.detentionCenterImage.imageId, { width: 160, height: 160, quality: 90 })}
                   alt={person.detentionCenter.name}
                   width={80}
                   height={80}

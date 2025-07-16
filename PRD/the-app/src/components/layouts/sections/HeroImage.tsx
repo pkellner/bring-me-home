@@ -1,12 +1,15 @@
+'use client';
+
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface HeroImageProps {
   person: SerializedPerson;
 }
 
 export default function HeroImage({ person }: HeroImageProps) {
+  const { generateUrl } = useImageUrl();
   const profileImage = person.images?.find(img => img.imageType === 'primary');
   
   return (
@@ -14,7 +17,7 @@ export default function HeroImage({ person }: HeroImageProps) {
       {profileImage ? (
         <>
           <Image
-            src={generateImageUrl(profileImage.id, { width: 1200, height: 600, quality: 90 })}
+            src={generateUrl(profileImage.id, { width: 1200, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             fill
             sizes="100vw"

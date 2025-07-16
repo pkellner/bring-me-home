@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { generateImageUrlServer } from '@/lib/image-url-server';
+import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 
 interface Props {
   params: Promise<{
@@ -60,8 +60,8 @@ export async function GET(_request: Request, { params }: Props) {
     let imageUrl = null;
     if (primaryImage?.image?.id) {
       try {
-        // generateImageUrlServer expects an image ID, not an S3 key
-        const relativeUrl = await generateImageUrlServer(primaryImage.image.id);
+        // generateImageUrlServerWithCdn expects an image ID and pathname
+        const relativeUrl = await generateImageUrlServerWithCdn(primaryImage.image.id, undefined, `/${townSlug}/${personSlug}`);
         
         // Convert to absolute URL for OG image generation
         if (relativeUrl) {

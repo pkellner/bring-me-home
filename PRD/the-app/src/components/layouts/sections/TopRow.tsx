@@ -1,8 +1,10 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface TopRowProps {
   person: SerializedPerson;
@@ -11,6 +13,7 @@ interface TopRowProps {
 
 export default function TopRow({ person, isAdmin }: TopRowProps) {
   const profileImage = person.images?.find(img => img.imageType === 'primary');
+  const { generateUrl } = useImageUrl();
   
   return (
     <div className="top-row-section w-full">
@@ -20,7 +23,7 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
           {profileImage ? (
             <div className="relative rounded-lg shadow-lg overflow-hidden w-full max-w-[300px] aspect-square">
               <Image
-                src={profileImage.imageUrl || generateImageUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
+                src={profileImage.imageUrl || generateUrl(profileImage.id, { width: 600, height: 600, quality: 90 })}
                 alt={`${person.firstName} ${person.lastName}`}
                 fill
                 className="object-cover"

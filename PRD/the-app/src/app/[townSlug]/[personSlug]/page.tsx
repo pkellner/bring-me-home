@@ -10,7 +10,7 @@ import LayoutRenderer, {
 import Footer from '@/components/Footer';
 import DelayedAdminLink from '@/components/person/DelayedAdminLink';
 import { getSystemLayoutTheme } from '@/app/actions/systemConfig';
-import { generateImageUrlServer } from '@/lib/image-url-server';
+import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -61,7 +61,12 @@ export async function generateMetadata({
     : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com');
     
   const personUrl = `${appUrl}/${townSlug}/${personSlug}`;
-  const ogImageUrl = `${appUrl}/${townSlug}/${personSlug}/opengraph-image`;
+  
+  // Use CloudFront URL for OG image if available
+  const cdnUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL;
+  const ogImageUrl = cdnUrl 
+    ? `${cdnUrl}/${townSlug}/${personSlug}/opengraph-image`
+    : `${appUrl}/${townSlug}/${personSlug}/opengraph-image`;
 
   return {
     title,
@@ -320,7 +325,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   // Transform personImages to the expected format
   const images = await Promise.all(
     person.personImages?.map(async pi => {
-      const imageUrl = await generateImageUrlServer(pi.image.id);
+      const imageUrl = await generateImageUrlServerWithCdn(pi.image.id, undefined, `/${townSlug}/${personSlug}`);
 
       return {
         id: pi.image.id,

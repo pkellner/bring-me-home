@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface GalleryGridProps {
   person: SerializedPerson;
@@ -19,6 +19,7 @@ type GalleryImage = {
 
 export default function GalleryGrid({ person }: GalleryGridProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const { generateUrl } = useImageUrl();
   
   // Use gallery images
   const galleryImages = person.images?.filter(img => img.imageType === 'gallery') || [];
@@ -40,7 +41,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
           >
             <div className="relative w-[200px] h-[200px] bg-gray-50 rounded overflow-hidden">
               <Image
-                src={image.imageUrl || generateImageUrl(image.id, { width: 400, height: 400, quality: 90 })}
+                src={image.imageUrl || generateUrl(image.id, { width: 400, height: 400, quality: 90 })}
                 alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                 fill
                 className="object-contain group-hover:scale-105 transition-transform duration-300"
@@ -81,7 +82,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
             {/* Image container - 70% of viewport */}
             <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
               <Image
-                src={selectedImage.imageUrl || generateImageUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
+                src={selectedImage.imageUrl || generateUrl(selectedImage.id, { width: 1200, height: 800, quality: 90 })}
                 alt={selectedImage.caption || `Photo of ${person.firstName} ${person.lastName}`}
                 width={1200}
                 height={800}

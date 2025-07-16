@@ -16,6 +16,10 @@ export async function generateSiteMetadata(): Promise<Metadata> {
   const description =
     siteDescription ||
     'Support for ICE detainees - A platform dedicated to reuniting detained individuals with their families through community support and advocacy.';
+  
+  // Use CloudFront URL for OG image if available
+  const cdnUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL;
+  const ogImageUrl = cdnUrl ? `${cdnUrl}/opengraph-image` : '/opengraph-image';
 
   return {
     title: `${title} - Support for ICE detainees`,
@@ -29,7 +33,7 @@ export async function generateSiteMetadata(): Promise<Metadata> {
       type: 'website',
       images: [
         {
-          url: '/opengraph-image',
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `${title} - Support for ICE detainees`,
@@ -40,7 +44,7 @@ export async function generateSiteMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/opengraph-image'],
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: appUrl,

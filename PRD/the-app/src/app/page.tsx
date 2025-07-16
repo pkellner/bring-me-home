@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig } from '@/lib/config';
-import { generateImageUrl } from '@/lib/image-url';
+import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 
 async function getPublicData() {
   const [towns, recentPersons, totalDetained] = await Promise.all([
@@ -85,7 +85,21 @@ async function getPublicData() {
     }),
   ]);
 
-  return { towns, recentPersons, totalDetained };
+  // Pre-generate image URLs for recent persons
+  const recentPersonsWithUrls = await Promise.all(
+    recentPersons.map(async (person) => ({
+      ...person,
+      imageUrl: person.personImages?.[0]?.image 
+        ? await generateImageUrlServerWithCdn(
+            person.personImages[0].image.id, 
+            { width: 300, height: 300, quality: 80 },
+            '/' // Home page is not an admin route
+          )
+        : null
+    }))
+  );
+
+  return { towns, recentPersons: recentPersonsWithUrls, totalDetained };
 }
 
 export default async function HomePage() {
@@ -172,9 +186,9 @@ export default async function HomePage() {
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
               >
                 <div className="h-48 bg-gray-200 flex items-center justify-center">
-                  {person.personImages?.[0]?.image ? (
+                  {person.imageUrl ? (
                     <img
-                      src={generateImageUrl(person.personImages[0].image.id, { width: 300, height: 300, quality: 80 })}
+                      src={person.imageUrl}
                       alt={`${person.firstName} ${person.lastName}`}
                       className="h-full w-full object-contain"
                     />

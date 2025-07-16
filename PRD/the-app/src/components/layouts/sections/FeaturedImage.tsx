@@ -1,6 +1,8 @@
+'use client';
+
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface FeaturedImageProps {
   person: SerializedPerson;
@@ -8,13 +10,14 @@ interface FeaturedImageProps {
 
 export default function FeaturedImage({ person }: FeaturedImageProps) {
   const profileImage = person.images?.find(img => img.imageType === 'primary');
+  const { generateUrl } = useImageUrl();
   
   return (
     <div className="featured-image-section">
       {profileImage ? (
         <div className="relative rounded-lg overflow-hidden shadow-xl">
           <Image
-            src={generateImageUrl(profileImage.id, { width: 800, height: 600, quality: 90 })}
+            src={generateUrl(profileImage.id, { width: 800, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             width={800}
             height={600}

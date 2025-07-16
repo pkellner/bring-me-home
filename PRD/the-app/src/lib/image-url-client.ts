@@ -1,6 +1,6 @@
 'use client';
 
-import { generateImageUrl } from './image-url';
+import { generateImageUrlWithCdn } from './image-url';
 
 export interface ImageWithUrl {
   id: string;
@@ -37,6 +37,23 @@ export function getImageUrl(
     return image.imageUrl;
   }
 
-  // Otherwise, generate API URL (which will handle transformations)
-  return generateImageUrl(image.id, options);
+  // Check if the server-provided imageUrl contains a CDN URL
+  let cdnUrl: string | undefined;
+  let isAdminRoute = false;
+  
+  if (image.imageUrl) {
+    // Extract CDN URL if the imageUrl starts with http/https
+    const urlMatch = image.imageUrl.match(/^(https?:\/\/[^\/]+)/);
+    if (urlMatch) {
+      cdnUrl = urlMatch[1];
+    }
+    
+    // Check if we're in an admin context based on current path
+    if (typeof window !== 'undefined') {
+      isAdminRoute = window.location.pathname.startsWith('/admin');
+    }
+  }
+
+  // Generate URL with CDN support if available
+  return generateImageUrlWithCdn(image.id, options, cdnUrl, isAdminRoute);
 }

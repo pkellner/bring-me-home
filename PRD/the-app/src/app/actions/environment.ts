@@ -23,6 +23,7 @@ export async function getEnvironmentConfig() {
       process.env.NEXTAUTH_URL ||
       'http://localhost:3000',
     consoleLogging: process.env.NEXT_PUBLIC_CONSOLE_LOGGING === 'true',
+    cloudfrontCdnUrl: process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL || '',
 
     // Application info
     environment: process.env.NODE_ENV || 'development',

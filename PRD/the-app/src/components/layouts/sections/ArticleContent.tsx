@@ -1,12 +1,15 @@
+'use client';
+
 import Image from 'next/image';
 import { SerializedPerson } from '../LayoutRenderer';
-import { generateImageUrl } from '@/lib/image-url';
+import { useImageUrl } from '@/hooks/useImageUrl';
 
 interface ArticleContentProps {
   person: SerializedPerson;
 }
 
 export default function ArticleContent({ person }: ArticleContentProps) {
+  const { generateUrl } = useImageUrl();
   // Find the first personal story with content
   const personalStory = person.stories?.find(story => {
     if (story.storyType !== 'personal' || !story.content) return false;
@@ -47,7 +50,7 @@ export default function ArticleContent({ person }: ArticleContentProps) {
               .map((image, index) => (
                 <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg shadow-md">
                   <Image
-                    src={generateImageUrl(image.id, { width: 600, height: 600, quality: 85 })}
+                    src={generateUrl(image.id, { width: 600, height: 600, quality: 85 })}
                     alt={image.caption || `Photo ${index + 1}`}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"

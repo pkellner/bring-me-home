@@ -175,3 +175,50 @@ export async function generateImageUrlServer(
   debugLog('[IMAGE URL GENERATED]', { type: 'API_FALLBACK', url: apiUrl });
   return apiUrl;
 }
+
+/**
+ * generateImageUrlServerWithCdn
+ * 
+ * Server-side function to generate CDN-aware image URLs
+ * Checks if CloudFront CDN is configured and uses it for non-admin routes
+ * 
+ * @param imageId - The image ID from the database
+ * @param options - Optional transformation parameters
+ * @param pathname - The current pathname to determine if it's an admin route
+ * @returns Promise<string> - The image URL (CDN or local)
+ */
+export async function generateImageUrlServerWithCdn(
+  imageId: string,
+  options?: {
+    width?: number;
+    height?: number;
+    quality?: number;
+    format?: 'jpeg' | 'webp' | 'png';
+  },
+  pathname?: string
+): Promise<string> {
+  // Check if we're in an admin route
+  const isAdminRoute = pathname?.startsWith('/admin') ?? false;
+  
+  // Get CDN URL from environment
+  const cdnUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL;
+  
+  // If no CDN configured or in admin route, use the standard server function
+  if (!cdnUrl || isAdminRoute) {
+    return generateImageUrlServer(imageId, options);
+  }
+  
+  // For non-admin routes with CDN configured, return CDN URL directly
+  const params = new URLSearchParams();
+  if (options?.width) params.append('w', options.width.toString());
+  if (options?.height) params.append('h', options.height.toString());
+  if (options?.quality) params.append('q', options.quality.toString());
+  if (options?.format) params.append('f', options.format);
+  
+  const queryString = params.toString();
+  const imagePath = `/api/images/${imageId}${queryString ? `?${queryString}` : ''}`;
+  
+  // Remove trailing slash from CDN URL if present
+  const cleanCdnUrl = cdnUrl.replace(/\/$/, '');
+  return `${cleanCdnUrl}${imagePath}`;
+}

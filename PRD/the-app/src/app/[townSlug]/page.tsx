@@ -7,7 +7,7 @@ import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 import { stripHtml } from '@/lib/stripHtml';
-import { generateImageUrlServer } from '@/lib/image-url-server';
+import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -113,7 +113,7 @@ export default async function TownPage({ params }: TownPageProps) {
       let imageUrl = null;
 
       if (imageId) {
-        imageUrl = await generateImageUrlServer(imageId);
+        imageUrl = await generateImageUrlServerWithCdn(imageId, undefined, `/${townSlug}`);
 
       }
 
