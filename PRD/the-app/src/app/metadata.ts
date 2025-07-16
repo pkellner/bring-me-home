@@ -2,11 +2,15 @@ import { Metadata } from 'next';
 import { getConfig } from '@/lib/config';
 
 export async function generateSiteMetadata(): Promise<Metadata> {
-  const [siteTitle, siteDescription, appUrl] = await Promise.all([
+  const [siteTitle, siteDescription] = await Promise.all([
     getConfig('site_title'),
     getConfig('site_description'),
-    Promise.resolve(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'),
   ]);
+  
+  // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
+  const appUrl = process.env.NODE_ENV === 'production' 
+    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001')
+    : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001');
 
   const title = siteTitle || 'Bring Me Home';
   const description =

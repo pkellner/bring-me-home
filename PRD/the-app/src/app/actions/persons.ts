@@ -56,26 +56,26 @@ export async function createPerson(formData: FormData) {
   const validatedFields = personSchema.safeParse({
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
-    middleName: formData.get('middleName') || undefined,
+    middleName: formData.get('middleName') || null,
     townId: formData.get('townId'),
-    dateOfBirth: formData.get('dateOfBirth') || undefined,
+    dateOfBirth: formData.get('dateOfBirth') || null,
     lastKnownAddress: formData.get('lastKnownAddress'),
     status: formData.get('status') || 'detained',
-    stories: formData.get('stories') || undefined,
-    layoutId: formData.get('layoutId') || undefined,
-    themeId: formData.get('themeId') || undefined,
+    stories: formData.get('stories') || null,
+    layoutId: formData.get('layoutId') || null,
+    themeId: formData.get('themeId') || null,
     isActive: formData.get('isActive') === 'on',
-    detentionCenterId: formData.get('detentionCenterId') || undefined,
-    detentionDate: formData.get('detentionDate') || undefined,
-    detentionStatus: formData.get('detentionStatus') || undefined,
-    caseNumber: formData.get('caseNumber') || undefined,
+    detentionCenterId: formData.get('detentionCenterId') || null,
+    detentionDate: formData.get('detentionDate') || null,
+    detentionStatus: formData.get('detentionStatus') || null,
+    caseNumber: formData.get('caseNumber') || null,
     bondAmount: formData.get('bondAmount')
       ? Number(formData.get('bondAmount'))
       : undefined,
-    lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
-    notesFromLastContact: formData.get('notesFromLastContact') || undefined,
+    lastHeardFromDate: formData.get('lastHeardFromDate') || null,
+    notesFromLastContact: formData.get('notesFromLastContact') || null,
     representedByLawyer: formData.get('representedByLawyer') === 'on',
-    representedByNotes: formData.get('representedByNotes') || undefined,
+    representedByNotes: formData.get('representedByNotes') || null,
     showDetentionInfo: formData.get('showDetentionInfo') === 'on',
     showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
     showDetentionDate: formData.get('showDetentionDate') === 'on',
@@ -114,13 +114,13 @@ export async function createPerson(formData: FormData) {
       slug,
       dateOfBirth: validatedFields.data.dateOfBirth
         ? new Date(validatedFields.data.dateOfBirth)
-        : undefined,
+        : null,
       detentionDate: validatedFields.data.detentionDate
         ? new Date(validatedFields.data.detentionDate)
-        : undefined,
+        : null,
       lastHeardFromDate: validatedFields.data.lastHeardFromDate
         ? new Date(validatedFields.data.lastHeardFromDate)
-        : undefined,
+        : null,
     };
 
     // Handle empty detentionCenterId
@@ -227,9 +227,8 @@ export async function updatePerson(id: string, formData: FormData) {
     throw new Error('No access to this person');
   }
 
-  const storiesFromForm = formData.get('stories');
-  console.log('Stories from form:', storiesFromForm);
-  console.log('Stories type:', typeof storiesFromForm);
+  // Remove unused variable - stories are accessed later through validatedFields
+  // const storiesFromForm = formData.get('stories');
 
   // Check if this is a partial update (only images)
   const hasPersonFields = formData.has('firstName') || formData.has('lastName') ||
@@ -248,26 +247,26 @@ export async function updatePerson(id: string, formData: FormData) {
     validatedFields = personSchema.safeParse({
       firstName: formData.get('firstName'),
       lastName: formData.get('lastName'),
-      middleName: formData.get('middleName') || undefined,
+      middleName: formData.get('middleName') || null,
       townId: formData.get('townId'),
-      dateOfBirth: formData.get('dateOfBirth') || undefined,
+      dateOfBirth: formData.get('dateOfBirth') || null,
       lastKnownAddress: formData.get('lastKnownAddress'),
       status: formData.get('status') || 'detained',
-      stories: formData.get('stories') || undefined,
-      layoutId: formData.get('layoutId') || undefined,
-      themeId: formData.get('themeId') || undefined,
+      stories: formData.get('stories') || null,
+      layoutId: formData.get('layoutId') || null,
+      themeId: formData.get('themeId') || null,
       isActive: formData.get('isActive') === 'on',
-      detentionCenterId: formData.get('detentionCenterId') || undefined,
-      detentionDate: formData.get('detentionDate') || undefined,
-      detentionStatus: formData.get('detentionStatus') || undefined,
-      caseNumber: formData.get('caseNumber') || undefined,
+      detentionCenterId: formData.get('detentionCenterId') || null,
+      detentionDate: formData.get('detentionDate') || null,
+      detentionStatus: formData.get('detentionStatus') || null,
+      caseNumber: formData.get('caseNumber') || null,
       bondAmount: formData.get('bondAmount')
         ? Number(formData.get('bondAmount'))
         : undefined,
-      lastHeardFromDate: formData.get('lastHeardFromDate') || undefined,
-      notesFromLastContact: formData.get('notesFromLastContact') || undefined,
+      lastHeardFromDate: formData.get('lastHeardFromDate') || null,
+      notesFromLastContact: formData.get('notesFromLastContact') || null,
       representedByLawyer: formData.get('representedByLawyer') === 'on',
-      representedByNotes: formData.get('representedByNotes') || undefined,
+      representedByNotes: formData.get('representedByNotes') || null,
       showDetentionInfo: formData.get('showDetentionInfo') === 'on',
       showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
       showDetentionDate: formData.get('showDetentionDate') === 'on',
@@ -362,7 +361,6 @@ export async function updatePerson(id: string, formData: FormData) {
 
       // Extract stories from data first (don't include in person update)
       storiesJson = validatedFields.data.stories;
-      console.log('storiesJson extracted:', storiesJson);
 
       // Process data for database (exclude stories)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -437,21 +435,12 @@ export async function updatePerson(id: string, formData: FormData) {
         }
 
         // Store new profile image
-        console.log('Updating person - storing new profile image with S3');
-        console.log('Environment check:', {
-          IMAGE_STORAGE_TYPE: process.env.IMAGE_STORAGE_TYPE,
-          AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
-          AWS_S3_REGION: process.env.AWS_S3_REGION,
-          hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-          NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY: process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY,
-        });
         await processAndStoreImage(buffer, {
           personId: id,
           imageType: 'primary',
           sequenceNumber: 0,
           uploadedById: session.user.id,
         });
-        console.log('Profile image stored successfully');
       }
     }
 
@@ -566,9 +555,6 @@ export async function updatePerson(id: string, formData: FormData) {
 
     // Handle stories update only if we have person fields
     if (hasPersonFields) {
-      console.log('About to handle stories update, storiesJson:', storiesJson);
-      console.log('storiesJson type:', typeof storiesJson);
-      console.log('storiesJson truthy?', !!storiesJson);
 
       if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
         console.log('Updating stories - JSON:', storiesJson);
@@ -577,14 +563,13 @@ export async function updatePerson(id: string, formData: FormData) {
           console.log('Parsed stories:', stories);
 
           // Delete existing stories for this person
-          const deleteResult = await prisma.story.deleteMany({
+          await prisma.story.deleteMany({
             where: { personId: id },
           });
-          console.log('Deleted stories:', deleteResult);
 
           // Create new stories
           if (Array.isArray(stories) && stories.length > 0) {
-            console.log('About to create stories for person:', id);
+
             const storiesToCreate = stories.map(
               (story: {
                 language: string;
@@ -598,12 +583,12 @@ export async function updatePerson(id: string, formData: FormData) {
                 isActive: true,
               })
             );
-            console.log('Stories to create:', storiesToCreate);
 
-            const createResult = await prisma.story.createMany({
+
+            await prisma.story.createMany({
               data: storiesToCreate,
             });
-            console.log('Created stories:', createResult);
+
           } else {
             console.log('No stories to create');
           }
@@ -616,11 +601,10 @@ export async function updatePerson(id: string, formData: FormData) {
     }
 
     // Verify stories were actually saved
-    const savedStories = await prisma.story.findMany({
+    await prisma.story.findMany({
       where: { personId: id },
       orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
     });
-    console.log('Stories after save:', savedStories);
 
     revalidatePath('/admin/persons');
     revalidatePath(`/admin/persons/${id}/edit`);
