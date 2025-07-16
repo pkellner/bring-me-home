@@ -70,10 +70,10 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
     const hasTownAccess = (userWithAccess?.townAccess?.length ?? 0) > 0;
     const hasPersonAccess = (userWithAccess?.personAccess?.length ?? 0) > 0;
-    
+
     // Check if user has person-admin role
     const hasPersonAdminRole = userWithAccess?.userRoles.some(ur => ur.role.name === 'person-admin') || false;
-    
+
     // User is a person admin if they have the person-admin role and access to this specific person
     isPersonAdmin = hasPersonAdminRole && hasPersonAccess;
 
@@ -127,14 +127,6 @@ export default async function PersonCommentsPage({ params }: PageProps) {
 
   // Get delete days threshold from environment variable
   const deleteDaysThreshold = parseInt(process.env.COMMENT_DELETE_DAYS_THRESHOLD || '1', 10);
-  
-  console.log('PersonCommentsPage Debug:', {
-    userId: session.user?.id,
-    isSiteAdmin,
-    isPersonAdmin,
-    canDelete,
-    deleteDaysThreshold
-  });
 
   return (
     <div>

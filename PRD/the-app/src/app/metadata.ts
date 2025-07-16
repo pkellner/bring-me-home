@@ -9,8 +9,8 @@ export async function generateSiteMetadata(): Promise<Metadata> {
 
   // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
   const appUrl = process.env.NODE_ENV === 'production'
-    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.org')
-    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.org');
+    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
+    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com');
 
   const title = siteTitle || 'Bring Me Home';
   const description =

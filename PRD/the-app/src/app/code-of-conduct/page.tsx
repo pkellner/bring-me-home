@@ -46,13 +46,13 @@ export default async function CodeOfConductPage() {
             </div>
 
             <h1 className="text-4xl font-bold mb-8 text-center text-gray-900">Code of Conduct</h1>
-      
+
       <div className="prose prose-lg max-w-none">
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Our Commitment</h2>
           <p className="mb-4">
-            We are committed to fostering an inclusive, respectful, and collaborative environment where all participants 
-            can contribute meaningfully without fear of harassment or discrimination. This Code of Conduct outlines our 
+            We are committed to fostering an inclusive, respectful, and collaborative environment where all participants
+            can contribute meaningfully without fear of harassment or discrimination. This Code of Conduct outlines our
             expectations for all those who participate in our community, as well as the consequences for unacceptable behavior.
           </p>
         </section>
@@ -101,7 +101,7 @@ export default async function CodeOfConductPage() {
           <h2 className="text-2xl font-semibold mb-4">Unacceptable Behaviors</h2>
           <h3 className="text-xl font-semibold mb-3">Zero Tolerance for:</h3>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Hate Speech:</strong> Any content that attacks, threatens, or demeans people based on race, ethnicity, national origin, 
+            <li><strong>Hate Speech:</strong> Any content that attacks, threatens, or demeans people based on race, ethnicity, national origin,
             religious affiliation, gender identity, sexual orientation, disability, age, or any other protected characteristic</li>
             <li><strong>Personal Attacks:</strong> Direct insults, derogatory comments, doxxing, threats of violence, harassment, or unwelcome advances</li>
             <li><strong>Discrimination:</strong> Exclusion based on identity, creating hostile environments, using slurs, or denying others&apos; lived experiences</li>
@@ -117,12 +117,12 @@ export default async function CodeOfConductPage() {
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Use the report feature available on the platform</li>
-            <li>Email us at: conduct@bringmehome.org</li>
+            <li>Email us at: conduct@bring-me-home.com</li>
             <li>Contact any moderator directly</li>
             <li>Anonymous reporting is available and encouraged</li>
           </ul>
           <p className="mt-4">
-            All reports will be reviewed and investigated promptly and fairly. We are committed to protecting the 
+            All reports will be reviewed and investigated promptly and fairly. We are committed to protecting the
             confidentiality and safety of those who report violations.
           </p>
         </section>
@@ -139,7 +139,7 @@ export default async function CodeOfConductPage() {
             <li><strong>Permanent Ban:</strong> Permanent removal from the community for severe or repeated violations</li>
           </ol>
           <p className="mt-4">
-            The severity of the action depends on the nature and pattern of violations. We apply these measures 
+            The severity of the action depends on the nature and pattern of violations. We apply these measures
             consistently and fairly, with the goal of protecting our community while allowing for growth and learning.
           </p>
         </section>
@@ -173,8 +173,8 @@ export default async function CodeOfConductPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Conclusion</h2>
           <p className="mb-4">
-            By participating in our community, you agree to abide by this Code of Conduct. We believe that by working 
-            together with mutual respect and understanding, we can create a community that brings out the best in all 
+            By participating in our community, you agree to abide by this Code of Conduct. We believe that by working
+            together with mutual respect and understanding, we can create a community that brings out the best in all
             of us and demonstrates the power of people working together across differences toward shared goals.
           </p>
           <p className="mb-4">
