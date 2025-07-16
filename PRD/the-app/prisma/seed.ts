@@ -1744,7 +1744,7 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       username: 'admin',
-      email: 'admin@bringmehome.com',
+      email: 'admin@bring-me-home.com',
       password: hashedPassword,
       firstName: 'System',
       lastName: 'Administrator',
@@ -1823,7 +1823,7 @@ async function main() {
     const townAdmin = await prisma.user.create({
       data: {
         username: `town_admin_${i + 1}`,
-        email: `town${i + 1}@bringmehome.com`,
+        email: `town${i + 1}@bring-me-home.com`,
         password: hashedPassword,
         firstName: `${town.name}`,
         lastName: 'Admin',
@@ -1862,7 +1862,7 @@ async function main() {
   const personAdmin = await prisma.user.create({
     data: {
       username: 'person_admin_1',
-      email: 'personadmin@bringmehome.com',
+      email: 'personadmin@bring-me-home.com',
       password: personAdminPassword,
       firstName: 'Person',
       lastName: 'Admin',

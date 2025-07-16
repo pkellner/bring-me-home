@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 
-const debugCaptcha = true;
+const debugCaptcha = false;
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -34,7 +34,7 @@ const commentSchema = z.object({
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  
+
   if (debugCaptcha) {
     console.log('[verifyRecaptcha] Starting verification');
     console.log('[verifyRecaptcha] Secret key present:', !!secretKey);
@@ -43,7 +43,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     console.log('[verifyRecaptcha] Token length:', token?.length);
     console.log('[verifyRecaptcha] Token sample:', token ? token.substring(0, 50) : 'NO TOKEN');
   }
-  
+
   if (!secretKey) {
     console.error('RECAPTCHA_SECRET_KEY not configured');
     return false;
@@ -51,12 +51,12 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
 
   try {
     const verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
-    
+
     // Properly encode the parameters
     const params = new URLSearchParams();
     params.append('secret', secretKey);
     params.append('response', token);
-    
+
     if (debugCaptcha) {
       console.log('[verifyRecaptcha] Sending request to:', verifyUrl);
       console.log('[verifyRecaptcha] Request params:', params.toString().substring(0, 100) + '...');
@@ -64,7 +64,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
       // Log if token contains any special characters that might need encoding
       console.log('[verifyRecaptcha] Token contains special chars:', /[^a-zA-Z0-9_-]/.test(token));
     }
-    
+
     const response = await fetch(verifyUrl, {
       method: 'POST',
       headers: {
@@ -74,7 +74,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     });
 
     const data = await response.json();
-    
+
     if (debugCaptcha) {
       console.log('[verifyRecaptcha] Response status:', response.status);
       console.log('[verifyRecaptcha] Response data:', {
@@ -86,18 +86,18 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
         error_codes: data['error-codes'],
       });
     }
-    
+
     // Google reCAPTCHA v3 returns a score from 0.0 to 1.0
     // 0.5 is a reasonable threshold, adjust as needed
     const isValid = data.success && data.score >= 0.5;
-    
+
     if (debugCaptcha) {
       console.log('[verifyRecaptcha] Verification result:', isValid);
       if (!data.success) {
         console.log('[verifyRecaptcha] Verification failed, error codes:', data['error-codes']);
       }
     }
-    
+
     return isValid;
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
@@ -123,17 +123,17 @@ export async function submitComment(
   try {
     // Verify reCAPTCHA token
     const recaptchaToken = formData.get('recaptchaToken') as string;
-    
+
     if (debugCaptcha) {
       console.log('[submitComment] Starting comment submission');
       console.log('[submitComment] reCAPTCHA token present:', !!recaptchaToken);
       console.log('[submitComment] Token from formData length:', recaptchaToken?.length);
       console.log('[submitComment] Token from formData (first 50):', recaptchaToken ? recaptchaToken.substring(0, 50) : 'NO TOKEN');
-      
+
       // Check all formData entries
       console.log('[submitComment] All formData keys:', Array.from(formData.keys()));
     }
-    
+
     if (!recaptchaToken) {
       if (debugCaptcha) {
         console.error('[submitComment] No reCAPTCHA token provided');
@@ -154,7 +154,7 @@ export async function submitComment(
         error: 'Security verification failed. Please try again.',
       };
     }
-    
+
     if (debugCaptcha) {
       console.log('[submitComment] reCAPTCHA verification passed, proceeding with comment submission');
     }
@@ -499,7 +499,7 @@ export async function updateCommentVisibility(
   // Get the comment with person info to check access
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    include: { 
+    include: {
       person: {
         include: {
           town: true

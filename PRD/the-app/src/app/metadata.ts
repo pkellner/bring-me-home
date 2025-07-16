@@ -6,11 +6,11 @@ export async function generateSiteMetadata(): Promise<Metadata> {
     getConfig('site_title'),
     getConfig('site_description'),
   ]);
-  
+
   // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
-  const appUrl = process.env.NODE_ENV === 'production' 
-    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001')
-    : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001');
+  const appUrl = process.env.NODE_ENV === 'production'
+    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
+    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com');
 
   const title = siteTitle || 'Bring Me Home';
   const description =

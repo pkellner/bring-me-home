@@ -31,6 +31,8 @@ export default function AnonymousCommentForm({
   const [displayNameOnly, setDisplayNameOnly] = useState(false);
   const [showCityState, setShowCityState] = useState(true);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
+  const [isExpandingForm, setIsExpandingForm] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -57,11 +59,11 @@ export default function AnonymousCommentForm({
       <div className="mb-8">
         {/* Success message after submission */}
         {state?.success && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-4 animate-slide-in-down">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-green-400"
+                  className="h-5 w-5 text-green-400 animate-check-mark"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -73,10 +75,10 @@ export default function AnonymousCommentForm({
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
+                <h3 className="text-sm font-medium text-green-800 animate-fade-in-delay">
                   Thank you for your support!
                 </h3>
-                <p className="mt-2 text-sm text-green-700">
+                <p className="mt-2 text-sm text-green-700 animate-fade-in-delay-2">
                   Your message has been submitted and will be reviewed by the
                   family before being posted.
                 </p>
@@ -94,10 +96,27 @@ export default function AnonymousCommentForm({
             Your support matters. Add your voice to help bring this person home.
           </p>
           <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              setIsExpandingForm(true);
+              setTimeout(() => {
+                setShowForm(true);
+                setIsExpandingForm(false);
+              }, 100);
+            }}
+            disabled={isExpandingForm}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
-            Add Your Support
+            {isExpandingForm ? (
+              <span className="flex items-center space-x-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Loading...</span>
+              </span>
+            ) : (
+              'Add Your Support'
+            )}
           </button>
         </div>
       </div>
@@ -130,6 +149,8 @@ export default function AnonymousCommentForm({
             return;
           }
           
+          setIsExecutingRecaptcha(true);
+          
           try {
             if (debugCaptcha) {
               console.log('[AnonymousCommentForm] Executing reCAPTCHA with action: submit_comment');
@@ -157,6 +178,8 @@ export default function AnonymousCommentForm({
               console.error('[AnonymousCommentForm] Error message:', error instanceof Error ? error.message : String(error));
             }
             setRecaptchaError('reCAPTCHA verification failed. Please try again.');
+          } finally {
+            setIsExecutingRecaptcha(false);
           }
         }}
         className="space-y-4"
@@ -582,10 +605,28 @@ export default function AnonymousCommentForm({
           </button>
           <button
             type="submit"
-            disabled={isPending}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            disabled={isPending || isExecutingRecaptcha}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
-            {isPending ? 'Submitting...' : 'Submit Support'}
+            {isExecutingRecaptcha ? (
+              <span className="flex items-center justify-center space-x-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Verifying...</span>
+              </span>
+            ) : isPending ? (
+              <span className="flex items-center justify-center space-x-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Submitting...</span>
+              </span>
+            ) : (
+              'Submit Support'
+            )}
           </button>
         </div>
       </form>
@@ -593,6 +634,7 @@ export default function AnonymousCommentForm({
       {/* Confirmation Modal */}
       <CommentConfirmationModal
         isOpen={showConfirmModal}
+        isSubmitting={isPending}
         onConfirm={() => {
           if (pendingFormData) {
             startTransition(() => {

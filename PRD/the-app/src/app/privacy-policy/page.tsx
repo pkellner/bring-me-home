@@ -46,11 +46,11 @@ export default async function PrivacyPolicyPage() {
             </div>
 
             <h1 className="text-4xl font-bold mb-8 text-center text-gray-900">Privacy Policy</h1>
-      
+
       <div className="prose prose-lg max-w-none">
         <section className="mb-8">
           <p className="text-lg mb-6">
-            We respect your privacy and are committed to protecting your personal information. This Privacy Policy 
+            We respect your privacy and are committed to protecting your personal information. This Privacy Policy
             explains how we collect, use, and safeguard your data in compliance with applicable laws.
           </p>
           <p className="text-sm text-gray-600 mb-6">
@@ -107,7 +107,7 @@ export default async function PrivacyPolicyPage() {
             <li>Employee training on data protection and privacy</li>
           </ul>
           <p className="mt-4">
-            While we strive to protect your personal information, no method of transmission over the internet 
+            While we strive to protect your personal information, no method of transmission over the internet
             is 100% secure. We cannot guarantee absolute security but we work hard to protect your data.
           </p>
         </section>
@@ -115,7 +115,7 @@ export default async function PrivacyPolicyPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Information Sharing</h2>
           <p className="mb-4">
-            We do not sell, trade, or rent your personal information. We may share your information only in 
+            We do not sell, trade, or rent your personal information. We may share your information only in
             the following circumstances:
           </p>
           <ul className="list-disc pl-6 space-y-2">
@@ -140,7 +140,7 @@ export default async function PrivacyPolicyPage() {
             <li><strong>Data Portability:</strong> Receive your data in a portable format</li>
           </ul>
           <p className="mt-4">
-            To exercise any of these rights, please contact us at privacy@bringmehome.org
+            To exercise any of these rights, please contact us at privacy@bring-me-home.com
           </p>
         </section>
 
@@ -156,7 +156,7 @@ export default async function PrivacyPolicyPage() {
             <li>Support business operations and improvements</li>
           </ul>
           <p className="mt-4">
-            When you delete your account, we will delete or anonymize your personal information, except 
+            When you delete your account, we will delete or anonymize your personal information, except
             where we are required to retain it by law.
           </p>
         </section>
@@ -164,8 +164,8 @@ export default async function PrivacyPolicyPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Children&apos;s Privacy</h2>
           <p>
-            Our platform is not intended for children under 13 years of age. We do not knowingly collect 
-            personal information from children under 13. If we learn we have collected information from a 
+            Our platform is not intended for children under 13 years of age. We do not knowingly collect
+            personal information from children under 13. If we learn we have collected information from a
             child under 13, we will delete it promptly.
           </p>
         </section>
@@ -186,8 +186,8 @@ export default async function PrivacyPolicyPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Changes to This Policy</h2>
           <p>
-            We may update this Privacy Policy from time to time to reflect changes in our practices or 
-            legal requirements. We will notify you of any material changes by posting the new policy on 
+            We may update this Privacy Policy from time to time to reflect changes in our practices or
+            legal requirements. We will notify you of any material changes by posting the new policy on
             this page and updating the &ldquo;Last updated&rdquo; date.
           </p>
         </section>
@@ -198,7 +198,7 @@ export default async function PrivacyPolicyPage() {
             If you have any questions about this Privacy Policy or our data practices, please contact us:
           </p>
           <div className="bg-gray-100 p-6 rounded-lg">
-            <p><strong>Email:</strong> privacy@bringmehome.org</p>
+            <p><strong>Email:</strong> privacy@bring-me-home.com</p>
             <p><strong>Address:</strong> [To be provided]</p>
             <p><strong>Response Time:</strong> We aim to respond within 30 days</p>
           </div>
@@ -206,8 +206,8 @@ export default async function PrivacyPolicyPage() {
 
         <section className="mb-8 border-t pt-8">
           <p className="text-sm text-gray-600">
-            By using our platform, you agree to the collection and use of information in accordance with 
-            this Privacy Policy. Your continued use of our services after any changes to this policy will 
+            By using our platform, you agree to the collection and use of information in accordance with
+            this Privacy Policy. Your continued use of our services after any changes to this policy will
             constitute your acknowledgment of the changes and consent to abide by the updated policy.
           </p>
         </section>

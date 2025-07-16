@@ -20,7 +20,7 @@ export async function generateMetadata({
   params,
 }: PersonPageProps): Promise<Metadata> {
   const { townSlug, personSlug } = await params;
-  
+
   const person = await prisma.person.findFirst({
     where: {
       slug: personSlug,
@@ -51,16 +51,22 @@ export async function generateMetadata({
 
   const personName = `${person.firstName} ${person.lastName}`;
   const title = `${personName} - Bring Me Home`;
-  const description = person.story 
-    ? person.story.slice(0, 150) + '...' 
+  const description = person.story
+    ? person.story.slice(0, 150) + '...'
     : `Help bring ${personName} from ${person.town.name} home to their family.`;
-  
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+
+  // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
+  const appUrl = process.env.NODE_ENV === 'production'
+    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
+    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com');
+    
   const personUrl = `${appUrl}/${townSlug}/${personSlug}`;
+  const ogImageUrl = `${appUrl}/${townSlug}/${personSlug}/opengraph-image`;
 
   return {
     title,
     description,
+    metadataBase: new URL(appUrl),
     openGraph: {
       title: personName,
       description,
@@ -69,7 +75,7 @@ export async function generateMetadata({
       type: 'profile',
       images: [
         {
-          url: `/${townSlug}/${personSlug}/opengraph-image`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `${personName} - ${person.town.name}`,
@@ -80,7 +86,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: personName,
       description,
-      images: [`/${townSlug}/${personSlug}/opengraph-image`],
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: personUrl,
