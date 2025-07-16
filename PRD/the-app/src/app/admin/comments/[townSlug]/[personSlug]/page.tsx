@@ -122,7 +122,8 @@ export default async function PersonCommentsPage({ params }: PageProps) {
   });
 
   const canApprove = hasPermission(session, 'comments', 'update');
-  const canDelete = hasPermission(session, 'comments', 'delete');
+  // Person admins can delete comments for their assigned persons (with age restrictions)
+  const canDelete = hasPermission(session, 'comments', 'delete') || isPersonAdmin;
 
   // Get delete days threshold from environment variable
   const deleteDaysThreshold = parseInt(process.env.COMMENT_DELETE_DAYS_THRESHOLD || '1', 10);

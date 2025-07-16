@@ -453,17 +453,29 @@ function CommentsGrid({
         if (isSiteAdmin) return true;
         
         // For person admin (when viewing a specific person's comments), 
-        // only show if comment is older than threshold
+        // only show if comment belongs to the viewed person AND is older than threshold
         if (isPersonAdmin && personId) {
+          // First check if this comment belongs to the person being viewed
+          if (comment.person.id !== personId) {
+            return false;
+          }
+          
           const commentDate = new Date(comment.createdAt);
           const now = new Date();
           const daysDiff = (now.getTime() - commentDate.getTime()) / (1000 * 60 * 60 * 24);
           const canShow = daysDiff >= deleteDaysThreshold;
           console.log('Delete icon check for person admin:', {
             commentId: comment.id,
+            commentCreatedAt: comment.createdAt,
+            commentDate: commentDate.toISOString(),
+            now: now.toISOString(),
             daysDiff,
             deleteDaysThreshold,
-            canShow
+            canShow,
+            isPersonAdmin,
+            personId,
+            commentPersonId: comment.person.id,
+            belongsToViewedPerson: comment.person.id === personId
           });
           return canShow;
         }

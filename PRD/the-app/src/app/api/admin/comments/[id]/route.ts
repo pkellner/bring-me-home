@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, hasRole } from '@/lib/permissions';
 
 export async function DELETE(
   request: NextRequest,
@@ -16,16 +16,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session, 'comments', 'delete')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Get comment for audit log
+    // Get comment first to check permissions
     const comment = await prisma.comment.findUnique({
       where: { id },
       include: {
         person: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
@@ -35,6 +32,42 @@ export async function DELETE(
 
     if (!comment) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    // Check permissions
+    const hasDeletePermission = hasPermission(session, 'comments', 'delete');
+    const isPersonAdmin = hasRole(session, 'person-admin');
+
+    // If person admin, check if they have access to this person and if comment is old enough
+    let canDelete = hasDeletePermission;
+
+    if (!canDelete && isPersonAdmin && session.user?.id) {
+      // Check if user has admin access to this specific person
+      const userWithAccess = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: {
+          personAccess: {
+            where: {
+              personId: comment.person.id,
+              accessLevel: 'admin',
+            },
+          },
+        },
+      });
+
+      if (userWithAccess?.personAccess?.length ?? 0 > 0) {
+        // Check if comment is old enough (default 1 day)
+        const deleteDaysThreshold = parseInt(process.env.COMMENT_DELETE_DAYS_THRESHOLD || '1', 10);
+        const commentDate = new Date(comment.createdAt);
+        const now = new Date();
+        const daysDiff = (now.getTime() - commentDate.getTime()) / (1000 * 60 * 60 * 24);
+
+        canDelete = daysDiff >= deleteDaysThreshold;
+      }
+    }
+
+    if (!canDelete) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Delete the comment
