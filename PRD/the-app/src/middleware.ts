@@ -169,6 +169,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    '/((?!api/auth|api/images|opengraph-image|_next/static|_next/image|favicon.ico|public/).*)',
+    '/((?!api/auth|api/images|.*opengraph-image|_next/static|_next/image|favicon.ico|public/).*)',
   ],
 };
