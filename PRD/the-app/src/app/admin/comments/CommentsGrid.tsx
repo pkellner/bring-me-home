@@ -301,20 +301,21 @@ function CommentsGrid({
     {
       key: 'commenter',
       label: 'Commenter',
+      className: 'min-w-[80px] max-w-[120px] lg:min-w-[100px] lg:max-w-[300px]',
       render: (value, record) => (
         <div className="flex items-center">
-          <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
-          <div>
-            <div className="text-sm font-medium text-gray-900">
+          <UserIcon className="h-4 w-4 text-gray-500 mr-2 flex-shrink-0 hidden lg:block" />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-900 truncate">
               {record.firstName} {record.lastName}
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500">
               {record.email && (
-                <div className="flex items-center">
-                  <EnvelopeIcon className="h-3 w-3 mr-1" />
+                <div className="flex items-center min-w-0">
+                  <EnvelopeIcon className="h-3 w-3 mr-1 flex-shrink-0" />
                   <a 
                     href={`mailto:${record.email}`}
-                    className="hover:text-indigo-600 hover:underline"
+                    className="hover:text-indigo-600 hover:underline truncate"
                   >
                     {record.email}
                   </a>
@@ -336,78 +337,95 @@ function CommentsGrid({
         </div>
       ),
     },
-    {
+    ...(!personId ? [{
       key: 'person',
       label: 'Supporting',
-      render: value => {
+      width: 'w-32 sm:w-40 lg:w-48',
+      className: 'hidden lg:table-cell',
+      render: (value: unknown) => {
         const person = value as Comment['person'];
         return (
-          <div className="flex items-center">
-            <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
-            <div>
-              <div className="text-sm font-medium text-gray-900">
-                {person.firstName} {person.lastName}
-              </div>
-              <div className="text-sm text-gray-500">
-                {person.town.name}, {person.town.state}
-              </div>
+          <div className="text-sm">
+            <div className="font-medium text-gray-900 truncate">
+              {person.firstName} {person.lastName}
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              {person.town.name}, {person.town.state}
             </div>
           </div>
         );
       },
-    },
+    }] : []),
     {
       key: 'content',
       label: 'Message',
+      className: 'min-w-[50%]',
       render: (value, record) => (
-        <div className="flex items-start">
-          <DocumentTextIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
-          <div className="text-sm text-gray-900">
+        <div className="flex items-start gap-2">
+          <DocumentTextIcon className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0 hidden lg:block" />
+          <div className="flex-1 min-w-0">
             {record.content ? (
-              <div className="max-w-xs truncate">{record.content}</div>
+              <div 
+                className="relative transition-[height] duration-500 ease-in-out"
+                style={{ height: '2.5em' }}
+                onMouseEnter={(e) => {
+                  const content = e.currentTarget.querySelector('.message-content') as HTMLElement;
+                  if (content) {
+                    const fullHeight = content.scrollHeight;
+                    e.currentTarget.style.height = fullHeight + 'px';
+                    content.style.webkitLineClamp = 'unset';
+                    content.style.maxHeight = fullHeight + 'px';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  const content = e.currentTarget.querySelector('.message-content') as HTMLElement;
+                  if (content) {
+                    e.currentTarget.style.height = '2.5em';
+                    content.style.webkitLineClamp = '2';
+                    content.style.maxHeight = '2.5em';
+                  }
+                }}
+              >
+                <div 
+                  className="message-content text-sm text-gray-900 break-words overflow-hidden transition-[max-height] duration-500 ease-in-out cursor-help absolute inset-0"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    maxHeight: '2.5em',
+                  }}
+                  title={record.content}
+                >
+                  {record.content}
+                </div>
+              </div>
             ) : (
-              <span className="text-gray-500 italic">
-                No message - name only
+              <span className="text-sm text-gray-500 italic">
+                No message
               </span>
             )}
-            <div className="flex gap-2 mt-1">
+          </div>
+          {(record.wantsToHelpMore || record.displayNameOnly) && (
+            <div className="hidden xl:flex flex-col gap-1 flex-shrink-0">
               {record.wantsToHelpMore && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
                   Wants to help
                 </span>
               )}
               {record.displayNameOnly && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
                   Name only
                 </span>
               )}
             </div>
-          </div>
+          )}
         </div>
-      ),
-    },
-    {
-      key: 'type',
-      label: 'Type',
-      render: value => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            value === 'support'
-              ? 'bg-green-100 text-green-800'
-              : value === 'update'
-              ? 'bg-blue-100 text-blue-800'
-              : value === 'legal'
-              ? 'bg-purple-100 text-purple-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}
-        >
-          {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
-        </span>
       ),
     },
     {
       key: 'isApproved',
       label: 'Status',
+      width: 'w-20',
       sortable: true,
       render: (value, record) => (
         <CommentStatusToggle
@@ -424,8 +442,28 @@ function CommentsGrid({
     {
       key: 'createdAt',
       label: 'Created',
+      width: 'w-24',
+      className: 'hidden md:table-cell',
       sortable: true,
-      render: value => new Date(value as Date).toLocaleDateString(),
+      render: value => {
+        const date = new Date(value as Date);
+        const pacificDate = date.toLocaleString('en-US', {
+          timeZone: 'America/Los_Angeles',
+          month: 'numeric',
+          day: 'numeric',
+          year: '2-digit',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+        const [datePart, timePart] = pacificDate.split(', ');
+        return (
+          <div className="text-center">
+            <div className="text-sm text-gray-900">{datePart}</div>
+            <div className="text-xs text-gray-500">{timePart}</div>
+          </div>
+        );
+      },
     },
   ];
 
@@ -438,14 +476,10 @@ function CommentsGrid({
       className: 'text-indigo-600 hover:text-indigo-800',
     },
     {
-      type: 'view',
-      label: 'View on Profile',
-      href: comment => `/${comment.person.town.slug}/${comment.person.slug}#comments`,
-    },
-    {
       type: 'delete',
       label: 'Delete',
       onClick: handleDeleteComment,
+      className: 'text-red-600 hover:text-red-800',
       show: (comment) => {
         if (!canDelete) return false;
         
@@ -483,7 +517,6 @@ function CommentsGrid({
         // For town admin, always show
         return true;
       },
-      className: 'text-red-600 hover:text-red-800',
     },
   ];
 

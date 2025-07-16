@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -13,6 +14,78 @@ import { generateImageUrlServer } from '@/lib/image-url-server';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PersonPageProps): Promise<Metadata> {
+  const { townSlug, personSlug } = await params;
+  
+  const person = await prisma.person.findFirst({
+    where: {
+      slug: personSlug,
+      town: {
+        slug: townSlug,
+        isActive: true,
+      },
+      isActive: true,
+    },
+    select: {
+      firstName: true,
+      lastName: true,
+      story: true,
+      town: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!person) {
+    return {
+      title: 'Person Not Found',
+      description: 'The requested person could not be found.',
+    };
+  }
+
+  const personName = `${person.firstName} ${person.lastName}`;
+  const title = `${personName} - Bring Me Home`;
+  const description = person.story 
+    ? person.story.slice(0, 150) + '...' 
+    : `Help bring ${personName} from ${person.town.name} home to their family.`;
+  
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+  const personUrl = `${appUrl}/${townSlug}/${personSlug}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: personName,
+      description,
+      url: personUrl,
+      siteName: 'Bring Me Home',
+      type: 'profile',
+      images: [
+        {
+          url: `/${townSlug}/${personSlug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${personName} - ${person.town.name}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: personName,
+      description,
+      images: [`/${townSlug}/${personSlug}/opengraph-image`],
+    },
+    alternates: {
+      canonical: personUrl,
+    },
+  };
 }
 
 async function getPersonData(townSlug: string, personSlug: string) {

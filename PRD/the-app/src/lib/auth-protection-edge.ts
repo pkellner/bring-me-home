@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 
 // Cookie names
 export const SITE_PROTECTION_COOKIE = 'site-protection-auth';
-export const SYSTEM_OVERRIDE_COOKIE = 'system-override-auth';
 
 // Simple hash function for Edge Runtime
 function simpleHash(str: string): string {
@@ -28,18 +27,6 @@ export function checkSiteProtectionFromRequest(request: NextRequest): boolean {
   // Simple validation - in production, use a proper JWT or similar
   const expectedValue = simpleHash(
     'site-protected' + (process.env.NEXTAUTH_SECRET || '')
-  );
-  return cookie.value === expectedValue;
-}
-
-// Check system override from request (Edge compatible)
-export function checkSystemOverrideFromRequest(request: NextRequest): boolean {
-  const cookie = request.cookies.get(SYSTEM_OVERRIDE_COOKIE);
-  if (!cookie) return false;
-
-  // Simple validation - in production, use a proper JWT or similar
-  const expectedValue = simpleHash(
-    'system-override-admin' + (process.env.NEXTAUTH_SECRET || '')
   );
   return cookie.value === expectedValue;
 }

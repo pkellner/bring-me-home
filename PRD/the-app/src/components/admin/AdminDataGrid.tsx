@@ -212,7 +212,7 @@ function AdminDataGrid<T extends Record<string, unknown>>({
               <thead className="bg-gray-50">
                 <tr>
                   {actions.length > 0 && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                    <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Actions
                     </th>
                   )}
@@ -245,8 +245,8 @@ function AdminDataGrid<T extends Record<string, unknown>>({
                     className="hover:bg-gray-50"
                   >
                     {actions.length > 0 && (
-                      <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                      <td className="hidden sm:table-cell px-3 py-4 whitespace-nowrap text-left text-sm font-medium">
+                        <div className="flex items-center space-x-1">
                           {actions.map((action, actionIndex) => {
                             if (action.show && !action.show(record)) {
                               return null;
@@ -356,7 +356,7 @@ function AdminDataGrid<T extends Record<string, unknown>>({
                     {columns.map(column => (
                       <td
                         key={String(column.key)}
-                        className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${
+                        className={`px-6 py-4 text-sm text-gray-900 ${
                           column.className || ''
                         }`}
                       >

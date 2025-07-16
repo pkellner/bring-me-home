@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OG Tags Tester</title>
+    <style>
+        body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 20px; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #3B82F6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        iframe { width: 100%; height: 400px; border: 1px solid #ddd; margin-top: 20px; }
+        pre { background: #f3f4f6; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Local OG Tags Tester</h1>
+    
+    <div class="test-section">
+        <h2>Test Your Pages</h2>
+        <input type="text" id="urlInput" placeholder="Enter URL (e.g., http://localhost:3001/cambria/carlos_sanchez)" value="http://localhost:3001">
+        <button onclick="testUrl()">Test URL</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Quick Links</h2>
+        <button onclick="testUrl('http://localhost:3001')">Test Homepage</button>
+        <button onclick="testUrl('http://localhost:3001/cambria/carlos_sanchez')">Test Person Page</button>
+    </div>
+
+    <script>
+        async function testUrl(url) {
+            const testUrl = url || document.getElementById('urlInput').value;
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = '<p>Fetching meta tags...</p>';
+            
+            try {
+                const response = await fetch(testUrl);
+                const html = await response.text();
+                
+                // Parse meta tags
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const ogTags = {};
+                const twitterTags = {};
+                
+                // Get OG tags
+                doc.querySelectorAll('meta[property^="og:"]').forEach(tag => {
+                    ogTags[tag.getAttribute('property')] = tag.getAttribute('content');
+                });
+                
+                // Get Twitter tags
+                doc.querySelectorAll('meta[name^="twitter:"]').forEach(tag => {
+                    twitterTags[tag.getAttribute('name')] = tag.getAttribute('content');
+                });
+                
+                // Get title
+                const title = doc.querySelector('title')?.textContent;
+                
+                // Display results
+                let html = '<h3>Results for: ' + testUrl + '</h3>';
+                
+                html += '<h4>Page Title</h4><pre>' + (title || 'No title found') + '</pre>';
+                
+                html += '<h4>Open Graph Tags</h4><pre>' + JSON.stringify(ogTags, null, 2) + '</pre>';
+                
+                html += '<h4>Twitter Card Tags</h4><pre>' + JSON.stringify(twitterTags, null, 2) + '</pre>';
+                
+                if (ogTags['og:image']) {
+                    html += '<h4>OG Image Preview</h4>';
+                    html += '<img src="' + ogTags['og:image'] + '" style="max-width: 100%; border: 1px solid #ddd;">';
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

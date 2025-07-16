@@ -3,7 +3,6 @@ import type { NextFetchEvent, NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import {
   checkSiteProtectionFromRequest,
-  checkSystemOverrideFromRequest,
 } from '@/lib/auth-protection-edge';
 
 export default function middleware(request: NextRequest) {
@@ -12,9 +11,7 @@ export default function middleware(request: NextRequest) {
   // Always allow access to protection pages and their APIs
   const protectionRoutes = [
     '/site-protection',
-    '/system-override',
     '/api/site-protection',
-    '/api/system-override',
   ];
   if (protectionRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
@@ -26,17 +23,6 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/site-protection', request.url));
   }
 
-  // For admin routes, check system override (9.5.1)
-  if (pathname.startsWith('/admin')) {
-    const hasSystemOverride = checkSystemOverrideFromRequest(request);
-    if (hasSystemOverride) {
-      // User has system override, grant full admin access
-      const response = NextResponse.next();
-      // Set a flag that can be checked in the app
-      response.headers.set('x-system-override', 'true');
-      return response;
-    }
-  }
 
   // Continue to NextAuth middleware for normal authentication
   const authMiddleware = withAuth(

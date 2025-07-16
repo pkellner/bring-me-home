@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 
 // Cookie names
 export const SITE_PROTECTION_COOKIE = 'site-protection-auth';
-export const SYSTEM_OVERRIDE_COOKIE = 'system-override-auth';
 
 // Cookie duration (7 days in seconds)
 export const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
@@ -70,54 +69,9 @@ export async function checkSiteProtection(): Promise<boolean> {
   }
 }
 
-// System Override Authentication (9.5.1) - Admin override
-export async function verifySystemOverride(
-  username: string,
-  password: string
-): Promise<boolean> {
-  const systemUsername = process.env.SYSTEM_OVERRIDE_USERNAME;
-  const systemPassword = process.env.SYSTEM_OVERRIDE_PASSWORD;
-
-  if (!systemUsername || !systemPassword) return false;
-
-  return username === systemUsername && password === systemPassword;
-}
-
-export async function setSystemOverrideCookie() {
-  const cookieStore = await cookies();
-  const token = generateToken('system-override-admin');
-
-  cookieStore.set(SYSTEM_OVERRIDE_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  });
-}
-
-export async function checkSystemOverride(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SYSTEM_OVERRIDE_COOKIE);
-
-  if (!token) return false;
-
-  try {
-    return verifyToken(token.value, 'system-override-admin');
-  } catch {
-    return false;
-  }
-}
-
 export async function clearProtectionCookies() {
   const cookieStore = await cookies();
   cookieStore.delete(SITE_PROTECTION_COOKIE);
-  cookieStore.delete(SYSTEM_OVERRIDE_COOKIE);
-}
-
-// Check if we should show system override credentials
-export function shouldShowSystemOverrideCredentials(): boolean {
-  return process.env.HIDE_SYSTEM_OVERRIDE_CREDENTIALS !== 'true';
 }
 
 // Helper for middleware

