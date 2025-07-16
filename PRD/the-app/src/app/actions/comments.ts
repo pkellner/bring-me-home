@@ -22,12 +22,14 @@ const commentSchema = z.object({
   state: z.string().max(2).optional().or(z.literal('')),
   zipCode: z.string().max(10).optional().or(z.literal('')),
   content: z.string().max(500).optional().or(z.literal('')),
+  privateNoteToFamily: z.string().max(1500).optional().or(z.literal('')),
   wantsToHelpMore: z.boolean().default(false),
   displayNameOnly: z.boolean().default(false),
   requiresFamilyApproval: z.boolean().default(true),
   showOccupation: z.boolean().default(false),
   showBirthdate: z.boolean().default(false),
-  showCityState: z.boolean().default(false),
+  showComment: z.boolean().default(true),
+  showCityState: z.boolean().default(true),
 });
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
@@ -170,6 +172,7 @@ export async function submitComment(
       state: formData.get('state') as string,
       zipCode: formData.get('zipCode') as string,
       content: formData.get('content') as string,
+      privateNoteToFamily: formData.get('privateNoteToFamily') as string,
       wantsToHelpMore: formData.get('wantsToHelpMore') === 'true',
       displayNameOnly: formData.get('displayNameOnly') === 'true',
       requiresFamilyApproval: formData.get('requiresFamilyApproval') === 'true',
@@ -219,6 +222,7 @@ export async function submitComment(
         state: data.state || null,
         zipCode: data.zipCode || null,
         content: data.content || '',
+        privateNoteToFamily: data.privateNoteToFamily || null,
         wantsToHelpMore: data.wantsToHelpMore,
         displayNameOnly: data.displayNameOnly,
         requiresFamilyApproval: data.requiresFamilyApproval,
@@ -332,6 +336,8 @@ export async function updateCommentAndApprove(
     birthdate?: string;
     showOccupation?: boolean;
     showBirthdate?: boolean;
+    showComment?: boolean;
+    showCityState?: boolean;
   }
 ) {
   const session = await getServerSession(authOptions);
@@ -374,6 +380,8 @@ export async function updateCommentAndApprove(
           : null,
         showOccupation: additionalFields.showOccupation ?? false,
         showBirthdate: additionalFields.showBirthdate ?? false,
+        showComment: additionalFields.showComment ?? true,
+        showCityState: additionalFields.showCityState ?? false,
       }),
     },
   });
@@ -471,6 +479,57 @@ export async function rejectBulkComments(
     console.error('Failed to reject bulk comments:', error);
     return { success: false, error: 'Failed to reject comments' };
   }
+}
+
+export async function updateCommentVisibility(
+  commentId: string,
+  showComment: boolean,
+  moderatorNotes?: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized');
+  }
+
+  // Check if user has permission to update comments
+  if (!hasPermission(session, 'comments', 'update')) {
+    throw new Error('Insufficient permissions');
+  }
+
+  // Get the comment with person info to check access
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: { 
+      person: {
+        include: {
+          town: true
+        }
+      }
+    },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  // If not site admin, verify access to the person
+  if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+    throw new Error('No access to this person');
+  }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: {
+      showComment,
+      isApproved: true,
+      approvedAt: new Date(),
+      approvedBy: session.user.id,
+      moderatorNotes: moderatorNotes || null,
+    },
+  });
+
+  revalidatePath(`/${comment.person.town.slug}/${comment.person.slug}`);
+  revalidatePath('/admin/comments');
 }
 
 export async function toggleCommentStatus(

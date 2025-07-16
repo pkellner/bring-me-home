@@ -30,13 +30,14 @@ interface Comment extends Record<string, unknown> {
   email: string | null;
   phone: string | null;
   occupation: string | null;
-  birthdate: Date | null;
+  birthdate: Date | string | null;
   streetAddress: string | null;
   city: string | null;
   state: string | null;
   zipCode: string | null;
   showOccupation: boolean;
   showBirthdate: boolean;
+  showComment: boolean;
   showCityState: boolean;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
@@ -47,6 +48,7 @@ interface Comment extends Record<string, unknown> {
   isActive: boolean;
   isApproved: boolean;
   moderatorNotes: string | null;
+  privateNoteToFamily: string | null;
   person: {
     id: string;
     firstName: string;
@@ -59,8 +61,8 @@ interface Comment extends Record<string, unknown> {
       state: string;
     };
   };
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 interface Town {
@@ -76,6 +78,8 @@ interface CommentsGridProps {
   towns: Town[];
   personId?: string;
   isSiteAdmin: boolean;
+  isPersonAdmin?: boolean;
+  deleteDaysThreshold?: number;
 }
 
 function CommentsGrid({
@@ -85,7 +89,18 @@ function CommentsGrid({
   towns,
   personId,
   isSiteAdmin,
+  isPersonAdmin = false,
+  deleteDaysThreshold = 1,
 }: CommentsGridProps) {
+  console.log('CommentsGrid Debug:', {
+    canDelete,
+    isSiteAdmin,
+    isPersonAdmin,
+    personId,
+    deleteDaysThreshold,
+    commentsCount: initialComments.length
+  });
+  
   const router = useRouter();
   const [comments, setComments] = useState(initialComments);
   const [error, setError] = useState('');
@@ -312,7 +327,7 @@ function CommentsGrid({
                 </div>
               )}
               {record.city && record.state && (
-                <div className="text-gray-400">
+                <div className="text-gray-600 font-medium">
                   {record.city}, {record.state}
                 </div>
               )}
@@ -431,7 +446,31 @@ function CommentsGrid({
       type: 'delete',
       label: 'Delete',
       onClick: handleDeleteComment,
-      show: () => canDelete,
+      show: (comment) => {
+        if (!canDelete) return false;
+        
+        // Always show delete for site admin
+        if (isSiteAdmin) return true;
+        
+        // For person admin (when viewing a specific person's comments), 
+        // only show if comment is older than threshold
+        if (isPersonAdmin && personId) {
+          const commentDate = new Date(comment.createdAt);
+          const now = new Date();
+          const daysDiff = (now.getTime() - commentDate.getTime()) / (1000 * 60 * 60 * 24);
+          const canShow = daysDiff >= deleteDaysThreshold;
+          console.log('Delete icon check for person admin:', {
+            commentId: comment.id,
+            daysDiff,
+            deleteDaysThreshold,
+            canShow
+          });
+          return canShow;
+        }
+        
+        // For town admin, always show
+        return true;
+      },
       className: 'text-red-600 hover:text-red-800',
     },
   ];

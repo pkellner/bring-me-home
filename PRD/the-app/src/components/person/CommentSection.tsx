@@ -15,6 +15,7 @@ interface Comment {
   state?: string | null;
   showOccupation?: boolean;
   showBirthdate?: boolean;
+  showComment?: boolean;
   showCityState?: boolean;
   displayNameOnly?: boolean;
   createdAt: Date | string;
@@ -146,12 +147,12 @@ export default function CommentSection({
                         </p>
                       </div>
                     </div>
-                    {comment.content && !comment.displayNameOnly && (
+                    {comment.content && !comment.displayNameOnly && (comment.showComment ?? true) && (
                       <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
                         {comment.content}
                       </div>
                     )}
-                    {comment.displayNameOnly && (
+                    {(comment.displayNameOnly || (comment.content && !(comment.showComment ?? true))) && (
                       <div className="mt-1 text-sm text-gray-500 italic">
                         Showing support
                       </div>

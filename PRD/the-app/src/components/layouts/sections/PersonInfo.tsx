@@ -109,9 +109,9 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
               </div>
             </div>
             <div className="flex-shrink-0">
-              {person.detentionCenter.thumbnailImageId ? (
+              {person.detentionCenter.detentionCenterImage?.imageId ? (
                 <Image
-                  src={`/api/images/${person.detentionCenter.thumbnailImageId}`}
+                  src={`/api/images/${person.detentionCenter.detentionCenterImage.imageId}`}
                   alt={person.detentionCenter.name}
                   width={80}
                   height={80}

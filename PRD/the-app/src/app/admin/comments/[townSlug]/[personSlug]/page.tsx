@@ -42,6 +42,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
 
   // Check if user has access to this person or town
   let isSiteAdmin = false;
+  let isPersonAdmin = false;
   if (session.user?.id) {
     const userWithAccess = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -69,6 +70,12 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     isSiteAdmin = userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') || false;
     const hasTownAccess = (userWithAccess?.townAccess?.length ?? 0) > 0;
     const hasPersonAccess = (userWithAccess?.personAccess?.length ?? 0) > 0;
+    
+    // Check if user has person-admin role
+    const hasPersonAdminRole = userWithAccess?.userRoles.some(ur => ur.role.name === 'person-admin') || false;
+    
+    // User is a person admin if they have the person-admin role and access to this specific person
+    isPersonAdmin = hasPersonAdminRole && hasPersonAccess;
 
     if (!isSiteAdmin && !hasTownAccess && !hasPersonAccess) {
       redirect('/admin/comments');
@@ -91,9 +98,11 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     },
   });
 
-  // Serialize Decimal fields to strings
+  // Serialize Decimal fields to strings and ensure dates are properly serialized
   const comments = rawComments.map(comment => ({
     ...comment,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
     person: {
       ...comment.person,
       bondAmount: comment.person.bondAmount?.toString() || null,
@@ -114,6 +123,17 @@ export default async function PersonCommentsPage({ params }: PageProps) {
 
   const canApprove = hasPermission(session, 'comments', 'update');
   const canDelete = hasPermission(session, 'comments', 'delete');
+
+  // Get delete days threshold from environment variable
+  const deleteDaysThreshold = parseInt(process.env.COMMENT_DELETE_DAYS_THRESHOLD || '1', 10);
+  
+  console.log('PersonCommentsPage Debug:', {
+    userId: session.user?.id,
+    isSiteAdmin,
+    isPersonAdmin,
+    canDelete,
+    deleteDaysThreshold
+  });
 
   return (
     <div>
@@ -159,6 +179,8 @@ export default async function PersonCommentsPage({ params }: PageProps) {
         towns={towns}
         personId={person.id}
         isSiteAdmin={isSiteAdmin}
+        isPersonAdmin={isPersonAdmin}
+        deleteDaysThreshold={deleteDaysThreshold}
       />
     </div>
   );

@@ -27,7 +27,9 @@ export default function AnonymousCommentForm({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [commentLength, setCommentLength] = useState(0);
+  const [privateNoteLength, setPrivateNoteLength] = useState(0);
   const [displayNameOnly, setDisplayNameOnly] = useState(false);
+  const [showCityState, setShowCityState] = useState(true);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -41,7 +43,9 @@ export default function AnonymousCommentForm({
     if (state?.success) {
       setShowForm(false);
       setCommentLength(0);
+      setPrivateNoteLength(0);
       setDisplayNameOnly(false);
+      setShowCityState(true);
       if (formRef.current) {
         formRef.current.reset();
       }
@@ -379,6 +383,7 @@ export default function AnonymousCommentForm({
             className="block text-sm font-medium text-gray-700"
           >
             Your Message of Support (Optional)
+            <span className="text-xs font-normal text-gray-500 ml-1">- May be shown publicly on the site</span>
           </label>
           <textarea
             id="content"
@@ -403,6 +408,44 @@ export default function AnonymousCommentForm({
               }`}
             >
               {commentLength}/500 characters
+            </p>
+          </div>
+        </div>
+
+        {/* Private Note to Family */}
+        <div>
+          <label
+            htmlFor="privateNoteToFamily"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Private Note to Family (Optional)
+          </label>
+          <textarea
+            id="privateNoteToFamily"
+            name="privateNoteToFamily"
+            rows={3}
+            maxLength={1500}
+            onChange={e => setPrivateNoteLength(e.target.value.length)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="Share a private message with the family that won't be shown publicly..."
+          />
+          <div className="mt-1 flex justify-between">
+            <div>
+              {state?.errors?.privateNoteToFamily && (
+                <p className="text-sm text-red-600">
+                  {state.errors.privateNoteToFamily[0]}
+                </p>
+              )}
+              <p className="text-sm text-gray-500">
+                This message will only be visible to the family members, not publicly displayed.
+              </p>
+            </div>
+            <p
+              className={`text-sm ${
+                privateNoteLength >= 1500 ? 'text-red-600' : 'text-gray-500'
+              }`}
+            >
+              {privateNoteLength}/1500
             </p>
           </div>
         </div>
@@ -493,7 +536,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showCityState"
                 value="true"
-                checked={displayNameOnly ? false : undefined}
+                checked={displayNameOnly ? false : showCityState}
+                onChange={(e) => setShowCityState(e.target.checked)}
                 disabled={displayNameOnly}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
@@ -587,6 +631,8 @@ export default function AnonymousCommentForm({
           showOccupation: pendingFormData?.get('showOccupation') === 'true',
           showBirthdate: pendingFormData?.get('showBirthdate') === 'true',
           showCityState: pendingFormData?.get('showCityState') === 'true',
+          privateNoteToFamily:
+            (pendingFormData?.get('privateNoteToFamily') as string) || undefined,
         }}
       />
     </div>

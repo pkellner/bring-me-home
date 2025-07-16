@@ -15,6 +15,7 @@ interface CommentData {
   state?: string;
   zipCode?: string;
   content?: string;
+  privateNoteToFamily?: string;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
   requiresFamilyApproval: boolean;
@@ -155,6 +156,16 @@ export default function CommentConfirmationModal({
                   <div>
                     <span className="font-medium text-gray-700">Message:</span>
                     <p className="text-gray-900 mt-1">{commentData.content}</p>
+                  </div>
+                )}
+
+                {commentData.privateNoteToFamily && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <span className="font-medium text-gray-700">Private Note to Family:</span>
+                    <p className="text-gray-900 mt-1">{commentData.privateNoteToFamily}</p>
+                    <p className="text-xs text-yellow-800 mt-2">
+                      This message will only be visible to the family, not publicly.
+                    </p>
                   </div>
                 )}
               </div>

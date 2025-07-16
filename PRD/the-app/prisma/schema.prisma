@@ -8,21 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  username     String         @unique
-  email        String?        @unique
-  password     String
-  firstName    String?
-  lastName     String?
-  isActive     Boolean        @default(true)
-  lastLogin    DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  personAccess PersonAccess[]
+  id             String         @id @default(cuid())
+  username       String         @unique
+  email          String?        @unique
+  password       String
+  firstName      String?
+  lastName       String?
+  isActive       Boolean        @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  personAccess   PersonAccess[]
   uploadedImages ImageStorage[]
-  supporters   Supporter[]
-  townAccess   TownAccess[]
-  userRoles    UserRole[]
+  supporters     Supporter[]
+  townAccess     TownAccess[]
+  userRoles      UserRole[]
 
   @@map("users")
 }
@@ -170,7 +170,6 @@ model Story {
   @@map("stories")
 }
 
-
 model Supporter {
   id                String    @id @default(cuid())
   firstName         String
@@ -203,36 +202,38 @@ model Supporter {
 }
 
 model Comment {
-  id                       String       @id @default(cuid())
-  content                  String       @db.Text
-  isActive                 Boolean      @default(true)
-  isApproved               Boolean      @default(false)
-  moderatorNotes           String?      @db.Text
+  id                       String    @id @default(cuid())
+  content                  String    @db.Text
+  isActive                 Boolean   @default(true)
+  isApproved               Boolean   @default(false)
+  moderatorNotes           String?   @db.Text
   personId                 String
-  createdAt                DateTime     @default(now())
-  updatedAt                DateTime     @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
   familyVisibilityOverride String?
-  type                     String       @default("support")
-  visibility               String       @default("public")
+  type                     String    @default("support")
+  visibility               String    @default("public")
   approvedAt               DateTime?
   approvedBy               String?
   birthdate                DateTime?
-  displayNameOnly          Boolean      @default(false)
+  displayNameOnly          Boolean   @default(false)
   email                    String?
   firstName                String?
   lastName                 String?
   occupation               String?
   phone                    String?
-  requiresFamilyApproval   Boolean      @default(true)
-  showBirthdate            Boolean      @default(false)
-  showOccupation           Boolean      @default(false)
-  wantsToHelpMore          Boolean      @default(false)
+  requiresFamilyApproval   Boolean   @default(true)
+  showBirthdate            Boolean   @default(false)
+  showOccupation           Boolean   @default(false)
+  showComment              Boolean   @default(true)
+  wantsToHelpMore          Boolean   @default(false)
+  privateNoteToFamily      String?   @db.Text
   city                     String?
-  showCityState            Boolean      @default(false)
+  showCityState            Boolean   @default(true)
   state                    String?
   streetAddress            String?
   zipCode                  String?
-  person                   Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])
   @@index([visibility])
@@ -241,7 +242,6 @@ model Comment {
   @@index([email])
   @@map("comments")
 }
-
 
 model TownAccess {
   id          String   @id @default(cuid())
@@ -334,32 +334,32 @@ model AuditLog {
 }
 
 model DetentionCenter {
-  id                String        @id @default(cuid())
-  name              String
-  facilityType      String
-  operatedBy        String?
-  address           String        @db.Text
-  city              String
-  state             String
-  zipCode           String
-  country           String        @default("USA")
-  phoneNumber       String?
-  faxNumber         String?
-  emailAddress      String?
-  website           String?
-  capacity          Int?
-  currentPopulation Int?
-  latitude          Float?
-  longitude         Float?
-  isActive          Boolean       @default(true)
-  isICEFacility     Boolean       @default(true)
-  notes             String?       @db.Text
-  transportInfo     String?       @db.Text
-  visitingHours     String?       @db.Text
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  imageId           String?       // DEPRECATED: Use detentionCenterImage relation instead
-  detainees         Person[]
+  id                   String                @id @default(cuid())
+  name                 String
+  facilityType         String
+  operatedBy           String?
+  address              String                @db.Text
+  city                 String
+  state                String
+  zipCode              String
+  country              String                @default("USA")
+  phoneNumber          String?
+  faxNumber            String?
+  emailAddress         String?
+  website              String?
+  capacity             Int?
+  currentPopulation    Int?
+  latitude             Float?
+  longitude            Float?
+  isActive             Boolean               @default(true)
+  isICEFacility        Boolean               @default(true)
+  notes                String?               @db.Text
+  transportInfo        String?               @db.Text
+  visitingHours        String?               @db.Text
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  imageId              String? // DEPRECATED: Use detentionCenterImage relation instead
+  detainees            Person[]
   detentionCenterImage DetentionCenterImage?
 
   @@index([state])
@@ -379,6 +379,8 @@ model HealthCheck {
   @@map("health_checks")
 }
 
+// FamilyPrivacySettings model is defaults to be applied when people comment.
+//   not sure I understand all the fields (authorizedEmails for example) but this is what was in the original schema
 model FamilyPrivacySettings {
   id                       String   @id @default(cuid())
   personId                 String   @unique
@@ -404,22 +406,22 @@ model FamilyPrivacySettings {
 }
 
 model ImageStorage {
-  id               String            @id @default(cuid())
-  data             Bytes?           // Nullable when using S3
-  mimeType         String            @default("image/jpeg")
-  size             Int
-  width            Int?
-  height           Int?
-  caption          String?
-  uploadedById     String?
-  storageType      String            @default("database") // "database" or "s3"
-  s3Key            String?           // S3 object key when using S3
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  uploadedBy       User?             @relation(fields: [uploadedById], references: [id])
-  personImages     PersonImage[]
+  id                    String                 @id @default(cuid())
+  data                  Bytes? // Nullable when using S3
+  mimeType              String                 @default("image/jpeg")
+  size                  Int
+  width                 Int?
+  height                Int?
+  caption               String?
+  uploadedById          String?
+  storageType           String                 @default("database") // "database" or "s3"
+  s3Key                 String? // S3 object key when using S3
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id])
+  personImages          PersonImage[]
   detentionCenterImages DetentionCenterImage[]
-  
+
   @@index([uploadedById])
   @@index([storageType])
   @@map("image_storage")
@@ -435,7 +437,7 @@ model PersonImage {
   updatedAt      DateTime     @updatedAt
   person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
   image          ImageStorage @relation(fields: [imageId], references: [id], onDelete: Cascade)
-  
+
   @@unique([personId, imageId])
   @@index([personId])
   @@index([imageId])
@@ -451,7 +453,7 @@ model DetentionCenterImage {
   updatedAt         DateTime        @updatedAt
   detentionCenter   DetentionCenter @relation(fields: [detentionCenterId], references: [id], onDelete: Cascade)
   image             ImageStorage    @relation(fields: [imageId], references: [id], onDelete: Cascade)
-  
+
   @@index([imageId])
   @@map("detention_center_images")
 }

@@ -89,7 +89,15 @@ async function getPersonData(townSlug: string, personSlug: string) {
       },
       layout: true,
       theme: true,
-      detentionCenter: true,
+      detentionCenter: {
+        include: {
+          detentionCenterImage: {
+            include: {
+              image: true,
+            },
+          },
+        },
+      },
       personImages: {
         include: {
           image: true,
@@ -115,6 +123,7 @@ async function getPersonData(townSlug: string, personSlug: string) {
           zipCode: true,
           showOccupation: true,
           showBirthdate: true,
+          showComment: true,
           showCityState: true,
           wantsToHelpMore: true,
           displayNameOnly: true,

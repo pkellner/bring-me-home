@@ -6,6 +6,7 @@ import {
   approveComment,
   rejectComment,
   updateCommentAndApprove,
+  updateCommentVisibility,
 } from '@/app/actions/comments';
 
 interface Comment extends Record<string, unknown> {
@@ -16,13 +17,14 @@ interface Comment extends Record<string, unknown> {
   email: string | null;
   phone: string | null;
   occupation: string | null;
-  birthdate: Date | null;
+  birthdate: Date | string | null;
   streetAddress: string | null;
   city: string | null;
   state: string | null;
   zipCode: string | null;
   showOccupation: boolean;
   showBirthdate: boolean;
+  showComment: boolean;
   showCityState: boolean;
   wantsToHelpMore: boolean;
   displayNameOnly: boolean;
@@ -33,6 +35,7 @@ interface Comment extends Record<string, unknown> {
   isActive: boolean;
   isApproved: boolean;
   moderatorNotes: string | null;
+  privateNoteToFamily: string | null;
   person: {
     id: string;
     firstName: string;
@@ -45,8 +48,8 @@ interface Comment extends Record<string, unknown> {
       state: string;
     };
   };
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 interface CommentModerationModalProps {
@@ -75,6 +78,8 @@ export default function CommentModerationModal({
   );
   const [showOccupation, setShowOccupation] = useState(comment.showOccupation);
   const [showBirthdate, setShowBirthdate] = useState(comment.showBirthdate);
+  const [showComment, setShowComment] = useState(comment.showComment ?? true);
+  const [showCityState, setShowCityState] = useState(comment.showCityState ?? true);
   const [moderatorNotes, setModeratorNotes] = useState(
     comment.moderatorNotes || ''
   );
@@ -95,7 +100,9 @@ export default function CommentModerationModal({
               ? new Date(comment.birthdate).toISOString().split('T')[0]
               : '') ||
           showOccupation !== comment.showOccupation ||
-          showBirthdate !== comment.showBirthdate;
+          showBirthdate !== comment.showBirthdate ||
+          showComment !== (comment.showComment ?? true) ||
+          showCityState !== (comment.showCityState ?? true);
 
         if (hasChanges) {
           await updateCommentAndApprove(
@@ -107,6 +114,8 @@ export default function CommentModerationModal({
               birthdate: editedBirthdate || undefined,
               showOccupation,
               showBirthdate,
+              showComment,
+              showCityState,
             }
           );
           onUpdate(comment.id, true, {
@@ -115,6 +124,8 @@ export default function CommentModerationModal({
             birthdate: editedBirthdate ? new Date(editedBirthdate) : null,
             showOccupation,
             showBirthdate,
+            showComment,
+            showCityState,
             moderatorNotes,
           });
         } else {
@@ -122,9 +133,23 @@ export default function CommentModerationModal({
           onUpdate(comment.id, true, { moderatorNotes });
         }
       } else {
-        // Town/Person admin can only approve and update moderator notes
-        await approveComment(comment.id, moderatorNotes);
-        onUpdate(comment.id, true, { moderatorNotes });
+        // Town/Person admin can update showComment and moderator notes
+        const hasShowCommentChange = showComment !== (comment.showComment ?? true);
+        
+        if (hasShowCommentChange) {
+          await updateCommentVisibility(
+            comment.id,
+            showComment,
+            moderatorNotes
+          );
+          onUpdate(comment.id, true, {
+            showComment,
+            moderatorNotes,
+          });
+        } else {
+          await approveComment(comment.id, moderatorNotes);
+          onUpdate(comment.id, true, { moderatorNotes });
+        }
       }
       onClose();
     } catch (error) {
@@ -178,36 +203,44 @@ export default function CommentModerationModal({
             <div className="space-y-4">
               {/* Commenter Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
+                <h4 className="font-semibold text-gray-900 mb-2">
                   Commenter Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Name:</span>{' '}
-                    {comment.firstName} {comment.lastName}
+                    <span className="font-semibold text-gray-800">Name:</span>{' '}
+                    <span className="text-gray-900 font-medium">{comment.firstName} {comment.lastName}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Email:</span>{' '}
-                    {comment.email || 'Not provided'}
+                    <span className="font-semibold text-gray-800">Email:</span>{' '}
+                    <span className="text-gray-900 font-medium">{comment.email || 'Not provided'}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Phone:</span>{' '}
-                    {comment.phone || 'Not provided'}
+                    <span className="font-semibold text-gray-800">Phone:</span>{' '}
+                    <span className="text-gray-900 font-medium">{comment.phone || 'Not provided'}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Date:</span>{' '}
-                    {new Date(comment.createdAt).toLocaleString()}
+                    <span className="font-semibold text-gray-800">Date:</span>{' '}
+                    <span className="text-gray-900 font-medium">{new Date(comment.createdAt).toLocaleString()}</span>
                   </div>
                   {comment.occupation && (
                     <div>
-                      <span className="font-medium">Occupation:</span>{' '}
-                      {comment.occupation}
+                      <span className="font-semibold text-gray-800">Occupation:</span>{' '}
+                      <span className="text-gray-900 font-medium">{comment.occupation}</span>
                     </div>
                   )}
                   {comment.birthdate && (
                     <div>
-                      <span className="font-medium">Birth Date:</span>{' '}
-                      {new Date(comment.birthdate).toLocaleDateString()}
+                      <span className="font-semibold text-gray-800">Birth Date:</span>{' '}
+                      <span className="text-gray-900 font-medium">{new Date(comment.birthdate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {(comment.city || comment.state) && (
+                    <div>
+                      <span className="font-semibold text-gray-800">Location:</span>{' '}
+                      <span className="text-gray-900 font-medium">
+                        {[comment.city, comment.state].filter(Boolean).join(', ') || 'Not provided'}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -233,9 +266,12 @@ export default function CommentModerationModal({
 
               {/* Person Information */}
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-1">Supporting</h4>
-                <p className="text-sm">
+                <h4 className="font-semibold text-gray-900 mb-1">Supporting</h4>
+                <p className="text-base font-medium text-gray-900">
                   {comment.person.firstName} {comment.person.lastName}
+                </p>
+                <p className="text-sm text-gray-700 mt-1">
+                  {comment.person.town.name}, {comment.person.town.state}
                 </p>
               </div>
 
@@ -243,7 +279,7 @@ export default function CommentModerationModal({
               <div>
                 <label
                   htmlFor="content"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-semibold text-gray-800 mb-1"
                 >
                   Comment Content {isSiteAdmin && '(you can edit this before approving)'}
                 </label>
@@ -256,6 +292,17 @@ export default function CommentModerationModal({
                   placeholder="No comment provided - supporter is showing support only"
                   disabled={!isSiteAdmin}
                 />
+                <label className="flex items-center mt-2">
+                  <input
+                    type="checkbox"
+                    checked={showComment}
+                    onChange={e => setShowComment(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    Show comment publicly
+                  </span>
+                </label>
               </div>
 
               {/* Additional Fields */}
@@ -263,7 +310,7 @@ export default function CommentModerationModal({
                 <div>
                   <label
                     htmlFor="occupation"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-semibold text-gray-800 mb-1"
                   >
                     Occupation
                   </label>
@@ -284,7 +331,7 @@ export default function CommentModerationModal({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       disabled={!isSiteAdmin}
                     />
-                    <span className="ml-2 text-sm text-gray-600">
+                    <span className="ml-2 text-sm font-medium text-gray-700">
                       Show occupation publicly
                     </span>
                   </label>
@@ -293,7 +340,7 @@ export default function CommentModerationModal({
                 <div>
                   <label
                     htmlFor="birthdate"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-semibold text-gray-800 mb-1"
                   >
                     Birth Date
                   </label>
@@ -313,18 +360,49 @@ export default function CommentModerationModal({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       disabled={!isSiteAdmin}
                     />
-                    <span className="ml-2 text-sm text-gray-600">
+                    <span className="ml-2 text-sm font-medium text-gray-700">
                       Show birthdate publicly
                     </span>
                   </label>
                 </div>
               </div>
 
+              {/* City/State Display */}
+              <div className="col-span-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={showCityState}
+                    onChange={e => setShowCityState(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    disabled={!isSiteAdmin}
+                  />
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    Show city and state publicly
+                  </span>
+                </label>
+              </div>
+
+              {/* Private Note to Family */}
+              {comment.privateNoteToFamily && (
+                <div>
+                  <label
+                    htmlFor="privateNote"
+                    className="block text-sm font-semibold text-gray-800 mb-1"
+                  >
+                    Private Note to Family (from supporter)
+                  </label>
+                  <div className="block w-full rounded-md border border-gray-300 bg-yellow-50 px-3 py-2 text-sm text-gray-900">
+                    {comment.privateNoteToFamily}
+                  </div>
+                </div>
+              )}
+
               {/* Moderator Notes */}
               <div>
                 <label
                   htmlFor="moderatorNotes"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-semibold text-gray-800 mb-1"
                 >
                   Moderator Notes (internal only)
                 </label>

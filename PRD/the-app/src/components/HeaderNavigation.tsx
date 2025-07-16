@@ -48,7 +48,22 @@ export default function HeaderNavigation({ user }: HeaderNavigationProps) {
             </Link>
           )}
         </>
-      ) : null}
+      ) : (
+        <>
+          <Link
+            href="/auth/signin"
+            className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+          >
+            Login
+          </Link>
+          <Link
+            href="/auth/register"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+          >
+            Register
+          </Link>
+        </>
+      )}
     </nav>
   );
 }

@@ -34,6 +34,21 @@ type SerializedDetentionCenter = {
   transportInfo?: string | null;
   visitingHours?: string | null;
   thumbnailImageId?: string | null;
+  detentionCenterImage?: {
+    id: string;
+    detentionCenterId: string;
+    imageId: string;
+    createdAt: string;
+    updatedAt: string;
+    image?: {
+      id: string;
+      data: string;
+      metadata: Record<string, unknown>;
+      storageType: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
