@@ -20,7 +20,7 @@ export async function generateMetadata({
   params,
 }: PersonPageProps): Promise<Metadata> {
   const { townSlug, personSlug } = await params;
-  
+
   const person = await prisma.person.findFirst({
     where: {
       slug: personSlug,
@@ -51,11 +51,11 @@ export async function generateMetadata({
 
   const personName = `${person.firstName} ${person.lastName}`;
   const title = `${personName} - Bring Me Home`;
-  const description = person.story 
-    ? person.story.slice(0, 150) + '...' 
+  const description = person.story
+    ? person.story.slice(0, 150) + '...'
     : `Help bring ${personName} from ${person.town.name} home to their family.`;
-  
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com';
   const personUrl = `${appUrl}/${townSlug}/${personSlug}`;
 
   return {
