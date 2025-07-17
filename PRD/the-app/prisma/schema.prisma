@@ -18,8 +18,8 @@ model User {
   lastLogin      DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  personAccess   PersonAccess[]
   uploadedImages ImageStorage[]
+  personAccess   PersonAccess[]
   supporters     Supporter[]
   townAccess     TownAccess[]
   userRoles      UserRole[]
@@ -132,8 +132,8 @@ model Person {
   showLastHeardFrom    Boolean                @default(true)
   showDetentionDate    Boolean                @default(true)
   showCommunitySupport Boolean                @default(true)
-  comments             Comment[]
   anonymousSupport     AnonymousSupport[]
+  comments             Comment[]
   familySettings       FamilyPrivacySettings?
   personAccess         PersonAccess[]
   personImages         PersonImage[]
@@ -226,14 +226,14 @@ model Comment {
   requiresFamilyApproval   Boolean   @default(true)
   showBirthdate            Boolean   @default(false)
   showOccupation           Boolean   @default(false)
-  showComment              Boolean   @default(true)
   wantsToHelpMore          Boolean   @default(false)
-  privateNoteToFamily      String?   @db.Text
   city                     String?
   showCityState            Boolean   @default(true)
   state                    String?
   streetAddress            String?
   zipCode                  String?
+  showComment              Boolean   @default(true)
+  privateNoteToFamily      String?   @db.Text
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])
@@ -245,14 +245,13 @@ model Comment {
 }
 
 model AnonymousSupport {
-  id         String   @id @default(cuid())
-  personId   String
-  ipAddress  String?
-  userAgent  String?  @db.Text
-  createdAt  DateTime @default(now())
-  
-  person     Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  personId  String
+  ipAddress String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
   @@index([personId])
   @@index([createdAt])
   @@map("anonymous_support")
@@ -373,9 +372,9 @@ model DetentionCenter {
   visitingHours        String?               @db.Text
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  imageId              String? // DEPRECATED: Use detentionCenterImage relation instead
-  detainees            Person[]
+  imageId              String?
   detentionCenterImage DetentionCenterImage?
+  detainees            Person[]
 
   @@index([state])
   @@index([city])
@@ -394,8 +393,6 @@ model HealthCheck {
   @@map("health_checks")
 }
 
-// FamilyPrivacySettings model is defaults to be applied when people comment.
-//   not sure I understand all the fields (authorizedEmails for example) but this is what was in the original schema
 model FamilyPrivacySettings {
   id                       String   @id @default(cuid())
   personId                 String   @unique
@@ -422,20 +419,20 @@ model FamilyPrivacySettings {
 
 model ImageStorage {
   id                    String                 @id @default(cuid())
-  data                  Bytes? // Nullable when using S3
+  data                  Bytes?
   mimeType              String                 @default("image/jpeg")
   size                  Int
   width                 Int?
   height                Int?
   caption               String?
   uploadedById          String?
-  storageType           String                 @default("database") // "database" or "s3"
-  s3Key                 String? // S3 object key when using S3
+  storageType           String                 @default("database")
+  s3Key                 String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  detentionCenterImages DetentionCenterImage[]
   uploadedBy            User?                  @relation(fields: [uploadedById], references: [id])
   personImages          PersonImage[]
-  detentionCenterImages DetentionCenterImage[]
 
   @@index([uploadedById])
   @@index([storageType])
@@ -446,12 +443,12 @@ model PersonImage {
   id             String       @id @default(cuid())
   personId       String
   imageId        String
-  imageType      String       @default("gallery") // "primary", "gallery"
+  imageType      String       @default("gallery")
   sequenceNumber Int          @default(0)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
   image          ImageStorage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@unique([personId, imageId])
   @@index([personId])
