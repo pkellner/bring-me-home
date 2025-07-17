@@ -234,6 +234,8 @@ model Comment {
   zipCode                  String?
   showComment              Boolean   @default(true)
   privateNoteToFamily      String?   @db.Text
+  ipAddress                String?
+  userAgent                String?   @db.Text
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])

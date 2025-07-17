@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
+import { headers } from 'next/headers';
 
 const debugCaptcha = false;
 
@@ -207,6 +208,12 @@ export async function submitComment(
       };
     }
 
+    // Get IP address and user agent from headers
+    const headersList = await headers();
+    const forwarded = headersList.get('x-forwarded-for');
+    const ipAddress = forwarded ? forwarded.split(',')[0] : headersList.get('x-real-ip') || 'unknown';
+    const userAgent = headersList.get('user-agent') || undefined;
+
     // Create the comment
     await prisma.comment.create({
       data: {
@@ -233,6 +240,8 @@ export async function submitComment(
         visibility: 'public',
         isActive: true,
         isApproved: false, // Requires approval
+        ipAddress,
+        userAgent,
       },
     });
 

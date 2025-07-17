@@ -23,7 +23,7 @@ export default function Comments({ person, isAdmin }: CommentsProps) {
             </Link>
           )}
         </div>
-        <CommentSection personId={person.id} comments={person.comments} />
+        <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} />
       </div>
     </RecaptchaProvider>
   );

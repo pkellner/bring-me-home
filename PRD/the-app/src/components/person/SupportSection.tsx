@@ -43,6 +43,25 @@ export default function SupportSection({
     }
   }, [personId]);
 
+  // Listen for cookie cleared event (from admin panel)
+  useEffect(() => {
+    const handleCookieCleared = () => {
+      // Check if cookie is actually gone
+      const supportCookie = getCookie(`quick_supported_${personId}`);
+      if (!supportCookie) {
+        setHasQuickSupported(false);
+        setQuickSupportState('ready');
+      }
+    };
+
+    // Listen for the supportAdded event which is also triggered when cookie is cleared
+    window.addEventListener('supportAdded', handleCookieCleared);
+    
+    return () => {
+      window.removeEventListener('supportAdded', handleCookieCleared);
+    };
+  }, [personId]);
+
   // Handle anonymous support
   const handleAnonymousSupport = async () => {
     if (hasQuickSupported || quickSupportState !== 'ready') return;

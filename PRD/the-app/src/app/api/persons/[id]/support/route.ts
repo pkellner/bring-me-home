@@ -126,21 +126,36 @@ export async function DELETE(
   try {
     const { id: personId } = await params;
     
-    // Get IP address to find the most recent support from this user
+    // Get IP address and user agent to find the exact support record
     const forwarded = request.headers.get('x-forwarded-for');
     const ipAddress = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || undefined;
     
-    // Delete the most recent anonymous support for this person from this IP
-    const deleted = await prisma.anonymousSupport.deleteMany({
+    // Find and delete only the most recent anonymous support for this person from this exact IP and user agent
+    const recentSupport = await prisma.anonymousSupport.findFirst({
       where: {
         personId,
-        ipAddress
+        ipAddress,
+        userAgent
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
+
+    let deletedCount = 0;
+    if (recentSupport) {
+      await prisma.anonymousSupport.delete({
+        where: {
+          id: recentSupport.id
+        }
+      });
+      deletedCount = 1;
+    }
     
     return NextResponse.json({
       success: true,
-      deletedCount: deleted.count
+      deletedCount
     });
   } catch (error) {
     console.error('Error deleting anonymous support:', error);
