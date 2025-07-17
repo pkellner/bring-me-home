@@ -97,11 +97,10 @@ export default function CommentSection({
   }, [personId]);
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    // Use UTC to ensure consistent rendering between server and client
+    const d = new Date(date);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
   };
 
   const getDisplayName = (comment: Comment) => {
@@ -119,13 +118,19 @@ export default function CommentSection({
   const calculateAge = (birthdate: Date | string | null | undefined) => {
     if (!birthdate) return null;
     const birth = new Date(birthdate);
+    // Use a fixed date for consistent server/client rendering
+    // This will be slightly inaccurate but prevents hydration errors
     const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birth.getDate())
-    ) {
+    const currentYear = today.getUTCFullYear();
+    const currentMonth = today.getUTCMonth();
+    const currentDay = today.getUTCDate();
+    
+    const birthYear = birth.getUTCFullYear();
+    const birthMonth = birth.getUTCMonth();
+    const birthDay = birth.getUTCDate();
+    
+    let age = currentYear - birthYear;
+    if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
       age--;
     }
     return age;
