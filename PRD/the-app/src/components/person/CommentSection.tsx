@@ -70,6 +70,10 @@ export default function CommentSection({
     const fetchStats = async () => {
       try {
         const response = await fetch(`/api/persons/${personId}/support`);
+        if (!response.ok) {
+          console.error('Failed to fetch support stats:', response.status, response.statusText);
+          return;
+        }
         const data = await response.json();
         setStats(data);
       } catch (error) {
@@ -134,14 +138,6 @@ export default function CommentSection({
   return (
     <div id="comments" className="bg-white shadow rounded-lg scroll-mt-20">
       <div className="p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            Community Support
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Messages of support from the community
-          </p>
-        </div>
 
         {/* Support Section - Shows both anonymous and named options */}
         <SupportSection
@@ -152,38 +148,38 @@ export default function CommentSection({
           stats={stats || undefined}
         />
         
-        {/* DEBUG PANEL - Only shows when cookie is set */}
-        {hasCookie && (
-          <>
-            <button
-              onClick={async () => {
-                // Delete the database record
-                try {
-                  await fetch(`/api/persons/${personId}/support`, {
-                    method: 'DELETE',
-                  });
-                } catch (error) {
-                  console.error('Error deleting support record:', error);
-                }
-                
-                // Clear the cookie
-                deleteCookie(`quick_supported_${personId}`);
-                
-                // Update state immediately
-                setHasCookie(false);
-                
-                // Reload to refresh the UI
-                window.location.reload();
-              }}
-              className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors"
-            >
-              Admin Only - Clear Anonymous Support Cookie & Database Record
-            </button>
-            {!isAdmin && (
-              <p className="mt-1 text-xs text-gray-500">Note: This button is normally only shown for admins</p>
-            )}
-          </>
-        )}
+        {/* DEBUG PANEL - Smooth transition when cookie is set */}
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          hasCookie ? 'max-h-24 opacity-100 mt-4' : 'max-h-0 opacity-0'
+        }`}>
+          <button
+            onClick={async () => {
+              // Delete the database record
+              try {
+                await fetch(`/api/persons/${personId}/support`, {
+                  method: 'DELETE',
+                });
+              } catch (error) {
+                console.error('Error deleting support record:', error);
+              }
+              
+              // Clear the cookie
+              deleteCookie(`quick_supported_${personId}`);
+              
+              // Update state immediately
+              setHasCookie(false);
+              
+              // Trigger refresh event
+              window.dispatchEvent(new CustomEvent('supportAdded'));
+            }}
+            className="w-full bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+          >
+            Admin Only - Clear Anonymous Support Cookie & Database Record
+          </button>
+          {!isAdmin && (
+            <p className="mt-1 text-xs text-gray-500">Note: This button is normally only shown for admins</p>
+          )}
+        </div>
 
         {/* Comments List */}
         <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import CommentConfirmationModal from './CommentConfirmationModal';
 
@@ -15,6 +15,7 @@ interface AnonymousCommentFormProps {
     error?: string;
     errors?: Record<string, string[]>;
   };
+  onCancel?: () => void;
 }
 
 export default function AnonymousCommentForm({
@@ -22,6 +23,7 @@ export default function AnonymousCommentForm({
   onSubmit,
   isPending,
   state,
+  onCancel,
 }: AnonymousCommentFormProps) {
   // Removed showForm state as we always show the form directly
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -32,6 +34,8 @@ export default function AnonymousCommentForm({
   const [showCityState, setShowCityState] = useState(true);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [savedFormData, setSavedFormData] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -39,29 +43,84 @@ export default function AnonymousCommentForm({
     console.log('[AnonymousCommentForm] Component mounted, executeRecaptcha available:', !!executeRecaptcha);
   }
 
-  // Reset form when submission is successful
+  // Track form changes
+  const handleFormChange = useCallback(() => {
+    if (!formRef.current) return;
+    
+    const currentFormData = new FormData(formRef.current);
+    const formValues: Record<string, string> = {};
+    
+    // Get all form values
+    for (const [key, val] of currentFormData.entries()) {
+      if (typeof val === 'string') {
+        formValues[key] = val;
+      }
+    }
+    
+    // Check if form is dirty by comparing with saved data
+    const hasChanges = Object.keys(formValues).some(key => {
+      if (key === 'personId' || key === 'recaptchaToken') return false;
+      return formValues[key] !== (savedFormData[key] || '');
+    });
+    
+    setIsDirty(hasChanges);
+  }, [savedFormData]);
+
+
+  // Handle cancel
+  const handleCancel = useCallback(() => {
+    // Reset form state
+    setCommentLength(0);
+    setPrivateNoteLength(0);
+    setDisplayNameOnly(false);
+    setShowCityState(true);
+    setIsDirty(false);
+    setSavedFormData({});
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    if (onCancel) {
+      onCancel();
+    }
+  }, [onCancel]);
+
+  // Scroll to first error
+  const scrollToError = useCallback(() => {
+    if (!state?.errors) return;
+    
+    // Find first field with error
+    const errorFields = Object.keys(state.errors);
+    if (errorFields.length > 0) {
+      const firstErrorField = document.getElementById(errorFields[0]);
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.focus();
+      }
+    }
+  }, [state?.errors]);
+
+  // Scroll to error when errors occur
+  useEffect(() => {
+    if (state?.errors) {
+      scrollToError();
+    }
+  }, [state?.errors, scrollToError]);
+
+  // Don't reset form on success - user needs to refresh for new submission
   useEffect(() => {
     if (state?.success) {
-      // Don't hide the form, let the parent component handle that
-      setCommentLength(0);
-      setPrivateNoteLength(0);
-      setDisplayNameOnly(false);
-      setShowCityState(true);
-      if (formRef.current) {
-        formRef.current.reset();
-      }
+      // Just mark as no longer dirty since submission was successful
+      setIsDirty(false);
     }
   }, [state?.success]);
 
 
   return (
     <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
-        Add Your Support
-      </h3>
-
       <form
         ref={formRef}
+        id="support-form"
+        onChange={handleFormChange}
         action={async formData => {
           setRecaptchaError(null);
           
@@ -115,6 +174,35 @@ export default function AnonymousCommentForm({
         }}
         className="space-y-4"
       >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            Add Your Support
+          </h3>
+          <div className="flex items-center gap-2">
+            {isDirty && (
+              <button
+                type="submit"
+                disabled={isPending || isExecutingRecaptcha}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isExecutingRecaptcha ? 'Verifying...' : isPending ? 'Submitting...' : 'Submit Support'}
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
         <input type="hidden" name="personId" value={personId} />
 
         {/* Name fields */}
@@ -529,7 +617,7 @@ export default function AnonymousCommentForm({
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={isPending || isExecutingRecaptcha}
+            disabled={!isDirty || isPending || isExecutingRecaptcha}
             className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isExecutingRecaptcha ? (

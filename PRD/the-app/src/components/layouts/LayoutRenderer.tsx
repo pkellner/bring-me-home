@@ -390,9 +390,6 @@ export default function LayoutRenderer({
             {person.showCommunitySupport && (
               <div className="layout-section w-full">
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
-                    Community Support
-                  </h2>
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
                     {components['comments']()}
                   </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface CommentData {
@@ -40,6 +40,24 @@ export default function CommentConfirmationModal({
   isSubmitting = false,
 }: CommentConfirmationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Handle opening animation
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+      });
+    } else {
+      setIsAnimating(false);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+      }, 300); // Match transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Handle escape key
   useEffect(() => {
@@ -60,13 +78,15 @@ export default function CommentConfirmationModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   const modalContent = (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+          isAnimating ? 'bg-opacity-50' : 'bg-opacity-0'
+        }`}
         onClick={onCancel}
       />
 
@@ -75,7 +95,9 @@ export default function CommentConfirmationModal({
         <div
           ref={modalRef}
           tabIndex={-1}
-          className="relative bg-white rounded-lg max-w-md w-full shadow-xl transform transition-all"
+          className={`relative bg-white rounded-lg max-w-md w-full shadow-xl transform transition-all duration-300 ${
+            isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
         >
           <div className="p-6">
             {/* Header */}
