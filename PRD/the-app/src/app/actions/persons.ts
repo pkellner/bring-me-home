@@ -13,24 +13,24 @@ import { createPersonSlug } from '@/lib/slug-utils';
 const personSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
-  middleName: z.string().max(100).optional(),
+  middleName: z.string().max(100).nullable().optional(),
   townId: z.string().min(1, 'Town is required'),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().nullable().optional(),
   lastKnownAddress: z.string().min(1, 'Last known address is required'),
   status: z.string().default('detained'),
-  stories: z.string().optional(), // JSON string of stories array
-  layoutId: z.string().optional(),
-  themeId: z.string().optional(),
+  stories: z.string().nullable().optional(), // JSON string of stories array
+  layoutId: z.string().nullable().optional(),
+  themeId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
-  detentionCenterId: z.string().optional(),
-  detentionDate: z.string().optional(),
-  detentionStatus: z.string().optional(),
-  caseNumber: z.string().optional(),
+  detentionCenterId: z.string().nullable().optional(),
+  detentionDate: z.string().nullable().optional(),
+  detentionStatus: z.string().nullable().optional(),
+  caseNumber: z.string().nullable().optional(),
   bondAmount: z.coerce.number().optional(),
-  lastHeardFromDate: z.string().optional(),
-  notesFromLastContact: z.string().optional(),
+  lastHeardFromDate: z.string().nullable().optional(),
+  notesFromLastContact: z.string().nullable().optional(),
   representedByLawyer: z.boolean().optional(),
-  representedByNotes: z.string().optional(),
+  representedByNotes: z.string().nullable().optional(),
   showDetentionInfo: z.boolean().optional(),
   showLastHeardFrom: z.boolean().optional(),
   showDetentionDate: z.boolean().optional(),
@@ -297,23 +297,23 @@ export async function updatePerson(id: string, formData: FormData) {
     let updateData: Partial<{
       firstName: string;
       lastName: string;
-      middleName?: string;
+      middleName?: string | null;
       townId: string;
       dateOfBirth: Date | null;
       lastKnownAddress: string;
       status: string;
-      layoutId?: string;
-      themeId?: string;
+      layoutId?: string | null;
+      themeId?: string | null;
       isActive?: boolean;
-      detentionCenterId?: string;
+      detentionCenterId?: string | null;
       detentionDate: Date | null;
-      detentionStatus?: string;
-      caseNumber?: string;
+      detentionStatus?: string | null;
+      caseNumber?: string | null;
       bondAmount?: number;
       lastHeardFromDate: Date | null;
-      notesFromLastContact?: string;
+      notesFromLastContact?: string | null;
       representedByLawyer?: boolean;
-      representedByNotes?: string;
+      representedByNotes?: string | null;
       showDetentionInfo?: boolean;
       showLastHeardFrom?: boolean;
       showDetentionDate?: boolean;
@@ -321,7 +321,7 @@ export async function updatePerson(id: string, formData: FormData) {
       slug: string;
     }> = {};
     let slug = existingPerson.slug;
-    let storiesJson: string | undefined;
+    let storiesJson: string | null | undefined;
 
     // Only process person fields if they are present
     if (hasPersonFields && validatedFields.data) {

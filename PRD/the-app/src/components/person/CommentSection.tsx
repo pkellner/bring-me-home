@@ -56,16 +56,15 @@ export default function CommentSection({
   >(submitComment, { success: false });
   
   const [stats, setStats] = useState<Stats | null>(null);
+  const [hasCookie, setHasCookie] = useState(false);
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin') || false;
   
-  // Debug logging
-  console.log('CommentSection Debug:', {
-    pathname,
-    isAdmin,
-    personId,
-    cookieValue: getCookie(`quick_supported_${personId}`)
-  });
+  // Check for cookie only on client side
+  useEffect(() => {
+    const cookieValue = getCookie(`quick_supported_${personId}`);
+    setHasCookie(!!cookieValue);
+  }, [personId]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -83,6 +82,9 @@ export default function CommentSection({
     // Listen for support added events
     const handleSupportAdded = () => {
       fetchStats();
+      // Also recheck cookie status when support is added
+      const cookieValue = getCookie(`quick_supported_${personId}`);
+      setHasCookie(!!cookieValue);
     };
     window.addEventListener('supportAdded', handleSupportAdded);
     
@@ -151,7 +153,7 @@ export default function CommentSection({
         />
         
         {/* DEBUG PANEL - Only shows when cookie is set */}
-        {getCookie(`quick_supported_${personId}`) && (
+        {hasCookie && (
           <>
             <button
               onClick={async () => {
@@ -166,6 +168,9 @@ export default function CommentSection({
                 
                 // Clear the cookie
                 deleteCookie(`quick_supported_${personId}`);
+                
+                // Update state immediately
+                setHasCookie(false);
                 
                 // Reload to refresh the UI
                 window.location.reload();

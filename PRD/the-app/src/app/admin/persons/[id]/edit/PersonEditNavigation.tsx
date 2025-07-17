@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Save, AlertCircle } from 'lucide-react';
 
 interface PersonEditNavigationProps {
@@ -83,21 +82,29 @@ export function PersonEditNavigation({
         
         <div className="flex items-center gap-4 mb-2">
           {hasChanges && (
-            <div className="flex items-center text-amber-600">
+            <div className="flex items-center text-amber-600 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
               <AlertCircle className="mr-2 h-4 w-4" />
-              <span className="text-sm font-medium">Changes pending... press save to update</span>
+              <span className="text-sm font-semibold">Changes pending... press save to update</span>
             </div>
           )}
           
           {onSave && (
-            <Button
+            <button
               onClick={onSave}
               disabled={!hasChanges || isSaving}
-              variant={hasChanges ? "default" : "outline"}
+              className={`
+                inline-flex items-center px-4 py-2 rounded-md text-sm font-medium
+                ${hasChanges 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }
+                ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}
+                transition-colors duration-200
+              `}
             >
-              <Save className="mr-2 h-4 w-4" />
+              <Save className={`mr-2 h-4 w-4 ${hasChanges ? 'text-white' : 'text-gray-400'}`} />
               {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
+            </button>
           )}
         </div>
       </div>

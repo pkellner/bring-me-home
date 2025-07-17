@@ -157,7 +157,7 @@ export default function SupportSection({
         )}
         
         {/* Success message for named support */}
-        {state?.success && (
+        {state?.success && !showForm && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 animate-slide-in-down">
             <div className="flex items-start">
               <svg className="h-5 w-5 text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -273,31 +273,31 @@ export default function SupportSection({
         </div>
         
         {/* Show form inline when requested with smooth animation */}
-        <div className={`mt-6 transition-all duration-500 ease-in-out transform ${
-          showForm ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0 pointer-events-none'
-        }`}>
-          {(showForm || state?.success) && (
-            <div className="border-t pt-6 animate-slide-down">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Leave a Message</h3>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Cancel
-                </button>
-              </div>
-              <AnonymousCommentForm
-                personId={personId}
-                onSubmit={onSubmit}
-                isPending={isPending}
-                state={state}
-              />
+        <div 
+          className={`overflow-hidden transition-all duration-500 ease-in-out ${
+            showForm ? 'max-h-[2000px] opacity-100 mt-6' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Leave a Message</h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
             </div>
-          )}
+            <AnonymousCommentForm
+              personId={personId}
+              onSubmit={onSubmit}
+              isPending={isPending}
+              state={state}
+            />
+          </div>
         </div>
     </div>
   );
