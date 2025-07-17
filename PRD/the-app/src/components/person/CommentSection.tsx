@@ -1,8 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { submitComment } from '@/app/actions/comments';
-import AnonymousCommentForm from './AnonymousCommentForm';
+import SupportSection from './SupportSection';
+import { usePathname } from 'next/navigation';
+import { getCookie, deleteCookie } from '@/lib/cookies';
 
 interface Comment {
   id: string;
@@ -33,6 +35,17 @@ interface CommentFormState {
   errors?: Record<string, string[]>;
 }
 
+interface Stats {
+  anonymousSupport: {
+    total: number;
+    last24Hours: number;
+  };
+  messages: {
+    total: number;
+    last24Hours: number;
+  };
+}
+
 export default function CommentSection({
   personId,
   comments,
@@ -41,6 +54,42 @@ export default function CommentSection({
     CommentFormState,
     FormData
   >(submitComment, { success: false });
+  
+  const [stats, setStats] = useState<Stats | null>(null);
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith('/admin') || false;
+  
+  // Debug logging
+  console.log('CommentSection Debug:', {
+    pathname,
+    isAdmin,
+    personId,
+    cookieValue: getCookie(`quick_supported_${personId}`)
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`/api/persons/${personId}/support`);
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching support stats:', error);
+      }
+    };
+
+    fetchStats();
+    
+    // Listen for support added events
+    const handleSupportAdded = () => {
+      fetchStats();
+    };
+    window.addEventListener('supportAdded', handleSupportAdded);
+    
+    return () => {
+      window.removeEventListener('supportAdded', handleSupportAdded);
+    };
+  }, [personId]);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -85,20 +134,51 @@ export default function CommentSection({
       <div className="p-6">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900">
-            Community Support ({approvedComments.length})
+            Community Support
           </h2>
           <p className="mt-1 text-sm text-gray-600">
             Messages of support from the community
           </p>
         </div>
 
-        {/* Anonymous Comment Form - Always visible */}
-        <AnonymousCommentForm
+        {/* Support Section - Shows both anonymous and named options */}
+        <SupportSection
           personId={personId}
           onSubmit={formAction}
           isPending={isPending}
           state={state}
+          stats={stats || undefined}
         />
+        
+        {/* DEBUG PANEL - Only shows when cookie is set */}
+        {getCookie(`quick_supported_${personId}`) && (
+          <>
+            <button
+              onClick={async () => {
+                // Delete the database record
+                try {
+                  await fetch(`/api/persons/${personId}/support`, {
+                    method: 'DELETE',
+                  });
+                } catch (error) {
+                  console.error('Error deleting support record:', error);
+                }
+                
+                // Clear the cookie
+                deleteCookie(`quick_supported_${personId}`);
+                
+                // Reload to refresh the UI
+                window.location.reload();
+              }}
+              className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+            >
+              Admin Only - Clear Anonymous Support Cookie & Database Record
+            </button>
+            {!isAdmin && (
+              <p className="mt-1 text-xs text-gray-500">Note: This button is normally only shown for admins</p>
+            )}
+          </>
+        )}
 
         {/* Comments List */}
         <div className="space-y-6">

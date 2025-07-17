@@ -133,6 +133,7 @@ model Person {
   showDetentionDate    Boolean                @default(true)
   showCommunitySupport Boolean                @default(true)
   comments             Comment[]
+  anonymousSupport     AnonymousSupport[]
   familySettings       FamilyPrivacySettings?
   personAccess         PersonAccess[]
   personImages         PersonImage[]
@@ -241,6 +242,20 @@ model Comment {
   @@index([isApproved])
   @@index([email])
   @@map("comments")
+}
+
+model AnonymousSupport {
+  id         String   @id @default(cuid())
+  personId   String
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  createdAt  DateTime @default(now())
+  
+  person     Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@index([personId])
+  @@index([createdAt])
+  @@map("anonymous_support")
 }
 
 model TownAccess {

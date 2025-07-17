@@ -90,3 +90,119 @@ body {
 .animate-fade-in-delay-2 {
   animation: fade-in 0.6s ease-out 0.5s both;
 }
+
+/* Heart floating animation */
+@keyframes float-heart {
+  0% {
+    transform: translateY(100vh) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-float-heart {
+  animation: float-heart 4s ease-in-out infinite;
+}
+
+/* Stagger heart animations */
+.heart-0 { animation-delay: 0s; }
+.heart-1 { animation-delay: 0.5s; }
+.heart-2 { animation-delay: 1s; }
+.heart-3 { animation-delay: 1.5s; }
+.heart-4 { animation-delay: 2s; }
+.heart-5 { animation-delay: 2.5s; }
+
+/* Fade in animation */
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Gentle floating hearts */
+@keyframes float-heart-gentle {
+  0% {
+    transform: translateY(0) translateX(0) scale(0);
+    opacity: 0;
+  }
+  10% {
+    transform: translateY(-20px) translateX(5px) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-150px) translateX(-5px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-300px) translateX(10px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.animate-float-heart-gentle {
+  animation: float-heart-gentle 3s ease-out forwards;
+}
+
+/* Smooth spinning animation */
+@keyframes spin-smooth {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-smooth {
+  animation: spin-smooth 1s linear infinite;
+}
+
+/* Growing animation */
+@keyframes grow-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-grow-in {
+  animation: grow-in 0.6s ease-out forwards;
+}
+
+/* Delayed fade in animations */
+.animate-fade-in-delay {
+  opacity: 0;
+  animation: fade-in 0.6s ease-out 0.3s forwards;
+}
+
+.animate-fade-in-delay-2 {
+  opacity: 0;
+  animation: fade-in 0.6s ease-out 0.5s forwards;
+}
+
+/* Slide down animation */
+@keyframes slide-down {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s ease-out;
+}
