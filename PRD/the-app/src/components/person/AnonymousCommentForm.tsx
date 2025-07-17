@@ -23,7 +23,7 @@ export default function AnonymousCommentForm({
   isPending,
   state,
 }: AnonymousCommentFormProps) {
-  const [showForm, setShowForm] = useState(false);
+  // Removed showForm state as we always show the form directly
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [commentLength, setCommentLength] = useState(0);
@@ -32,7 +32,6 @@ export default function AnonymousCommentForm({
   const [showCityState, setShowCityState] = useState(true);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
-  const [isExpandingForm, setIsExpandingForm] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -40,10 +39,10 @@ export default function AnonymousCommentForm({
     console.log('[AnonymousCommentForm] Component mounted, executeRecaptcha available:', !!executeRecaptcha);
   }
 
-  // Reset form and hide when submission is successful
+  // Reset form when submission is successful
   useEffect(() => {
     if (state?.success) {
-      setShowForm(false);
+      // Don't hide the form, let the parent component handle that
       setCommentLength(0);
       setPrivateNoteLength(0);
       setDisplayNameOnly(false);
@@ -54,74 +53,6 @@ export default function AnonymousCommentForm({
     }
   }, [state?.success]);
 
-  if (!showForm) {
-    return (
-      <div className="mb-8">
-        {/* Success message after submission */}
-        {state?.success && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-4 animate-slide-in-down">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-green-400 animate-check-mark"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800 animate-fade-in-delay">
-                  Thank you for your support!
-                </h3>
-                <p className="mt-2 text-sm text-green-700 animate-fade-in-delay-2">
-                  Your message has been submitted and will be reviewed by the
-                  family before being posted.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Show support button */}
-        <div className="bg-blue-50 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Show Your Support
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Your support matters. Add your voice to help bring this person home.
-          </p>
-          <button
-            onClick={() => {
-              setIsExpandingForm(true);
-              setTimeout(() => {
-                setShowForm(true);
-                setIsExpandingForm(false);
-              }, 100);
-            }}
-            disabled={isExpandingForm}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            {isExpandingForm ? (
-              <span className="flex items-center space-x-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Loading...</span>
-              </span>
-            ) : (
-              'Add Your Support'
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -595,14 +526,7 @@ export default function AnonymousCommentForm({
 
         {/* Success message is now handled by hiding the form */}
 
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => setShowForm(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={isPending || isExecutingRecaptcha}
