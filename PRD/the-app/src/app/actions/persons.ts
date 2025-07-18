@@ -281,8 +281,6 @@ export async function updatePerson(id: string, formData: FormData) {
     }
   }
 
-  console.log('Validated data stories:', validatedFields.data?.stories);
-
   try {
     // Get existing person for validation
     const existingPerson = await prisma.person.findUnique({
@@ -557,10 +555,8 @@ export async function updatePerson(id: string, formData: FormData) {
     if (hasPersonFields) {
 
       if (storiesJson !== undefined && storiesJson !== null && storiesJson !== '') {
-        console.log('Updating stories - JSON:', storiesJson);
         try {
           const stories = JSON.parse(storiesJson);
-          console.log('Parsed stories:', stories);
 
           // Delete existing stories for this person
           await prisma.story.deleteMany({
