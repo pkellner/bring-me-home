@@ -32,6 +32,7 @@ export default function AnonymousCommentForm({
   const [privateNoteLength, setPrivateNoteLength] = useState(0);
   const [displayNameOnly, setDisplayNameOnly] = useState(false);
   const [showCityState, setShowCityState] = useState(true);
+  const [privacyRequired, setPrivacyRequired] = useState(false);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -519,7 +520,8 @@ export default function AnonymousCommentForm({
                 value="true"
                 checked={displayNameOnly}
                 onChange={(e) => setDisplayNameOnly(e.target.checked)}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                disabled={privacyRequired}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
                 Display just my name as supporting
@@ -531,11 +533,34 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="requiresFamilyApproval"
                 value="true"
-                defaultChecked
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                defaultChecked={!privacyRequired}
+                disabled={privacyRequired}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
                 Display my name and comment if the family approves first
+              </span>
+            </label>
+
+            <label className="flex items-start">
+              <input
+                type="checkbox"
+                name="privacyRequiredDoNotShowPublicly"
+                value="true"
+                checked={privacyRequired}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  setPrivacyRequired(isChecked);
+                  if (isChecked) {
+                    // Disable all other checkboxes by setting them to false
+                    setDisplayNameOnly(false);
+                    setShowCityState(false);
+                  }
+                }}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">
+                Please don&apos;t publicly show my name, just let the family know I support them
               </span>
             </label>
           </div>
@@ -550,8 +575,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showOccupation"
                 value="true"
-                defaultChecked={!displayNameOnly}
-                disabled={displayNameOnly}
+                defaultChecked={!displayNameOnly && !privacyRequired}
+                disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
@@ -564,8 +589,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showBirthdate"
                 value="true"
-                defaultChecked={!displayNameOnly}
-                disabled={displayNameOnly}
+                defaultChecked={!displayNameOnly && !privacyRequired}
+                disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
@@ -580,7 +605,7 @@ export default function AnonymousCommentForm({
                 value="true"
                 checked={displayNameOnly ? false : showCityState}
                 onChange={(e) => setShowCityState(e.target.checked)}
-                disabled={displayNameOnly}
+                disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">

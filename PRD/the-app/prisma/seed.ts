@@ -56,6 +56,59 @@ const SEED_VALUES = {
     true, false, false, true, false, true, true, false, true, false,
   ],
   booleanIndex: 0,
+
+  // Realistic IP addresses from different countries
+  ipAddresses: [
+    '98.234.56.78',    // USA (California)
+    '67.189.234.12',   // USA (Texas)
+    '74.125.224.72',   // USA (New York)
+    '201.159.223.45',  // Mexico
+    '189.203.167.89',  // Mexico
+    '187.141.234.56',  // Mexico
+    '190.181.45.67',   // Guatemala
+    '181.114.234.89',  // Honduras
+    '190.86.234.12',   // El Salvador
+    '186.148.167.45',  // Colombia
+    '181.65.234.78',   // Peru
+    '186.178.89.12',   // Ecuador
+    '92.234.167.45',   // UK
+    '134.201.250.155', // Germany
+    '47.88.234.56',    // China
+    '202.234.167.89',  // Japan
+    '103.234.56.78',   // India
+    '197.234.167.45',  // South Africa
+    '191.234.56.78',   // Brazil
+    '80.234.167.89',   // France
+    '213.234.56.78',   // Spain
+    '94.234.167.45',   // Italy
+    '31.234.56.78',    // Netherlands
+    '178.234.167.89',  // Russia
+    '41.234.56.78',    // Kenya
+    '196.234.167.45',  // Egypt
+    '203.234.56.78',   // Australia
+    '222.234.167.89',  // South Korea
+    '91.234.56.78',    // Turkey
+    '46.234.167.45',   // Sweden
+  ],
+
+  // Realistic user agent strings
+  userAgents: [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (iPad; CPU OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Android 14; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0',
+    'Mozilla/5.0 (Linux; Android 14; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 OPR/105.0.0.0',
+    'Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36',
+  ],
 };
 
 // Get next float value
@@ -799,6 +852,42 @@ const generateSupporters = (persons: SeedPerson[]) => {
   return supporters;
 };
 
+// Generate anonymous support records
+const generateAnonymousSupport = (persons: SeedPerson[]) => {
+  const anonymousSupport = [];
+  let personIndex = 0;
+
+  for (const person of persons) {
+    // Only detained persons get anonymous support
+    if (!person.detentionCenterName) continue;
+
+    // Get deterministic number of anonymous supporters (more than named supporters)
+    const anonymousSupportCount = SEED_VALUES.supportersPerPerson[personIndex % SEED_VALUES.supportersPerPerson.length] * 2;
+    personIndex++;
+
+    for (let i = 0; i < anonymousSupportCount; i++) {
+      // Determine if this support record should have IP/UserAgent (50% chance)
+      const hasIpData = getNextBoolean();
+      
+      anonymousSupport.push({
+        personFirstName: person.firstName,
+        personLastName: person.lastName,
+        createdAt: randomDate(
+          person.detentionDate ||
+            person.lastSeenDate ||
+            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          new Date()
+        ),
+        // Only populate IP and UserAgent for half the records
+        ipAddress: hasIpData ? randomElement(SEED_VALUES.ipAddresses) : null,
+        userAgent: hasIpData ? randomElement(SEED_VALUES.userAgents) : null,
+      });
+    }
+  }
+
+  return anonymousSupport;
+};
+
 // Generate comments (updates and messages)
 const generateComments = (persons: SeedPerson[]) => {
   const commentTypes = ['general', 'update', 'legal', 'family'];
@@ -837,6 +926,9 @@ const generateComments = (persons: SeedPerson[]) => {
         content = `Keeping ${person.firstName} and their family in our thoughts and prayers.`;
       }
 
+      // Determine if this comment should have IP/UserAgent (50% chance)
+      const hasIpData = getNextBoolean();
+      
       comments.push({
         content,
         type,
@@ -850,6 +942,9 @@ const generateComments = (persons: SeedPerson[]) => {
             new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           new Date()
         ),
+        // Only populate IP and UserAgent for half the comments
+        ipAddress: hasIpData ? randomElement(SEED_VALUES.ipAddresses) : null,
+        userAgent: hasIpData ? randomElement(SEED_VALUES.userAgents) : null,
       });
     }
   }
@@ -1695,6 +1790,185 @@ async function main() {
   }
   console.log(`Created ${comments.length} comments.`);
 
+  // Generate and create anonymous support records
+  console.log('Generating and creating anonymous support records...');
+  const anonymousSupportRecords = generateAnonymousSupport(persons);
+  for (const record of anonymousSupportRecords) {
+    const { personFirstName, personLastName, ...supportData } = record;
+    const personId = createdIds.persons.get(`${personFirstName}_${personLastName}`)!;
+
+    await prisma.anonymousSupport.create({
+      data: {
+        ...supportData,
+        personId,
+      },
+    });
+  }
+  console.log(`Created ${anonymousSupportRecords.length} anonymous support records.`);
+
+  // Add additional Borrego Springs anonymous support records
+  console.log('Adding additional Borrego Springs anonymous support records...');
+  const borregoSpringsTown = await prisma.town.findFirst({
+    where: { name: 'Borrego Springs' }
+  });
+  
+  if (borregoSpringsTown) {
+    // Get all detained persons from Borrego Springs
+    const borregoPersons = await prisma.person.findMany({
+      where: {
+        townId: borregoSpringsTown.id,
+        detentionCenterId: { not: null }
+      }
+    });
+    
+    // Add 15 anonymous support records distributed among Borrego Springs detained persons
+    const borregoIpAddress = '67.189.234.12'; // California IP
+    for (let i = 0; i < 15; i++) {
+      const person = borregoPersons[i % borregoPersons.length];
+      await prisma.anonymousSupport.create({
+        data: {
+          personId: person.id,
+          createdAt: randomDate(
+            new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // Last 60 days
+            new Date()
+          ),
+          ipAddress: borregoIpAddress,
+          userAgent: randomElement(SEED_VALUES.userAgents),
+          latitude: 33.2558,
+          longitude: -116.3789,
+          geoCity: 'Borrego Springs',
+          region: 'California',
+          country: 'United States',
+          processedForLatLon: true,
+        }
+      });
+    }
+    
+    // Add 5 leave a message comments from Borrego Springs
+    console.log('Adding Borrego Springs leave a message comments...');
+    const borregoMessages = [
+      "We miss you here in Borrego Springs! The whole community is thinking of you.",
+      "Your neighbors haven't forgotten about you. We're working to bring you home!",
+      "The desert wildflowers are blooming - we wish you could see them. Stay strong!",
+      "Everyone at the community center asks about you. We can't wait to have you back.",
+      "Your work here made such a difference. Borrego Springs needs you home!"
+    ];
+    
+    for (let i = 0; i < 5; i++) {
+      const person = borregoPersons[i % borregoPersons.length];
+      await prisma.comment.create({
+        data: {
+          personId: person.id,
+          content: borregoMessages[i],
+          type: 'general',
+          visibility: 'public',
+          isApproved: true,
+          createdAt: randomDate(
+            new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // Last 45 days
+            new Date()
+          ),
+          ipAddress: borregoIpAddress,
+          userAgent: randomElement(SEED_VALUES.userAgents),
+          latitude: 33.2558,
+          longitude: -116.3789,
+          geoCity: 'Borrego Springs',
+          region: 'California',
+          country: 'United States',
+          processedForLatLon: true,
+        }
+      });
+    }
+  }
+  
+  // Add 7 unprocessed records for Joe Plumber from California cities
+  console.log('Adding unprocessed California records for Joe Plumber...');
+  const californiaIps = [
+    '98.234.56.78',   // California IP from existing list
+    '67.189.234.12',  // Another California IP (Borrego Springs area)
+  ];
+  
+  const californiaCities = [
+    { name: 'San Diego', lat: 32.7157, lon: -117.1611 },
+    { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+    { name: 'San Francisco', lat: 37.7749, lon: -122.4194 },
+    { name: 'Sacramento', lat: 38.5816, lon: -121.4944 },
+    { name: 'Fresno', lat: 36.7378, lon: -119.7871 },
+    { name: 'Borrego Springs', lat: 33.2558, lon: -116.3789 },
+    { name: 'Borrego Springs', lat: 33.2558, lon: -116.3789 }, // Second one from Borrego
+  ];
+  
+  // Add 5 more locations for Joe Plumber
+  const additionalLocations = [
+    { name: 'Flagstaff', lat: 35.1983, lon: -111.6513, ip: '67.189.234.12' }, // Arizona
+    { name: 'Nogales', lat: 31.3404, lon: -110.9343, ip: '67.189.234.12' }, // Arizona/Mexico border
+    { name: 'Hermosillo', lat: 29.0729, lon: -110.9559, ip: '201.159.223.45' }, // Mexico
+    { name: 'Las Vegas', lat: 36.1699, lon: -115.1398, ip: '67.189.234.12' }, // Nevada
+    { name: 'New York City', lat: 40.7128, lon: -74.0060, ip: '74.125.224.72' }, // New York
+  ];
+  
+  const joePlumberPersonId = createdIds.persons.get('Joe_Plumber')!;
+  
+  // Add 4 unprocessed comments
+  for (let i = 0; i < 4; i++) {
+    await prisma.comment.create({
+      data: {
+        personId: joePlumberPersonId,
+        content: `Support from ${californiaCities[i].name}! We believe in you, Joe!`,
+        type: 'general',
+        visibility: 'public',
+        isApproved: true,
+        createdAt: randomDate(
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          new Date()
+        ),
+        ipAddress: randomElement(californiaIps),
+        userAgent: randomElement(SEED_VALUES.userAgents),
+        processedForLatLon: false, // Not processed yet!
+      }
+    });
+  }
+  
+  // Add 3 unprocessed anonymous support records
+  for (let i = 0; i < 3; i++) {
+    await prisma.anonymousSupport.create({
+      data: {
+        personId: joePlumberPersonId,
+        createdAt: randomDate(
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          new Date()
+        ),
+        ipAddress: i < 2 ? californiaIps[1] : californiaIps[0], // Two from Borrego IP
+        userAgent: randomElement(SEED_VALUES.userAgents),
+        processedForLatLon: false, // Not processed yet!
+      }
+    });
+  }
+  
+  // Add 5 more processed support records from specific cities
+  console.log('Adding processed support from 5 additional cities for Joe Plumber...');
+  for (const location of additionalLocations) {
+    await prisma.anonymousSupport.create({
+      data: {
+        personId: joePlumberPersonId,
+        createdAt: randomDate(
+          new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+          new Date()
+        ),
+        ipAddress: location.ip,
+        userAgent: randomElement(SEED_VALUES.userAgents),
+        latitude: location.lat,
+        longitude: location.lon,
+        geoCity: location.name,
+        region: location.name === 'Hermosillo' ? 'Sonora' : 
+                location.name === 'Las Vegas' ? 'Nevada' :
+                location.name === 'Flagstaff' || location.name === 'Nogales' ? 'Arizona' :
+                location.name === 'New York City' ? 'New York' : 'Unknown',
+        country: location.name === 'Hermosillo' ? 'Mexico' : 'United States',
+        processedForLatLon: true,
+      }
+    });
+  }
+
   // Create family privacy settings for detained persons
   console.log('Creating family privacy settings...');
   const detainedPersons = persons.filter(p => p.detentionCenterName);
@@ -1893,6 +2167,58 @@ async function main() {
       accessLevel: 'admin',
     },
   });
+
+  // Add pre-processed geolocation data for Joe Plumber
+  console.log('Adding geolocation data for Joe Plumber...');
+  const locationData = [
+    { city: 'Borrego Springs', region: 'California', country: 'United States', lat: 33.2558, lon: -116.3789 },
+    { city: 'San Diego', region: 'California', country: 'United States', lat: 32.7157, lon: -117.1611 },
+    { city: 'Phoenix', region: 'Arizona', country: 'United States', lat: 33.4484, lon: -112.0740 },
+    { city: 'Los Angeles', region: 'California', country: 'United States', lat: 34.0522, lon: -118.2437 },
+    { city: 'Mexico City', region: 'CDMX', country: 'Mexico', lat: 19.4326, lon: -99.1332 },
+  ];
+
+  // Update some of Joe Plumber's comments with location data
+  const joePlumberComments = await prisma.comment.findMany({
+    where: { personId: joePlumberId },
+    take: 5,
+  });
+
+  for (let i = 0; i < Math.min(joePlumberComments.length, locationData.length); i++) {
+    const location = locationData[i];
+    await prisma.comment.update({
+      where: { id: joePlumberComments[i].id },
+      data: {
+        latitude: location.lat,
+        longitude: location.lon,
+        geoCity: location.city,
+        region: location.region,
+        country: location.country,
+        processedForLatLon: true,
+      },
+    });
+  }
+
+  // Update some of Joe Plumber's anonymous support with location data
+  const joePlumberSupport = await prisma.anonymousSupport.findMany({
+    where: { personId: joePlumberId },
+    take: 5,
+  });
+
+  for (let i = 0; i < Math.min(joePlumberSupport.length, locationData.length); i++) {
+    const location = locationData[(i + 2) % locationData.length]; // Offset to get different locations
+    await prisma.anonymousSupport.update({
+      where: { id: joePlumberSupport[i].id },
+      data: {
+        latitude: location.lat,
+        longitude: location.lon,
+        geoCity: location.city,
+        region: location.region,
+        country: location.country,
+        processedForLatLon: true,
+      },
+    });
+  }
 
   // Create system config
   console.log('Creating system configuration...');
@@ -2139,6 +2465,7 @@ async function main() {
   );
   console.log(`- ${supporters.length} supporters`);
   console.log(`- ${comments.length} comments and updates`);
+  console.log(`- ${anonymousSupportRecords.length} anonymous support records`);
   console.log(`- ${detainedPersons.length} family privacy settings`);
   console.log(`- ${roles.length} roles`);
   console.log(`- ${themes.length} themes`);

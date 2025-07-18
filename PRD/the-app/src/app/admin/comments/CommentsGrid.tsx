@@ -49,6 +49,7 @@ interface Comment extends Record<string, unknown> {
   isApproved: boolean;
   moderatorNotes: string | null;
   privateNoteToFamily: string | null;
+  privacyRequiredDoNotShowPublicly?: boolean;
   person: {
     id: string;
     firstName: string;
@@ -219,7 +220,7 @@ function CommentsGrid({
   }, []);
 
   const handleApproveAll = useCallback(async () => {
-    const pendingComments = filteredComments.filter(c => !c.isApproved);
+    const pendingComments = filteredComments.filter(c => !c.isApproved && !c.privacyRequiredDoNotShowPublicly);
     if (pendingComments.length === 0) {
       alert('No pending comments to approve');
       return;
@@ -259,7 +260,7 @@ function CommentsGrid({
   }, [filteredComments, router]);
 
   const handleRejectAll = useCallback(async () => {
-    const pendingComments = filteredComments.filter(c => !c.isApproved);
+    const pendingComments = filteredComments.filter(c => !c.isApproved && !c.privacyRequiredDoNotShowPublicly);
     if (pendingComments.length === 0) {
       alert('No pending comments to reject');
       return;
@@ -428,15 +429,21 @@ function CommentsGrid({
       width: 'w-20',
       sortable: true,
       render: (value, record) => (
-        <CommentStatusToggle
-          commentId={record.id}
-          initialIsApproved={record.isApproved}
-          onUpdate={(commentId, isApproved) => {
-            setComments(prev =>
-              prev.map(c => (c.id === commentId ? { ...c, isApproved } : c))
-            );
-          }}
-        />
+        record.privacyRequiredDoNotShowPublicly ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Private
+          </span>
+        ) : (
+          <CommentStatusToggle
+            commentId={record.id}
+            initialIsApproved={record.isApproved}
+            onUpdate={(commentId, isApproved) => {
+              setComments(prev =>
+                prev.map(c => (c.id === commentId ? { ...c, isApproved } : c))
+              );
+            }}
+          />
+        )
       ),
     },
     {

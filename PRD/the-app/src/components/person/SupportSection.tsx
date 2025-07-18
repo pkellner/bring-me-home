@@ -1,9 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import AnonymousCommentForm from './AnonymousCommentForm';
 import { getCookie, setCookie, deleteCookie } from '@/lib/cookies';
 import { usePathname } from 'next/navigation';
+import { isSupportMapEnabled } from '@/app/actions/support-map';
+
+// Dynamic import for the map component to avoid SSR issues
+const SupportMap = dynamic(() => import('./SupportMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-[400px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  ),
+});
 
 interface SupportSectionProps {
   personId: string;
@@ -31,8 +43,36 @@ export default function SupportSection({
   const [hasQuickSupported, setHasQuickSupported] = useState(false);
   const [quickSupportState, setQuickSupportState] = useState<'ready' | 'sending' | 'thanking'>('ready');
   const [hasSubmittedMessage, setHasSubmittedMessage] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [showMessages, setShowMessages] = useState(true);
+  const [showSupport, setShowSupport] = useState(true);
+  const [mapMessageCount, setMapMessageCount] = useState(0);
+  const [mapSupportCount, setMapSupportCount] = useState(0);
+  const [mapEnabled, setMapEnabled] = useState<boolean | null>(null);
+  const [hasLocationData, setHasLocationData] = useState<boolean | null>(null);
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin') || false;
+
+  // Check if map feature is enabled
+  useEffect(() => {
+    isSupportMapEnabled().then(setMapEnabled);
+  }, []);
+  
+  // Check if there's any IP address data (even if not geolocated yet)
+  useEffect(() => {
+    if (mapEnabled) {
+      fetch(`/api/persons/${personId}/support-map`)
+        .then(res => res.json())
+        .then(data => {
+          // Show map if there are IP addresses, even if not geolocated yet
+          setHasLocationData(data.hasIpAddresses || false);
+          setMapMessageCount(data.locations.messages.length);
+          setMapSupportCount(data.locations.support.length);
+        })
+        .catch(() => setHasLocationData(false));
+    }
+  }, [personId, mapEnabled]);
 
   // Check if user has already quick supported
   useEffect(() => {
@@ -159,10 +199,15 @@ export default function SupportSection({
   const messagesPercent = totalSupport > 0 ? (stats!.messages.total / totalSupport) * 100 : 0;
   const quickPercent = totalSupport > 0 ? (stats!.anonymousSupport.total / totalSupport) * 100 : 0;
 
+  // Remove the early return - we want to show the support options even with no data
+  // if (totalSupport === 0) {
+  //   return null;
+  // }
+
   return (
       <div className="mb-8">
-        {/* Mini stats bar - always visible */}
-        {stats && (
+        {/* Mini stats bar - only show if there's data */}
+        {stats && totalSupport > 0 && (
           <div className="mb-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 transition-all duration-500">
             <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
               <span className="font-medium">Community Support</span>
@@ -203,6 +248,95 @@ export default function SupportSection({
           </div>
         )}
         
+        {/* View Support Map Button - Only show if feature is enabled, there's data, and location data exists */}
+        {mapEnabled && totalSupport > 0 && hasLocationData && (
+          <>
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setShowMap(!showMap);
+                  if (!mapLoaded) {
+                    setMapLoaded(true);
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-lg p-3 transition-all duration-300 flex items-center justify-between group"
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <span className="font-medium text-gray-700">View Support Map</span>
+                  {(mapMessageCount > 0 || mapSupportCount > 0) && (
+                    <span className="text-sm text-gray-500">
+                      ({mapMessageCount + mapSupportCount} locations)
+                    </span>
+                  )}
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-400 transform transition-transform duration-300 ${
+                    showMap ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Expandable Map Container */}
+            <div
+              className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                showMap ? 'max-h-[600px] opacity-100 mb-4' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="bg-white rounded-lg shadow-lg p-4">
+                {/* Map toggle checkboxes */}
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showMessages}
+                      onChange={(e) => setShowMessages(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Show Messages ({mapMessageCount})
+                    </span>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showSupport}
+                      onChange={(e) => setShowSupport(e.target.checked)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Show Support ({mapSupportCount})
+                    </span>
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  </label>
+                </div>
+                
+                {/* Map component - only render if mapLoaded is true */}
+                {mapLoaded ? (
+                  <SupportMap
+                    personId={personId}
+                    showMessages={showMessages}
+                    showSupport={showSupport}
+                    isAdmin={isAdmin}
+                    onDataLoaded={(messages, support) => {
+                      setMapMessageCount(messages);
+                      setMapSupportCount(support);
+                    }}
+                  />
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Support options box - hide when form is shown */}
         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${

@@ -223,6 +223,7 @@ model Comment {
   lastName                 String?
   occupation               String?
   phone                    String?
+  privacyRequiredDoNotShowPublicly Boolean @default(false)
   requiresFamilyApproval   Boolean   @default(true)
   showBirthdate            Boolean   @default(false)
   showOccupation           Boolean   @default(false)
@@ -236,6 +237,12 @@ model Comment {
   privateNoteToFamily      String?   @db.Text
   ipAddress                String?
   userAgent                String?   @db.Text
+  latitude                 Float?
+  longitude                Float?
+  geoCity                  String?
+  region                   String?
+  country                  String?
+  processedForLatLon       Boolean   @default(false)
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])
@@ -243,19 +250,27 @@ model Comment {
   @@index([type])
   @@index([isApproved])
   @@index([email])
+  @@index([processedForLatLon])
   @@map("comments")
 }
 
 model AnonymousSupport {
-  id        String   @id @default(cuid())
-  personId  String
-  ipAddress String?
-  userAgent String?  @db.Text
-  createdAt DateTime @default(now())
-  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  personId           String
+  ipAddress          String?
+  userAgent          String?  @db.Text
+  createdAt          DateTime @default(now())
+  latitude           Float?
+  longitude          Float?
+  geoCity            String?
+  region             String?
+  country            String?
+  processedForLatLon Boolean  @default(false)
+  person             Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@index([personId])
   @@index([createdAt])
+  @@index([processedForLatLon])
   @@map("anonymous_support")
 }
 

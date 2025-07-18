@@ -31,6 +31,7 @@ const commentSchema = z.object({
   showBirthdate: z.boolean().default(false),
   showComment: z.boolean().default(true),
   showCityState: z.boolean().default(true),
+  privacyRequiredDoNotShowPublicly: z.boolean().default(false),
 });
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
@@ -180,6 +181,7 @@ export async function submitComment(
       showOccupation: formData.get('showOccupation') === 'true',
       showBirthdate: formData.get('showBirthdate') === 'true',
       showCityState: formData.get('showCityState') === 'true',
+      privacyRequiredDoNotShowPublicly: formData.get('privacyRequiredDoNotShowPublicly') === 'true',
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -236,6 +238,7 @@ export async function submitComment(
         showOccupation: data.showOccupation,
         showBirthdate: data.showBirthdate,
         showCityState: data.showCityState,
+        privacyRequiredDoNotShowPublicly: data.privacyRequiredDoNotShowPublicly,
         type: 'support',
         visibility: 'public',
         isActive: true,

@@ -128,6 +128,19 @@ the-app/
 └── baseversion       # Version tracking for Docker builds
 ```
 
+### Database Seeding
+
+The seed script (`prisma/seed.ts`) creates comprehensive test data including:
+
+- **IP Address and User Agent Data**: Comments and anonymous support records are seeded with realistic IP addresses from various countries and authentic user agent strings
+- **Partial Data Population**: Only 50% of comments and anonymous support records have IP/user agent data, leaving room for the geolocation processing feature to demonstrate its functionality
+- **Geographic Diversity**: IP addresses represent users from USA, Mexico, Central/South America, Europe, Asia, Africa, and Australia
+
+Run the seed script:
+```bash
+npm run db:seed
+```
+
 This completes Phase 1 of the implementation plan. The foundation is now ready for Phase 2 development.
 
 

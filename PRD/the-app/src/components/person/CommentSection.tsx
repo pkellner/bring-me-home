@@ -19,6 +19,7 @@ interface Comment {
   showComment?: boolean;
   showCityState?: boolean;
   displayNameOnly?: boolean;
+  privacyRequiredDoNotShowPublicly?: boolean;
   createdAt: Date | string;
   isApproved: boolean;
 }
@@ -108,10 +109,7 @@ export default function CommentSection({
       return 'Anonymous Supporter';
     }
 
-    if (comment.displayNameOnly) {
-      return `${comment.firstName} ${comment.lastName.charAt(0)}.`;
-    }
-
+    // Always show full name, displayNameOnly just controls other info
     return `${comment.firstName} ${comment.lastName}`;
   };
 
@@ -136,8 +134,10 @@ export default function CommentSection({
     return age;
   };
 
-  // Filter to only show approved comments
-  const approvedComments = comments.filter(comment => comment.isApproved);
+  // Filter to only show approved comments that are not marked as private
+  const approvedComments = comments.filter(comment => 
+    comment.isApproved && !comment.privacyRequiredDoNotShowPublicly
+  );
 
   return (
     <div id="comments" className="bg-white shadow rounded-lg scroll-mt-20">
@@ -199,7 +199,7 @@ export default function CommentSection({
                         <p className="text-sm font-medium text-gray-900">
                           {getDisplayName(comment)}
                         </p>
-                        {comment.showOccupation && comment.occupation && (
+                        {!comment.displayNameOnly && comment.showOccupation && comment.occupation && (
                           <>
                             <span className="text-gray-400">•</span>
                             <p className="text-sm text-gray-600">
@@ -207,7 +207,7 @@ export default function CommentSection({
                             </p>
                           </>
                         )}
-                        {comment.showBirthdate && comment.birthdate && (
+                        {!comment.displayNameOnly && comment.showBirthdate && comment.birthdate && (
                           <>
                             <span className="text-gray-400">•</span>
                             <p className="text-sm text-gray-600">
@@ -215,7 +215,8 @@ export default function CommentSection({
                             </p>
                           </>
                         )}
-                        {comment.showCityState &&
+                        {!comment.displayNameOnly &&
+                          comment.showCityState &&
                           comment.city &&
                           comment.state && (
                             <>
@@ -231,12 +232,12 @@ export default function CommentSection({
                         </p>
                       </div>
                     </div>
-                    {comment.content && !comment.displayNameOnly && (comment.showComment ?? true) && (
+                    {comment.content && (comment.showComment ?? true) && (
                       <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
                         {comment.content}
                       </div>
                     )}
-                    {(comment.displayNameOnly || (comment.content && !(comment.showComment ?? true))) && (
+                    {comment.content && !(comment.showComment ?? true) && (
                       <div className="mt-1 text-sm text-gray-500 italic">
                         Showing support
                       </div>

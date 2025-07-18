@@ -130,11 +130,44 @@ model Comment {
 - **Tile Provider**: OpenStreetMap (free, no API key required)
 
 #### Map Features
-- **Clustering**: Group nearby pins at low zoom levels
+- **Simple Markers**: Direct rendering without clustering for stability
 - **Tooltips**: Show city/country on hover
 - **Custom Markers**: Blue for messages, purple for support
 - **Auto-fit**: Automatically adjust viewport to show all pins
 - **Minimum Zoom**: Prevent zooming out too far (empty ocean views)
+
+#### Map API Details
+
+**Map Library**: Leaflet
+- Open source JavaScript library for mobile-friendly interactive maps
+- Version: 1.9.4 (from package.json)
+- React integration: react-leaflet 5.0.0
+
+**Tile Provider**: OpenStreetMap (OSM)
+- URL: `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
+- Attribution: © OpenStreetMap contributors
+- **No API key required** - completely free to use
+- License: Open Database License (ODbL)
+
+**OSM Usage Policy**:
+- No bulk downloading or archiving of tiles
+- No heavy/commercial use without custom tile server
+- Must set valid HTTP User-Agent for contact purposes
+- No guaranteed SLA - best effort basis
+- IP-based throttling for excessive use
+- Scale reference: OSM serves 1 billion tiles every 11 days
+
+**Important Limitations**:
+- The OSM tile servers have limited capacity from donated resources
+- Heavy use can result in throttling or blocking
+- Commercial services should consider alternative tile providers
+- No specific numerical limits published (can change anytime)
+
+**Alternative Options** (if usage grows):
+- MapTiler, Stadia Maps, Thunderforest (paid services)
+- Self-hosted tile server using OSM data
+- Mapbox (requires API key and has usage limits)
+- Google Maps (requires API key, has free tier limits)
 
 ### UI/UX Design
 
@@ -183,29 +216,31 @@ model Comment {
    - Load map only when user clicks "View Support Map"
    - Prefer having state cause reloads which is best for performance and best practice. Only include useEffect if absolutely necessary.
 2. **Data Pagination**: Limit to 1000 most recent pins
-3. **Clustering**: Use marker clustering for performance with many pins
+3. **Simple Markers**: Direct marker rendering without clustering for reliability
 4. **Caching**: Cache processed coordinates indefinitely
 5. **Debouncing**: Prevent rapid expand/collapse cycles
 
 ## Implementation Phases
 
 ### Phase 1: Database & Backend (Week 1)
-- [ ] Add migration for new database columns
-- [ ] Implement geolocation service integration
-- [ ] Create support-map API endpoint
-- [ ] Add batch processing logic
+- [x] Add migration for new database columns
+- [x] Implement geolocation service integration
+- [x] Create support-map API endpoint
+- [x] Add batch processing logic
+- [x] Update seed script with realistic IP addresses and user agents (50% populated)
 
 ### Phase 2: Map Component (Week 2)
-- [ ] Implement React-Leaflet map component
-- [ ] Add marker clustering
-- [ ] Create custom marker designs
-- [ ] Implement viewport auto-fitting
+- [x] Implement React-Leaflet map component
+- [x] Simple marker implementation (removed clustering for stability)
+- [x] Create custom marker designs
+- [x] Implement viewport auto-fitting
 
 ### Phase 3: UI Integration (Week 3)
-- [ ] Add expandable map container
-- [ ] Implement loading states
-- [ ] Add toggle checkboxes
-- [ ] Polish animations
+- [x] Add expandable map container
+- [x] Implement loading states
+- [x] Add toggle checkboxes
+- [x] Polish animations
+- [x] Add environment variable toggle (ENABLE_SUPPORT_MAP)
 
 ### Phase 4: Testing & Optimization (Week 4)
 - [ ] Load testing with 1000+ pins
@@ -269,6 +304,338 @@ model Comment {
    - ✅ Reduces API costs
    - ✅ Fresh data when viewed
    - ❌ Slight delay for users
+
+## Test Data
+
+The seed script has been enhanced to support map testing:
+
+### IP Address Distribution
+- 30 realistic IP addresses from various countries:
+  - USA (California, Texas, New York)
+  - Mexico, Guatemala, Honduras, El Salvador
+  - Colombia, Peru, Ecuador, Brazil
+  - UK, Germany, France, Spain, Italy, Netherlands
+  - China, Japan, India, South Korea
+  - South Africa, Kenya, Egypt
+  - Australia, Turkey, Sweden
+
+### User Agent Strings
+- 15 realistic browser user agents including:
+  - Desktop: Chrome, Firefox, Safari, Edge, Opera
+  - Mobile: iOS Safari, Android Chrome
+  - Various operating systems: Windows, macOS, Linux, Android, iOS
+
+### Data Population Strategy
+- **50% Coverage**: Only half of comments and anonymous support records have IP/user agent data
+- **Remaining 50%**: Left without geolocation data for the map feature to process
+- This allows demonstration of the real-time processing capability
+
+## Feature Toggle
+
+The Community Support Map can be enabled or disabled via environment variable:
+
+```bash
+# Enable the feature (default)
+ENABLE_SUPPORT_MAP="true"
+
+# Disable the feature
+ENABLE_SUPPORT_MAP="false"
+```
+
+When disabled:
+- No map button appears in the UI
+- No geolocation processing occurs
+- API endpoint still exists but is unused
+- Zero performance impact on page load
+
+## Map API Details
+
+### Mapping Library and Provider
+- **Library**: Leaflet v1.9.4 with react-leaflet v5.0.0
+- **Tile Provider**: OpenStreetMap (OSM)
+- **Tile Server URL**: `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
+- **API Key Required**: No - OpenStreetMap is free and open
+- **Cost**: Free (no API charges)
+
+### OpenStreetMap Usage Limits and Policy
+OpenStreetMap operates on a **Fair Use Policy** rather than hard limits:
+
+1. **No Bulk Downloading**: Don't download tiles en masse or create archives
+2. **Reasonable Usage**: The service is designed for normal map viewing, not heavy commercial use
+3. **No Guaranteed Uptime**: OSM runs on donated resources with no SLA
+4. **Respect the Servers**: Automatic throttling may occur for excessive requests
+5. **Attribution Required**: Must display "© OpenStreetMap contributors"
+
+### Technical Implementation
+```javascript
+// Current implementation in SupportMap.tsx
+<TileLayer
+  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+/>
+```
+
+### Alternative Providers (if needed in future)
+If OSM usage becomes problematic, alternatives include:
+- **Mapbox**: Requires API key, 50,000 free map loads/month
+- **Google Maps**: Requires API key, $7 per 1,000 map loads after free tier
+- **Stamen/Stadia Maps**: Requires API key, various pricing tiers
+- **Thunderforest**: Requires API key, 150,000 free tiles/month
+
+### Related Configuration
+- **Map Feature Toggle**: `ENABLE_SUPPORT_MAP="true"` in .env
+- **Geolocation Service**: IPinfo.io (optional `IPINFO_TOKEN` for higher limits)
+- **Batch Processing**: `GEOLOCATION_BATCH_SIZE="2"` controls IP processing rate
+
+## IP Geolocation Service Details
+
+### IPinfo.io API
+The application uses IPinfo.io to convert IP addresses to geographic coordinates.
+
+#### API Endpoints Used
+```javascript
+// Single IP lookup with token (authenticated)
+https://ipinfo.io/${ipAddress}?token=${IPINFO_TOKEN}
+
+// Single IP lookup without token (unauthenticated)
+https://ipinfo.io/${ipAddress}/json
+
+// Batch API endpoint (requires token)
+https://ipinfo.io/batch?token=${IPINFO_TOKEN}
+```
+
+#### Batch API Support
+IPinfo.io provides a `/batch` endpoint that allows grouping up to **100 IP lookups** into a single request:
+
+1. **Request Format**:
+   ```bash
+   # JSON array format
+   curl -XPOST --data '["8.8.8.8/country", "8.8.4.4/country"]' "ipinfo.io/batch?token=$TOKEN"
+   
+   # Newline separated format
+   echo -e '8.8.8.8/country\n8.8.4.4/country' | \
+   curl -XPOST --data-binary @- "ipinfo.io/batch?token=$TOKEN"
+   ```
+
+2. **Response Format**:
+   ```json
+   {
+     "8.8.4.4/country": "US",
+     "8.8.8.8/country": "US"
+   }
+   ```
+
+3. **Batch Limits**:
+   - Up to 100 IPs per batch request
+   - Each IP in the batch counts as 1 request against quota
+   - Can process ~100,000 IPs per minute with parallel batch requests
+
+4. **Optional Parameters**:
+   - `filter=1`: Removes URLs with no response from the result
+
+#### Rate Limits
+1. **Without API Key (Free)**:
+   - 50,000 requests per month
+   - Rate limited to ~1,000 requests per day
+   - No guaranteed SLA
+   - **No batch API access**
+
+2. **With API Key (Free Tier)**:
+   - 50,000 requests per month
+   - Higher rate limits
+   - Basic support
+   - **Batch API access enabled**
+
+3. **Paid Plans**:
+   - **Basic**: $249/month - 250,000 requests
+   - **Standard**: $499/month - 1,000,000 requests
+   - **Business**: $999/month - 5,000,000 requests
+   - **Enterprise**: Custom pricing for higher volumes
+
+#### Response Format (Single IP)
+```json
+{
+  "ip": "8.8.8.8",
+  "city": "Mountain View",
+  "region": "California",
+  "country": "US",
+  "loc": "37.4056,-122.0775",
+  "timezone": "America/Los_Angeles"
+}
+```
+
+#### Current Implementation Details
+1. **Rate Limiting**: Built-in 1-second delay between requests to avoid hitting limits
+2. **Batch Processing**: Controlled by `GEOLOCATION_BATCH_SIZE` (default: 2)
+3. **Caching**: Results stored in database to avoid repeated lookups
+4. **Privacy**: Only processes approved comments (for messages)
+5. **No Batch API Usage**: Currently uses single IP lookups only
+
+#### Optimization Opportunity
+The current implementation processes IPs one at a time with a 1-second delay. By switching to the batch API:
+- Could process up to 100 IPs in a single request
+- Reduce processing time from 100 seconds to ~1 second for 100 IPs
+- Would require an API token (free tier available)
+- Would need to modify `GeolocationService` to accumulate IPs and batch process
+
+#### Configuration
+```env
+# Optional - works without token but with lower limits
+# Required for batch API access
+IPINFO_TOKEN=your_token_here
+
+# Controls how many IPs to process per batch
+# With batch API, this could be increased to 100
+GEOLOCATION_BATCH_SIZE=2
+```
+
+#### Cost Analysis
+For typical usage:
+- **Small Site** (<1,000 supporters/month): Free tier sufficient
+- **Medium Site** (<5,000 supporters/month): May need free API key for batch processing
+- **Large Site** (>5,000 supporters/month): Consider Basic plan ($249/month)
+
+#### Data Processing Flow
+1. User submits comment/support → IP address captured
+2. IP stored with `processedForLatLon=false`
+3. When map is viewed → batch processes unprocessed IPs
+4. Converts IP to lat/lon using IPinfo.io
+5. Stores results in database
+6. Displays pins on map
+
+#### Privacy Considerations
+- IP addresses are captured but not displayed to users
+- Only approximate city-level location shown
+- Admins can see coordinate data for debugging
+- Comments must be approved before location processing
+
+### Batch API Capabilities
+
+IPinfo.io offers a batch API endpoint that can process multiple IP addresses in a single request, providing significant performance improvements.
+
+#### Batch API Details
+```javascript
+// Batch endpoint (requires token)
+POST https://ipinfo.io/batch?token=${IPINFO_TOKEN}
+
+// Request body
+{
+  "ips": ["8.8.8.8", "1.1.1.1", "208.67.222.222", ...]  // up to 100 IPs
+}
+
+// Response format
+{
+  "8.8.8.8": {
+    "ip": "8.8.8.8",
+    "city": "Mountain View",
+    "region": "California",
+    "country": "US",
+    "loc": "37.4056,-122.0775"
+  },
+  "1.1.1.1": {
+    "ip": "1.1.1.1",
+    "city": "Sydney",
+    "region": "New South Wales",
+    "country": "AU",
+    "loc": "-33.8688,151.2093"
+  }
+}
+```
+
+#### Batch API Limits & Benefits
+1. **Maximum IPs per request**: 100
+2. **Request counting**: Each IP counts as 1 request (100 IPs = 100 requests)
+3. **Token required**: Free tier token enables batch API
+4. **Performance**: ~100,000 IPs per minute with parallel batching
+
+#### Performance Comparison
+| Method | IPs Processed | Time | Requests |
+|--------|--------------|------|----------|
+| Current (Sequential) | 100 | ~100 seconds | 100 |
+| Batch API | 100 | ~1 second | 1 API call (counts as 100) |
+| Batch API | 1,000 | ~10 seconds | 10 API calls |
+
+#### Implementation Optimization Opportunity
+The current implementation processes IPs sequentially with a 1-second delay. With batch API:
+```javascript
+// Current approach (100 IPs = 100 seconds)
+for (const ip of ips) {
+  await rateLimit(1000);  // 1 second delay
+  const result = await fetch(`/ipinfo.io/${ip}`);
+}
+
+// Optimized batch approach (100 IPs = 1 second)
+const chunks = chunk(ips, 100);  // Split into batches of 100
+for (const batch of chunks) {
+  const results = await fetch('/ipinfo.io/batch', {
+    method: 'POST',
+    body: JSON.stringify({ ips: batch })
+  });
+}
+```
+
+#### Recommended Configuration Changes
+```env
+# Increase batch size to leverage batch API
+GEOLOCATION_BATCH_SIZE="100"  # Process up to 100 IPs at once
+
+# Required for batch API access
+IPINFO_TOKEN="your_token_here"  # Free tier token enables batch endpoint
+```
+
+#### Implementation Benefits
+1. **User Experience**: Map loads 100x faster for bulk processing
+2. **Server Load**: Fewer HTTP requests, less processing time
+3. **Rate Limits**: More headroom under daily request limits
+4. **Cost Efficiency**: Same cost, dramatically better performance
+
+### Batch API Implementation Recommendation
+
+The current implementation could be significantly optimized by using IPinfo.io's batch API endpoint:
+
+#### Current Implementation
+- Processes IPs one at a time
+- 1-second delay between each request
+- Processing 100 IPs takes ~100 seconds
+- Works without API token but limited to 50,000 requests/month
+
+#### Recommended Batch Implementation
+1. **Modify `GeolocationService.getLocationFromIP()` to support batch processing**:
+   ```typescript
+   static async getLocationFromBatch(ipAddresses: string[]): Promise<Map<string, GeolocationData | null>> {
+     if (!IPINFO_TOKEN) {
+       // Fall back to single IP processing if no token
+       return this.processOneByOne(ipAddresses);
+     }
+     
+     const batchData = ipAddresses.map(ip => `${ip}/json`);
+     const response = await fetch('https://ipinfo.io/batch?token=' + IPINFO_TOKEN, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(batchData)
+     });
+     
+     // Process batch response...
+   }
+   ```
+
+2. **Update `processUnprocessedComments()` and `processUnprocessedSupport()`**:
+   - Fetch up to 100 unprocessed records at once
+   - Group by IP address (to avoid duplicate lookups)
+   - Send batch request to IPinfo.io
+   - Update all records with the same IP in one transaction
+
+3. **Benefits**:
+   - Process 100 IPs in ~1 second instead of 100 seconds
+   - Reduce API calls from 100 to 1 for batch processing
+   - Better user experience with faster map loading
+   - More efficient use of API quota
+
+4. **Requirements**:
+   - Free IPinfo.io account to get API token
+   - Update `GEOLOCATION_BATCH_SIZE` to 100 in production
+   - Add error handling for batch API failures
+   - Implement fallback to single IP processing if batch fails
 
 ## Risk Mitigation
 

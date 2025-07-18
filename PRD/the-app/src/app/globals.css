@@ -40,6 +40,16 @@ body {
   opacity: 0.75;
 }
 
+/* Leaflet custom styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Comment form animations */
 @keyframes slide-in-down {
   from {
