@@ -172,14 +172,16 @@ model Comment {
 ### Privacy & Security Considerations
 
 1. **No Pre-processing**: Locations only processed when user requests
-2. **IP Anonymization**: Store only city-level precision (no street addresses)
-3. **Data Retention**: Consider purging location data after 90 days
+2. **IP Anonymization**: Get as much precision for the latitude and longitude as possible using the associated IP address and browser information if that helps with the geolocation
+3. **Data Retention**: Keep until explicitly deleted by user
 4. **GDPR Compliance**: Update privacy policy to mention geographic processing
 5. **Rate Limiting**: Prevent abuse of geolocation API through map spam
 
 ### Performance Optimization
 
-1. **Lazy Loading**: Load map library only when expanded
+1. **Lazy Loading**: DO Not lazy load any javascript, but the map itself should be lazy loaded
+   - Load map only when user clicks "View Support Map"
+   - Prefer having state cause reloads which is best for performance and best practice. Only include useEffect if absolutely necessary.
 2. **Data Pagination**: Limit to 1000 most recent pins
 3. **Clustering**: Use marker clustering for performance with many pins
 4. **Caching**: Cache processed coordinates indefinitely
@@ -243,10 +245,10 @@ model Comment {
 ## Open Questions
 
 1. **Data Privacy**: Should we allow users to opt-out of location tracking?
-2. **API Costs**: Budget for geolocation API if free tiers exceeded?
-3. **Moderation**: Should inappropriate message locations be hidden?
-4. **Retention**: How long to keep location data?
-5. **Performance**: Maximum number of pins to display?
+     NO, the privacty policy should be updated to reflect that we are processing the IP address and browser information to get the latitude and longitude of the user and also mention no user identifiable information is stored.
+2. **API Costs**: Budget for geolocation API if free tiers exceeded?   ONLY ALLOW FOR FREE TIER. STOP PROCESSING AND LOG ERROR IF FREE TIER IS EXCEEDED.
+3. **Moderation**: Should inappropriate message locations be hidden? THAT IS TAKEN CARE OF BY APPROVAL PROCESSING OF COMMENTS AND ANONYMOUS SUPPORT.
+5. **Performance**: Maximum number of pins to display? DON'T SHOW MORE THAN 1000 PINS AT A TIME. IF MORE THAN 1000 PINS, SHOW A MESSAGE SAYING "TOO MANY PINS TO DISPLAY, PLEASE ZOOM IN OR FILTER THE MAP".
 
 ## Technical Decisions
 
