@@ -93,6 +93,7 @@ interface LayoutRendererProps {
     cssVars: string | null;
   };
   isAdmin?: boolean;
+  isSiteAdmin?: boolean;
 }
 
 const nonTemplateLayout = true;
@@ -102,6 +103,7 @@ export default function LayoutRenderer({
   layout,
   theme,
   isAdmin = false,
+  isSiteAdmin = false,
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
 
@@ -117,7 +119,7 @@ export default function LayoutRenderer({
     'image': () => <sections.PersonImage person={person} />,
     'hero-image': () => <sections.HeroImage person={person} />,
     'story': () => <sections.Story person={person} />,
-    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} />,
+    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} />,
     'basic-info': () => <sections.BasicInfo person={person} isAdmin={isAdmin} />,
     'sidebar-info': () => <sections.SidebarInfo person={person} />,
     'gallery-grid': () => <sections.GalleryGrid person={person} />,

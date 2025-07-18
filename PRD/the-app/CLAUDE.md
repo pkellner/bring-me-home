@@ -83,11 +83,12 @@ npm run debug:check-rendering # Check image rendering
 ### Key Architectural Patterns
 
 1. **Role-Based Access Control**
-   - Site Admin: Full system access
-   - Town Admin: Manage specific towns
-   - Person Admin: Manage specific persons
+   - Site Admin: Full system access (can edit privacy settings)
+   - Town Admin: Manage specific towns (cannot edit privacy settings)
+   - Person Admin: Manage specific persons (cannot edit privacy settings)
    - Viewer: Basic access
    - Permissions checked in middleware and server actions
+   - Privacy settings (`privacyRequiredDoNotShowPublicly`) only editable by site admins
 
 2. **Image Storage System**
    - Abstracted storage with adapters for database and S3
@@ -106,6 +107,12 @@ npm run debug:check-rendering # Check image rendering
    - Granular control over what information is public
    - Site-wide protection mode with password
    - Anonymous support tracking with cookies
+   - Comment privacy settings:
+     - `privacyRequiredDoNotShowPublicly`: Hides commenter name completely
+     - `displayNameOnly`: Shows only name, hides other details
+     - `showComment`, `showOccupation`, `showBirthdate`, `showCityState`: Granular display controls
+     - When privacy is required, all display options are automatically disabled
+   - Private notes to family shown in admin grid with blue text
 
 ### Critical Files and Patterns
 
@@ -115,6 +122,12 @@ npm run debug:check-rendering # Check image rendering
 - `/src/lib/permissions.ts` - Permission checking utilities
 - `/src/lib/auth-helpers.ts` - Session and user helpers
 - `/src/lib/auth-protection-edge.ts` - Site protection utilities
+
+**Comment System**
+- `/src/components/admin/CommentModerationModal.tsx` - Privacy controls and moderation UI
+- `/src/app/admin/comments/CommentsGrid.tsx` - Comment display with private note support
+- `/src/app/actions/comments.ts` - Server actions with privacy field handling
+- Privacy fields cascade: when `privacyRequiredDoNotShowPublicly` is true, all display options are false
 
 **Image System**
 - `/src/lib/image-storage/` - Storage adapters (S3/database)
@@ -127,12 +140,19 @@ npm run debug:check-rendering # Check image rendering
 - Access control: Role, UserRoles, TownAccess, PersonAccess
 - Customization: Layout, Theme, SystemConfig
 - Media: ImageStorage, PersonImage, DetentionCenterImage
+- Comment fields for privacy:
+  - `privacyRequiredDoNotShowPublicly`: boolean (default false)
+  - `displayNameOnly`: boolean (default false)
+  - `privateNoteToFamily`: string (max 1500 chars)
+  - `showComment`, `showOccupation`, `showBirthdate`, `showCityState`: boolean display flags
 
 **Server Actions**
 - `/src/app/actions/` - All server-side mutations
 - Always validate permissions before operations
 - Return consistent success/error responses
 - Use Zod for input validation
+- Privacy fields: `privacyRequiredDoNotShowPublicly`, `displayNameOnly`
+- Comment visibility controlled by multiple boolean flags
 
 **API Routes**
 - `/src/app/api/` - RESTful API endpoints
@@ -187,6 +207,12 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
    - Use hasPermission/hasPersonAccess/isSiteAdmin utilities
    - Log permission failures for audit
    - Check session validity
+   - Privacy settings require site admin role:
+     ```typescript
+     if (!isSiteAdmin(session)) {
+       // Disable privacy checkbox for non-site admins
+     }
+     ```
 
 4. **Cookie Management**
    - Use native browser cookies (/src/lib/cookies.ts)
@@ -199,6 +225,8 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
    - Implement dirty state tracking
    - Show pending states during submission
    - Use reCAPTCHA for public forms
+   - Privacy checkbox controls cascade to disable other options
+   - Visual feedback for disabled states with explanatory text
 
 ### Common Tasks
 
@@ -227,6 +255,13 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 3. Debug test: `npm run test:debug -- path/to/file.test.tsx`
 4. Update snapshots: `npm run test:updateSnapshot`
 
+**Implementing Privacy Controls**
+1. Privacy checkbox (`privacyRequiredDoNotShowPublicly`) only editable by site admins
+2. When privacy is selected, automatically disable and uncheck all display options
+3. Private notes (`privateNoteToFamily`) disable public comment display
+4. Use yellow background for privacy sections in UI
+5. Show explanatory text when options are disabled
+
 ### Recent Changes
 
 - Fixed middleware to exclude all /api/ routes (was causing 404s)
@@ -235,3 +270,6 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 - Created native cookie utilities to replace cookies-next
 - Updated "Leave a Message" flow to skip intermediate steps
 - Added reCAPTCHA v3 integration for form protection
+- Implemented comprehensive privacy controls in comment moderation system
+- Added private note display in admin comments grid
+- Enhanced role-based permissions for privacy settings

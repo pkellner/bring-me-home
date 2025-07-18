@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import AnonymousCommentForm from './AnonymousCommentForm';
 import { getCookie, setCookie, deleteCookie } from '@/lib/cookies';
-import { usePathname } from 'next/navigation';
 import { isSupportMapEnabled } from '@/app/actions/support-map';
 
 // Dynamic import for the map component to avoid SSR issues
@@ -30,6 +29,7 @@ interface SupportSectionProps {
     anonymousSupport: { total: number; last24Hours: number };
     messages: { total: number; last24Hours: number };
   };
+  isAdmin?: boolean;
 }
 
 export default function SupportSection({
@@ -38,6 +38,7 @@ export default function SupportSection({
   isPending,
   state,
   stats,
+  isAdmin = false,
 }: SupportSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [hasQuickSupported, setHasQuickSupported] = useState(false);
@@ -51,13 +52,11 @@ export default function SupportSection({
   const [mapSupportCount, setMapSupportCount] = useState(0);
   const [mapEnabled, setMapEnabled] = useState<boolean | null>(null);
   const [hasLocationData, setHasLocationData] = useState<boolean | null>(null);
-  const pathname = usePathname();
-  const isAdmin = pathname?.startsWith('/admin') || false;
 
   // Check if map feature is enabled
   useEffect(() => {
-    isSupportMapEnabled().then(setMapEnabled);
-  }, []);
+    isSupportMapEnabled(isAdmin).then(setMapEnabled);
+  }, [isAdmin]);
   
   // Check if there's any IP address data (even if not geolocated yet)
   useEffect(() => {

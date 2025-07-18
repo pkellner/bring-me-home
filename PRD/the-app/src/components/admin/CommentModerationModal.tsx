@@ -36,6 +36,7 @@ interface Comment extends Record<string, unknown> {
   isApproved: boolean;
   moderatorNotes: string | null;
   privateNoteToFamily: string | null;
+  privacyRequiredDoNotShowPublicly?: boolean;
   person: {
     id: string;
     firstName: string;
@@ -80,8 +81,12 @@ export default function CommentModerationModal({
   const [showBirthdate, setShowBirthdate] = useState(comment.showBirthdate);
   const [showComment, setShowComment] = useState(comment.showComment ?? true);
   const [showCityState, setShowCityState] = useState(comment.showCityState ?? true);
+  const [displayNameOnly, setDisplayNameOnly] = useState(comment.displayNameOnly || false);
   const [moderatorNotes, setModeratorNotes] = useState(
     comment.moderatorNotes || ''
+  );
+  const [privacyRequired, setPrivacyRequired] = useState(
+    comment.privacyRequiredDoNotShowPublicly || false
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -102,7 +107,9 @@ export default function CommentModerationModal({
           showOccupation !== comment.showOccupation ||
           showBirthdate !== comment.showBirthdate ||
           showComment !== (comment.showComment ?? true) ||
-          showCityState !== (comment.showCityState ?? true);
+          showCityState !== (comment.showCityState ?? true) ||
+          displayNameOnly !== (comment.displayNameOnly || false) ||
+          privacyRequired !== (comment.privacyRequiredDoNotShowPublicly || false);
 
         if (hasChanges) {
           await updateCommentAndApprove(
@@ -116,6 +123,8 @@ export default function CommentModerationModal({
               showBirthdate,
               showComment,
               showCityState,
+              displayNameOnly,
+              privacyRequiredDoNotShowPublicly: privacyRequired,
             }
           );
           onUpdate(comment.id, true, {
@@ -126,7 +135,9 @@ export default function CommentModerationModal({
             showBirthdate,
             showComment,
             showCityState,
+            displayNameOnly,
             moderatorNotes,
+            privacyRequiredDoNotShowPublicly: privacyRequired,
           });
         } else {
           await approveComment(comment.id, moderatorNotes);
@@ -297,10 +308,14 @@ export default function CommentModerationModal({
                     type="checkbox"
                     checked={showComment}
                     onChange={e => setShowComment(e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                    disabled={!!comment.privateNoteToFamily || privacyRequired}
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">
                     Show comment publicly
+                    {(!!comment.privateNoteToFamily || privacyRequired) && (
+                      <span className="text-xs text-gray-500 ml-1">(disabled due to privacy)</span>
+                    )}
                   </span>
                 </label>
               </div>
@@ -328,8 +343,8 @@ export default function CommentModerationModal({
                       type="checkbox"
                       checked={showOccupation}
                       onChange={e => setShowOccupation(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      disabled={!isSiteAdmin}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                      disabled={!isSiteAdmin || privacyRequired}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-700">
                       Show occupation publicly
@@ -357,8 +372,8 @@ export default function CommentModerationModal({
                       type="checkbox"
                       checked={showBirthdate}
                       onChange={e => setShowBirthdate(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      disabled={!isSiteAdmin}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                      disabled={!isSiteAdmin || privacyRequired}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-700">
                       Show birthdate publicly
@@ -374,11 +389,27 @@ export default function CommentModerationModal({
                     type="checkbox"
                     checked={showCityState}
                     onChange={e => setShowCityState(e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    disabled={!isSiteAdmin}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                    disabled={!isSiteAdmin || privacyRequired}
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">
                     Show city and state publicly
+                  </span>
+                </label>
+              </div>
+
+              {/* Display Name Only */}
+              <div className="col-span-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={displayNameOnly}
+                    onChange={e => setDisplayNameOnly(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                    disabled={!isSiteAdmin || privacyRequired}
+                  />
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    Display just my name as supporting (hide other details)
                   </span>
                 </label>
               </div>
@@ -397,6 +428,39 @@ export default function CommentModerationModal({
                   </div>
                 </div>
               )}
+
+              {/* Privacy Setting */}
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={privacyRequired}
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      setPrivacyRequired(isChecked);
+                      if (isChecked) {
+                        // When privacy is required, disable and uncheck all display options
+                        setShowComment(false);
+                        setShowOccupation(false);
+                        setShowBirthdate(false);
+                        setShowCityState(false);
+                        setDisplayNameOnly(false);
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                    disabled={!isSiteAdmin}
+                  />
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    Please don&apos;t publicly show my name, just let the family know I support them
+                    {!isSiteAdmin && ' (Site admin only)'}
+                  </span>
+                </label>
+                {privacyRequired && (
+                  <p className="mt-2 text-xs text-gray-600 ml-6">
+                    When this is selected, all display options are disabled and the comment will be kept private.
+                  </p>
+                )}
+              </div>
 
               {/* Moderator Notes */}
               <div>

@@ -419,6 +419,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           layout={layout}
           theme={theme}
           isAdmin={isAdmin}
+          isSiteAdmin={isSiteAdmin}
         />
       </main>
 

@@ -350,6 +350,8 @@ export async function updateCommentAndApprove(
     showBirthdate?: boolean;
     showComment?: boolean;
     showCityState?: boolean;
+    displayNameOnly?: boolean;
+    privacyRequiredDoNotShowPublicly?: boolean;
   }
 ) {
   const session = await getServerSession(authOptions);
@@ -394,6 +396,8 @@ export async function updateCommentAndApprove(
         showBirthdate: additionalFields.showBirthdate ?? false,
         showComment: additionalFields.showComment ?? true,
         showCityState: additionalFields.showCityState ?? false,
+        displayNameOnly: additionalFields.displayNameOnly ?? false,
+        privacyRequiredDoNotShowPublicly: additionalFields.privacyRequiredDoNotShowPublicly ?? false,
       }),
     },
   });

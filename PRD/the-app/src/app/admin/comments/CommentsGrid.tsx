@@ -365,7 +365,7 @@ function CommentsGrid({
         <div className="flex items-start gap-2">
           <DocumentTextIcon className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0 hidden lg:block" />
           <div className="flex-1 min-w-0">
-            {record.content ? (
+            {record.content || record.privateNoteToFamily ? (
               <div 
                 className="relative transition-[height] duration-500 ease-in-out"
                 style={{ height: '2.5em' }}
@@ -395,9 +395,14 @@ function CommentsGrid({
                     WebkitBoxOrient: 'vertical',
                     maxHeight: '2.5em',
                   }}
-                  title={record.content}
+                  title={(record.content || '') + (record.privateNoteToFamily ? ` Private note to family: ${record.privateNoteToFamily}` : '')}
                 >
                   {record.content}
+                  {record.privateNoteToFamily && (
+                    <span className="text-blue-800 dark:text-blue-700 ml-2">
+                      Private note to family: {record.privateNoteToFamily}
+                    </span>
+                  )}
                 </div>
               </div>
             ) : (

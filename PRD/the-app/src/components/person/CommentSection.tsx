@@ -28,6 +28,7 @@ interface CommentSectionProps {
   personId: string;
   comments: Comment[];
   isAdmin?: boolean;
+  isSiteAdmin?: boolean;
 }
 
 interface CommentFormState {
@@ -51,6 +52,7 @@ export default function CommentSection({
   personId,
   comments,
   isAdmin = false,
+  isSiteAdmin = false,
 }: CommentSectionProps) {
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
@@ -150,6 +152,7 @@ export default function CommentSection({
           isPending={isPending}
           state={state}
           stats={stats || undefined}
+          isAdmin={isSiteAdmin}
         />
         
         {/* ADMIN DEBUG PANEL - Only show for admins when cookie is set */}

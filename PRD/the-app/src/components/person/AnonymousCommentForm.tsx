@@ -37,6 +37,9 @@ export default function AnonymousCommentForm({
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [savedFormData, setSavedFormData] = useState<Record<string, string>>({});
+  const [requiresFamilyApproval, setRequiresFamilyApproval] = useState(true);
+  const [showOccupation, setShowOccupation] = useState(true);
+  const [showBirthdate, setShowBirthdate] = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -75,6 +78,10 @@ export default function AnonymousCommentForm({
     setPrivateNoteLength(0);
     setDisplayNameOnly(false);
     setShowCityState(true);
+    setPrivacyRequired(false);
+    setRequiresFamilyApproval(true);
+    setShowOccupation(true);
+    setShowBirthdate(true);
     setIsDirty(false);
     setSavedFormData({});
     if (formRef.current) {
@@ -519,7 +526,16 @@ export default function AnonymousCommentForm({
                 name="displayNameOnly"
                 value="true"
                 checked={displayNameOnly}
-                onChange={(e) => setDisplayNameOnly(e.target.checked)}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  setDisplayNameOnly(isChecked);
+                  if (isChecked) {
+                    // When display name only is selected, disable display preferences
+                    setShowOccupation(false);
+                    setShowBirthdate(false);
+                    setShowCityState(false);
+                  }
+                }}
                 disabled={privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
@@ -533,7 +549,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="requiresFamilyApproval"
                 value="true"
-                defaultChecked={!privacyRequired}
+                checked={requiresFamilyApproval}
+                onChange={(e) => setRequiresFamilyApproval(e.target.checked)}
                 disabled={privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
@@ -552,8 +569,11 @@ export default function AnonymousCommentForm({
                   const isChecked = e.target.checked;
                   setPrivacyRequired(isChecked);
                   if (isChecked) {
-                    // Disable all other checkboxes by setting them to false
+                    // Disable and uncheck all display-related checkboxes
                     setDisplayNameOnly(false);
+                    setRequiresFamilyApproval(false);
+                    setShowOccupation(false);
+                    setShowBirthdate(false);
                     setShowCityState(false);
                   }
                 }}
@@ -575,7 +595,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showOccupation"
                 value="true"
-                defaultChecked={!displayNameOnly && !privacyRequired}
+                checked={showOccupation}
+                onChange={(e) => setShowOccupation(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
@@ -589,7 +610,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showBirthdate"
                 value="true"
-                defaultChecked={!displayNameOnly && !privacyRequired}
+                checked={showBirthdate}
+                onChange={(e) => setShowBirthdate(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
@@ -603,7 +625,7 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="showCityState"
                 value="true"
-                checked={displayNameOnly ? false : showCityState}
+                checked={showCityState}
                 onChange={(e) => setShowCityState(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"

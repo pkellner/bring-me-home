@@ -6,9 +6,10 @@ import { SerializedPerson } from '../LayoutRenderer';
 interface CommentsProps {
   person: SerializedPerson;
   isAdmin: boolean;
+  isSiteAdmin?: boolean;
 }
 
-export default function Comments({ person, isAdmin }: CommentsProps) {
+export default function Comments({ person, isAdmin, isSiteAdmin = false }: CommentsProps) {
   return (
     <RecaptchaProvider>
       <div className="comments-section">
@@ -23,7 +24,7 @@ export default function Comments({ person, isAdmin }: CommentsProps) {
             </Link>
           )}
         </div>
-        <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} />
+        <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} />
       </div>
     </RecaptchaProvider>
   );
