@@ -37,6 +37,7 @@ export async function getPublicConfig() {
       socialSharing: true,
       commentModeration: true,
       imageUpload: true,
+      googleAnalytics: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
     },
 
     // Public limits and configuration
@@ -142,6 +143,15 @@ export async function getPublicConfig() {
         ...config,
         exampleLine: `${config.name}="${config.defaultValue}"`,
       })),
+    },
+
+    // Analytics configuration
+    analytics: {
+      googleAnalytics: {
+        enabled: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
+        measurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'Not configured',
+        productionOnly: true,
+      },
     },
 
     // Timestamp of when this config was generated

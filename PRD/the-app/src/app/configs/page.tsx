@@ -346,6 +346,73 @@ export default async function ConfigsPage() {
               </div>
             </section>
 
+            {/* Analytics Configuration */}
+            <section>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Analytics Configuration
+              </h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Google Analytics
+                    </dt>
+                    <dd className="mt-1">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          config.analytics.googleAnalytics.enabled
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {config.analytics.googleAnalytics.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Measurement ID
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      {config.analytics.googleAnalytics.measurementId}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Environment
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {config.analytics.googleAnalytics.productionOnly ? 'Production Only' : 'All Environments'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Environment Variable
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      NEXT_PUBLIC_GA_MEASUREMENT_ID
+                    </dd>
+                  </div>
+                </dl>
+                {config.analytics.googleAnalytics.enabled && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      Google Analytics is active and tracking page views and user interactions.
+                      View your analytics at{' '}
+                      <a
+                        href="https://analytics.google.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium underline"
+                      >
+                        analytics.google.com
+                      </a>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+
             {/* Email Configuration */}
             <section>
               <h2 className="text-lg font-medium text-gray-900 mb-4">
