@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth';
 import Providers from './providers';
 import './globals.css';
 import { generateSiteMetadata } from './metadata';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
+import AnalyticsProvider from '@/components/AnalyticsProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,7 +34,11 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers session={session}>{children}</Providers>
+        <GoogleAnalytics />
+        <Providers session={session}>
+          <AnalyticsProvider />
+          {children}
+        </Providers>
       </body>
     </html>
   );

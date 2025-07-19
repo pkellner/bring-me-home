@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import AnonymousCommentForm from './AnonymousCommentForm';
 import { getCookie, setCookie, deleteCookie } from '@/lib/cookies';
 import { isSupportMapEnabled } from '@/app/actions/support-map';
+import * as gtag from '@/lib/gtag';
 
 // Dynamic import for the map component to avoid SSR issues
 const SupportMap = dynamic(() => import('./SupportMap'), {
@@ -130,6 +131,9 @@ export default function SupportSection({
         setHasQuickSupported(true);
         setQuickSupportState('thanking');
         
+        // Track anonymous support in GA
+        gtag.trackSupportAction('anonymous_support', personId);
+        
         // Trigger a stats refresh by dispatching a custom event
         window.dispatchEvent(new CustomEvent('supportAdded'));
       }
@@ -142,6 +146,9 @@ export default function SupportSection({
   // Handle successful named support submission
   useEffect(() => {
     if (state?.success && showForm) {
+      // Track message submission in GA
+      gtag.trackSupportAction('message', personId);
+      
       // Trigger a stats refresh
       window.dispatchEvent(new CustomEvent('supportAdded'));
       
