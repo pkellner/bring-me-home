@@ -16,14 +16,44 @@ export default async function ShowYourSupportPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {config.site_title || 'Bring Me Home'}
-              </h1>
+              <Link href="/" className="group flex items-center">
+                <h1 className="text-3xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  {config.site_title || 'Bring Me Home'}
+                </h1>
+              </Link>
             </div>
             <HeaderNavigation user={session?.user || null} />
           </div>
         </div>
       </header>
+
+      {/* Navigation Bar */}
+      <div className="bg-indigo-600">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center space-x-8 py-3">
+            <Link 
+              href="/" 
+              className="text-white hover:text-indigo-200 transition-colors flex items-center group"
+            >
+              <svg className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Home
+            </Link>
+            <span className="text-indigo-300">•</span>
+            <span className="text-indigo-200 font-medium">
+              Show Your Support
+            </span>
+            <span className="text-indigo-300">•</span>
+            <Link 
+              href="/learn-more" 
+              className="text-white hover:text-indigo-200 transition-colors"
+            >
+              Learn More
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="mx-auto max-w-4xl py-12 px-4 sm:px-6 lg:px-8">
@@ -55,7 +85,7 @@ export default async function ShowYourSupportPage() {
               <div className="bg-blue-50 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-blue-900 mb-2">Private Notes to Families</h4>
                 <p className="text-gray-700">
-                  When leaving a message, supporters can include private notes that are only visible to the detained person's family and administrators. This feature allows for more personal or sensitive communications while maintaining public support visibility.
+                  When leaving a message, supporters can include private notes that are only visible to the detained person&apos;s family and administrators. This feature allows for more personal or sensitive communications while maintaining public support visibility.
                 </p>
               </div>
 
@@ -71,7 +101,7 @@ export default async function ShowYourSupportPage() {
             
             <ul className="list-disc pl-6 space-y-2">
               <li>Provides emotional comfort to detained individuals and their families</li>
-              <li>Demonstrates to authorities the community ties waiting for the person's return</li>
+              <li>Demonstrates to authorities the community ties waiting for the person&apos;s return</li>
               <li>Creates documentation of public support that may be helpful in legal proceedings</li>
               <li>Builds a network of caring individuals who can provide additional assistance</li>
               <li>Raises awareness about detention issues in local communities</li>
@@ -85,7 +115,7 @@ export default async function ShowYourSupportPage() {
 
             <div className="mt-8 p-6 bg-gray-50 rounded-lg">
               <p className="text-center text-gray-700 mb-4">
-                Ready to make a difference? Visit any detained person's profile to show your support.
+                Ready to make a difference? Visit any detained person&apos;s profile to show your support.
               </p>
               <div className="text-center">
                 <Link

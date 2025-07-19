@@ -273,3 +273,5 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 - Implemented comprehensive privacy controls in comment moderation system
 - Added private note display in admin comments grid
 - Enhanced role-based permissions for privacy settings
+- Fixed comment submission form privacy checkbox behavior
+- Hidden "Group by person" checkbox when viewing single person's comments
