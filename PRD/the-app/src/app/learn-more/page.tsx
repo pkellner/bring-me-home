@@ -5,10 +5,12 @@ import FooterWrapper from '@/components/FooterWrapper';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import LearnMoreImages from '@/components/LearnMoreImages';
+import { getPublicConfig } from '@/app/actions/config';
 
 export default async function LearnMorePage() {
   const session = await getServerSession(authOptions);
   const config = await getSiteTextConfig();
+  const publicConfig = await getPublicConfig();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -211,8 +213,8 @@ export default async function LearnMorePage() {
                         <h5 className="font-semibold text-lg mb-1">Submit Profile Request</h5>
                         <p className="text-indigo-100">
                           Send an email to{' '}
-                          <a href="mailto:help-me-list-someone@bring-me-home.com" className="text-white underline hover:text-indigo-200">
-                            help-me-list-someone@bring-me-home.com
+                          <a href={`mailto:${publicConfig.application.helpEmail}`} className="text-white underline hover:text-indigo-200">
+                            {publicConfig.application.helpEmail}
                           </a>
                           {' '}with your loved one&apos;s information, including their name, detention location, and a brief story.
                         </p>
@@ -237,7 +239,7 @@ export default async function LearnMorePage() {
                       Every family deserves support. Every story deserves to be heard.
                     </p>
                     <a
-                      href="mailto:help-me-list-someone@bring-me-home.com"
+                      href={`mailto:${publicConfig.application.helpEmail}`}
                       className="inline-block bg-white text-indigo-600 px-8 py-3 rounded-full font-semibold hover:bg-indigo-50 transition-colors shadow-lg"
                     >
                       Get Started Today

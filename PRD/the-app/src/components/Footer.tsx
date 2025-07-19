@@ -160,6 +160,13 @@ export default function Footer({
             </p>
             <div className="mt-4 space-x-4">
               <Link
+                href="/learn-more"
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+              >
+                Learn More
+              </Link>
+              <span className="text-gray-600">|</span>
+              <Link
                 href="/code-of-conduct"
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
               >

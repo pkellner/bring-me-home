@@ -1,6 +1,7 @@
 'use server';
 
 import { getSystemLayoutTheme } from './systemConfig';
+import { EMAIL_TYPES, getEmail, getEmailEnvConfig } from '@/config/emails';
 
 /**
  * Server function to provide public configuration information
@@ -94,7 +95,10 @@ export async function getPublicConfig() {
     application: {
       name: 'Bring Me Home',
       description: 'Community platform for finding missing persons',
-      supportEmail: process.env.ADMIN_EMAIL || 'support@example.com',
+      supportEmail: getEmail(EMAIL_TYPES.SUPPORT),
+      helpEmail: getEmail(EMAIL_TYPES.HELP),
+      privacyEmail: getEmail(EMAIL_TYPES.PRIVACY),
+      conductEmail: getEmail(EMAIL_TYPES.CONDUCT),
       github: 'https://github.com/anthropics/bring-me-home',
     },
 
@@ -104,6 +108,40 @@ export async function getPublicConfig() {
       s3DirectServing: process.env.NEXT_PUBLIC_AWS_SERVER_IMAGES_FROM_S3_DIRECTLY === 'true',
       s3Bucket: process.env.AWS_S3_BUCKET ? 'Configured' : 'Not configured',
       s3Region: process.env.AWS_S3_REGION || 'Not configured',
+    },
+
+    // Email configuration
+    emailConfig: {
+      emails: {
+        support: {
+          type: EMAIL_TYPES.SUPPORT,
+          envVar: 'ADMIN_EMAIL',
+          currentValue: getEmail(EMAIL_TYPES.SUPPORT),
+          description: 'General support and admin contact email',
+        },
+        help: {
+          type: EMAIL_TYPES.HELP,
+          envVar: 'HELP_EMAIL',
+          currentValue: getEmail(EMAIL_TYPES.HELP),
+          description: 'Email for families to request profile listings',
+        },
+        privacy: {
+          type: EMAIL_TYPES.PRIVACY,
+          envVar: 'PRIVACY_EMAIL',
+          currentValue: getEmail(EMAIL_TYPES.PRIVACY),
+          description: 'Email for privacy-related inquiries',
+        },
+        conduct: {
+          type: EMAIL_TYPES.CONDUCT,
+          envVar: 'CONDUCT_EMAIL',
+          currentValue: getEmail(EMAIL_TYPES.CONDUCT),
+          description: 'Email for reporting code of conduct violations',
+        },
+      },
+      envExample: getEmailEnvConfig().map(config => ({
+        ...config,
+        exampleLine: `${config.name}="${config.defaultValue}"`,
+      })),
     },
 
     // Timestamp of when this config was generated

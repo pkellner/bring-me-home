@@ -5,6 +5,7 @@ import Link from 'next/link'
 import HeaderNavigation from '@/components/HeaderNavigation'
 import FooterWrapper from '@/components/FooterWrapper'
 import { getSiteTextConfig } from '@/lib/config'
+import { getPublicConfig } from '@/app/actions/config'
 
 export const metadata: Metadata = {
   title: 'Code of Conduct | Bring Me Home',
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export default async function CodeOfConductPage() {
   const session = await getServerSession(authOptions)
   const config = await getSiteTextConfig()
+  const publicConfig = await getPublicConfig()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -117,7 +119,7 @@ export default async function CodeOfConductPage() {
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Use the report feature available on the platform</li>
-            <li>Email us at: conduct@bring-me-home.com</li>
+            <li>Email us at: {publicConfig.application.conductEmail}</li>
             <li>Contact any moderator directly</li>
             <li>Anonymous reporting is available and encouraged</li>
           </ul>

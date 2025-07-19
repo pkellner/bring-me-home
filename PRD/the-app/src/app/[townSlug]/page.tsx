@@ -327,6 +327,12 @@ export default async function TownPage({ params }: TownPageProps) {
             >
               {config.view_other_towns_text || 'View Other Towns'}
             </Link>
+            <Link
+              href="/learn-more"
+              className="w-full sm:w-auto inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50"
+            >
+              Learn More
+            </Link>
           </div>
         </div>
       </main>

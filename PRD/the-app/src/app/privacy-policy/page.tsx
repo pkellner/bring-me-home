@@ -5,6 +5,7 @@ import Link from 'next/link'
 import HeaderNavigation from '@/components/HeaderNavigation'
 import FooterWrapper from '@/components/FooterWrapper'
 import { getSiteTextConfig } from '@/lib/config'
+import { getPublicConfig } from '@/app/actions/config'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Bring Me Home',
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export default async function PrivacyPolicyPage() {
   const session = await getServerSession(authOptions)
   const config = await getSiteTextConfig()
+  const publicConfig = await getPublicConfig()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,7 +142,7 @@ export default async function PrivacyPolicyPage() {
             <li><strong>Data Portability:</strong> Receive your data in a portable format</li>
           </ul>
           <p className="mt-4">
-            To exercise any of these rights, please contact us at privacy@bring-me-home.com
+            To exercise any of these rights, please contact us at {publicConfig.application.privacyEmail}
           </p>
         </section>
 
@@ -198,7 +200,7 @@ export default async function PrivacyPolicyPage() {
             If you have any questions about this Privacy Policy or our data practices, please contact us:
           </p>
           <div className="bg-gray-100 p-6 rounded-lg">
-            <p><strong>Email:</strong> privacy@bring-me-home.com</p>
+            <p><strong>Email:</strong> {publicConfig.application.privacyEmail}</p>
             <p><strong>Address:</strong> [To be provided]</p>
             <p><strong>Response Time:</strong> We aim to respond within 30 days</p>
           </div>

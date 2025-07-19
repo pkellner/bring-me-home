@@ -346,6 +346,72 @@ export default async function ConfigsPage() {
               </div>
             </section>
 
+            {/* Email Configuration */}
+            <section>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Email Configuration
+              </h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="space-y-6">
+                  {/* Current Email Settings */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">
+                      Current Email Addresses
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(config.emailConfig.emails).map(([key, email]) => (
+                        <div key={key} className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <span className="text-sm font-medium text-gray-900 capitalize">
+                                  {key} Email
+                                </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                  {email.envVar}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-2">
+                                {email.description}
+                              </p>
+                              <a
+                                href={`mailto:${email.currentValue}`}
+                                className="text-sm text-indigo-600 hover:text-indigo-500 font-mono"
+                              >
+                                {email.currentValue}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Environment Configuration Example */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">
+                      Environment Configuration (.env file)
+                    </h3>
+                    <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                      <pre className="text-xs text-gray-100 font-mono">
+                        <code>{`# Contact Email Addresses
+${config.emailConfig.envExample.map(item => 
+  `${item.name.padEnd(30)}# ${item.description}`
+).join('\n')}
+
+# Example configuration:
+${config.emailConfig.envExample.map(item => item.exampleLine).join('\n')}`}</code>
+                      </pre>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Copy these lines to your .env file and update with your actual email addresses.
+                      If not set, the system will use the default values shown above.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Application Info */}
             <section>
               <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -365,19 +431,6 @@ export default async function ConfigsPage() {
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {config.application.description}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      Support Email
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      <a
-                        href={`mailto:${config.application.supportEmail}`}
-                        className="text-indigo-600 hover:text-indigo-500"
-                      >
-                        {config.application.supportEmail}
-                      </a>
                     </dd>
                   </div>
                   <div>
