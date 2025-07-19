@@ -22,9 +22,12 @@ export function PersonEditLayout({
   isSaving = false,
   children
 }: PersonEditLayoutProps) {
+
   const router = useRouter();
   const [showDialog, setShowDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+
 
   const handleNavigate = (href: string) => {
     setPendingNavigation(href);
@@ -55,6 +58,8 @@ export function PersonEditLayout({
     setPendingNavigation(null);
   };
 
+
+
   return (
     <>
       <div className="space-y-6">
@@ -72,7 +77,7 @@ export function PersonEditLayout({
               isSaving={isSaving}
               onNavigate={handleNavigate}
             />
-            
+
             {children}
           </div>
         </div>

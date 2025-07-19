@@ -2,12 +2,19 @@
 
 import { useState } from 'react';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Story } from '@prisma/client';
+
+// Simplified story type to avoid circular references
+// DO NOT use Prisma's Story type here as it contains circular references
+type SimplifiedStory = {
+  language: string;
+  storyType: string;
+  content: string;
+};
 
 interface MultiLanguageStoryEditorProps {
-  stories?: Story[];
+  stories?: SimplifiedStory[];
   onChange: (
-    stories: { language: string; storyType: string; content: string }[]
+    stories: SimplifiedStory[]
   ) => void;
 }
 

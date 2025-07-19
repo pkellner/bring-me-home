@@ -1,14 +1,23 @@
 'use client';
 
+/**
+ * ⚠️ CIRCULAR REFERENCE WARNING ⚠️
+ *
+ * This component receives Prisma objects that contain circular references:
+ * - person.stories[].person (Story → Person)
+ * - person.town.persons[] (Town → Persons[])
+ * - person.detentionCenter.detainees[] (DetentionCenter → Persons[])
+ *
+ * NEVER pass these objects directly to child components or state!
+ * Always extract only the fields you need to break circular references.
+ *
+ * See lines 46-56 for stories extraction example.
+ * See lines 235-250 for critical MultiLanguageStoryEditor warning.
+ */
+
 import { useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
-import {
-  DetentionCenter,
-  Person,
-  Story,
-  Town,
-} from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 import PersonBasicInfo from './components/PersonBasicInfo';
@@ -18,31 +27,16 @@ import FormActions from './components/FormActions';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
 import { Session } from 'next-auth';
-
-type ImageData = {
-  id: string;
-  imageType: string;
-  sequenceNumber: number;
-  caption?: string | null;
-  mimeType: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type SerializedPerson = Omit<Person, 'bondAmount'> & {
-  bondAmount: string | null;
-  town: Town;
-  detentionCenter?: DetentionCenter | null;
-  stories?: Story[];
-  images?: ImageData[];
-};
+import type {
+  SerializedPerson,
+  SanitizedTown,
+  SanitizedDetentionCenter,
+  SimplifiedStory
+} from '@/types/sanitized';
 
 interface PersonFormProps {
   person?: SerializedPerson;
-  towns: Town[];
+  towns: SanitizedTown[];
   session?: Session | null;
   onChangeDetected?: (hasChanges: boolean) => void;
 }
@@ -61,10 +55,14 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
   const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<string | null>(
     person?.detentionCenterId || null
   );
-  const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<DetentionCenter | null>(
+  const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<SanitizedDetentionCenter | null>(
     person?.detentionCenter || null
   );
-  const [stories, setStories] = useState<{ language: string; storyType: string; content: string }[]>(
+  // ⚠️ CRITICAL: Extract only needed fields to avoid circular references
+  // person.stories contains full Story objects with personId that reference back to Person
+  // This creates circular references that break Next.js serialization
+  // We MUST extract only the fields we need: language, storyType, content
+  const [stories, setStories] = useState<SimplifiedStory[]>(
     person?.stories?.map(story => ({
       language: story.language,
       storyType: story.storyType,
@@ -87,7 +85,7 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
 
   const checkFormChanged = useCallback(() => {
     if (!formRef.current) return false;
-    
+
     const formData = new FormData(formRef.current);
     for (const [key, value] of formData.entries()) {
       if (key !== 'stories' && key !== 'detentionCenterId') {
@@ -104,7 +102,7 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
     const storiesChanged = JSON.stringify(stories) !== originalStateRef.current.stories;
     const detentionChanged = selectedDetentionCenterId !== originalStateRef.current.detentionCenterId;
     const formChanged = checkFormChanged();
-    
+
     return storiesChanged || detentionChanged || formChanged;
   }, [stories, selectedDetentionCenterId, checkFormChanged]);
 
@@ -132,7 +130,7 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
     } else {
       setSelectedDetentionCenter(null);
     }
-    
+
     setTimeout(() => {
       onChangeDetected?.(checkHasChanges());
     }, 0);
@@ -146,13 +144,13 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
 
   const handleSubmit = async () => {
     if (!formRef.current) return;
-    
+
     setIsSubmitting(true);
     setErrors({});
 
     try {
       const formData = new FormData(formRef.current);
-      
+
       // Add stories and detention center to form data
       formData.append('stories', JSON.stringify(stories));
       if (selectedDetentionCenterId) {
@@ -186,17 +184,17 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
         showErrorAlert(message, 5000);
       } else if (result.success) {
         showSuccessAlert('Person details updated successfully!', 3000);
-        
+
         // Update original state after successful save
         originalStateRef.current = {
           stories: JSON.stringify(stories),
           detentionCenterId: selectedDetentionCenterId,
           formData: Object.fromEntries(new FormData(formRef.current))
         };
-        
+
         setIsSubmitting(false);
         onChangeDetected?.(false);
-        
+
         if (!person && result.person) {
           router.push(`/admin/persons/${result.person.id}/edit`);
         } else {
@@ -217,7 +215,7 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
           isLoading={isSubmitting}
           message={person ? 'Updating person...' : 'Creating person...'}
         />
-        
+
         <div className="space-y-6">
           <PersonBasicInfo
             person={person}
@@ -232,17 +230,29 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
             onOpenModal={() => setDetentionModalOpen(true)}
           />
 
+          {/*
+            ⚠️ CRITICAL: DO NOT pass person?.stories directly here!
+            This causes a "Maximum call stack size exceeded" error due to circular references.
+            The person object contains stories which reference back to the person (personId),
+            creating Person → Stories → Person circular reference that breaks Next.js serialization.
+
+            We MUST use the simplified 'stories' state that only contains the needed fields:
+            { language, storyType, content } without the circular references.
+
+            The state is initialized from person?.stories in lines 67-73, extracting only safe fields.
+            This has been broken multiple times - please maintain this pattern!
+          */}
           <MultiLanguageStoryEditor
-            stories={person?.stories}
+            stories={stories}
             onChange={handleStoriesChange}
           />
 
           <VisibilitySettings person={person} />
         </div>
 
-        <FormActions 
-          isSubmitting={isSubmitting} 
-          isEditMode={!!person} 
+        <FormActions
+          isSubmitting={isSubmitting}
+          isEditMode={!!person}
           person={person}
           session={session}
           disabled={!checkHasChanges()}

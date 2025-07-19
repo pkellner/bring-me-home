@@ -1,33 +1,23 @@
 'use client';
 
+/**
+ * ⚠️ CIRCULAR REFERENCE WARNING ⚠️
+ * 
+ * This component receives a person object that may contain circular references.
+ * NEVER import Person, Town, DetentionCenter, or Story types from @prisma/client!
+ * 
+ * Always use the sanitized types from @/types/sanitized to prevent
+ * "Maximum call stack size exceeded" errors during Next.js SSR.
+ */
+
 import Link from 'next/link';
 import { useState } from 'react';
 import { Session } from 'next-auth';
 import { isSiteAdmin } from '@/lib/permissions';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
-import type { Person, Town, DetentionCenter, Story } from '@prisma/client';
 import { exportPersonData, importPersonData } from '@/app/actions/person-export-import';
-
-type ImageData = {
-  id: string;
-  imageType: string;
-  sequenceNumber: number;
-  caption?: string | null;
-  mimeType: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type SerializedPerson = Omit<Person, 'bondAmount'> & {
-  bondAmount: string | null;
-  town: Town;
-  detentionCenter?: DetentionCenter | null;
-  stories?: Story[];
-  images?: ImageData[];
-};
+// Use sanitized types to prevent circular references
+import type { SerializedPerson } from '@/types/sanitized';
 
 interface FormActionsProps {
   isSubmitting: boolean;

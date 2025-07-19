@@ -171,7 +171,7 @@ export default function SupportSection({
         }
       }, 100);
     }
-  }, [state?.success, showForm]);
+  }, [state?.success, showForm, personId]);
 
   // Handle cookie clear for admins
   const handleClearCookie = async () => {

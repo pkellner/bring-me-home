@@ -3,33 +3,15 @@
 import { useState, useRef } from 'react';
 import { PersonEditLayout } from './PersonEditLayout';
 import PersonFormWithState, { PersonFormHandle } from '../../PersonFormWithState';
-import { Person, Town, DetentionCenter, Story } from '@prisma/client';
 import { Session } from 'next-auth';
-
-type ImageData = {
-  id: string;
-  imageType: string;
-  sequenceNumber: number;
-  caption?: string | null;
-  mimeType: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type SerializedPerson = Omit<Person, 'bondAmount'> & {
-  bondAmount: string | null;
-  town: Town;
-  detentionCenter?: DetentionCenter | null;
-  stories?: Story[];
-  images?: ImageData[];
-};
+import type {
+  SerializedPerson,
+  SanitizedTown
+} from '@/types/sanitized';
 
 interface PersonEditClientProps {
   person: SerializedPerson;
-  towns: Town[];
+  towns: SanitizedTown[];
   session?: Session | null;
 }
 

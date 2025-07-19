@@ -2,13 +2,30 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**⚠️ GOLDEN RULE: Run `npm run build` after EVERY code change and ensure ZERO warnings/errors ⚠️**
+
 ## Project Overview
 
 "Bring Me Home" is a Next.js 15 application that helps families connect with missing persons in detention centers. It features multi-tenant support for different towns, role-based access control, and community engagement through comments and support messages.
 
 ## Essential Commands
 
-Always run `npm run build` after making any changes and verify that there are no errors or warnings in the console.
+**🚨 CRITICAL REQUIREMENT: Always run `npm run build` after making ANY code changes! 🚨**
+
+The build MUST complete with:
+- ✅ NO errors
+- ✅ NO warnings (not even ESLint warnings)
+- ✅ All pages generating successfully
+
+**NEVER commit or consider your work complete if the build has ANY warnings or errors.**
+
+Common warnings to fix immediately:
+- Unused imports or variables
+- Missing React hook dependencies
+- TypeScript 'any' types
+- Unhandled promises
+
+If you see warnings, FIX THEM before proceeding with any other work.
 
 ### Development
 ```bash
@@ -268,6 +285,77 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
    - Privacy checkbox controls cascade to disable other options
    - Visual feedback for disabled states with explanatory text
 
+### Critical Issues to Avoid
+
+**⚠️ CIRCULAR REFERENCE ERROR - "Maximum call stack size exceeded" ⚠️**
+
+This is a critical issue that has been encountered multiple times when passing Prisma objects with relations to client components.
+
+**The Problem:**
+Prisma models contain bidirectional relations that create circular references:
+- `Person → Town → Persons[]` (town.persons includes the original person)
+- `Person → Stories[] → Person` (story.person references back)
+- `Person → DetentionCenter → Detainees[]` (detentionCenter.detainees may include the person)
+
+When Next.js tries to serialize these objects for client components during SSR, it encounters infinite recursion and throws "Maximum call stack size exceeded".
+
+**How to Avoid:**
+1. **NEVER pass Prisma objects with relations directly to client components**
+2. **ALWAYS sanitize data in server components before passing to client components**
+3. **Extract only the fields you need** - see `/src/types/sanitized.ts` for examples
+4. **Use the sanitized types** (`SanitizedTown`, `SanitizedDetentionCenter`, etc.)
+
+**Example of the Problem:**
+```typescript
+// ❌ WRONG - This will cause circular reference error
+<MultiLanguageStoryEditor stories={person?.stories} />
+
+// ✅ CORRECT - Extract only needed fields
+const stories = person?.stories?.map(story => ({
+  language: story.language,
+  storyType: story.storyType,
+  content: story.content
+})) || [];
+<MultiLanguageStoryEditor stories={stories} />
+```
+
+**Key Files with Protections:**
+- `/src/app/admin/persons/PersonFormWithState.tsx` - Has extensive warnings
+- `/src/app/admin/persons/[id]/edit/page.tsx` - Sanitizes all data before passing to client
+- `/src/types/sanitized.ts` - Defines safe types without circular references
+
+**⚠️ IMPORTANT MAINTENANCE NOTE ⚠️**
+When modifying Prisma schema (`/prisma/schema.prisma`), you MUST also update:
+1. **Sanitized types** in `/src/types/sanitized.ts` - Add/remove fields to match
+2. **Serialization logic** in `/src/app/admin/persons/[id]/edit/page.tsx` - Update the field extraction
+3. **Any other server components** that sanitize data before passing to client components
+
+**Example:** If you add a new field `phoneNumber` to the `Town` model:
+```typescript
+// 1. Update schema.prisma
+model Town {
+  // ... existing fields
+  phoneNumber String?
+}
+
+// 2. Update SanitizedTown in /src/types/sanitized.ts
+type SanitizedTown = {
+  // ... existing fields
+  phoneNumber: string | null;
+}
+
+// 3. Update serialization in page.tsx
+const towns = townsFromDb.map(town => ({
+  // ... existing fields
+  phoneNumber: town.phoneNumber,
+}));
+```
+
+**Testing:**
+- Run `npm test -- circular-reference.test.ts` to see demonstrations of the issue
+- The error only occurs during SSR, not in unit tests
+- After schema changes, always test the person edit page: `/admin/persons/[id]/edit`
+
 ### Common Tasks
 
 **Adding a New Admin Page**
@@ -326,3 +414,8 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 - Added Learn More links to footer across all pages
 - Created dedicated Learn More page with family participation guide
 - Implemented API-based image serving for learn-more page images
+- **CRITICAL FIX**: Resolved circular reference errors in person edit page
+  - Created sanitized types to prevent Prisma relation circular references
+  - Fixed MultiLanguageStoryEditor to use simplified story objects
+  - Added extensive documentation and warnings throughout codebase
+  - This error has occurred multiple times - see "Critical Issues to Avoid" section

@@ -51,7 +51,7 @@
     "//test-modes": "Test execution modes - control test behavior",
     "test:silent": "jest --silent",
     "test:bail": "jest --bail",
-    "test:working": "jest --testPathPattern='(basic|simple|DashboardCard|permissions|data-fetching|PersonFormWithState|PersonBasicInfo|PersonDetentionInfo|VisibilitySettings)' --passWithNoTests",
+    "test:working": "jest --testPathPattern='(basic|simple|DashboardCard|permissions|data-fetching|PersonFormWithState|PersonBasicInfo|PersonDetentionInfo|VisibilitySettings|MultiLanguageStoryEditor)' --passWithNoTests",
     "//test-reporting": "Test reporting and validation workflows",
     "test:report": "jest --coverage && open coverage/lcov-report/index.html",
     "test:validate": "npm run lint && npm run test:ci",

@@ -322,6 +322,19 @@ export default async function PersonPage({ params }: PersonPageProps) {
     approvedAt: comment.approvedAt ? comment.approvedAt.toISOString() : null,
   }));
 
+  // Sanitize stories to remove circular references
+  const serializedStories = (person.stories || []).map(story => ({
+    id: story.id,
+    language: story.language,
+    storyType: story.storyType,
+    content: story.content,
+    isActive: story.isActive,
+    personId: story.personId,
+    createdAt: story.createdAt.toISOString(),
+    updatedAt: story.updatedAt.toISOString(),
+    // Explicitly exclude the 'person' relation to avoid circular reference
+  }));
+
   // Transform personImages to the expected format
   const images = await Promise.all(
     person.personImages?.map(async pi => {
@@ -350,7 +363,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const serializedPerson = {
     ...personWithoutImages,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
-    stories: person.stories || [],
+    stories: serializedStories,
     comments: serializedComments,
     images,
     // Serialize all date fields to ISO strings to prevent hydration mismatches

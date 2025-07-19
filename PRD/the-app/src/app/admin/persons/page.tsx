@@ -19,10 +19,10 @@ export default async function PersonsPage() {
 
   // Get accessible person IDs for the current user
   const accessiblePersonIds = getUserAccessiblePersons(session);
-  
+
   const persons = await prisma.person.findMany({
-    where: 
-      accessiblePersonIds.includes('*') 
+    where:
+      accessiblePersonIds.includes('*')
         ? {} // Site admin - no filtering needed
         : {
             id: {
