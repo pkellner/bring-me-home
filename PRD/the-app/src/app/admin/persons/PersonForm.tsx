@@ -3,12 +3,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MultiLanguageStoryEditor from '@/components/admin/MultiLanguageStoryEditor';
-import {
-  DetentionCenter,
-  Person,
-  Story,
-  Town,
-} from '@prisma/client';
 import { createPerson, updatePerson } from '@/app/actions/persons';
 import DetentionCenterSelector from '@/components/DetentionCenterSelector';
 import PersonBasicInfo from './components/PersonBasicInfo';
@@ -18,18 +12,16 @@ import FormActions from './components/FormActions';
 import { Session } from 'next-auth';
 import LoadingOverlay from './components/LoadingOverlay';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
-
-// Serialized version of Person for client components
-type SerializedPerson = Omit<Person, 'bondAmount'> & {
-  bondAmount: string | null;
-  town: Town;
-  detentionCenter?: DetentionCenter | null;
-  stories?: Story[];
-};
+import type { 
+  SerializedPerson, 
+  SanitizedTown,
+  SanitizedDetentionCenter,
+  SimplifiedStory
+} from '@/types/sanitized';
 
 interface PersonFormProps {
   person?: SerializedPerson;
-  towns: Town[];
+  towns: SanitizedTown[];
   session?: Session | null;
 }
 
@@ -41,10 +33,10 @@ export default function PersonForm({ person, towns, session }: PersonFormProps) 
   const [selectedDetentionCenterId, setSelectedDetentionCenterId] = useState<string | null>(
     person?.detentionCenterId || null
   );
-  const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<DetentionCenter | null>(
+  const [selectedDetentionCenter, setSelectedDetentionCenter] = useState<SanitizedDetentionCenter | null>(
     person?.detentionCenter || null
   );
-  const [stories, setStories] = useState<{ language: string; storyType: string; content: string }[]>(
+  const [stories, setStories] = useState<SimplifiedStory[]>(
     person?.stories?.map(story => ({
       language: story.language,
       storyType: story.storyType,

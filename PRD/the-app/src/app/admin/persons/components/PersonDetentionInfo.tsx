@@ -1,7 +1,7 @@
 'use client';
 
-import { DetentionCenter } from '@prisma/client';
 import Image from 'next/image';
+import type { SanitizedDetentionCenter } from '@/types/sanitized';
 
 interface PersonDetentionInfoProps {
   person?: {
@@ -14,7 +14,7 @@ interface PersonDetentionInfoProps {
     representedByLawyer?: boolean | null;
     representedByNotes?: string | null;
   };
-  selectedDetentionCenter: DetentionCenter | null;
+  selectedDetentionCenter: SanitizedDetentionCenter | null;
   selectedDetentionCenterId: string | null;
   onOpenModal: () => void;
 }

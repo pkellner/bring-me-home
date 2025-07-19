@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Theme } from '@prisma/client';
 import Link from 'next/link';
 import AdminDataGrid from '@/components/admin/AdminDataGrid';
 import ThemePreview from '@/components/themes/ThemePreview';
 import { deleteTheme } from '@/app/actions/themes';
+import type { SanitizedTheme } from '@/types/sanitized';
 
 interface ThemesGridProps {
-  initialThemes: Theme[];
+  initialThemes: SanitizedTheme[];
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -21,7 +21,7 @@ export default function ThemesGrid({
   canDelete,
 }: ThemesGridProps) {
   const [themes, setThemes] = useState(initialThemes);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<SanitizedTheme | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this theme?')) return;
@@ -65,14 +65,14 @@ export default function ThemesGrid({
     {
       type: 'view' as const,
       label: 'Preview',
-      onClick: (theme: Theme) => setSelectedTheme(theme),
+      onClick: (theme: SanitizedTheme) => setSelectedTheme(theme),
     },
     ...(canUpdate
       ? [
           {
             type: 'edit' as const,
             label: 'Edit',
-            href: (theme: Theme) => `/admin/themes/${theme.id}/edit`,
+            href: (theme: SanitizedTheme) => `/admin/themes/${theme.id}/edit`,
           },
         ]
       : []),
@@ -81,7 +81,7 @@ export default function ThemesGrid({
           {
             type: 'delete' as const,
             label: 'Delete',
-            onClick: async (theme: Theme) => await handleDelete(theme.id),
+            onClick: async (theme: SanitizedTheme) => await handleDelete(theme.id),
             className: 'text-red-600 hover:text-red-900',
           },
         ]

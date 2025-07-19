@@ -39,7 +39,7 @@ export default async function UsersPage() {
     },
   });
 
-  // Serialize Decimal fields for client components
+  // Convert Decimal bondAmount to string for client components
   const serializedUsers = users.map(user => ({
     ...user,
     personAccess: user.personAccess.map(access => ({

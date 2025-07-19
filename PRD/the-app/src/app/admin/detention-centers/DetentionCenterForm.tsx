@@ -3,29 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { DetentionCenter } from '@prisma/client';
 import {
   createDetentionCenter,
   updateDetentionCenter,
 } from '@/app/actions/detention-centers';
 import Image from 'next/image';
+import type { SanitizedDetentionCenter } from '@/types/sanitized';
 
-interface SerializedDetentionCenter
-  extends Omit<
-    DetentionCenter,
-    | 'createdAt'
-    | 'updatedAt'
-    | 'latitude'
-    | 'longitude'
-    | 'capacity'
-    | 'currentPopulation'
-  > {
+// Extended type for form needs with date serialization
+interface SerializedDetentionCenter extends Omit<SanitizedDetentionCenter, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  capacity?: number | null;
-  currentPopulation?: number | null;
 }
 
 interface DetentionCenterFormProps {

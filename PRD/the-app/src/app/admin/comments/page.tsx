@@ -64,12 +64,24 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
     },
   });
 
-  // Serialize Decimal fields to strings
+  // Serialize Decimal fields to strings and ensure dates are properly serialized
   const comments = rawComments.map(comment => ({
     ...comment,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    approvedAt: comment.approvedAt?.toISOString() || null,
+    birthdate: comment.birthdate?.toISOString() || null,
     person: {
       ...comment.person,
       bondAmount: comment.person.bondAmount?.toString() || null,
+      createdAt: comment.person.createdAt.toISOString(),
+      updatedAt: comment.person.updatedAt.toISOString(),
+      dateOfBirth: comment.person.dateOfBirth?.toISOString() || null,
+      lastSeenDate: comment.person.lastSeenDate?.toISOString() || null,
+      detentionDate: comment.person.detentionDate?.toISOString() || null,
+      lastHeardFromDate: comment.person.lastHeardFromDate?.toISOString() || null,
+      nextCourtDate: comment.person.nextCourtDate?.toISOString() || null,
+      releaseDate: comment.person.releaseDate?.toISOString() || null,
     },
   }));
 

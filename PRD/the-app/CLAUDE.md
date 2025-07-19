@@ -299,11 +299,47 @@ Prisma models contain bidirectional relations that create circular references:
 
 When Next.js tries to serialize these objects for client components during SSR, it encounters infinite recursion and throws "Maximum call stack size exceeded".
 
+**⚠️ CRITICAL: Hidden Circular References in Base Types ⚠️**
+Even using `Omit<PrismaType, 'field'>` or extending Prisma types can cause circular references because:
+1. Prisma types may contain hidden internal properties or methods
+2. The base type itself might have circular references through Prisma's internal structure
+3. TypeScript utility types like `Omit` don't remove these hidden properties
+
+**Example of Hidden Circular Reference:**
+```typescript
+// ❌ WRONG - Still contains circular references!
+type SerializedPerson = Omit<Person, 'bondAmount'> & {
+  bondAmount: string | null;
+  town: Town;  // Town type from Prisma still has circular refs
+};
+
+// ✅ CORRECT - Completely separate type
+type SerializedPerson = {
+  id: string;
+  firstName: string;
+  // ... list all fields explicitly
+  town: SanitizedTown;  // Use sanitized type
+};
+```
+
 **How to Avoid:**
-1. **NEVER pass Prisma objects with relations directly to client components**
-2. **ALWAYS sanitize data in server components before passing to client components**
-3. **Extract only the fields you need** - see `/src/types/sanitized.ts` for examples
-4. **Use the sanitized types** (`SanitizedTown`, `SanitizedDetentionCenter`, etc.)
+1. **NEVER import from '@prisma/client' in client components** ('use client' files)
+2. **NEVER use Prisma types as base types** (avoid `Omit<PrismaType>`, `Pick<PrismaType>`, `extends PrismaType`)
+3. **ALWAYS create completely separate types** for client components
+4. **ALWAYS sanitize data in server components** before passing to client components
+5. **Extract only the fields you need** - see `/src/types/sanitized.ts` for examples
+6. **Use the sanitized types** (`SanitizedTown`, `SanitizedDetentionCenter`, etc.)
+
+**Files Currently Violating This Rule (Need Fixing):**
+These client components import directly from '@prisma/client':
+- `/src/components/layouts/LayoutRenderer.tsx` - Uses `Omit<Person, 'bondAmount'>`
+- `/src/app/admin/detention-centers/DetentionCenterForm.tsx` - Imports `DetentionCenter`
+- `/src/app/admin/persons/PersonForm.tsx` - Imports multiple Prisma types
+- `/src/app/admin/towns/TownForm.tsx` - Imports `Town, Layout, Theme`
+- `/src/app/admin/layouts/LayoutForm.tsx` - Imports Prisma types
+- `/src/app/admin/themes/ThemeForm.tsx` - Imports Prisma types
+- `/src/app/admin/persons/components/PersonBasicInfo.tsx` - Uses `Town[]`
+- `/src/app/admin/persons/components/PersonDetentionInfo.tsx` - Uses `DetentionCenter`
 
 **Example of the Problem:**
 ```typescript
@@ -319,6 +355,37 @@ const stories = person?.stories?.map(story => ({
 <MultiLanguageStoryEditor stories={stories} />
 ```
 
+**Proper Serialization Pattern:**
+```typescript
+// In server component (page.tsx)
+const serializedPerson: SerializedPerson = {
+  // List every field explicitly - no spread operator!
+  id: person.id,
+  firstName: person.firstName,
+  // ... all other fields
+  
+  // Sanitize relations
+  town: {
+    id: person.town.id,
+    name: person.town.name,
+    // ... only needed fields, no relations
+  },
+  
+  // Handle nullable relations
+  detentionCenter: person.detentionCenter ? {
+    id: person.detentionCenter.id,
+    // ... only needed fields
+  } : null,
+  
+  // Map arrays to remove circular refs
+  stories: person.stories?.map(story => ({
+    id: story.id,
+    content: story.content,
+    // Exclude: person relation
+  })) || []
+};
+```
+
 **Key Files with Protections:**
 - `/src/app/admin/persons/PersonFormWithState.tsx` - Has extensive warnings
 - `/src/app/admin/persons/[id]/edit/page.tsx` - Sanitizes all data before passing to client
@@ -327,8 +394,8 @@ const stories = person?.stories?.map(story => ({
 **⚠️ IMPORTANT MAINTENANCE NOTE ⚠️**
 When modifying Prisma schema (`/prisma/schema.prisma`), you MUST also update:
 1. **Sanitized types** in `/src/types/sanitized.ts` - Add/remove fields to match
-2. **Serialization logic** in `/src/app/admin/persons/[id]/edit/page.tsx` - Update the field extraction
-3. **Any other server components** that sanitize data before passing to client components
+2. **Serialization logic** in server components - Update the field extraction
+3. **Any client components** using the modified types
 
 **Example:** If you add a new field `phoneNumber` to the `Town` model:
 ```typescript
@@ -351,10 +418,18 @@ const towns = townsFromDb.map(town => ({
 }));
 ```
 
-**Testing:**
-- Run `npm test -- circular-reference.test.ts` to see demonstrations of the issue
-- The error only occurs during SSR, not in unit tests
-- After schema changes, always test the person edit page: `/admin/persons/[id]/edit`
+**Testing for Circular References:**
+1. **Build Test**: Run `npm run build` - it should complete with ZERO errors
+2. **Runtime Test**: Navigate to pages that pass complex data to client components:
+   - `/admin/persons/[id]/edit` - Person edit page
+   - `/[townSlug]/[personSlug]` - Public person page
+   - `/admin/towns/[id]/edit` - Town edit page
+3. **Console Check**: Open browser console and look for:
+   - "Maximum call stack size exceeded" errors
+   - Serialization errors
+   - Hydration mismatches
+4. **Development Check**: In development, Next.js will show errors in the terminal
+5. **Quick Test**: If you see the error when a component is rendered but not when it's commented out, the props passed to that component contain circular references
 
 ### Common Tasks
 

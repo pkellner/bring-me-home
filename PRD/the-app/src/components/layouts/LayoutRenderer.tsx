@@ -1,38 +1,17 @@
 'use client';
 
-import { Comment, Person, Town } from '@prisma/client';
 import * as sections from './sections';
+import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter } from '@/types/sanitized';
 
-type SerializedComment = Comment & {
+// Extended types for LayoutRenderer specific needs
+type SerializedComment = SanitizedComment & {
   createdAt: string;
   updatedAt: string;
   birthdate?: string | null;
   approvedAt?: string | null;
 };
 
-type SerializedDetentionCenter = {
-  id: string;
-  name: string;
-  facilityType: string;
-  operatedBy?: string | null;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  phoneNumber?: string | null;
-  faxNumber?: string | null;
-  emailAddress?: string | null;
-  website?: string | null;
-  capacity?: number | null;
-  currentPopulation?: number | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  isActive: boolean;
-  isICEFacility: boolean;
-  notes?: string | null;
-  transportInfo?: string | null;
-  visitingHours?: string | null;
+type SerializedDetentionCenter = SanitizedDetentionCenter & {
   thumbnailImageId?: string | null;
   imageId?: string | null; // Deprecated field for backward compatibility
   detentionCenterImage?: {
@@ -54,9 +33,63 @@ type SerializedDetentionCenter = {
   updatedAt: string;
 };
 
-export type SerializedPerson = Omit<Person, 'bondAmount'> & {
+// Person type for public layout rendering - no Prisma imports!
+export type SerializedPerson = {
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  alienIdNumber: string | null;
+  ssn: string | null;
+  dateOfBirth: Date | string | null;
+  placeOfBirth: string | null;
+  height: string | null;
+  weight: string | null;
+  eyeColor: string | null;
+  hairColor: string | null;
+  lastKnownAddress: string;
+  currentAddress: string | null;
+  phoneNumber: string | null;
+  emailAddress: string | null;
+  story: string | null;
+  lastSeenDate: Date | string | null;
+  lastSeenLocation: string | null;
+  isActive: boolean;
+  isFound: boolean;
+  status: string;
+  layoutId: string | null;
+  themeId: string | null;
+  townId: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   bondAmount: string | null;
-  town: Town & {
+  bondStatus: string | null;
+  caseNumber: string | null;
+  countryOfOrigin: string | null;
+  courtLocation: string | null;
+  detentionCenterId: string | null;
+  detentionDate: Date | string | null;
+  detentionStatus: string | null;
+  internationalAddress: string | null;
+  legalRepEmail: string | null;
+  legalRepFirm: string | null;
+  legalRepName: string | null;
+  legalRepPhone: string | null;
+  nextCourtDate: Date | string | null;
+  releaseDate: Date | string | null;
+  detentionStory: string | null;
+  familyMessage: string | null;
+  lastHeardFromDate: Date | string | null;
+  notesFromLastContact: string | null;
+  representedByLawyer: boolean;
+  representedByNotes: string | null;
+  slug: string;
+  showDetentionInfo: boolean;
+  showLastHeardFrom: boolean;
+  showDetentionDate: boolean;
+  showCommunitySupport: boolean;
+  // Relations
+  town: SanitizedTown & {
     layout?: { id: string; name: string; template: string } | null;
     theme?: { id: string; name: string; cssVars: string | null } | null;
   };

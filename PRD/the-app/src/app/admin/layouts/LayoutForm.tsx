@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Layout } from '@prisma/client';
 import { createLayout, updateLayout } from '@/app/actions/layouts';
 import LayoutPreview from '@/components/layouts/LayoutPreview';
+import type { SanitizedLayout } from '@/types/sanitized';
 
 interface LayoutFormProps {
-  layout?: Layout;
+  layout?: SanitizedLayout;
 }
 
 const layoutTemplates = [

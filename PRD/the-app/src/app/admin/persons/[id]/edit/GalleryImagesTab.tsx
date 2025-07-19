@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { PersonImage, ImageStorage } from '@prisma/client';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
+import type { SanitizedPersonImage } from '@/types/sanitized';
 
 interface GalleryImage {
   id: string;
@@ -17,7 +17,7 @@ interface GalleryImage {
   originalCaption?: string;
   isNew?: boolean;
   toDelete?: boolean;
-  personImage?: PersonImage;
+  personImage?: SanitizedPersonImage;
 }
 
 interface GalleryImagesTabProps {
@@ -61,15 +61,15 @@ export function GalleryImagesTab({
           throw new Error('Failed to fetch images');
         }
 
-        const personImages: (PersonImage & { image: ImageStorage })[] = await response.json();
+        const personImages: SanitizedPersonImage[] = await response.json();
         
         const initialImages: GalleryImage[] = personImages
-          .filter(img => img.imageType === 'gallery')
+          .filter(img => img.imageType === 'gallery' && img.image)
           .sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0))
           .map(img => ({
-            id: img.image.id,
-            caption: img.image.caption || '',
-            originalCaption: img.image.caption || '',
+            id: img.image!.id,
+            caption: img.image!.caption || '',
+            originalCaption: img.image!.caption || '',
             personImage: img,
             preview: `/api/images/${img.imageId}?t=${new Date().getTime()}`
           }));
@@ -234,15 +234,15 @@ export function GalleryImagesTab({
       // Refresh the images
       const imageResponse = await fetch(`/api/persons/${personId}/images?type=gallery`);
       if (imageResponse.ok) {
-        const personImages: (PersonImage & { image: ImageStorage })[] = await imageResponse.json();
+        const personImages: SanitizedPersonImage[] = await imageResponse.json();
         
         const refreshedImages: GalleryImage[] = personImages
-          .filter(img => img.imageType === 'gallery')
+          .filter(img => img.imageType === 'gallery' && img.image)
           .sort((a, b) => (a.sequenceNumber || 0) - (b.sequenceNumber || 0))
           .map(img => ({
-            id: img.image.id,
-            caption: img.image.caption || '',
-            originalCaption: img.image.caption || '',
+            id: img.image!.id,
+            caption: img.image!.caption || '',
+            originalCaption: img.image!.caption || '',
             personImage: img,
             preview: `/api/images/${img.imageId}?t=${new Date().getTime()}`
           }));

@@ -5,8 +5,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Upload, Save } from 'lucide-react';
-import { PersonImage, ImageStorage } from '@prisma/client';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
+import type { SanitizedPersonImage } from '@/types/sanitized';
 
 interface PersonImageTabProps {
   personId: string;
@@ -23,7 +23,7 @@ export function PersonImageTab({
   onSavingChange,
   hideButtons = false
 }: PersonImageTabProps) {
-  const [currentImage, setCurrentImage] = useState<(PersonImage & { image: ImageStorage }) | null>(null);
+  const [currentImage, setCurrentImage] = useState<SanitizedPersonImage | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [shouldClearImage, setShouldClearImage] = useState(false);

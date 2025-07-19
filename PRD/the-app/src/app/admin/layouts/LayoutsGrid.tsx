@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Layout } from '@prisma/client';
 import Link from 'next/link';
 import AdminDataGrid from '@/components/admin/AdminDataGrid';
 import LayoutPreview from '@/components/layouts/LayoutPreview';
 import { deleteLayout } from '@/app/actions/layouts';
+import type { SanitizedLayout } from '@/types/sanitized';
 
 interface LayoutsGridProps {
-  initialLayouts: Layout[];
+  initialLayouts: SanitizedLayout[];
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -21,7 +21,7 @@ export default function LayoutsGrid({
   canDelete,
 }: LayoutsGridProps) {
   const [layouts, setLayouts] = useState(initialLayouts);
-  const [selectedLayout, setSelectedLayout] = useState<Layout | null>(null);
+  const [selectedLayout, setSelectedLayout] = useState<SanitizedLayout | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this layout?')) return;
@@ -65,14 +65,14 @@ export default function LayoutsGrid({
     {
       type: 'view' as const,
       label: 'Preview',
-      onClick: (layout: Layout) => setSelectedLayout(layout),
+      onClick: (layout: SanitizedLayout) => setSelectedLayout(layout),
     },
     ...(canUpdate
       ? [
           {
             type: 'edit' as const,
             label: 'Edit',
-            href: (layout: Layout) => `/admin/layouts/${layout.id}/edit`,
+            href: (layout: SanitizedLayout) => `/admin/layouts/${layout.id}/edit`,
           },
         ]
       : []),
@@ -81,7 +81,7 @@ export default function LayoutsGrid({
           {
             type: 'delete' as const,
             label: 'Delete',
-            onClick: async (layout: Layout) => await handleDelete(layout.id),
+            onClick: async (layout: SanitizedLayout) => await handleDelete(layout.id),
             className: 'text-red-600 hover:text-red-900',
           },
         ]

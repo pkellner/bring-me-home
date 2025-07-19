@@ -1,6 +1,6 @@
 'use client';
 
-import { Town } from '@prisma/client';
+import type { SanitizedTown } from '@/types/sanitized';
 
 interface PersonBasicInfoProps {
   person?: {
@@ -13,7 +13,7 @@ interface PersonBasicInfoProps {
     isActive?: boolean;
     status?: string;
   };
-  towns: Town[];
+  towns: SanitizedTown[];
   errors: Record<string, string[]>;
 }
 

@@ -1,15 +1,15 @@
 'use client';
 
-import { Layout, Theme, Town } from '@prisma/client';
 import Link from 'next/link';
 import { createTown, updateTown } from '@/app/actions/towns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import type { SanitizedTown, SanitizedLayout, SanitizedTheme } from '@/types/sanitized';
 
 interface TownFormProps {
-  town?: Town;
-  layouts: Layout[];
-  themes: Theme[];
+  town?: SanitizedTown;
+  layouts: SanitizedLayout[];
+  themes: SanitizedTheme[];
 }
 
 export default function TownForm({ town, layouts, themes }: TownFormProps) {

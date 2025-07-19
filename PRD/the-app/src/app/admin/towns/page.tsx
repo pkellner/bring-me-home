@@ -30,7 +30,7 @@ export default async function TownsPage() {
     },
   });
 
-  // Serialize Decimal fields in persons data
+  // Convert Decimal bondAmount to string for client components
   const serializedTowns = towns.map(town => ({
     ...town,
     persons: town.persons.map(person => ({

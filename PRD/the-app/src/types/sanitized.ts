@@ -170,3 +170,99 @@ export type SerializedPerson = {
   stories?: SanitizedStory[];
   images?: ImageData[];
 };
+
+export type SanitizedLayout = {
+  id: string;
+  name: string;
+  description: string | null;
+  cssClasses: string | null;
+  template: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  // Excluded: persons, towns relations
+};
+
+export type SanitizedTheme = {
+  id: string;
+  name: string;
+  description: string | null;
+  colors: string;
+  cssVars: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  // Excluded: persons, towns relations
+};
+
+export type SanitizedComment = {
+  id: string;
+  content: string;
+  isActive: boolean;
+  isApproved: boolean;
+  moderatorNotes: string | null;
+  personId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  familyVisibilityOverride: string | null;
+  type: string;
+  visibility: string;
+  approvedAt: Date | null;
+  approvedBy: string | null;
+  birthdate: Date | null;
+  displayNameOnly: boolean;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  occupation: string | null;
+  phone: string | null;
+  privacyRequiredDoNotShowPublicly: boolean;
+  requiresFamilyApproval: boolean;
+  showBirthdate: boolean;
+  showOccupation: boolean;
+  wantsToHelpMore: boolean;
+  city: string | null;
+  showCityState: boolean;
+  state: string | null;
+  streetAddress: string | null;
+  zipCode: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  geoCity: string | null;
+  geoState: string | null;
+  geoCountry: string | null;
+  geoLatitude: number | null;
+  geoLongitude: number | null;
+  privateNoteToFamily: string | null;
+  showComment: boolean;
+  // Excluded: person, approver relations
+};
+
+export type SanitizedImageStorage = {
+  id: string;
+  data: Uint8Array | null;
+  mimeType: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  caption: string | null;
+  uploadedById: string | null;
+  storageType: string;
+  s3Key: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Excluded: detentionCenterImages, uploadedBy, personImages relations
+};
+
+export type SanitizedPersonImage = {
+  id: string;
+  personId: string;
+  imageId: string;
+  imageType: string;
+  sequenceNumber: number;
+  createdAt: Date;
+  updatedAt: Date;
+  // Can include the image data when needed
+  image?: SanitizedImageStorage;
+  // Excluded: person relation
+};

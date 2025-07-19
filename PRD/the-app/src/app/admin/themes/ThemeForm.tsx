@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Theme } from '@prisma/client';
 import { createTheme, updateTheme } from '@/app/actions/themes';
 import ThemeEditor from '@/components/themes/ThemeEditor';
 import ThemePreview from '@/components/themes/ThemePreview';
+import type { SanitizedTheme } from '@/types/sanitized';
 
 interface ThemeFormProps {
-  theme?: Theme;
+  theme?: SanitizedTheme;
 }
 
 export default function ThemeForm({ theme }: ThemeFormProps) {
