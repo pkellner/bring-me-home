@@ -247,12 +247,18 @@ export default async function HomePage() {
               'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.'}
           </p>
           <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-            <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">
+            <Link
+              href="/show-your-support"
+              className="block w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700 text-center"
+            >
               {config.homepage_cta_button || 'Show Your Support'}
-            </button>
-            <button className="w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50">
+            </Link>
+            <Link
+              href="/learn-more"
+              className="block w-full sm:w-auto border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50 text-center"
+            >
               Learn More
-            </button>
+            </Link>
           </div>
         </section>
       </main>
