@@ -596,6 +596,7 @@ function CommentsGrid({
         onTownChange={setSelectedTownId}
         towns={towns}
         disabled={isPending}
+        showGroupByPerson={!personId}
       />
 
       {/* Status Filter */}

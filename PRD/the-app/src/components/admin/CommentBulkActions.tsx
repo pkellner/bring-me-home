@@ -15,6 +15,7 @@ interface CommentBulkActionsProps {
   onTownChange: (townId: string) => void;
   towns: Town[];
   disabled?: boolean;
+  showGroupByPerson?: boolean;
 }
 
 export default function CommentBulkActions({
@@ -26,6 +27,7 @@ export default function CommentBulkActions({
   onTownChange,
   towns,
   disabled = false,
+  showGroupByPerson = true,
 }: CommentBulkActionsProps) {
   return (
     <div className="mb-4 space-y-4">
@@ -71,17 +73,19 @@ export default function CommentBulkActions({
           </button>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={groupByPerson}
-            onChange={e => onGroupByPersonChange(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-          />
-          <span className="text-sm font-medium text-gray-700">
-            Group By Person
-          </span>
-        </label>
+        {showGroupByPerson && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={groupByPerson}
+              onChange={e => onGroupByPersonChange(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              Group By Person
+            </span>
+          </label>
+        )}
       </div>
     </div>
   );
