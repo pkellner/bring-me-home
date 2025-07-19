@@ -66,12 +66,12 @@ export default function UserForm({
 }: UserFormProps) {
   const router = useRouter();
   const [selectedRoles, setSelectedRoles] = useState<string[]>(
-    user?.userRoles.map(ur => ur.role.id) || []
+    user?.userRoles?.map(ur => ur.role.id) || []
   );
   const [townAccess, setTownAccess] = useState<
     Array<{ townId: string; accessLevel: string }>
   >(
-    user?.townAccess.map(ta => ({
+    user?.townAccess?.map(ta => ({
       townId: ta.townId,
       accessLevel: ta.accessLevel,
     })) || []
@@ -79,7 +79,7 @@ export default function UserForm({
   const [personAccess, setPersonAccess] = useState<
     Array<{ personId: string; accessLevel: string }>
   >(
-    user?.personAccess.map(pa => ({
+    user?.personAccess?.map(pa => ({
       personId: pa.personId,
       accessLevel: pa.accessLevel,
     })) || []

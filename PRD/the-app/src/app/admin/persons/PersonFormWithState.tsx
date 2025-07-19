@@ -233,6 +233,7 @@ const PersonFormWithState = forwardRef<PersonFormHandle, PersonFormProps>(
           />
 
           <MultiLanguageStoryEditor
+            stories={person?.stories}
             onChange={handleStoriesChange}
           />
 
