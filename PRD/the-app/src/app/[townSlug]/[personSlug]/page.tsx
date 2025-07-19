@@ -353,6 +353,15 @@ export default async function PersonPage({ params }: PersonPageProps) {
     stories: person.stories || [],
     comments: serializedComments,
     images,
+    // Serialize all date fields to ISO strings to prevent hydration mismatches
+    detentionDate: person.detentionDate ? person.detentionDate.toISOString() : null,
+    lastSeenDate: person.lastSeenDate ? person.lastSeenDate.toISOString() : null,
+    lastHeardFromDate: person.lastHeardFromDate ? person.lastHeardFromDate.toISOString() : null,
+    dateOfBirth: person.dateOfBirth ? person.dateOfBirth.toISOString() : null,
+    releaseDate: person.releaseDate ? person.releaseDate.toISOString() : null,
+    nextCourtDate: person.nextCourtDate ? person.nextCourtDate.toISOString() : null,
+    createdAt: person.createdAt.toISOString(),
+    updatedAt: person.updatedAt.toISOString(),
   } as unknown as SerializedPerson;
 
   // Determine which layout and theme to use

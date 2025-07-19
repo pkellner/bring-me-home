@@ -8,6 +8,7 @@ import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 import { stripHtml } from '@/lib/stripHtml';
 import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
+import { formatDate } from '@/lib/utils';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -229,7 +230,7 @@ export default async function TownPage({ params }: TownPageProps) {
                       <span className="font-medium">
                         {config.last_seen_label || 'Detained since'}:
                       </span>{' '}
-                      {new Date(person.lastSeenDate).toLocaleDateString()}
+                      {formatDate(person.lastSeenDate)}
                     </p>
                   )}
 

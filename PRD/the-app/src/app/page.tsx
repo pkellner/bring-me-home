@@ -6,6 +6,7 @@ import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';
 import { getSiteTextConfig } from '@/lib/config';
 import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
+import { formatDate } from '@/lib/utils';
 
 async function getPublicData() {
   const [towns, recentPersons, totalDetained] = await Promise.all([
@@ -222,7 +223,7 @@ export default async function HomePage() {
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-500 mt-1">
                       {config.last_seen_label || 'Detained since'}:{' '}
-                      {person.lastSeenDate.toLocaleDateString()}
+                      {formatDate(person.lastSeenDate)}
                     </p>
                   )}
                   <Link

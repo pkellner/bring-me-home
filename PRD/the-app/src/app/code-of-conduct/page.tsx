@@ -6,6 +6,7 @@ import HeaderNavigation from '@/components/HeaderNavigation'
 import FooterWrapper from '@/components/FooterWrapper'
 import { getSiteTextConfig } from '@/lib/config'
 import { getPublicConfig } from '@/app/actions/config'
+import { formatDate } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Code of Conduct | Bring Me Home',
@@ -186,7 +187,7 @@ export default async function CodeOfConductPage() {
 
         <section className="mb-8 border-t pt-8">
           <p className="text-sm text-gray-600">
-            Last updated: {new Date().toLocaleDateString()}
+            Last updated: {formatDate(new Date())}
           </p>
           <p className="text-sm text-gray-600 mt-2">
             This Code of Conduct is a living document and may be updated periodically to better serve our community.

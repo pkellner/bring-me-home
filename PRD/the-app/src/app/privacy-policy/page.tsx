@@ -6,6 +6,7 @@ import HeaderNavigation from '@/components/HeaderNavigation'
 import FooterWrapper from '@/components/FooterWrapper'
 import { getSiteTextConfig } from '@/lib/config'
 import { getPublicConfig } from '@/app/actions/config'
+import { formatDate } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Bring Me Home',
@@ -56,7 +57,7 @@ export default async function PrivacyPolicyPage() {
             explains how we collect, use, and safeguard your data in compliance with applicable laws.
           </p>
           <p className="text-sm text-gray-600 mb-6">
-            Last updated: {new Date().toLocaleDateString()}
+            Last updated: {formatDate(new Date())}
           </p>
         </section>
 

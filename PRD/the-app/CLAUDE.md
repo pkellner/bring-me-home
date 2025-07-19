@@ -65,6 +65,9 @@ npm run test:silent      # Suppress console output
 npm run debug:no-images     # Find persons without images
 npm run debug:analyze-images # Analyze person images
 npm run debug:check-rendering # Check image rendering
+
+# Utility scripts
+npx tsx scripts/generate-email-env-example.ts  # Generate email config for .env.example
 ```
 
 ## Architecture Overview
@@ -158,6 +161,14 @@ npm run debug:check-rendering # Check image rendering
 - `/src/app/api/` - RESTful API endpoints
 - Dynamic params in Next.js 15 are Promises (must await)
 - Protected by middleware unless in matcher exclusion
+- `/api/images/learn-more/[filename]` - Serves learn-more page images with Sharp optimization
+
+**Email Configuration**
+- `/src/config/emails.ts` - Centralized email configuration with TypeScript types
+- `/src/lib/email-config.ts` - Client-side email helpers
+- All email addresses managed through `EMAIL_TYPES` enum
+- Use `getEmail(EMAIL_TYPES.SUPPORT)` instead of hardcoding
+- Script to generate .env examples: `npx tsx scripts/generate-email-env-example.ts`
 
 ### Environment Configuration
 
@@ -177,9 +188,16 @@ AWS_S3_BUCKET_NAME="" # if using S3
 AWS_ACCESS_KEY_ID="" # if using S3
 AWS_SECRET_ACCESS_KEY="" # if using S3
 
+# Email Configuration (centralized in /src/config/emails.ts)
+ADMIN_EMAIL="admin@example.com"          # General support email
+HELP_EMAIL="help@example.com"            # Families requesting listings
+PRIVACY_EMAIL="privacy@example.com"      # Privacy inquiries
+CONDUCT_EMAIL="conduct@example.com"      # Code of conduct violations
+
 # Optional
 REDIS_CONNECTION_STRING="" # for caching
 NEXT_PUBLIC_CONSOLE_LOGGING="false" # debug logging
+IPINFO_TOKEN="" # For geolocation services
 
 # User Passwords (for seeding)
 SEED_ADMIN_PASSWORD="Qm3Xr7Np9K"
@@ -187,6 +205,28 @@ SEED_DEMO_PASSWORD="Wj5Bn8Tz4H"
 SEED_TOWN_ADMIN_PASSWORD="Pv7Kx3Nm6R"
 SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 ```
+
+### Key Pages and Routes
+
+**Public Pages**
+- `/` - Homepage with towns and recent persons
+- `/[townSlug]` - Town page showing detained persons
+- `/[townSlug]/[personSlug]` - Individual person profile
+- `/learn-more` - Guide for families on how to participate
+- `/show-your-support` - Information on supporting detainees
+- `/configs` - System configuration and environment info
+- `/privacy-policy` - Privacy policy with configurable email
+- `/code-of-conduct` - Community guidelines with report email
+
+**Admin Pages** (require authentication)
+- `/admin` - Main admin dashboard
+- `/admin/persons` - Manage detained persons
+- `/admin/towns` - Manage town profiles
+- `/admin/users` - User management
+- `/admin/comments` - Comment moderation
+- `/admin/detention-centers` - Detention center management
+- `/admin/layouts` - Layout customization
+- `/admin/themes` - Theme management
 
 ### Development Guidelines
 
@@ -255,6 +295,12 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 3. Debug test: `npm run test:debug -- path/to/file.test.tsx`
 4. Update snapshots: `npm run test:updateSnapshot`
 
+**Managing Email Configuration**
+1. All emails centralized in `/src/config/emails.ts`
+2. View current configuration at `/configs` page
+3. Email types are TypeScript-safe using `EMAIL_TYPES` enum
+4. Generate .env example: `npx tsx scripts/generate-email-env-example.ts`
+
 **Implementing Privacy Controls**
 1. Privacy checkbox (`privacyRequiredDoNotShowPublicly`) only editable by site admins
 2. When privacy is selected, automatically disable and uncheck all display options
@@ -275,3 +321,8 @@ SEED_PERSON_ADMIN_PASSWORD="Zn9Hb4Vx7T"
 - Enhanced role-based permissions for privacy settings
 - Fixed comment submission form privacy checkbox behavior
 - Hidden "Group by person" checkbox when viewing single person's comments
+- Created centralized email configuration system with TypeScript safety
+- Added email configuration display to /configs page
+- Added Learn More links to footer across all pages
+- Created dedicated Learn More page with family participation guide
+- Implemented API-based image serving for learn-more page images
