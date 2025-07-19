@@ -365,6 +365,38 @@ export default function LayoutRenderer({
                   <div className="prose prose-lg max-w-none">
                     {components['info']()}
                   </div>
+                  
+                  {/* Call to Action - Send a Support Note */}
+                  <div className="mt-6 w-full">
+                    <button
+                      onClick={() => {
+                        const element = document.getElementById('comments');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
+                      className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 p-4 text-left transition-all duration-300 hover:shadow-md hover:border-indigo-300"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-base font-semibold text-gray-900">
+                            Send a note of support to {person.firstName}
+                          </h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Your message can make a difference • Post anonymously or with your name
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 ml-4">
+                          <div className="flex items-center gap-2 text-indigo-600">
+                            <span className="text-sm font-medium">Write a message</span>
+                            <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

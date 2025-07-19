@@ -185,7 +185,10 @@ export default async function HomePage() {
                 key={person.id}
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
               >
-                <div className="h-48 bg-gray-200 flex items-center justify-center">
+                <Link
+                  href={`/${person.town.slug}/${person.slug}`}
+                  className="block h-48 bg-gray-200 flex items-center justify-center hover:opacity-90 transition-opacity"
+                >
                   {person.imageUrl ? (
                     <img
                       src={person.imageUrl}
@@ -203,14 +206,19 @@ export default async function HomePage() {
                       </svg>
                     </div>
                   )}
-                </div>
+                </Link>
                 <div className="p-4">
                   <h4 className="text-lg font-semibold text-gray-900">
                     {person.firstName} {person.lastName}
                   </h4>
-                  <p className="text-sm text-gray-600">
-                    {person.town.name}, {person.town.state}
-                  </p>
+                  <Link
+                    href={`/${person.town.slug}/${person.slug}`}
+                    className="hover:text-indigo-600 transition-colors"
+                  >
+                    <p className="text-sm text-gray-600 hover:text-indigo-600">
+                      {person.town.name}, {person.town.state}
+                    </p>
+                  </Link>
                   {person.lastSeenDate && (
                     <p className="text-sm text-gray-500 mt-1">
                       {config.last_seen_label || 'Detained since'}:{' '}

@@ -15,6 +15,13 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
   const profileImage = person.images?.find(img => img.imageType === 'primary');
   const { generateUrl } = useImageUrl();
   
+  const handleScrollToSupport = () => {
+    const element = document.getElementById('comments');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+  
   return (
     <div className="top-row-section w-full">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -123,6 +130,45 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
               </div>
             </div>
           )}
+
+          {/* Call to Action Section - Show Your Support */}
+          <div className="mt-6">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 relative overflow-hidden">
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                  <pattern id="hearts" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M20 25c-5-5-10-5-10-10 0-3 2-5 5-5 2 0 4 1 5 3 1-2 3-3 5-3 3 0 5 2 5 5 0 5-5 5-10 10z" fill="currentColor" opacity="0.3"/>
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#hearts)" />
+                </svg>
+              </div>
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <h3 className="text-white text-xl font-bold mb-2">
+                  Help Bring {person.firstName} Home
+                </h3>
+                <p className="text-white/90 text-sm mb-4">
+                  Every message of support matters. Show {person.firstName} and their family that the community stands with them.
+                </p>
+                <button
+                  onClick={handleScrollToSupport}
+                  className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Show Your Support
+                  </span>
+                </button>
+                <p className="text-white/70 text-xs mt-3">
+                  Leave a message or show anonymous support below
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
