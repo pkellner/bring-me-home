@@ -22,6 +22,7 @@ interface CommentData {
   showOccupation?: boolean;
   showBirthdate?: boolean;
   showCityState?: boolean;
+  showComment?: boolean;
 }
 
 interface CommentConfirmationModalProps {
@@ -229,10 +230,10 @@ export default function CommentConfirmationModal({
                           clipRule="evenodd"
                         />
                       </svg>
-                      Display just my name as supporting
+                      Display just my name as supporting (hide occupation, age, and location)
                     </li>
                   )}
-                  {commentData.requiresFamilyApproval && (
+                  {commentData.showComment && commentData.content && (
                     <li className="flex items-start">
                       <svg
                         className="h-4 w-4 text-green-500 mt-0.5 mr-2"
@@ -245,7 +246,7 @@ export default function CommentConfirmationModal({
                           clipRule="evenodd"
                         />
                       </svg>
-                      Display my name and comment if family approves
+                      Display my comment text
                     </li>
                   )}
                   {commentData.showOccupation && commentData.occupation && (

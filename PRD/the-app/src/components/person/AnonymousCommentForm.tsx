@@ -37,9 +37,9 @@ export default function AnonymousCommentForm({
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [savedFormData, setSavedFormData] = useState<Record<string, string>>({});
-  const [requiresFamilyApproval, setRequiresFamilyApproval] = useState(true);
   const [showOccupation, setShowOccupation] = useState(true);
   const [showBirthdate, setShowBirthdate] = useState(true);
+  const [showComment, setShowComment] = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -79,9 +79,9 @@ export default function AnonymousCommentForm({
     setDisplayNameOnly(false);
     setShowCityState(true);
     setPrivacyRequired(false);
-    setRequiresFamilyApproval(true);
     setShowOccupation(true);
     setShowBirthdate(true);
+    setShowComment(true);
     setIsDirty(false);
     setSavedFormData({});
     if (formRef.current) {
@@ -212,6 +212,7 @@ export default function AnonymousCommentForm({
         </div>
 
         <input type="hidden" name="personId" value={personId} />
+        <input type="hidden" name="requiresFamilyApproval" value="true" />
 
         {/* Name fields */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -540,22 +541,22 @@ export default function AnonymousCommentForm({
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
-                Display just my name as supporting
+                Display just my name as supporting (hide occupation, age, and location)
               </span>
             </label>
 
             <label className="flex items-start">
               <input
                 type="checkbox"
-                name="requiresFamilyApproval"
+                name="showComment"
                 value="true"
-                checked={requiresFamilyApproval}
-                onChange={(e) => setRequiresFamilyApproval(e.target.checked)}
+                checked={showComment}
+                onChange={(e) => setShowComment(e.target.checked)}
                 disabled={privacyRequired}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
-                Display my name and comment if the family approves first
+                Display my comment text (requires family approval)
               </span>
             </label>
 
@@ -571,10 +572,10 @@ export default function AnonymousCommentForm({
                   if (isChecked) {
                     // Disable and uncheck all display-related checkboxes
                     setDisplayNameOnly(false);
-                    setRequiresFamilyApproval(false);
                     setShowOccupation(false);
                     setShowBirthdate(false);
                     setShowCityState(false);
+                    setShowComment(false);
                   }
                 }}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -616,7 +617,7 @@ export default function AnonymousCommentForm({
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">
-                Show my birthdate publicly (if provided)
+                Show my age publicly (if birthdate provided)
               </span>
             </label>
 
@@ -727,11 +728,11 @@ export default function AnonymousCommentForm({
           zipCode: (pendingFormData?.get('zipCode') as string) || undefined,
           wantsToHelpMore: pendingFormData?.get('wantsToHelpMore') === 'true',
           displayNameOnly: pendingFormData?.get('displayNameOnly') === 'true',
-          requiresFamilyApproval:
-            pendingFormData?.get('requiresFamilyApproval') === 'true',
+          requiresFamilyApproval: true,
           showOccupation: pendingFormData?.get('showOccupation') === 'true',
           showBirthdate: pendingFormData?.get('showBirthdate') === 'true',
           showCityState: pendingFormData?.get('showCityState') === 'true',
+          showComment: pendingFormData?.get('showComment') === 'true',
           privateNoteToFamily:
             (pendingFormData?.get('privateNoteToFamily') as string) || undefined,
         }}

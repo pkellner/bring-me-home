@@ -431,6 +431,22 @@ const towns = townsFromDb.map(town => ({
 4. **Development Check**: In development, Next.js will show errors in the terminal
 5. **Quick Test**: If you see the error when a component is rendered but not when it's commented out, the props passed to that component contain circular references
 
+**⚠️ DATE SERIALIZATION IN SSR ⚠️**
+When passing data from server to client components that will be hydrated during SSR (like public pages), Date objects must be serialized to strings to prevent hydration mismatches. However, admin components that are all client-side can handle Date objects directly.
+
+**Example:**
+```typescript
+// For public pages (SSR) - serialize dates
+const serializedComment = {
+  ...comment,
+  createdAt: comment.createdAt.toISOString(),
+  updatedAt: comment.updatedAt.toISOString(),
+};
+
+// For admin pages (client components) - no serialization needed
+<AdminGrid comments={comments} />
+```
+
 ### Common Tasks
 
 **Adding a New Admin Page**
@@ -444,6 +460,7 @@ const towns = townsFromDb.map(town => ({
 2. Run `npm run db:migrate -- --name description_of_change`
 3. Run `npm run db:generate`
 4. Update relevant server actions and types
+5. Update sanitized types if adding/removing fields
 
 **Working with Images**
 1. Use ImageUpload component for uploads
@@ -494,3 +511,16 @@ const towns = townsFromDb.map(town => ({
   - Fixed MultiLanguageStoryEditor to use simplified story objects
   - Added extensive documentation and warnings throughout codebase
   - This error has occurred multiple times - see "Critical Issues to Avoid" section
+- **FIX**: Resolved date serialization issues in comment pages
+  - Fixed comment approval functionality that was broken due to missing date serialization
+  - Added proper date serialization for SSR pages while keeping admin pages with Date objects
+  - Documented the difference between SSR and client-only component date handling
+- **FIX**: Fixed missing `privacyRequiredDoNotShowPublicly` field in person page query
+  - Added missing field to comment query in `/[townSlug]/[personSlug]/page.tsx`
+  - Verified `displayNameOnly` checkbox functionality works correctly
+  - Updated checkbox text to clarify it hides occupation, age, and location (not the comment)
+- **ENHANCEMENT**: Added checkbox to control comment text visibility
+  - Added "Display my comment text (requires family approval)" checkbox to comment form
+  - Removed requiresFamilyApproval checkbox (all comments require approval by default)
+  - Comment text can now be hidden independently of name display
+  - When unchecked, shows "Showing support" instead of comment text

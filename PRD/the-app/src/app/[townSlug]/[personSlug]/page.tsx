@@ -212,6 +212,7 @@ async function getPersonData(townSlug: string, personSlug: string) {
           wantsToHelpMore: true,
           displayNameOnly: true,
           requiresFamilyApproval: true,
+          privacyRequiredDoNotShowPublicly: true,
           isApproved: true,
           isActive: true,
           personId: true,

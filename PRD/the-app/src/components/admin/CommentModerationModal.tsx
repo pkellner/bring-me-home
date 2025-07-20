@@ -409,7 +409,7 @@ export default function CommentModerationModal({
                     disabled={!isSiteAdmin || privacyRequired}
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">
-                    Display just my name as supporting (hide other details)
+                    Display just my name as supporting (hide occupation, age, and location)
                   </span>
                 </label>
               </div>
