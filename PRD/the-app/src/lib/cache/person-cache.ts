@@ -522,7 +522,7 @@ export async function getCachedPersonData(
       supportMapMetadata,
     };
 
-    cacheStats.recordDatabaseQuery();
+    cacheStats.recordDatabaseQuery(cacheKey);
 
     // Update caches with fresh data
     const [memoryCache, redisCache] = await Promise.all([
@@ -548,7 +548,14 @@ export async function getCachedPersonData(
     const cachedData = await memoryCache.get<PersonPageData>(cacheKey);
     
     if (cachedData) {
-      cacheStats.recordMemoryHit();
+      const size = memoryCache.getSize ? memoryCache.getSize(cacheKey) : 0;
+      const entryInfo = memoryCache.getEntryInfo ? memoryCache.getEntryInfo(cacheKey) : null;
+      const ttlInfo = entryInfo ? {
+        ttl: entryInfo.ttl,
+        cachedAt: entryInfo.cachedAt,
+        expiresAt: entryInfo.expiresAt,
+      } : undefined;
+      cacheStats.recordMemoryHit(cacheKey, size, ttlInfo);
       return {
         data: cachedData,
         source: 'memory',
@@ -556,10 +563,10 @@ export async function getCachedPersonData(
       };
     }
     
-    cacheStats.recordMemoryMiss();
+    cacheStats.recordMemoryMiss(cacheKey);
   } catch (error) {
     console.error('Memory cache error:', error);
-    cacheStats.recordMemoryMiss();
+    cacheStats.recordMemoryMiss(cacheKey);
   }
 
   // Try Redis cache
@@ -569,7 +576,15 @@ export async function getCachedPersonData(
       const cachedData = await redisCache.get<PersonPageData>(cacheKey);
       
       if (cachedData) {
-        cacheStats.recordRedisHit();
+        const size = redisCache.getSize ? redisCache.getSize(cacheKey) : 0;
+        // Redis doesn't have getEntryInfo, but we can estimate based on TTL
+        const redisTtl = parseInt(process.env.CACHE_REDIS_TTL || '3600');
+        const ttlInfo = {
+          ttl: redisTtl,
+          cachedAt: new Date(), // We don't know the exact time
+          expiresAt: new Date(Date.now() + redisTtl * 1000),
+        };
+        cacheStats.recordRedisHit(cacheKey, size, ttlInfo);
         
         // Populate memory cache from Redis data
         try {
@@ -586,16 +601,16 @@ export async function getCachedPersonData(
         };
       }
       
-      cacheStats.recordRedisMiss();
+      cacheStats.recordRedisMiss(cacheKey);
     }
   } catch (error) {
     console.error('Redis cache error:', error);
-    cacheStats.recordRedisMiss();
+    cacheStats.recordRedisMiss(cacheKey);
   }
 
   // Fall back to database
   const person = await getPersonDataFromDatabase(townSlug, personSlug);
-  cacheStats.recordDatabaseQuery();
+  cacheStats.recordDatabaseQuery(cacheKey);
   
   if (!person) {
     return {

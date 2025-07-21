@@ -11,28 +11,36 @@ interface PersonPageClientProps {
   townSlug: string;
   personSlug: string;
   adminLinkDelay: number;
+  spinnerDelay: number;
 }
 
-export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay }: PersonPageClientProps) {
+export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay, spinnerDelay }: PersonPageClientProps) {
   const [data, setData] = useState<PersonPageData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let spinnerTimer: ReturnType<typeof setTimeout>;
+    const abortController = new AbortController();
     
-    // Show spinner after 100ms to avoid flash for fast loads
-    const spinnerTimer = setTimeout(() => {
-      if (mounted && loading) {
-        setShowSpinner(true);
-      }
-    }, 100);
+    // Reset spinner state on prop changes
+    setShowSpinner(false);
+    
+    // Start fetching immediately (no artificial delay)
+    const fetchData = async () => {
+      // Set up spinner timer
+      spinnerTimer = setTimeout(() => {
+        if (mounted) {
+          setShowSpinner(true);
+        }
+      }, spinnerDelay);
 
-    // Add 1 second delay as requested
-    const fetchTimer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/person-data/${townSlug}/${personSlug}`);
+        const response = await fetch(`/api/person-data/${townSlug}/${personSlug}`, {
+          signal: abortController.signal
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch person data');
@@ -41,41 +49,52 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay 
         const personData: PersonPageData = await response.json();
         
         if (mounted) {
-          console.log('PersonPageClient received data:', {
-            hasPerson: !!personData.person,
-            hasPermissions: !!personData.permissions,
-            hasSupportMapMetadata: !!personData.supportMapMetadata,
-            supportMapMetadata: personData.supportMapMetadata
-          });
+          clearTimeout(spinnerTimer);
           setData(personData);
-          setLoading(false);
+          setIsDataReady(true);
+          setShowSpinner(false);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'An error occurred');
-          setLoading(false);
+          clearTimeout(spinnerTimer);
+          // Don't set error for abort
+          if (err instanceof Error && err.name !== 'AbortError') {
+            setError(err.message);
+            setIsDataReady(true);
+          }
+          setShowSpinner(false);
         }
       }
-    }, 1000); // 1 second delay
+    };
+
+    fetchData();
 
     return () => {
       mounted = false;
-      clearTimeout(spinnerTimer);
-      clearTimeout(fetchTimer);
+      abortController.abort();
+      if (spinnerTimer) {
+        clearTimeout(spinnerTimer);
+      }
     };
-  }, [townSlug, personSlug, loading]);
+  }, [townSlug, personSlug, spinnerDelay]);
 
-  if (loading && showSpinner) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="mt-4 text-gray-600">Loading person information...</p>
+  // Still loading or waiting for data - show spinner or blank based on delay
+  if (!isDataReady) {
+    if (showSpinner) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <p className="mt-4 text-gray-600">Loading person information...</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    // If not ready but spinner delay hasn't passed, show blank page
+    return <div className="min-h-screen bg-gray-50"></div>;
   }
 
+  // Only show error after data fetch is complete
   if (error || !data || !data.person) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

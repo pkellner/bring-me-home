@@ -60,6 +60,17 @@ const mockRedisCache = {
 jest.spyOn(cacheManager, 'getMemoryCache').mockResolvedValue(mockMemoryCache);
 jest.spyOn(cacheManager, 'getRedisCache').mockResolvedValue(mockRedisCache);
 
+// Mock cache stats
+jest.mock('@/lib/cache/cache-stats', () => ({
+  cacheStats: {
+    recordMemoryHit: jest.fn(),
+    recordMemoryMiss: jest.fn(),
+    recordRedisHit: jest.fn(),
+    recordRedisMiss: jest.fn(),
+    recordDatabaseQuery: jest.fn(),
+  },
+}));
+
 describe('PersonCache', () => {
   const mockPerson = {
     id: 'person-1',
@@ -185,6 +196,9 @@ describe('PersonCache', () => {
       expect(mockMemoryCache.get).toHaveBeenCalledWith('person:test-town:john-doe:v1');
       expect(mockRedisCache.get).not.toHaveBeenCalled();
       expect(prisma.person.findFirst).not.toHaveBeenCalled();
+      
+      // Should record cache hit with key
+      expect(cacheStats.recordMemoryHit).toHaveBeenCalledWith('person:test-town:john-doe:v1');
     });
 
     it('should return data from Redis when memory cache misses', async () => {

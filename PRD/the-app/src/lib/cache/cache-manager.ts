@@ -6,6 +6,8 @@ interface CacheEntry {
   value: string;
   expires: number;
   size: number; // Size in bytes
+  ttl: number; // Original TTL in milliseconds
+  cachedAt: number; // When cached (timestamp)
 }
 
 // Memory size tracking
@@ -28,6 +30,7 @@ function createMemoryCache(ttl: number, maxSizeBytes: number) {
 
   const calculateSize = (value: string): number => {
     // Rough estimate: 2 bytes per character for UTF-16 + overhead
+    if (!value) return 100; // Just overhead for null/undefined
     return value.length * 2 + 100; // 100 bytes overhead estimate
   };
 
@@ -58,6 +61,29 @@ function createMemoryCache(ttl: number, maxSizeBytes: number) {
     return JSON.parse(item.value);
   };
 
+  const getSize = (key: string): number => {
+    const item = cache.get(key);
+    return item ? item.size : 0;
+  };
+
+  const getEntryInfo = (key: string) => {
+    const item = cache.get(key);
+    if (!item) return null;
+    
+    const now = Date.now();
+    const cachedAt = new Date(item.cachedAt);
+    const expiresAt = new Date(item.expires);
+    const remainingSeconds = Math.max(0, Math.floor((item.expires - now) / 1000));
+    
+    return {
+      size: item.size,
+      ttl: item.ttl / 1000, // Convert to seconds
+      cachedAt,
+      expiresAt,
+      remainingSeconds,
+    };
+  };
+
   const set = async <T>(key: string, value: T, customTtl?: number): Promise<void> => {
     const finalTtl = customTtl || ttl;
     const expires = Date.now() + finalTtl;
@@ -81,6 +107,8 @@ function createMemoryCache(ttl: number, maxSizeBytes: number) {
         value: valueStr,
         expires,
         size,
+        ttl: finalTtl,
+        cachedAt: Date.now(),
       });
       currentSize += size;
     }
@@ -110,17 +138,25 @@ function createMemoryCache(ttl: number, maxSizeBytes: number) {
     }
   };
 
-  // Run cleanup every minute
-  const cleanupInterval = setInterval(cleanup, 60000);
+  // Run cleanup periodically if enabled
+  let cleanupInterval: NodeJS.Timeout | null = null;
+  if (process.env.CACHE_MEMORY_CLEANUP_ENABLED === 'true') {
+    const cleanupIntervalMs = parseInt(process.env.CACHE_MEMORY_CLEANUP_INTERVAL_MS || '60000');
+    cleanupInterval = setInterval(cleanup, cleanupIntervalMs);
+  }
 
   // Return cache interface with cleanup method
   return { 
     get, 
     set, 
     del, 
-    reset, 
+    reset,
+    getSize,
+    getEntryInfo,
     getMemoryStats,
-    destroy: () => clearInterval(cleanupInterval)
+    destroy: () => {
+      if (cleanupInterval) clearInterval(cleanupInterval);
+    }
   };
 }
 
@@ -169,7 +205,13 @@ function createRedisCache(redis: Redis | null, ttl: number) {
     }
   };
 
-  return { get, set, del, reset };
+  const getSize = (key: string): number => {
+    // For Redis, we can't get the exact size without fetching the value
+    // This is an estimate based on key length
+    return key.length * 2 + 100; // Rough estimate
+  };
+
+  return { get, set, del, reset, getSize };
 }
 
 // Cache interface
@@ -178,6 +220,14 @@ export interface Cache {
   set<T>(key: string, value: T, ttl?: number): Promise<void>;
   del(key: string): Promise<void>;
   reset(): Promise<void>;
+  getSize?: (key: string) => number;
+  getEntryInfo?: (key: string) => {
+    size: number;
+    ttl: number;
+    cachedAt: Date;
+    expiresAt: Date;
+    remainingSeconds: number;
+  } | null;
   getMemoryStats?: () => MemoryStats;
   destroy?: () => void;
 }

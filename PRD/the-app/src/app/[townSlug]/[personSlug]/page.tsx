@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { prisma } from '@/lib/prisma';
+import { getCachedPersonData } from '@/lib/cache/person-cache';
 import PersonPageClient from './PersonPageClient';
 
 interface PersonPageProps {
@@ -12,26 +12,8 @@ export async function generateMetadata({
 }: PersonPageProps): Promise<Metadata> {
   const { townSlug, personSlug } = await params;
 
-  const person = await prisma.person.findFirst({
-    where: {
-      slug: personSlug,
-      town: {
-        slug: townSlug,
-        isActive: true,
-      },
-      isActive: true,
-    },
-    select: {
-      firstName: true,
-      lastName: true,
-      story: true,
-      town: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
+  const cachedResult = await getCachedPersonData(townSlug, personSlug);
+  const person = cachedResult.data?.person;
 
   if (!person) {
     return {
@@ -97,20 +79,9 @@ export const revalidate = 0;
 export default async function PersonPage({ params }: PersonPageProps) {
   const { townSlug, personSlug } = await params;
   
-  // Check if person exists for metadata generation
-  const personExists = await prisma.person.findFirst({
-    where: {
-      slug: personSlug,
-      town: {
-        slug: townSlug,
-        isActive: true,
-      },
-      isActive: true,
-    },
-    select: {
-      id: true,
-    },
-  });
+  // Check if person exists using cache
+  const cachedResult = await getCachedPersonData(townSlug, personSlug);
+  const personExists = cachedResult.data?.person;
 
   if (!personExists) {
     notFound();
@@ -121,11 +92,17 @@ export default async function PersonPage({ params }: PersonPageProps) {
     ? parseInt(process.env.ADMIN_LINK_DELAY_SECONDS)
     : 5;
 
+  // Get spinner delay from environment
+  const spinnerDelay = process.env.SPINNER_DELAY_MS
+    ? parseInt(process.env.SPINNER_DELAY_MS)
+    : 500;
+
   return (
     <PersonPageClient
       townSlug={townSlug}
       personSlug={personSlug}
       adminLinkDelay={adminLinkDelay}
+      spinnerDelay={spinnerDelay}
     />
   );
 }

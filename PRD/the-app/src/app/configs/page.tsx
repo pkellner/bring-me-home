@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
 import HealthCheckSection from '@/components/configs/HealthCheckSection';
 import ImageServingDemo from '@/components/configs/ImageServingDemo';
+import CacheStatsSection from '@/components/configs/CacheStatsSection';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -14,16 +15,16 @@ export const metadata: Metadata = {
 
 function getTimeSinceLastBuild(buildDateISO: string): string {
   if (buildDateISO === 'Not set') return 'Unknown';
-  
+
   try {
     const buildDate = new Date(buildDateISO);
     const now = new Date();
     const diffMs = now.getTime() - buildDate.getTime();
-    
+
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (diffDays > 0) {
       return `${diffDays} day${diffDays > 1 ? 's' : ''}, ${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
     } else if (diffHours > 0) {
@@ -51,6 +52,9 @@ export default async function ConfigsPage() {
       return false;
     }
   });
+
+  // Check if user is site admin specifically
+  const isSiteAdmin = session?.user?.roles?.some(role => role.name === 'site-admin') || false;
 
   const timeSinceLastBuild = getTimeSinceLastBuild(config.build.dateISO);
 
@@ -146,6 +150,9 @@ export default async function ConfigsPage() {
                 </dl>
               </div>
             </section>
+
+            {/* Cache Statistics - Site Admin Only */}
+            {isSiteAdmin && <CacheStatsSection />}
 
             {/* Environment Information */}
             <section>

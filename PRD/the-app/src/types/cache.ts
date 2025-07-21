@@ -1,18 +1,33 @@
 export type CacheSource = 'memory' | 'redis' | 'database';
 
+export interface KeyStats {
+  hits: number;
+  misses: number;
+  lastAccess: Date;
+  size: number; // Size in bytes
+  ttl?: number; // Original TTL in seconds
+  cachedAt?: Date; // When the item was cached
+  expiresAt?: Date; // When the item expires
+}
+
 export interface CacheStats {
   memory: {
     hits: number;
     misses: number;
     hitRate: number;
+    totalSize: number; // Total size in bytes
+    byKey: Record<string, KeyStats>;
   };
   redis: {
     hits: number;
     misses: number;
     hitRate: number;
+    totalSize: number; // Total size in bytes
+    byKey: Record<string, KeyStats>;
   };
   database: {
     queries: number;
+    byKey: Record<string, number>;
   };
   lastReset: Date;
 }
@@ -28,8 +43,19 @@ export interface CacheOptions {
   ttl?: number;
 }
 
-// Import the actual type instead of using Record<string, unknown>
-interface SerializedPersonData {
+// Define the proper SerializedPersonData type
+export interface SerializedPersonData {
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  story: string | null;
+  town: {
+    id: string;
+    name: string;
+    slug: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 

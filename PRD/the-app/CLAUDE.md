@@ -239,6 +239,7 @@ CONDUCT_EMAIL="conduct@example.com"      # Code of conduct violations
 REDIS_CONNECTION_STRING="" # for caching
 NEXT_PUBLIC_CONSOLE_LOGGING="false" # debug logging
 IPINFO_TOKEN="" # For geolocation services
+SPINNER_DELAY_MS="500" # Delay before showing loading spinner (in milliseconds)
 
 # User Passwords (for seeding)
 SEED_ADMIN_PASSWORD="Qm3Xr7Np9K"
@@ -634,3 +635,14 @@ const serializedComment = {
   - Fixed issue where users within 5-minute cooldown didn't receive email
   - Now resends email with existing token if requested within cooldown period
   - Improves user experience by always providing reset link when requested
+- **ENHANCEMENT**: Configurable delayed spinner for PersonPageClient
+  - Removed artificial 1-second delay from data fetching
+  - Added configurable `SPINNER_DELAY_MS` environment variable (default: 500ms)
+  - Spinner only shows if data loading takes longer than the configured delay
+  - Prevents spinner flash for fast-loading pages while showing feedback for slower loads
+  - Clean page render without visual artifacts for sub-500ms loads
+- **FIX**: Resolved hydration errors in CacheStatsSection
+  - Fixed inconsistent heading text between server and client renders
+  - Added `typeof window !== 'undefined'` checks for confirm dialogs
+  - Cache statistics no longer auto-update (loads once, manual refresh only)
+  - Moved cache statistics to appear directly below build information in /configs page
