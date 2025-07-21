@@ -17,26 +17,28 @@ interface PersonPageClientProps {
 export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay, spinnerDelay }: PersonPageClientProps) {
   const [data, setData] = useState<PersonPageData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showSpinner, setShowSpinner] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    let spinnerTimer: ReturnType<typeof setTimeout>;
     const abortController = new AbortController();
     
-    // Reset spinner state on prop changes
+    // Reset states on prop changes
     setShowSpinner(false);
+    setIsDataReady(false);
+    setData(null);
+    setError(null);
     
-    // Start fetching immediately (no artificial delay)
+    // Set up spinner timer BEFORE starting fetch
+    const spinnerTimer = setTimeout(() => {
+      if (mounted) {
+        setShowSpinner(true);
+      }
+    }, spinnerDelay);
+    
+    // Start fetching
     const fetchData = async () => {
-      // Set up spinner timer
-      spinnerTimer = setTimeout(() => {
-        if (mounted) {
-          setShowSpinner(true);
-        }
-      }, spinnerDelay);
-
       try {
         const response = await fetch(`/api/person-data/${townSlug}/${personSlug}`, {
           signal: abortController.signal
@@ -72,13 +74,11 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
     return () => {
       mounted = false;
       abortController.abort();
-      if (spinnerTimer) {
-        clearTimeout(spinnerTimer);
-      }
+      clearTimeout(spinnerTimer);
     };
   }, [townSlug, personSlug, spinnerDelay]);
 
-  // Still loading or waiting for data - show spinner or blank based on delay
+  // Still loading - show blank or spinner based on delay
   if (!isDataReady) {
     if (showSpinner) {
       return (
