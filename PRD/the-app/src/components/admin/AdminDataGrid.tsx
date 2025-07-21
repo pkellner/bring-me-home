@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useCallback, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import {
   ChevronDownIcon,
   ChevronUpIcon,

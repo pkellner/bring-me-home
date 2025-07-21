@@ -1,6 +1,6 @@
 import { getPublicConfig } from '@/app/actions/config';
 import { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';

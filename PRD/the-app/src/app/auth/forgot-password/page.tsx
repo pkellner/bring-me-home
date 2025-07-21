@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');

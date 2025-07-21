@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { hasPermission } from '@/lib/permissions';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { prisma } from '@/lib/prisma';
 import TownForm from '../../TownForm';
 

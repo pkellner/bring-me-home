@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { GlobeAltIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 interface PersonViewLinksProps {

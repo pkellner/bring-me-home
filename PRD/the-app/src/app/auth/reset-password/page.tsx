@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');

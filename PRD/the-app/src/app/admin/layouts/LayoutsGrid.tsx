@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import AdminDataGrid from '@/components/admin/AdminDataGrid';
 import LayoutPreview from '@/components/layouts/LayoutPreview';
 import { deleteLayout } from '@/app/actions/layouts';

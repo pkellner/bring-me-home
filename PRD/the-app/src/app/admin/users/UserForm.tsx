@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { createUser, updateUser } from '@/app/actions/users';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';

@@ -10,7 +10,7 @@
  * "Maximum call stack size exceeded" errors during Next.js SSR.
  */
 
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { useState } from 'react';
 import { Session } from 'next-auth';
 import { isSiteAdmin } from '@/lib/permissions';

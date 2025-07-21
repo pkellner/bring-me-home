@@ -30,15 +30,20 @@ export default function middleware(request: NextRequest) {
       const token = req.nextauth.token;
       const pathname = req.nextUrl.pathname;
 
-      // Enforce HTTPS in production
+      // Skip HTTPS redirect for localhost
+      const host = req.headers.get('host') || '';
+      const isLocalhost = host.includes('localhost') || 
+                         host.includes('127.0.0.1') || 
+                         host.includes('0.0.0.0');
+      
+      // Only redirect to HTTPS in production on real domains
       if (
-        process.env.NODE_ENV === 'production' &&
-        req.headers.get('x-forwarded-proto') !== 'https'
+        process.env.NODE_ENV === 'production' && 
+        !isLocalhost &&
+        req.headers.get('x-forwarded-proto') === 'http'
       ) {
         return NextResponse.redirect(
-          `https://${req.headers.get('host')}${req.nextUrl.pathname}${
-            req.nextUrl.search
-          }`,
+          `https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`,
           301
         );
       }

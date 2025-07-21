@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { usePathname } from 'next/navigation';
 import { Save, AlertCircle } from 'lucide-react';
 

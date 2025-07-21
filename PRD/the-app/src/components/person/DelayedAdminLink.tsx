@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { CogIcon } from '@heroicons/react/24/outline';
 
 interface DelayedAdminLinkProps {

@@ -4,7 +4,7 @@ import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from '../../CommentsGrid';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { ArrowLeftIcon, GlobeAltIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 interface PageProps {

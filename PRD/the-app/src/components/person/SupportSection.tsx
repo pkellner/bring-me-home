@@ -31,6 +31,11 @@ interface SupportSectionProps {
     messages: { total: number; last24Hours: number };
   };
   isAdmin?: boolean;
+  supportMapMetadata?: {
+    hasIpAddresses: boolean;
+    messageLocationCount: number;
+    supportLocationCount: number;
+  };
 }
 
 export default function SupportSection({
@@ -40,6 +45,7 @@ export default function SupportSection({
   state,
   stats,
   isAdmin = false,
+  supportMapMetadata,
 }: SupportSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [hasQuickSupported, setHasQuickSupported] = useState(false);
@@ -49,30 +55,34 @@ export default function SupportSection({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showMessages, setShowMessages] = useState(true);
   const [showSupport, setShowSupport] = useState(true);
-  const [mapMessageCount, setMapMessageCount] = useState(0);
-  const [mapSupportCount, setMapSupportCount] = useState(0);
+  const [mapMessageCount, setMapMessageCount] = useState(supportMapMetadata?.messageLocationCount || 0);
+  const [mapSupportCount, setMapSupportCount] = useState(supportMapMetadata?.supportLocationCount || 0);
   const [mapEnabled, setMapEnabled] = useState<boolean | null>(null);
-  const [hasLocationData, setHasLocationData] = useState<boolean | null>(null);
+  const [hasLocationData, setHasLocationData] = useState<boolean | null>(supportMapMetadata?.hasIpAddresses ?? null);
 
   // Check if map feature is enabled
   useEffect(() => {
     isSupportMapEnabled(isAdmin).then(setMapEnabled);
   }, [isAdmin]);
   
-  // Check if there's any IP address data (even if not geolocated yet)
+  // Only fetch support map metadata if not provided from cache
   useEffect(() => {
-    if (mapEnabled) {
+    if (mapEnabled && supportMapMetadata === undefined) {
       fetch(`/api/persons/${personId}/support-map`)
         .then(res => res.json())
         .then(data => {
-          // Show map if there are IP addresses, even if not geolocated yet
           setHasLocationData(data.hasIpAddresses || false);
           setMapMessageCount(data.locations.messages.length);
           setMapSupportCount(data.locations.support.length);
         })
         .catch(() => setHasLocationData(false));
+    } else if (supportMapMetadata) {
+      // Use cached data
+      setHasLocationData(supportMapMetadata.hasIpAddresses);
+      setMapMessageCount(supportMapMetadata.messageLocationCount);
+      setMapSupportCount(supportMapMetadata.supportLocationCount);
     }
-  }, [personId, mapEnabled]);
+  }, [personId, mapEnabled, supportMapMetadata]);
 
   // Check if user has already quick supported
   useEffect(() => {
@@ -205,6 +215,7 @@ export default function SupportSection({
   const messagesPercent = totalSupport > 0 ? (stats!.messages.total / totalSupport) * 100 : 0;
   const quickPercent = totalSupport > 0 ? (stats!.anonymousSupport.total / totalSupport) * 100 : 0;
 
+
   // Remove the early return - we want to show the support options even with no data
   // if (totalSupport === 0) {
   //   return null;
@@ -255,7 +266,7 @@ export default function SupportSection({
         )}
         
         {/* View Support Map Button - Only show if feature is enabled, there's data, and location data exists */}
-        {mapEnabled && totalSupport > 0 && hasLocationData && (
+        {mapEnabled && totalSupport > 0 && (hasLocationData || mapMessageCount > 0 || mapSupportCount > 0) && (
           <>
             <div className="mb-4">
               <button

@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import Link from 'next/link'
+import Link from '@/components/OptimizedLink'
 import HeaderNavigation from '@/components/HeaderNavigation'
 import FooterWrapper from '@/components/FooterWrapper'
 import { getSiteTextConfig } from '@/lib/config'

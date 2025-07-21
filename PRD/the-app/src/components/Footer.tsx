@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { useEnvironment } from '@/contexts/EnvironmentContext';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';

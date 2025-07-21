@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';

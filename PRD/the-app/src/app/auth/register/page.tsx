@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { registerUser } from '@/app/actions/auth';
 
 export default function RegisterPage() {

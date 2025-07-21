@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

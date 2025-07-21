@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { createTown, updateTown } from '@/app/actions/towns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

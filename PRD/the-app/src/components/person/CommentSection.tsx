@@ -29,6 +29,11 @@ interface CommentSectionProps {
   comments: Comment[];
   isAdmin?: boolean;
   isSiteAdmin?: boolean;
+  supportMapMetadata?: {
+    hasIpAddresses: boolean;
+    messageLocationCount: number;
+    supportLocationCount: number;
+  };
 }
 
 interface CommentFormState {
@@ -53,6 +58,7 @@ export default function CommentSection({
   comments,
   isAdmin = false,
   isSiteAdmin = false,
+  supportMapMetadata,
 }: CommentSectionProps) {
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
@@ -153,6 +159,7 @@ export default function CommentSection({
           state={state}
           stats={stats || undefined}
           isAdmin={isSiteAdmin}
+          supportMapMetadata={supportMapMetadata}
         />
         
         {/* ADMIN DEBUG PANEL - Only show for admins when cookie is set */}

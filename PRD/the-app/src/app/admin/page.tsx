@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission, hasRole } from '@/lib/permissions';
 import DashboardCard from '@/components/admin/DashboardCard';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import {
   BuildingOfficeIcon,
   UserIcon,

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
 

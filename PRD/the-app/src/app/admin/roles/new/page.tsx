@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { hasRole } from '@/lib/permissions';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { createRole } from '@/app/actions/roles';
 
 async function createRoleWithRedirect(formData: FormData) {

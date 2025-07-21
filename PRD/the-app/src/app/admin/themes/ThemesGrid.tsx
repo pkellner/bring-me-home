@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import AdminDataGrid from '@/components/admin/AdminDataGrid';
 import ThemePreview from '@/components/themes/ThemePreview';
 import { deleteTheme } from '@/app/actions/themes';

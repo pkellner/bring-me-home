@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import AdminDataGrid, {
   GridAction,
   GridColumn,

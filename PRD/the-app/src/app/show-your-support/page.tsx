@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { getSiteTextConfig } from '@/lib/config';
 import HeaderNavigation from '@/components/HeaderNavigation';
 import FooterWrapper from '@/components/FooterWrapper';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import { getCookie, setCookie } from '@/lib/cookies';
 
 export default function CookieBanner() {

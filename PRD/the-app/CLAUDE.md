@@ -228,6 +228,7 @@ AWS_S3_BUCKET_NAME="" # if using S3
 AWS_ACCESS_KEY_ID="" # if using S3
 AWS_SECRET_ACCESS_KEY="" # if using S3
 
+
 # Email Configuration (centralized in /src/config/emails.ts)
 ADMIN_EMAIL="admin@example.com"          # General support email
 HELP_EMAIL="help@example.com"            # Families requesting listings

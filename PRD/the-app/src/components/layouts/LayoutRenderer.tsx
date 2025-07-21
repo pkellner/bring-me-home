@@ -127,6 +127,11 @@ interface LayoutRendererProps {
   };
   isAdmin?: boolean;
   isSiteAdmin?: boolean;
+  supportMapMetadata?: {
+    hasIpAddresses: boolean;
+    messageLocationCount: number;
+    supportLocationCount: number;
+  };
 }
 
 const nonTemplateLayout = true;
@@ -137,6 +142,7 @@ export default function LayoutRenderer({
   theme,
   isAdmin = false,
   isSiteAdmin = false,
+  supportMapMetadata,
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
 
@@ -152,7 +158,7 @@ export default function LayoutRenderer({
     'image': () => <sections.PersonImage person={person} />,
     'hero-image': () => <sections.HeroImage person={person} />,
     'story': () => <sections.Story person={person} />,
-    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} />,
+    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} />,
     'basic-info': () => <sections.BasicInfo person={person} isAdmin={isAdmin} />,
     'sidebar-info': () => <sections.SidebarInfo person={person} />,
     'gallery-grid': () => <sections.GalleryGrid person={person} />,

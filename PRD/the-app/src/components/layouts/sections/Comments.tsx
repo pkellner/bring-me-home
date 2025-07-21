@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/OptimizedLink';
 import CommentSection from '@/components/person/CommentSection';
 import RecaptchaProvider from '@/components/providers/RecaptchaProvider';
 import { SerializedPerson } from '../LayoutRenderer';
@@ -7,9 +7,14 @@ interface CommentsProps {
   person: SerializedPerson;
   isAdmin: boolean;
   isSiteAdmin?: boolean;
+  supportMapMetadata?: {
+    hasIpAddresses: boolean;
+    messageLocationCount: number;
+    supportLocationCount: number;
+  };
 }
 
-export default function Comments({ person, isAdmin, isSiteAdmin = false }: CommentsProps) {
+export default function Comments({ person, isAdmin, isSiteAdmin = false, supportMapMetadata }: CommentsProps) {
   return (
     <RecaptchaProvider>
       <div className="comments-section">
@@ -24,7 +29,7 @@ export default function Comments({ person, isAdmin, isSiteAdmin = false }: Comme
             </Link>
           )}
         </div>
-        <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} />
+        <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} />
       </div>
     </RecaptchaProvider>
   );
