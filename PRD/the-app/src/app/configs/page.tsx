@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
 import HealthCheckSection from '@/components/configs/HealthCheckSection';
 import ImageServingDemo from '@/components/configs/ImageServingDemo';
+import RedisDetailedStats from '@/components/RedisDetailedStats';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -222,6 +223,105 @@ export default async function ConfigsPage() {
                     </div>
                   ))}
                 </dl>
+              </div>
+            </section>
+
+            {/* Cache Configuration */}
+            <section>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                Cache Configuration
+              </h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Cache Enabled
+                    </dt>
+                    <dd className="mt-1">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          config.cache.enabled
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {config.cache.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Cache Provider
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {config.cache.provider}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Redis Connection
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      {config.cache.redisHost}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Debug Mode
+                    </dt>
+                    <dd className="mt-1">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          config.cache.debug
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {config.cache.debug ? 'On' : 'Off'}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Cache TTL Settings (seconds)</h3>
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Person Detail:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.personDetail}s</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Person Metadata:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.personMetadata}s</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Comments:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.comments}s</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Support Stats:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.supportStats}s</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">System Config:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.systemConfig}s</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">User Permissions:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.ttl.userPermissions}s</dd>
+                    </div>
+                  </dl>
+                </div>
+                
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Cache Limits</h3>
+                  <dl className="text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Comments per page:</dt>
+                      <dd className="font-mono text-gray-900">{config.cache.limits.commentsPerPage}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
             </section>
 
@@ -604,6 +704,13 @@ ${config.emailConfig.envExample.map(item => item.exampleLine).join('\n')}`}</cod
 
             {/* Health Checks */}
             {isAdmin && <HealthCheckSection />}
+
+            {/* Redis Server Statistics */}
+            {isAdmin && (
+              <section className="mt-8">
+                <RedisDetailedStats />
+              </section>
+            )}
 
             {/* Footer */}
             <div className="pt-6 border-t border-gray-200">

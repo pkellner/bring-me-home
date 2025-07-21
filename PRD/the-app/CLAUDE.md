@@ -4,9 +4,91 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **⚠️ GOLDEN RULE: Run `npm run build` after EVERY code change and ensure ZERO warnings/errors ⚠️**
 
+## Quick Reference
+
+### Most Common Commands
+```bash
+npm run dev          # Start development (port 3000/3001)
+npm run build        # ⚠️ MUST RUN BEFORE COMMITTING - Zero warnings/errors required
+npm run test         # Run tests
+npm run db:migrate   # Create migration after schema changes
+npm run db:seed      # Seed database with test data
+```
+
+### Critical Warnings to Fix Immediately
+- Unused imports/variables
+- Missing React hook dependencies  
+- TypeScript 'any' types
+- Unhandled promises
+- Circular reference errors (see Critical Issues section)
+
 ## Project Overview
 
 "Bring Me Home" is a Next.js 15 application that helps families connect with missing persons in detention centers. It features multi-tenant support for different towns, role-based access control, and community engagement through comments and support messages.
+
+## Performance & Caching
+
+**⚠️ HIGH TRAFFIC WARNING: Without caching, the site cannot handle high traffic! ⚠️**
+
+The application includes a comprehensive Redis caching layer to handle hundreds of requests per second. Key features:
+
+- **Redis Integration**: Uses existing lazy-loading Redis setup from `/src/lib/redis/`
+- **Configurable Cache TTLs**: All cache durations set via environment variables
+- **Graceful Fallback**: Works without Redis (direct DB queries)
+- **Smart Invalidation**: Automatic cache clearing when data changes
+
+### Cache Configuration
+```env
+# Cache TTL settings (in seconds)
+CACHE_TTL_PERSON_DETAIL=600         # Person page data (10 minutes)
+CACHE_TTL_PERSON_METADATA=600       # OG tags metadata (10 minutes)
+CACHE_TTL_COMMENTS=300              # Comments (5 minutes - updates frequently)
+CACHE_TTL_SUPPORT_STATS=60          # Support statistics (1 minute)
+CACHE_TTL_SYSTEM_CONFIG=86400       # System configuration (24 hours)
+CACHE_TTL_USER_PERMISSIONS=300      # User permissions (5 minutes)
+
+# Cache limits
+CACHE_COMMENTS_LIMIT=999            # Max comments to load per page
+
+# Debug cache hits/misses
+CACHE_DEBUG=true
+```
+
+### Using the Cache
+```typescript
+import { withCache, CACHE_TTL, CACHE_KEYS } from '@/lib/cache';
+
+// Cache any async operation
+const data = await withCache(
+  CACHE_KEYS.personDetail(townSlug, personSlug),
+  async () => {
+    // Expensive database query here
+    return prisma.person.findFirst({...});
+  },
+  CACHE_TTL.PERSON_DETAIL
+);
+
+// Invalidate cache after updates
+import { cacheInvalidation } from '@/lib/cache';
+await cacheInvalidation.person(townSlug, personSlug, personId);
+```
+
+### Performance Impact
+- **Without cache**: 5-6 DB queries per page hit, crashes at 100+ requests/second
+- **With cache**: 0-1 DB queries, handles 1000+ requests/second
+
+### Enabling Cache Mode
+```env
+# Set this to true to enable caching (defaults to false)
+PERSON_PAGE_USE_CACHE=true
+```
+
+### Monitoring Redis Health
+- **Admin users** see Redis health stats in the support section of person pages
+- **Detailed stats** available at `/configs` page for admins
+- Stats update every 2 seconds for first minute with auto-stop
+
+See `PERFORMANCE_OPTIMIZATION_GUIDE.md` for complete implementation details.
 
 ## Essential Commands
 
@@ -571,65 +653,65 @@ const serializedComment = {
 - `/api/profile/email` - Update user email address (all authenticated users)
 - `/api/profile/password` - Change password (requires current password)
 
-### Recent Changes
+### Testing Strategy
 
-- Fixed middleware to exclude all /api/ routes (was causing 404s)
-- Implemented anonymous support system with cookie tracking
-- Added CloudFront CDN integration for all public images
-- Created native cookie utilities to replace cookies-next
-- Updated "Leave a Message" flow to skip intermediate steps
-- Added reCAPTCHA v3 integration for form protection
-- Implemented comprehensive privacy controls in comment moderation system
-- Added private note display in admin comments grid
-- Enhanced role-based permissions for privacy settings
-- Fixed comment submission form privacy checkbox behavior
-- Hidden "Group by person" checkbox when viewing single person's comments
-- Created centralized email configuration system with TypeScript safety
-- Added email configuration display to /configs page
-- Added Learn More links to footer across all pages
-- Created dedicated Learn More page with family participation guide
-- Implemented API-based image serving for learn-more page images
-- **CRITICAL FIX**: Resolved circular reference errors in person edit page
-  - Created sanitized types to prevent Prisma relation circular references
-  - Fixed MultiLanguageStoryEditor to use simplified story objects
-  - Added extensive documentation and warnings throughout codebase
-  - This error has occurred multiple times - see "Critical Issues to Avoid" section
-- **FIX**: Resolved date serialization issues in comment pages
-  - Fixed comment approval functionality that was broken due to missing date serialization
-  - Added proper date serialization for SSR pages while keeping admin pages with Date objects
-  - Documented the difference between SSR and client-only component date handling
-- **FIX**: Fixed missing `privacyRequiredDoNotShowPublicly` field in person page query
-  - Added missing field to comment query in `/[townSlug]/[personSlug]/page.tsx`
-  - Verified `displayNameOnly` checkbox functionality works correctly
-  - Updated checkbox text to clarify it hides occupation, age, and location (not the comment)
-- **ENHANCEMENT**: Added checkbox to control comment text visibility
-  - Added "Display my comment text (requires family approval)" checkbox to comment form
-  - Removed requiresFamilyApproval checkbox (all comments require approval by default)
-  - Comment text can now be hidden independently of name display
-  - When unchecked, shows "Showing support" instead of comment text
-- **FIX**: Fixed GDPR cookie banner persistence on iPhone
-  - Switched from localStorage to actual cookies for proper persistence
-  - Cookie banner now correctly remembers user's consent choice across sessions
-- **ENHANCEMENT**: Redesigned authentication pages
-  - Modern styled login page with gradient background and improved spacing
-  - Added forgot password functionality with actual email sending
-  - Added create account button that links to registration page
-  - Updated registration page with matching modern design
-- **FEATURE**: Implemented complete password reset functionality
-  - Added PasswordResetToken model to track reset requests
-  - Created email service using nodemailer for SMTP support
-  - Reset tokens expire after 1 hour for security
-  - Prevents email enumeration by always returning success
-  - Rate limits token creation with 5-minute cooldown
-  - Requires SMTP configuration for production use
-- **ENHANCEMENT**: Multi-provider email system
-  - Added support for SendGrid and AWS SES in addition to SMTP
-  - Email provider selectable via `EMAIL_PROVIDER` environment variable
-  - Console provider for development (logs emails to terminal)
-  - Automatic fallback to console if email sending fails
-  - Comprehensive EMAIL.md documentation for all providers
-  - Added `EMAIL_PROVIDER_LOG_SMTP` for detailed provider response logging
-- **FIX**: Password reset always sends email
-  - Fixed issue where users within 5-minute cooldown didn't receive email
-  - Now resends email with existing token if requested within cooldown period
-  - Improves user experience by always providing reset link when requested
+**Test Coverage Requirements**: 60% minimum for branches, functions, lines, and statements
+
+**Test Organization**:
+- Unit tests: Co-located with components (`Component.test.tsx`)
+- Integration tests: In `__tests__` directories
+- E2E tests: In `/e2e` directory using Playwright
+- API tests: Named `route.test.ts` for API endpoints
+
+**Writing Tests**:
+```typescript
+// Use existing test utilities
+import { renderWithProviders } from '@/test-utils';
+import { mockSession } from '@/test-utils/auth';
+
+// Mock Prisma in tests
+jest.mock('@/lib/prisma');
+
+// Always clean up after tests
+afterEach(() => {
+  jest.clearAllMocks();
+});
+```
+
+### Performance Optimization
+
+1. **Image Loading**
+   - Use Next.js Image component with proper sizes
+   - CDN URLs for public pages
+   - Sharp optimization for uploaded images
+   - Max 10MB uploads (configured in next.config.ts)
+
+2. **Database Queries**
+   - Use Prisma `include` carefully to avoid N+1 queries
+   - Consider Redis caching for frequently accessed data
+   - Index critical fields in schema
+
+3. **Client Bundle Size**
+   - Avoid importing Prisma types in client components
+   - Use dynamic imports for large components
+   - Keep sanitized types minimal
+
+### Deployment Notes
+
+**Production Checklist**:
+1. Run `npm run build` - must succeed with zero warnings
+2. Set all required environment variables
+3. Run database migrations: `npm run db:deploy:prod`
+4. Configure CDN for image delivery
+5. Set up email provider (SendGrid recommended)
+6. Enable reCAPTCHA for form protection
+7. Configure Redis for caching (optional but recommended)
+
+**Docker Deployment**:
+```bash
+docker build -t bring-me-home .
+docker run -p 3000:3000 \
+  -e DATABASE_URL="..." \
+  -e NEXTAUTH_SECRET="..." \
+  bring-me-home
+```

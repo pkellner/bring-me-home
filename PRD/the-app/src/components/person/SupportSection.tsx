@@ -6,6 +6,7 @@ import AnonymousCommentForm from './AnonymousCommentForm';
 import { getCookie, setCookie, deleteCookie } from '@/lib/cookies';
 import { isSupportMapEnabled } from '@/app/actions/support-map';
 import * as gtag from '@/lib/gtag';
+import RedisHealthStats from '../RedisHealthStats';
 
 // Dynamic import for the map component to avoid SSR issues
 const SupportMap = dynamic(() => import('./SupportMap'), {
@@ -212,14 +213,17 @@ export default function SupportSection({
 
   return (
       <div className="mb-8">
-        {/* Mini stats bar - only show if there's data */}
-        {stats && totalSupport > 0 && (
+        {/* Mini stats bar - only show if there's data OR if admin */}
+        {(stats && totalSupport > 0) || isAdmin ? (
           <div className="mb-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 transition-all duration-500">
             <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
               <span className="font-medium">Community Support</span>
-              <span className="font-semibold text-gray-800">
-                {totalSupport > 0 ? `${totalSupport} total` : 'Be the first!'}
-              </span>
+              <div className="flex items-center gap-4">
+                {isAdmin && <RedisHealthStats minimal={true} />}
+                <span className="font-semibold text-gray-800">
+                  {totalSupport > 0 ? `${totalSupport} total` : 'Be the first!'}
+                </span>
+              </div>
             </div>
             {totalSupport > 0 ? (
               <>
@@ -229,21 +233,21 @@ export default function SupportSection({
                       <div 
                         className="bg-blue-500 transition-all duration-700 ease-out"
                         style={{ width: `${messagesPercent}%` }}
-                        title={`${stats.messages.total} messages`}
+                        title={`${stats!.messages.total} messages`}
                       />
                     )}
                     {quickPercent > 0 && (
                       <div 
                         className="bg-pink-500 transition-all duration-700 ease-out"
                         style={{ width: `${quickPercent}%` }}
-                        title={`${stats.anonymousSupport.total} quick supports`}
+                        title={`${stats!.anonymousSupport.total} quick supports`}
                       />
                     )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs">
-                  <span className="text-gray-600">✍️ {stats.messages.total} messages</span>
-                  <span className="text-gray-600">💗 {stats.anonymousSupport.total} quick</span>
+                  <span className="text-gray-600">✍️ {stats!.messages.total} messages</span>
+                  <span className="text-gray-600">💗 {stats!.anonymousSupport.total} quick</span>
                 </div>
               </>
             ) : (
@@ -252,7 +256,7 @@ export default function SupportSection({
               </div>
             )}
           </div>
-        )}
+        ) : null}
         
         {/* View Support Map Button - Only show if feature is enabled, there's data, and location data exists */}
         {mapEnabled && totalSupport > 0 && hasLocationData && (

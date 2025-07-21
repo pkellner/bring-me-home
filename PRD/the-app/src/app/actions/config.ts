@@ -40,6 +40,25 @@ export async function getPublicConfig() {
       googleAnalytics: Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
     },
 
+    // Cache configuration
+    cache: {
+      enabled: process.env.PERSON_PAGE_USE_CACHE === 'true',
+      provider: process.env.REDIS_HOST ? 'Redis' : 'None',
+      redisHost: process.env.REDIS_HOST ? `${process.env.REDIS_HOST}:${process.env.REDIS_PORT}` : 'Not configured',
+      ttl: {
+        personDetail: process.env.CACHE_TTL_PERSON_DETAIL || '600',
+        personMetadata: process.env.CACHE_TTL_PERSON_METADATA || '600',
+        comments: process.env.CACHE_TTL_COMMENTS || '300',
+        supportStats: process.env.CACHE_TTL_SUPPORT_STATS || '60',
+        systemConfig: process.env.CACHE_TTL_SYSTEM_CONFIG || '86400',
+        userPermissions: process.env.CACHE_TTL_USER_PERMISSIONS || '300',
+      },
+      limits: {
+        commentsPerPage: process.env.CACHE_COMMENTS_LIMIT || '999',
+      },
+      debug: process.env.CACHE_DEBUG === 'true',
+    },
+
     // Public limits and configuration
     limits: {
       maxFileUploadSize: '5MB',
