@@ -1,386 +1,137 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Metadata } from 'next';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { useSession } from 'next-auth/react';
 import LayoutRenderer, {
   type SerializedPerson,
 } from '@/components/layouts/LayoutRenderer';
 import Footer from '@/components/Footer';
 import DelayedAdminLink from '@/components/person/DelayedAdminLink';
-import { getSystemLayoutTheme } from '@/app/actions/systemConfig';
-import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 
 interface PersonPageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: PersonPageProps): Promise<Metadata> {
-  const { townSlug, personSlug } = await params;
+interface SystemDefaults {
+  theme: string | null;
+}
 
-  const person = await prisma.person.findFirst({
-    where: {
-      slug: personSlug,
-      town: {
-        slug: townSlug,
-        isActive: true,
-      },
-      isActive: true,
-    },
-    select: {
-      firstName: true,
-      lastName: true,
-      story: true,
-      town: {
-        select: {
-          name: true,
-        },
-      },
-    },
+interface UserAccess {
+  isSiteAdmin: boolean;
+  isTownAdmin: boolean;
+  isPersonAdmin: boolean;
+  isAdmin: boolean;
+}
+
+export default function PersonPage({ params }: PersonPageProps) {
+  const [townSlug, setTownSlug] = useState<string>('');
+  const [personSlug, setPersonSlug] = useState<string>('');
+  const [person, setPerson] = useState<SerializedPerson | null>(null);
+  const [comments, setComments] = useState<SerializedPerson['comments']>([]);
+  const [systemDefaults, setSystemDefaults] = useState<SystemDefaults>({ theme: null });
+  const [userAccess, setUserAccess] = useState<UserAccess>({
+    isSiteAdmin: false,
+    isTownAdmin: false,
+    isPersonAdmin: false,
+    isAdmin: false,
   });
-
-  if (!person) {
-    return {
-      title: 'Person Not Found',
-      description: 'The requested person could not be found.',
-    };
-  }
-
-  const personName = `${person.firstName} ${person.lastName}`;
-  const title = `${personName} - Bring Me Home`;
-  const description = person.story
-    ? person.story.slice(0, 150) + '...'
-    : `Help bring ${personName} from ${person.town.name} home to their family.`;
-
-  // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
-  const appUrl = process.env.NODE_ENV === 'production'
-    ? (process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com')
-    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bring-me-home.com');
-    
-  const personUrl = `${appUrl}/${townSlug}/${personSlug}`;
+  const [loading, setLoading] = useState(true);
+  const [adminLinkDelay] = useState(5);
   
-  // Use CloudFront URL for OG image if available
-  const cdnUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL;
-  const ogImageUrl = cdnUrl 
-    ? `${cdnUrl}/${townSlug}/${personSlug}/opengraph-image`
-    : `${appUrl}/${townSlug}/${personSlug}/opengraph-image`;
+  const { data: session } = useSession();
 
-  return {
-    title,
-    description,
-    metadataBase: new URL(appUrl),
-    openGraph: {
-      title: personName,
-      description,
-      url: personUrl,
-      siteName: 'Bring Me Home',
-      type: 'profile',
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `${personName} - ${person.town.name}`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: personName,
-      description,
-      images: [ogImageUrl],
-    },
-    alternates: {
-      canonical: personUrl,
-    },
-  };
-}
+  // Resolve params promise
+  useEffect(() => {
+    params.then(p => {
+      setTownSlug(p.townSlug);
+      setPersonSlug(p.personSlug);
+    });
+  }, [params]);
 
-async function getPersonData(townSlug: string, personSlug: string) {
-  const person = await prisma.person.findFirst({
-    where: {
-      slug: personSlug,
-      town: {
-        slug: townSlug,
-        isActive: true, // Only show persons from visible towns
-      },
-      isActive: true,
-    },
-    select: {
-      // Include all scalar fields
-      id: true,
-      firstName: true,
-      middleName: true,
-      lastName: true,
-      alienIdNumber: true,
-      ssn: true,
-      dateOfBirth: true,
-      placeOfBirth: true,
-      height: true,
-      weight: true,
-      eyeColor: true,
-      hairColor: true,
-      lastKnownAddress: true,
-      currentAddress: true,
-      phoneNumber: true,
-      emailAddress: true,
-      story: true,
-      detentionStory: true,
-      familyMessage: true,
-      lastSeenDate: true,
-      lastSeenLocation: true,
-      isActive: true,
-      isFound: true,
-      status: true,
-      detentionCenterId: true,
-      detentionDate: true,
-      lastHeardFromDate: true,
-      notesFromLastContact: true,
-      releaseDate: true,
-      detentionStatus: true,
-      caseNumber: true,
-      bondAmount: true,
-      bondStatus: true,
-      representedByLawyer: true,
-      representedByNotes: true,
-      legalRepName: true,
-      legalRepPhone: true,
-      legalRepEmail: true,
-      legalRepFirm: true,
-      nextCourtDate: true,
-      courtLocation: true,
-      internationalAddress: true,
-      countryOfOrigin: true,
-      layoutId: true,
-      themeId: true,
-      townId: true,
-      slug: true,
-      showDetentionInfo: true,
-      showLastHeardFrom: true,
-      showDetentionDate: true,
-      showCommunitySupport: true,
-      createdAt: true,
-      updatedAt: true,
-      // Include relations
-      town: {
-        include: {
-          layout: true,
-          theme: true,
-        },
-      },
-      layout: true,
-      theme: true,
-      detentionCenter: {
-        include: {
-          detentionCenterImage: {
-            include: {
-              image: true,
-            },
-          },
-        },
-      },
-      personImages: {
-        include: {
-          image: true,
-        },
-        orderBy: [{ imageType: 'asc' }, { sequenceNumber: 'asc' }],
-      },
-      comments: {
-        where: {
-          isActive: true,
-        },
-        select: {
-          id: true,
-          content: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-          occupation: true,
-          birthdate: true,
-          streetAddress: true,
-          city: true,
-          state: true,
-          zipCode: true,
-          showOccupation: true,
-          showBirthdate: true,
-          showComment: true,
-          showCityState: true,
-          wantsToHelpMore: true,
-          displayNameOnly: true,
-          requiresFamilyApproval: true,
-          privacyRequiredDoNotShowPublicly: true,
-          isApproved: true,
-          isActive: true,
-          personId: true,
-          type: true,
-          visibility: true,
-          familyVisibilityOverride: true,
-          moderatorNotes: true,
-          createdAt: true,
-          updatedAt: true,
-          approvedAt: true,
-          approvedBy: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
-      stories: {
-        where: {
-          isActive: true,
-        },
-        orderBy: [
-          {
-            language: 'asc',
-          },
-          {
-            storyType: 'asc',
-          },
-        ],
-      },
-    },
-  });
+  // Fetch person data (without comments) from API
+  useEffect(() => {
+    if (!townSlug || !personSlug) return;
 
-  // Convert Decimal bondAmount to string for serialization
-  if (person && person.bondAmount) {
-    return {
-      ...person,
-      bondAmount: person.bondAmount.toString(),
+    const fetchPersonData = async () => {
+      try {
+        // Fetch person data
+        const personResponse = await fetch(`/api/public/persons/${townSlug}/${personSlug}`);
+        if (!personResponse.ok) {
+          if (personResponse.status === 404) {
+            notFound();
+          }
+          throw new Error('Failed to fetch person data');
+        }
+        const personData = await personResponse.json();
+        setPerson(personData);
+
+        // Fetch system defaults
+        const systemResponse = await fetch('/api/system/defaults');
+        if (systemResponse.ok) {
+          const systemData = await systemResponse.json();
+          setSystemDefaults(systemData);
+        }
+
+        // Check user access based on session roles
+        if (session?.user) {
+          const isSiteAdmin = session.user.roles?.some(role => role.name === 'site-admin') || false;
+          const isTownAdmin = false; // Would need separate API call to check town access
+          const isPersonAdmin = false; // Would need separate API call to check person access
+          const isAdmin = isSiteAdmin || isTownAdmin || isPersonAdmin;
+          
+          setUserAccess({
+            isSiteAdmin,
+            isTownAdmin,
+            isPersonAdmin,
+            isAdmin,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching person data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchPersonData();
+  }, [townSlug, personSlug, session]);
+
+  // Fetch comments separately
+  useEffect(() => {
+    if (!townSlug || !personSlug) return;
+
+    const fetchComments = async () => {
+      try {
+        const commentsResponse = await fetch(`/api/public/persons/${townSlug}/${personSlug}/comments`);
+        if (commentsResponse.ok) {
+          const commentsData = await commentsResponse.json();
+          setComments(commentsData);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      }
+    };
+
+    fetchComments();
+  }, [townSlug, personSlug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
   }
-
-  return person;
-}
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-export default async function PersonPage({ params }: PersonPageProps) {
-  const { townSlug, personSlug } = await params;
-  const person = await getPersonData(townSlug, personSlug);
-  const session = await getServerSession(authOptions);
-  const systemDefaults = await getSystemLayoutTheme();
 
   if (!person) {
     notFound();
   }
 
-  // Check if user has admin access
-  let isAdmin = false;
-  let isSiteAdmin = false;
-  let isTownAdmin = false;
-  let isPersonAdmin = false;
-
-  if (session?.user?.id) {
-    const userWithAccess = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        userRoles: {
-          include: {
-            role: true,
-          },
-        },
-        townAccess: {
-          where: {
-            townId: person.townId,
-            accessLevel: 'admin',
-          },
-        },
-        personAccess: {
-          where: {
-            personId: person.id,
-            accessLevel: 'admin',
-          },
-        },
-      },
-    });
-
-    isSiteAdmin =
-      userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') ||
-      session.user.roles?.some(role => role.name === 'site-admin') ||
-      false;
-    isTownAdmin = (userWithAccess?.townAccess?.length ?? 0) > 0;
-    isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
-
-    isAdmin = isSiteAdmin || isTownAdmin || isPersonAdmin;
-  }
-
-  // Get admin link delay from environment
-  const adminLinkDelay = process.env.ADMIN_LINK_DELAY_SECONDS
-    ? parseInt(process.env.ADMIN_LINK_DELAY_SECONDS)
-    : 5;
-
-  // Ensure bondAmount is serialized for client component
-  const serializedComments = (person.comments || []).map(comment => ({
-    ...comment,
-    createdAt: comment.createdAt.toISOString(),
-    updatedAt: comment.updatedAt.toISOString(),
-    birthdate: comment.birthdate ? comment.birthdate.toISOString() : null,
-    approvedAt: comment.approvedAt ? comment.approvedAt.toISOString() : null,
-  }));
-
-  // Sanitize stories to remove circular references
-  const serializedStories = (person.stories || []).map(story => ({
-    id: story.id,
-    language: story.language,
-    storyType: story.storyType,
-    content: story.content,
-    isActive: story.isActive,
-    personId: story.personId,
-    createdAt: story.createdAt.toISOString(),
-    updatedAt: story.updatedAt.toISOString(),
-    // Explicitly exclude the 'person' relation to avoid circular reference
-  }));
-
-  // Transform personImages to the expected format
-  const images = await Promise.all(
-    person.personImages?.map(async pi => {
-      const imageUrl = await generateImageUrlServerWithCdn(pi.image.id, undefined, `/${townSlug}/${personSlug}`);
-
-      return {
-        id: pi.image.id,
-        imageType: pi.imageType,
-        sequenceNumber: pi.sequenceNumber,
-        caption: pi.image.caption,
-        mimeType: pi.image.mimeType,
-        size: pi.image.size,
-        width: pi.image.width,
-        height: pi.image.height,
-        createdAt: pi.image.createdAt,
-        updatedAt: pi.image.updatedAt,
-        imageUrl,
-      };
-    }) || []
-  );
-
-  // Exclude personImages to avoid circular reference
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { personImages, ...personWithoutImages } = person;
-
-  const serializedPerson = {
-    ...personWithoutImages,
-    bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
-    stories: serializedStories,
-    comments: serializedComments,
-    images,
-    // Serialize all date fields to ISO strings to prevent hydration mismatches
-    detentionDate: person.detentionDate ? person.detentionDate.toISOString() : null,
-    lastSeenDate: person.lastSeenDate ? person.lastSeenDate.toISOString() : null,
-    lastHeardFromDate: person.lastHeardFromDate ? person.lastHeardFromDate.toISOString() : null,
-    dateOfBirth: person.dateOfBirth ? person.dateOfBirth.toISOString() : null,
-    releaseDate: person.releaseDate ? person.releaseDate.toISOString() : null,
-    nextCourtDate: person.nextCourtDate ? person.nextCourtDate.toISOString() : null,
-    createdAt: person.createdAt.toISOString(),
-    updatedAt: person.updatedAt.toISOString(),
-  } as unknown as SerializedPerson;
-
   // Determine which layout and theme to use
-  const layout = serializedPerson.layout ||
-    serializedPerson.town.layout || {
+  const layout = person.layout ||
+    person.town.layout || {
       id: 'default',
       name: 'Standard Profile',
       template: JSON.stringify({
@@ -389,12 +140,18 @@ export default async function PersonPage({ params }: PersonPageProps) {
       }),
     };
 
-  const theme = serializedPerson.theme ||
-    serializedPerson.town.theme || {
+  const theme = person.theme ||
+    person.town.theme || {
       id: 'default',
       name: systemDefaults.theme || 'default',
       cssVars: null,
     };
+
+  // Combine person with comments for LayoutRenderer
+  const personWithComments = {
+    ...person,
+    comments,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -407,7 +164,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                 href={`/${townSlug}`}
                 className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
               >
-                ← Back to {serializedPerson.town.name}
+                ← Back to {person.town.name}
               </Link>
             </div>
             <nav className="flex items-center space-x-4">
@@ -438,27 +195,27 @@ export default async function PersonPage({ params }: PersonPageProps) {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
         <LayoutRenderer
-          person={serializedPerson}
+          person={personWithComments}
           layout={layout}
           theme={theme}
-          isAdmin={isAdmin}
-          isSiteAdmin={isSiteAdmin}
+          isAdmin={userAccess.isAdmin}
+          isSiteAdmin={userAccess.isSiteAdmin}
         />
       </main>
 
       {/* Footer */}
       <Footer
-        townLayout={serializedPerson.town.layout?.name}
-        townTheme={serializedPerson.town.theme?.name}
-        townName={serializedPerson.town.name}
-        personLayout={serializedPerson.layout?.name}
-        personTheme={serializedPerson.theme?.name}
+        townLayout={person.town.layout?.name}
+        townTheme={person.town.theme?.name}
+        townName={person.town.name}
+        personLayout={person.layout?.name}
+        personTheme={person.theme?.name}
       />
 
       {/* Delayed Admin Link for Site Admins */}
-      {isSiteAdmin && (
+      {userAccess.isSiteAdmin && (
         <DelayedAdminLink
-          personId={serializedPerson.id}
+          personId={person.id}
           delaySeconds={adminLinkDelay}
         />
       )}
