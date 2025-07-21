@@ -126,7 +126,7 @@ export default function SupportSection({
       
       if (data.success) {
         // Set cookie to prevent repeated clicks (expires in 1 year)
-        setCookie(`quick_supported_${personId}`, 'true', 365);
+        setCookie(`quick_supported_${personId}`, 'true', { expires: 365 });
         
         setHasQuickSupported(true);
         setQuickSupportState('thanking');

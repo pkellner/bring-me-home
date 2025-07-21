@@ -194,6 +194,12 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
                 Roles: {session.user.roles.map(role => role.name).join(', ')}
               </div>
             </div>
+            <Link
+              href="/profile"
+              className="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+            >
+              My Profile
+            </Link>
             <button
               onClick={handleSignOut}
               className="bg-gray-800 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
@@ -258,6 +264,12 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
               <div className="text-xs text-gray-500 mb-3">
                 Roles: {session.user.roles.map(role => role.name).join(', ')}
               </div>
+              <Link
+                href="/profile"
+                className="block w-full bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 mb-2 text-center"
+              >
+                My Profile
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="w-full bg-gray-800 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"

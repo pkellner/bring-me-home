@@ -8,21 +8,22 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  username       String         @unique
-  email          String?        @unique
-  password       String
-  firstName      String?
-  lastName       String?
-  isActive       Boolean        @default(true)
-  lastLogin      DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  uploadedImages ImageStorage[]
-  personAccess   PersonAccess[]
-  supporters     Supporter[]
-  townAccess     TownAccess[]
-  userRoles      UserRole[]
+  id                  String               @id @default(cuid())
+  username            String               @unique
+  email               String?              @unique
+  password            String
+  firstName           String?
+  lastName            String?
+  isActive            Boolean              @default(true)
+  lastLogin           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  uploadedImages      ImageStorage[]
+  personAccess        PersonAccess[]
+  supporters          Supporter[]
+  townAccess          TownAccess[]
+  userRoles           UserRole[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -485,4 +486,19 @@ model DetentionCenterImage {
 
   @@index([imageId])
   @@map("detention_center_images")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

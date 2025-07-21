@@ -63,11 +63,19 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
+        console.log('Auth debug:');
+        console.log('- Username:', credentials.username);
+        console.log('- User found:', !!user);
+        console.log('- User ID:', user?.id);
+        console.log('- User email:', user?.email);
+
         if (!user) {
+          console.log('- Auth failed: User not found');
           return null;
         }
         
         if (!user.isActive) {
+          console.log('- Auth failed: User inactive');
           throw new Error('Account is inactive (contact customer service)');
         }
 
@@ -76,7 +84,11 @@ export const authOptions: NextAuthOptions = {
           user.password
         );
         
+        console.log('- Password hash starts with:', user.password.substring(0, 10));
+        console.log('- Password match:', passwordMatch);
+        
         if (!passwordMatch) {
+          console.log('- Auth failed: Password mismatch');
           return null;
         }
 

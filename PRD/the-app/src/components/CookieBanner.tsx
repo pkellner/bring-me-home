@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getCookie, setCookie } from '@/lib/cookies';
 
 export default function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -20,12 +21,35 @@ export default function CookieBanner() {
       return;
     }
 
-    // Check if user has already made a choice
-    const consent = localStorage.getItem('cookieConsent');
+    // Check if user has already made a choice using actual cookies
+    const consent = getCookie('cookieConsent');
     if (!consent) {
       setShowBanner(true);
+    } else {
+      try {
+        const parsed = JSON.parse(consent);
+        setPreferences(parsed);
+      } catch {
+        // Invalid cookie data, show banner again
+        setShowBanner(true);
+      }
     }
   }, []);
+
+  const saveCookieConsent = (consentData: {
+    necessary: boolean;
+    analytics: boolean;
+    marketing: boolean;
+    timestamp: string;
+  }) => {
+    // Set cookie with 1 year expiration and SameSite=Lax for better compatibility
+    setCookie('cookieConsent', JSON.stringify(consentData), {
+      expires: 365,
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    });
+  };
 
   const handleAcceptAll = () => {
     const allAccepted = {
@@ -34,9 +58,9 @@ export default function CookieBanner() {
       marketing: true,
       timestamp: new Date().toISOString(),
     };
-    localStorage.setItem('cookieConsent', JSON.stringify(allAccepted));
+    saveCookieConsent(allAccepted);
     setShowBanner(false);
-    window.location.reload(); // Reload to apply cookie settings
+    // Remove reload to avoid disrupting user experience
   };
 
   const handleRejectAll = () => {
@@ -46,7 +70,7 @@ export default function CookieBanner() {
       marketing: false,
       timestamp: new Date().toISOString(),
     };
-    localStorage.setItem('cookieConsent', JSON.stringify(allRejected));
+    saveCookieConsent(allRejected);
     setShowBanner(false);
   };
 
@@ -55,10 +79,9 @@ export default function CookieBanner() {
       ...preferences,
       timestamp: new Date().toISOString(),
     };
-    localStorage.setItem('cookieConsent', JSON.stringify(savedPreferences));
+    saveCookieConsent(savedPreferences);
     setShowBanner(false);
     setShowPreferences(false);
-    window.location.reload(); // Reload to apply cookie settings
   };
 
   if (!showBanner) return null;

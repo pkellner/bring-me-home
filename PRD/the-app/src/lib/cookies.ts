@@ -18,13 +18,40 @@ export function getCookie(name: string): string | null {
   return null;
 }
 
-export function setCookie(name: string, value: string, days: number = 365): void {
+export function setCookie(
+  name: string, 
+  value: string, 
+  options: {
+    expires?: number; // days
+    path?: string;
+    sameSite?: 'strict' | 'lax' | 'none';
+    secure?: boolean;
+  } = {}
+): void {
   if (typeof document === 'undefined') return;
   
+  const {
+    expires = 365,
+    path = '/',
+    sameSite = 'lax',
+    secure = false
+  } = options;
+  
   const date = new Date();
-  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-  const expires = "expires=" + date.toUTCString();
-  document.cookie = name + "=" + value + ";" + expires + ";path=/;SameSite=Strict";
+  date.setTime(date.getTime() + (expires * 24 * 60 * 60 * 1000));
+  const expiresStr = "expires=" + date.toUTCString();
+  
+  let cookieString = `${name}=${value};${expiresStr};path=${path}`;
+  
+  if (sameSite) {
+    cookieString += `;SameSite=${sameSite.charAt(0).toUpperCase() + sameSite.slice(1)}`;
+  }
+  
+  if (secure) {
+    cookieString += ';Secure';
+  }
+  
+  document.cookie = cookieString;
 }
 
 export function deleteCookie(name: string): void {

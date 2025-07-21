@@ -85,6 +85,27 @@ npm run debug:check-rendering # Check image rendering
 
 # Utility scripts
 npx tsx scripts/generate-email-env-example.ts  # Generate email config for .env.example
+
+# Quick debugging scripts (create in scripts/ folder)
+npx tsx scripts/your-script.ts  # Run any TypeScript script with database access
+```
+
+**Common Script Pattern:**
+```typescript
+#!/usr/bin/env tsx
+import { prisma } from '../src/lib/prisma';
+
+async function main() {
+  try {
+    // Your debugging logic here
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main();
 ```
 
 ## Architecture Overview
@@ -142,6 +163,8 @@ npx tsx scripts/generate-email-env-example.ts  # Generate email config for .env.
 - `/src/lib/permissions.ts` - Permission checking utilities
 - `/src/lib/auth-helpers.ts` - Session and user helpers
 - `/src/lib/auth-protection-edge.ts` - Site protection utilities
+- `/src/lib/email.ts` - Email service with nodemailer for password resets
+- `/src/app/api/auth/reset-password/` - Password reset API endpoints
 
 **Comment System**
 - `/src/components/admin/CommentModerationModal.tsx` - Privacy controls and moderation UI
@@ -488,6 +511,66 @@ const serializedComment = {
 4. Use yellow background for privacy sections in UI
 5. Show explanatory text when options are disabled
 
+**Password Reset System**
+1. Request reset at `/auth/forgot-password` - sends email with reset link
+2. Reset tokens stored in `PasswordResetToken` table with 1-hour expiration
+3. Email service configured in `/src/lib/email.ts` with multiple provider support
+4. Token validation prevents reuse and checks expiration
+5. Rate limiting: If requested within 5 minutes, resends email with existing token
+6. Always sends email on valid requests (even with existing tokens)
+7. See EMAIL.md for detailed email configuration
+
+**Email System**
+1. Multiple provider support: SMTP, SendGrid, AWS SES, Console (for dev)
+2. Provider selection via `EMAIL_PROVIDER` environment variable
+3. Automatic fallback to console logging if provider fails
+4. Detailed logging via `EMAIL_PROVIDER_LOG_SMTP=true`
+5. Comprehensive documentation in `/EMAIL.md`
+6. Example configuration:
+   ```env
+   EMAIL_PROVIDER="sendgrid"  # Options: smtp, sendgrid, ses, console
+   SENDGRID_API_KEY="your-api-key"
+   EMAIL_PROVIDER_LOG_SMTP="true"  # Enable detailed logging
+   ```
+
+### Comment System Display Controls
+
+**Understanding Comment Privacy Options:**
+- **`privacyRequiredDoNotShowPublicly`**: Completely hides the comment from public view (site admin only)
+- **`displayNameOnly`**: Shows name but hides occupation, age, and location
+- **`showComment`**: Controls whether comment text is shown or replaced with "Showing support"
+- **`requiresFamilyApproval`**: All comments require approval (always true, not a user choice)
+- **Display flags** (`showOccupation`, `showBirthdate`, `showCityState`): Individual field visibility
+
+**Privacy Cascading Rules:**
+1. When `privacyRequiredDoNotShowPublicly` is true, all other display options are disabled
+2. When `displayNameOnly` is true, occupation/age/location are hidden regardless of individual flags
+3. Comments always start with `isApproved: false` and need admin approval
+
+**Comment Flow:**
+1. User submits comment via `/src/components/person/AnonymousCommentForm.tsx`
+2. Server action `/src/app/actions/comments.ts` validates with reCAPTCHA and saves
+3. Admin moderates via `/src/components/admin/CommentModerationModal.tsx`
+4. Approved comments display on public page via `/src/components/person/CommentSection.tsx`
+
+### User Profile Management
+
+**Profile Page (`/profile`)**
+- Accessible to ALL authenticated users (not just admins)
+- "My Profile" link appears in main site navigation for all logged-in users
+- Displays account information: creation date, last login, username
+- Email update functionality with validation (all users)
+- Password change with current password verification (all users)
+- Password visibility toggles for all password fields
+- Roles section only shows if user has roles assigned
+- Town/Person access sections only show for users with special permissions
+- Modern UI with gradient header and organized sections
+- Proper navigation with Back button, Home link, and Sign Out
+
+**Profile API Endpoints**
+- `/api/profile/email` - Update user email address (all authenticated users)
+- `/api/profile/password` - Change password (requires current password)
+
 ### Recent Changes
 
 - Fixed middleware to exclude all /api/ routes (was causing 404s)
@@ -524,3 +607,29 @@ const serializedComment = {
   - Removed requiresFamilyApproval checkbox (all comments require approval by default)
   - Comment text can now be hidden independently of name display
   - When unchecked, shows "Showing support" instead of comment text
+- **FIX**: Fixed GDPR cookie banner persistence on iPhone
+  - Switched from localStorage to actual cookies for proper persistence
+  - Cookie banner now correctly remembers user's consent choice across sessions
+- **ENHANCEMENT**: Redesigned authentication pages
+  - Modern styled login page with gradient background and improved spacing
+  - Added forgot password functionality with actual email sending
+  - Added create account button that links to registration page
+  - Updated registration page with matching modern design
+- **FEATURE**: Implemented complete password reset functionality
+  - Added PasswordResetToken model to track reset requests
+  - Created email service using nodemailer for SMTP support
+  - Reset tokens expire after 1 hour for security
+  - Prevents email enumeration by always returning success
+  - Rate limits token creation with 5-minute cooldown
+  - Requires SMTP configuration for production use
+- **ENHANCEMENT**: Multi-provider email system
+  - Added support for SendGrid and AWS SES in addition to SMTP
+  - Email provider selectable via `EMAIL_PROVIDER` environment variable
+  - Console provider for development (logs emails to terminal)
+  - Automatic fallback to console if email sending fails
+  - Comprehensive EMAIL.md documentation for all providers
+  - Added `EMAIL_PROVIDER_LOG_SMTP` for detailed provider response logging
+- **FIX**: Password reset always sends email
+  - Fixed issue where users within 5-minute cooldown didn't receive email
+  - Now resends email with existing token if requested within cooldown period
+  - Improves user experience by always providing reset link when requested

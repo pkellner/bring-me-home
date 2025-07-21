@@ -21,8 +21,10 @@ This is the foundational setup for the Bring Me Home application, a platform des
 - **User CRUD Operations** with audit logging
 - **Role Assignment System** 
 - **Town/Person Access Controls**
-- **Password Reset Functionality**
+- **Password Reset Functionality** with email verification
 - **User Profile Management**
+- **GDPR-compliant Cookie Banner** with persistent consent
+- **Modern Authentication UI** with gradient styling
 
 ## Phase 1 Implementation Complete ✅
 
@@ -85,6 +87,20 @@ npm run db:reset     # Reset database and reseed
 - **Password**: `town1123` to `town5123`
 - **Role**: Town Administrator for their respective towns
 
+### Password Reset Feature
+
+The application includes a complete password reset flow:
+
+1. **Request Reset**: Users can request a password reset from the login page
+2. **Email Verification**: Reset link sent to user's email (requires SMTP configuration)
+3. **Secure Tokens**: Reset tokens expire after 1 hour for security
+4. **Rate Limiting**: 5-minute cooldown between reset requests to prevent abuse
+
+To enable password reset functionality, configure SMTP settings in your `.env` file:
+- Gmail users need to create an App Password (not regular password)
+- Other providers: Check their SMTP documentation
+- In development: Emails are logged to console if SMTP not configured
+
 ### Next Steps - Phase 2
 
 The next phase will implement:
@@ -102,6 +118,13 @@ DATABASE_URL="mysql://username:password@localhost:3306/bring_me_home"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
 NEXT_PUBLIC_ENABLE_COOKIE_BANNER="false"  # Set to "true" to enable GDPR cookie consent
+
+# Email Configuration (for password reset)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"  # For Gmail, use App Password not regular password
 ```
 
 ### Docker Deployment
