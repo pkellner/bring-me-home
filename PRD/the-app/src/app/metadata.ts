@@ -26,9 +26,22 @@ export async function generateSiteMetadata(): Promise<Metadata> {
     description,
     metadataBase: new URL(appUrl),
     icons: {
-      icon: cdnUrl ? `${cdnUrl}/favicon.ico` : '/favicon.ico',
-      shortcut: cdnUrl ? `${cdnUrl}/favicon.ico` : '/favicon.ico',
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
+        { url: '/images/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png' }
+      ],
+      shortcut: '/favicon.ico',
+      apple: '/images/favicon/apple-touch-icon.png',
+      other: [
+        {
+          rel: 'mask-icon',
+          url: '/images/favicon/favicon.svg',
+          color: '#4f46e5'
+        }
+      ]
     },
+    manifest: '/manifest.json',
     openGraph: {
       title,
       description,
