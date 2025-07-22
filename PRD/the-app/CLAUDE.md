@@ -84,6 +84,7 @@ npm run test:silent      # Suppress console output
 npm run debug:no-images     # Find persons without images
 npm run debug:analyze-images # Analyze person images
 npm run debug:check-rendering # Check image rendering
+npm run debug:db-connections # Monitor database connection pool status
 
 # Utility scripts
 npx tsx scripts/generate-email-env-example.ts  # Generate email config for .env.example
@@ -648,3 +649,10 @@ const serializedComment = {
   - Added `typeof window !== 'undefined'` checks for confirm dialogs
   - Cache statistics no longer auto-update (loads once, manual refresh only)
   - Moved cache statistics to appear directly below build information in /configs page
+- **FIX**: Resolved Prisma connection pool timeout errors (P2024)
+  - Added connection pool parameters to DATABASE_URL: `connection_limit=100&pool_timeout=30&connect_timeout=30`
+  - Increased connection limit from default 33 to 100
+  - Increased pool timeout from 10 seconds to 30 seconds
+  - Added connection monitoring script: `npx tsx scripts/monitor-db-connections.ts`
+  - Updated Prisma client initialization with proper logging
+  - Root cause: Default pool size (2 × CPU cores + 1) was too small for concurrent requests
