@@ -137,23 +137,62 @@ assetPrefix: process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_CL
    curl -I https://your-cloudfront-domain.cloudfront.net/_next/static/chunks/main.js
    ```
 
+## Important: Deployment Order and Cache Invalidation
+
+### Deployment Steps (CRITICAL ORDER)
+
+1. **Build your application**:
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to origin server** (Vercel, AWS, etc.)
+
+3. **Wait for deployment to complete** (verify origin serves new files)
+
+4. **Invalidate CloudFront cache**:
+   ```bash
+   # Invalidate everything (recommended after deployment)
+   aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
+   
+   # Or invalidate specific paths
+   aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/" "/index.html" "/_next/static/*"
+   ```
+
+### Why Cache Invalidation is Necessary
+
+Next.js generates unique hash-based filenames for static assets (e.g., `page-c643bf5d73b6586f.js`). When you deploy:
+- New build creates new filenames
+- CloudFront may serve old HTML that references old filenames
+- Result: 404 errors for JavaScript/CSS files
+
+**Solution**: Always invalidate at least the HTML pages after deployment.
+
 ## Troubleshooting
 
-### 404 Errors on Static Assets
+### 404 Errors on Static Assets (Most Common Issue)
 
-If you're getting 404 errors:
+This typically happens when CloudFront serves old HTML with references to old chunk files.
 
-1. **Verify Origin Access**: Ensure CloudFront can reach your origin server
+**Immediate Fix**:
+```bash
+# Invalidate all HTML pages
+aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
+```
+
+**Debugging Steps**:
+
+1. **Test with the provided script**:
+   ```bash
+   npx tsx scripts/test-cloudfront.ts
+   ```
+
+2. **Verify Origin Access**: Ensure CloudFront can reach your origin server
    ```bash
    curl -I https://your-origin.com/_next/static/chunks/main.js
    ```
 
-2. **Check Path Patterns**: Ensure cache behaviors match exactly `/_next/static/*`
-
-3. **Invalid Cache**: Invalidate CloudFront cache if needed:
-   ```bash
-   aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/_next/static/*"
-   ```
+3. **Check Path Patterns**: Ensure cache behaviors match exactly `/_next/static/*`
 
 4. **Build Hash Mismatch**: Ensure the same build is deployed to origin that generated the HTML
 
