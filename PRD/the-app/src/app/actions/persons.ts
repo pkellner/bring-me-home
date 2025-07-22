@@ -274,7 +274,6 @@ export async function updatePerson(id: string, formData: FormData) {
     });
 
     if (!validatedFields.success) {
-      console.log('Validation failed:', validatedFields.error?.flatten());
       return {
         errors: validatedFields.error?.flatten().fieldErrors || {},
       };
@@ -585,14 +584,10 @@ export async function updatePerson(id: string, formData: FormData) {
               data: storiesToCreate,
             });
 
-          } else {
-            console.log('No stories to create');
           }
         } catch (error) {
           console.error('Failed to update stories:', error);
         }
-      } else {
-        console.log('Skipping stories update because storiesJson is:', storiesJson);
       }
     }
 

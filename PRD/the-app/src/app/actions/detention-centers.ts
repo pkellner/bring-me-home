@@ -216,9 +216,6 @@ export async function updateDetentionCenter(
       // Process and store new images
       const { imageId } = await processAndStoreImage(buffer);
       processedImageId = imageId;
-      console.log('Update - New image ID:', { imageId });
-    } else {
-      console.log('Update - No new image uploaded, keeping existing ID:', { imageId: processedImageId });
     }
 
     const detentionCenter = await prisma.detentionCenter.update({
@@ -231,11 +228,6 @@ export async function updateDetentionCenter(
 
     revalidatePath('/admin/detention-centers');
     revalidatePath(`/admin/detention-centers/${id}/edit`);
-    
-    console.log('Updated detention center with imageId:', {
-      id: detentionCenter.id,
-      imageId: detentionCenter.imageId,
-    });
     
     return { success: true, detentionCenter };
   } catch (error) {

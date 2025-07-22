@@ -27,7 +27,6 @@ const getEmailProvider = (): EmailProvider => {
 // Initialize SendGrid if using it
 if (getEmailProvider() === 'sendgrid' && process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  console.log('SendGrid initialized with API key:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...' + process.env.SENDGRID_API_KEY.substring(process.env.SENDGRID_API_KEY.length - 4));
 }
 
 // Initialize AWS SES client if using it

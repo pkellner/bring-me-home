@@ -93,14 +93,6 @@ function CommentsGrid({
   isPersonAdmin = false,
   deleteDaysThreshold = 1,
 }: CommentsGridProps) {
-  console.log('CommentsGrid Debug:', {
-    canDelete,
-    isSiteAdmin,
-    isPersonAdmin,
-    personId,
-    deleteDaysThreshold,
-    commentsCount: initialComments.length
-  });
   
   const router = useRouter();
   const [comments, setComments] = useState(initialComments);
@@ -510,19 +502,6 @@ function CommentsGrid({
           const now = new Date();
           const daysDiff = (now.getTime() - commentDate.getTime()) / (1000 * 60 * 60 * 24);
           const canShow = daysDiff >= deleteDaysThreshold;
-          console.log('Delete icon check for person admin:', {
-            commentId: comment.id,
-            commentCreatedAt: comment.createdAt,
-            commentDate: commentDate.toISOString(),
-            now: now.toISOString(),
-            daysDiff,
-            deleteDaysThreshold,
-            canShow,
-            isPersonAdmin,
-            personId,
-            commentPersonId: comment.person.id,
-            belongsToViewedPerson: comment.person.id === personId
-          });
           return canShow;
         }
         

@@ -26,18 +26,9 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
     [person.images]
   );
 
-  // Log all gallery images
+  // Gallery images are already filtered, no need for additional logging
   useEffect(() => {
-    galleryImages.forEach((image, index) => {
-      const imageUrl = getImageUrl(image, { width: 600, height: 600, quality: 90 });
-      console.log(`[Client] PhotoGallery - ${person.firstName} ${person.lastName} - Image ${index + 1}:`, {
-        imageId: image.id,
-        url: imageUrl,
-        type: imageUrl?.includes('amazonaws.com') ? 'S3' : imageUrl?.startsWith('/api/images/') ? 'API/Database' : 'Unknown',
-        isPresignedUrl: imageUrl?.includes('X-Amz-Signature'),
-        caption: image.caption
-      });
-    });
+    // Images are ready to display
   }, [galleryImages, person.firstName, person.lastName]);
 
   if (galleryImages.length === 0) {

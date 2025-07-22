@@ -45,7 +45,6 @@ export async function GET(
     });
 
     if (!imageMetadata) {
-      console.log(`Image ${id} not found in database`);
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
@@ -54,7 +53,6 @@ export async function GET(
     const imageData = await imageStorageService.getImage(id);
 
     if (!imageData) {
-      console.log(`Failed to retrieve image data for ${id} from ${imageMetadata.storageType}`);
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 

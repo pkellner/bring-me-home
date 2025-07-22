@@ -64,9 +64,6 @@ export class GeolocationService {
     try {
       await this.rateLimit();
 
-      console.log(`Sending batch request for ${validIps.length} unique IPs to IPinfo.io`);
-      const batchStartTime = Date.now();
-
       const response = await fetch(`https://ipinfo.io/batch?token=${IPINFO_TOKEN}`, {
         method: 'POST',
         headers: {
@@ -74,9 +71,6 @@ export class GeolocationService {
         },
         body: JSON.stringify(validIps),
       });
-
-      const batchEndTime = Date.now();
-      console.log(`Batch API response received in ${batchEndTime - batchStartTime}ms`);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -111,8 +105,6 @@ export class GeolocationService {
         }
       }
 
-      const successCount = Array.from(results.values()).filter(r => r !== null).length;
-      console.log(`Batch processing complete: ${successCount}/${validIps.length} IPs successfully geolocated`);
 
     } catch (error) {
       console.error('Error fetching batch geolocation:', error);

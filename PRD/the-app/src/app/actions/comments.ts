@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 import { headers } from 'next/headers';
 
-const debugCaptcha = false;
+const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),

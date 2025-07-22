@@ -4,7 +4,7 @@ import { startTransition, useCallback, useEffect, useRef, useState } from 'react
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import CommentConfirmationModal from './CommentConfirmationModal';
 
-const debugCaptcha = true;
+const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
 
 interface AnonymousCommentFormProps {
   personId: string;

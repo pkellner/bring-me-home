@@ -148,19 +148,8 @@ export default function SupportMap({
         const latlngs = allAvailableLocations.map(loc => L.latLng(loc.latitude, loc.longitude));
         const newBounds = L.latLngBounds(latlngs);
         
-        console.log('No checkboxes selected, showing bounds for all available locations:', {
-          totalAvailable: allAvailableLocations.length,
-          bounds: {
-            north: newBounds.getNorth(),
-            south: newBounds.getSouth(),
-            east: newBounds.getEast(),
-            west: newBounds.getWest()
-          }
-        });
-        
         setBounds(newBounds.pad(0.1));
       } else {
-        console.log('No locations available, bounds set to null');
         setBounds(null);
       }
       return;
@@ -168,16 +157,6 @@ export default function SupportMap({
 
     const latlngs = allLocations.map(loc => L.latLng(loc.latitude, loc.longitude));
     const newBounds = L.latLngBounds(latlngs);
-    
-    console.log('Calculated bounds for selected locations:', {
-      locationCount: allLocations.length,
-      bounds: {
-        north: newBounds.getNorth(),
-        south: newBounds.getSouth(),
-        east: newBounds.getEast(),
-        west: newBounds.getWest()
-      }
-    });
     
     // Add some padding
     setBounds(newBounds.pad(0.1));
@@ -269,10 +248,6 @@ export default function SupportMap({
     );
   }
 
-  const allLocations = [
-    ...(showMessages ? messageLocations : []),
-    ...(showSupport ? supportLocations : [])
-  ];
   
   const hasAnyLocations = messageLocations.length > 0 || supportLocations.length > 0;
 
@@ -286,24 +261,6 @@ export default function SupportMap({
     
   const defaultZoom = bounds ? 10 : usZoom;
   
-  // Log the starting position and zoom
-  if (bounds) {
-    console.log('Map auto-bounded to show all pins:', {
-      locationCount: allLocations.length,
-      bounds: {
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest()
-      }
-    });
-  } else {
-    console.log('Map showing default US view (no pins):', {
-      center: defaultCenter,
-      zoom: defaultZoom
-    });
-  }
-
   // If no geolocated data is available yet, show a message
   if (!hasAnyLocations && !loading) {
     return (

@@ -11,8 +11,6 @@ interface Props {
 }
 
 async function getPersonOGData(townSlug: string, personSlug: string) {
-  console.log(`Fetching OG data for: ${townSlug}/${personSlug}`);
-  
   const person = await prisma.person.findFirst({
     where: {
       slug: personSlug,
@@ -35,10 +33,6 @@ async function getPersonOGData(townSlug: string, personSlug: string) {
       theme: true,
     },
   });
-
-  if (person) {
-    console.log(`Found person: ${person.firstName} ${person.lastName}, images: ${person.personImages.length}`);
-  }
 
   return person;
 }
@@ -76,8 +70,6 @@ export async function GET(_request: Request, { params }: Props) {
           } else {
             imageUrl = `${baseUrl}${relativeUrl}`;
           }
-          
-          console.log(`Generated image URL: ${imageUrl}`);
         }
       } catch (error) {
         console.error('Error generating image URL for OG image:', error);
