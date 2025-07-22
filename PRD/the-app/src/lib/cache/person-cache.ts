@@ -6,13 +6,14 @@ import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 import { cacheStats } from './cache-stats';
 import { getMemoryCache, getRedisCache } from './cache-manager';
 import { GeolocationService } from '@/lib/geolocation';
+import { RedisKeys } from '@/lib/redis/redis-keys';
 import type { CacheResult, CacheOptions, PersonPageData } from '@/types/cache';
 import type { Prisma } from '@prisma/client';
 
 const CACHE_VERSION = 'v1';
 
 function generateCacheKey(townSlug: string, personSlug: string): string {
-  return `person:${townSlug}:${personSlug}:${CACHE_VERSION}`;
+  return RedisKeys.personCache(townSlug, personSlug, CACHE_VERSION);
 }
 
 type PersonWithRelations = Prisma.PersonGetPayload<{

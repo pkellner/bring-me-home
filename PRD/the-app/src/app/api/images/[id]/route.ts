@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import sharp from 'sharp';
 import { ImageStorageService } from '@/lib/image-storage';
+import { recordImageHit } from '@/lib/image-hit-tracking';
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +11,10 @@ export async function GET(
   try {
     const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
+    
+    // Track this hit with full URL including query parameters
+    const fullUrl = `/api/images/${id}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    recordImageHit(fullUrl);
 
     // Parse query parameters
     const width = searchParams.get('w') ? parseInt(searchParams.get('w')!) : undefined;

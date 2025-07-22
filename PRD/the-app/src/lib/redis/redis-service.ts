@@ -1,5 +1,6 @@
 import getRedisConnectionLazy from './get-redis-connection-lazy';
 import { Redis } from 'ioredis';
+import { RedisKeys } from './redis-keys';
 
 // Define interfaces for the data structures
 interface CommentDraft {
@@ -76,7 +77,7 @@ export async function setCommentDraft(
   if (!redis || !isAvailable) return false;
 
   try {
-    const key = `session:${sessionId}:comment:${personId}:draft`;
+    const key = RedisKeys.commentDraft(sessionId, personId);
     await redis.setex(key, ttlSeconds, JSON.stringify(draft));
     return true;
   } catch {
@@ -93,7 +94,7 @@ export async function getCommentDraft(
   if (!redis || !isAvailable) return null;
 
   try {
-    const key = `session:${sessionId}:comment:${personId}:draft`;
+    const key = RedisKeys.commentDraft(sessionId, personId);
     const data = await redis.get(key);
     return data ? JSON.parse(data) : null;
   } catch {
@@ -110,7 +111,7 @@ export async function deleteCommentDraft(
   if (!redis || !isAvailable) return false;
 
   try {
-    const key = `session:${sessionId}:comment:${personId}:draft`;
+    const key = RedisKeys.commentDraft(sessionId, personId);
     await redis.del(key);
     return true;
   } catch {
@@ -128,7 +129,7 @@ export async function setLoginFlow(
   if (!redis || !isAvailable) return false;
 
   try {
-    const key = `session:${sessionId}:login_flow`;
+    const key = RedisKeys.loginFlow(sessionId);
     await redis.setex(key, ttlSeconds, JSON.stringify(flowData));
     return true;
   } catch {
@@ -144,7 +145,7 @@ export async function getLoginFlow(
   if (!redis || !isAvailable) return null;
 
   try {
-    const key = `session:${sessionId}:login_flow`;
+    const key = RedisKeys.loginFlow(sessionId);
     const data = await redis.get(key);
     return data ? JSON.parse(data) : null;
   } catch {
@@ -158,7 +159,7 @@ export async function deleteLoginFlow(sessionId: string): Promise<boolean> {
   if (!redis || !isAvailable) return false;
 
   try {
-    const key = `session:${sessionId}:login_flow`;
+    const key = RedisKeys.loginFlow(sessionId);
     await redis.del(key);
     return true;
   } catch {
@@ -190,8 +191,9 @@ export async function redisHealthCheck(): Promise<{
 
     // Test write operations
     const writeStart = Date.now();
+    const timestamp = Date.now();
     for (let i = 0; i < 5; i++) {
-      const key = `health:test:${Date.now()}:${i}`;
+      const key = RedisKeys.healthTest(timestamp, i);
       testKeys.push(key);
       await redis.setex(key, 60, `test-value-${i}`);
     }

@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
 import getRedisConnectionLazy from '@/lib/redis/get-redis-connection-lazy';
+import { RedisKeys } from '@/lib/redis/redis-keys';
 
 // Cache entry type with size tracking
 interface CacheEntry {
@@ -199,7 +200,18 @@ function createRedisCache(redis: Redis | null, ttl: number) {
     if (!redis) return;
     
     try {
-      await redis.flushdb();
+      // Instead of flushing the entire database, only delete keys in our folder
+      const pattern = RedisKeys.patterns.allInFolder();
+      const keys = await redis.keys(pattern);
+      
+      if (keys.length > 0) {
+        // Delete keys in batches to avoid blocking
+        const batchSize = 1000;
+        for (let i = 0; i < keys.length; i += batchSize) {
+          const batch = keys.slice(i, i + batchSize);
+          await redis.del(...batch);
+        }
+      }
     } catch (error) {
       console.error('Redis reset error:', error);
     }

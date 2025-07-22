@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **⚠️ GOLDEN RULE: Run `npm run build` after EVERY code change and ensure ZERO warnings/errors ⚠️**
 
+**⚠️ Never use JavaScript class, always functions
+
 ## Project Overview
 
 "Bring Me Home" is a Next.js 15 application that helps families connect with missing persons in detention centers. It features multi-tenant support for different towns, role-based access control, and community engagement through comments and support messages.

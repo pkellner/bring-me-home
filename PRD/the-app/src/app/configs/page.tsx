@@ -7,6 +7,7 @@ import { ArrowLeftIcon, CogIcon } from '@heroicons/react/24/outline';
 import HealthCheckSection from '@/components/configs/HealthCheckSection';
 import ImageServingDemo from '@/components/configs/ImageServingDemo';
 import CacheStatsSection from '@/components/configs/CacheStatsSection';
+import ImageHitStatsSection from '@/components/configs/ImageHitStatsSection';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -153,6 +154,9 @@ export default async function ConfigsPage() {
 
             {/* Cache Statistics - Site Admin Only */}
             {isSiteAdmin && <CacheStatsSection />}
+
+            {/* Image Hit Statistics - Site Admin Only */}
+            {isSiteAdmin && <ImageHitStatsSection />}
 
             {/* Environment Information */}
             <section>
