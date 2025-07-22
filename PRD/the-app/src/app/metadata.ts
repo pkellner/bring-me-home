@@ -27,11 +27,11 @@ export async function generateSiteMetadata(): Promise<Metadata> {
     metadataBase: new URL(appUrl),
     icons: {
       icon: [
-        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/images/favicon/favicon.ico', sizes: 'any' },
         { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
         { url: '/images/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png' }
       ],
-      shortcut: '/favicon.ico',
+      shortcut: '/images/favicon/favicon.ico',
       apple: '/images/favicon/apple-touch-icon.png',
       other: [
         {
