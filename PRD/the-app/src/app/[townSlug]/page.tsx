@@ -9,6 +9,7 @@ import { getSiteTextConfig, replaceTextPlaceholders } from '@/lib/config';
 import { stripHtml } from '@/lib/stripHtml';
 import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
 import { formatDate } from '@/lib/utils';
+import { Building2 } from 'lucide-react';
 
 interface TownPageProps {
   params: Promise<{ townSlug: string }>;
@@ -205,12 +206,15 @@ export default async function TownPage({ params }: TownPageProps) {
                         {person.firstName} {person.lastName}
                       </h3>
                       {person.detentionCenter && (
-                        <p className="text-sm font-bold text-red-600 mt-1">
-                          {config.detained_at_label || 'Detained at'}{' '}
-                          {person.detentionCenter.name} (
-                          {person.detentionCenter.city},{' '}
-                          {person.detentionCenter.state})
-                        </p>
+                        <div className="flex items-start gap-1 mt-1">
+                          <Building2 className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" strokeWidth={2.5} />
+                          <p className="text-sm font-bold text-red-600">
+                            {config.detained_at_label || 'Detained at'}{' '}
+                            {person.detentionCenter.name} (
+                            {person.detentionCenter.city},{' '}
+                            {person.detentionCenter.state})
+                          </p>
+                        </div>
                       )}
                     </div>
                     {person.dateOfBirth && (
