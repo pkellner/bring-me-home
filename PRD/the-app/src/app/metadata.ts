@@ -25,6 +25,10 @@ export async function generateSiteMetadata(): Promise<Metadata> {
     title: `${title} - Support for ICE detainees`,
     description,
     metadataBase: new URL(appUrl),
+    icons: {
+      icon: cdnUrl ? `${cdnUrl}/favicon.ico` : '/favicon.ico',
+      shortcut: cdnUrl ? `${cdnUrl}/favicon.ico` : '/favicon.ico',
+    },
     openGraph: {
       title,
       description,
