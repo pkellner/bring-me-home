@@ -21,6 +21,7 @@
     "debug:analyze-images": "tsx scripts/analyze-person-images.ts",
     "debug:check-rendering": "tsx scripts/check-image-rendering.ts",
     "debug:db-connections": "tsx scripts/monitor-db-connections.ts",
+    "test:prisma-log": "tsx scripts/test-prisma-logging.ts",
     "test:cloudfront": "tsx scripts/test-cloudfront.ts",
     "//test": "=== TESTING SCRIPTS ===",
     "//test-basic": "Basic test commands for everyday development",

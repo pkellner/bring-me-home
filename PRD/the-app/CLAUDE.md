@@ -85,6 +85,7 @@ npm run debug:no-images     # Find persons without images
 npm run debug:analyze-images # Analyze person images
 npm run debug:check-rendering # Check image rendering
 npm run debug:db-connections # Monitor database connection pool status
+npm run test:prisma-log     # Test Prisma logging (use with PRISMA_LOG env vars)
 
 # Utility scripts
 npx tsx scripts/generate-email-env-example.ts  # Generate email config for .env.example
@@ -243,6 +244,15 @@ REDIS_CONNECTION_STRING="" # for caching
 NEXT_PUBLIC_CONSOLE_LOGGING="false" # debug logging
 IPINFO_TOKEN="" # For geolocation services
 SPINNER_DELAY_MS="500" # Delay before showing loading spinner (in milliseconds)
+
+# Prisma Database Query Logging
+PRISMA_LOG="false" # Enable/disable Prisma query logging
+PRISMA_LOG_LEVEL="1" # Logging detail level (1-5)
+# Level 1: Date/time and execution time only
+# Level 2: Query type (SELECT, INSERT, etc.) and execution time
+# Level 3: Query type, target table, parameters, and execution time
+# Level 4: Sanitized SQL query (first 200 chars), parameters, and execution time
+# Level 5: Full SQL queries, parameters, middleware timing, and detailed debugging
 
 # User Passwords (for seeding)
 SEED_ADMIN_PASSWORD="Qm3Xr7Np9K"
@@ -656,3 +666,13 @@ const serializedComment = {
   - Added connection monitoring script: `npx tsx scripts/monitor-db-connections.ts`
   - Updated Prisma client initialization with proper logging
   - Root cause: Default pool size (2 × CPU cores + 1) was too small for concurrent requests
+- **FEATURE**: Advanced Prisma query logging with 5 configurable levels
+  - Added `PRISMA_LOG` environment variable to enable/disable logging
+  - Added `PRISMA_LOG_LEVEL` (1-5) for granular control over log verbosity
+  - Level 1: Minimal - timestamp and execution time only
+  - Level 2: Basic - adds query type (SELECT, INSERT, etc.)
+  - Level 3: Detailed - includes target table and parameters
+  - Level 4: Verbose - shows first 200 chars of SQL and parameters
+  - Level 5: Debug - full SQL queries, middleware timing, and complete debugging info
+  - Fixed BigInt conversion error in connection pool monitoring
+  - Added connection pool status button to /configs page for admins
