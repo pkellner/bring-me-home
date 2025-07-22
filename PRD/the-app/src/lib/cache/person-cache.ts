@@ -30,14 +30,40 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
       include: {
         detentionCenterImage: {
           include: {
-            image: true;
+            image: {
+              select: {
+                id: true;
+                mimeType: true;
+                size: true;
+                width: true;
+                height: true;
+                caption: true;
+                storageType: true;
+                s3Key: true;
+                createdAt: true;
+                updatedAt: true;
+              };
+            };
           };
         };
       };
     };
     personImages: {
       include: {
-        image: true;
+        image: {
+          select: {
+            id: true;
+            mimeType: true;
+            size: true;
+            width: true;
+            height: true;
+            caption: true;
+            storageType: true;
+            s3Key: true;
+            createdAt: true;
+            updatedAt: true;
+          };
+        };
       };
     };
     comments: {
@@ -162,14 +188,42 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
         include: {
           detentionCenterImage: {
             include: {
-              image: true,
+              image: {
+                select: {
+                  id: true,
+                  mimeType: true,
+                  size: true,
+                  width: true,
+                  height: true,
+                  caption: true,
+                  storageType: true,
+                  s3Key: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  // Explicitly exclude 'data' field
+                },
+              },
             },
           },
         },
       },
       personImages: {
         include: {
-          image: true,
+          image: {
+            select: {
+              id: true,
+              mimeType: true,
+              size: true,
+              width: true,
+              height: true,
+              caption: true,
+              storageType: true,
+              s3Key: true,
+              createdAt: true,
+              updatedAt: true,
+              // Explicitly exclude 'data' field
+            },
+          },
         },
         orderBy: [{ imageType: 'asc' }, { sequenceNumber: 'asc' }],
       },
@@ -455,7 +509,13 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
     userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') ||
     session.user.roles?.some(role => role.name === 'site-admin') ||
     false;
-  const isTownAdmin = (userWithAccess?.townAccess?.length ?? 0) > 0;
+  
+  // Check for town-admin role OR town access
+  const isTownAdmin = 
+    userWithAccess?.userRoles.some(ur => ur.role.name === 'town-admin') ||
+    session.user.roles?.some(role => role.name === 'town-admin') ||
+    (userWithAccess?.townAccess?.length ?? 0) > 0;
+    
   const isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
 
   return {

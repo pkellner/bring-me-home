@@ -43,7 +43,21 @@ export default async function PersonsPage() {
       },
       personImages: {
         include: {
-          image: true,
+          image: {
+            select: {
+              id: true,
+              mimeType: true,
+              size: true,
+              width: true,
+              height: true,
+              caption: true,
+              storageType: true,
+              s3Key: true,
+              createdAt: true,
+              updatedAt: true,
+              // Explicitly exclude 'data' field
+            },
+          },
         },
         orderBy: [
           { imageType: 'asc' },

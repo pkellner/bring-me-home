@@ -113,19 +113,25 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
                   </div>
                 </div>
                 <div className="flex-shrink-0">
-                  {person.detentionCenter.imageId ? (
-                    <Image
-                      src={generateUrl(person.detentionCenter.imageId, { width: 300, height: 300, quality: 90 })}
-                      alt={person.detentionCenter.name}
-                      width={120}
-                      height={120}
-                      className="rounded-lg object-cover shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-4xl text-gray-400">🏢</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const imageId = person.detentionCenter.detentionCenterImage?.imageId || person.detentionCenter.imageId;
+                    if (imageId) {
+                      return (
+                        <Image
+                          src={generateUrl(imageId, { width: 300, height: 300, quality: 90 })}
+                          alt={person.detentionCenter.name}
+                          width={120}
+                          height={120}
+                          className="rounded-lg object-cover shadow-sm"
+                        />
+                      );
+                    }
+                    return (
+                      <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-4xl text-gray-400">🏢</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
