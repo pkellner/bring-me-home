@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
 import { createPersonSlug } from '@/lib/slug-utils';
+import { invalidatePersonCache } from '@/lib/cache/person-cache';
 
 const personSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -596,6 +597,20 @@ export async function updatePerson(id: string, formData: FormData) {
       where: { personId: id },
       orderBy: [{ language: 'asc' }, { storyType: 'asc' }],
     });
+
+    // Get the updated person to find the town and person slugs
+    const updatedPerson = await prisma.person.findUnique({
+      where: { id },
+      include: { town: true }
+    });
+
+    if (updatedPerson) {
+      // Invalidate the cached person data
+      await invalidatePersonCache(updatedPerson.town.slug, updatedPerson.slug);
+      
+      // Revalidate the public person page
+      revalidatePath(`/${updatedPerson.town.slug}/${updatedPerson.slug}`);
+    }
 
     revalidatePath('/admin/persons');
     revalidatePath(`/admin/persons/${id}/edit`);

@@ -6,6 +6,12 @@ import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
 import { useImageUrl } from '@/hooks/useImageUrl';
 
+// Helper function to get detention center image ID
+function getDetentionCenterImageId(person: SerializedPerson): string | null | undefined {
+  if (!person.detentionCenter) return null;
+  return person.detentionCenter.detentionCenterImage?.imageId || person.detentionCenter.imageId;
+}
+
 interface PersonInfoProps {
   person: SerializedPerson;
   isAdmin: boolean;
@@ -114,19 +120,28 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
               </div>
             </div>
             <div className="flex-shrink-0">
-              {person.detentionCenter.imageId ? (
-                <Image
-                  src={generateUrl(person.detentionCenter.imageId, { width: 300, height: 300, quality: 90 })}
-                  alt={person.detentionCenter.name}
-                  width={120}
-                  height={120}
-                  className="rounded-lg object-cover shadow-sm"
-                />
-              ) : (
-                <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-4xl text-theme-muted">🏢</span>
-                </div>
-              )}
+              {(() => {
+                const imageId = getDetentionCenterImageId(person);
+                
+                if (imageId) {
+                  return (
+                    <div className="relative w-[120px] h-[120px]">
+                      <Image
+                        src={generateUrl(imageId, { width: 300, height: 300, quality: 90 })}
+                        alt={person.detentionCenter.name}
+                        fill
+                        sizes="120px"
+                        className="rounded-lg object-cover shadow-sm"
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-4xl text-theme-muted">🏢</span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

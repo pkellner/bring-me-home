@@ -6,6 +6,12 @@ import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
 import { useImageUrl } from '@/hooks/useImageUrl';
 
+// Helper function to get detention center image ID
+function getDetentionCenterImageId(person: SerializedPerson): string | null | undefined {
+  if (!person.detentionCenter) return null;
+  return person.detentionCenter.detentionCenterImage?.imageId || person.detentionCenter.imageId;
+}
+
 interface TopRowProps {
   person: SerializedPerson;
   isAdmin: boolean;
@@ -114,16 +120,19 @@ export default function TopRow({ person, isAdmin }: TopRowProps) {
                 </div>
                 <div className="flex-shrink-0">
                   {(() => {
-                    const imageId = person.detentionCenter.detentionCenterImage?.imageId || person.detentionCenter.imageId;
+                    const imageId = getDetentionCenterImageId(person);
+                    
                     if (imageId) {
                       return (
-                        <Image
-                          src={generateUrl(imageId, { width: 300, height: 300, quality: 90 })}
-                          alt={person.detentionCenter.name}
-                          width={120}
-                          height={120}
-                          className="rounded-lg object-cover shadow-sm"
-                        />
+                        <div className="relative w-[120px] h-[120px]">
+                          <Image
+                            src={generateUrl(imageId, { width: 300, height: 300, quality: 90 })}
+                            alt={person.detentionCenter.name}
+                            fill
+                            sizes="120px"
+                            className="rounded-lg object-cover shadow-sm"
+                          />
+                        </div>
                       );
                     }
                     return (

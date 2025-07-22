@@ -8,6 +8,7 @@ import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
+import { invalidatePersonCache } from '@/lib/cache/person-cache';
 
 const detentionCenterSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
@@ -224,6 +225,24 @@ export async function updateDetentionCenter(
         ...validatedFields.data,
         imageId: processedImageId,
       },
+    });
+
+    // Find all persons in this detention center and invalidate their caches
+    const personsInCenter = await prisma.person.findMany({
+      where: { detentionCenterId: id },
+      include: { town: true }
+    });
+
+    // Invalidate cache for each person
+    await Promise.all(
+      personsInCenter.map(person => 
+        invalidatePersonCache(person.town.slug, person.slug)
+      )
+    );
+
+    // Revalidate public pages for all affected persons
+    personsInCenter.forEach(person => {
+      revalidatePath(`/${person.town.slug}/${person.slug}`);
     });
 
     revalidatePath('/admin/detention-centers');
