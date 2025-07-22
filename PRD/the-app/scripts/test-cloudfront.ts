@@ -5,6 +5,13 @@
  * Usage: npx tsx scripts/test-cloudfront.ts
  */
 
+// Load environment variables
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
 const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_CLOUDFRONT_CDN_URL;
 const ORIGIN_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
@@ -54,17 +61,38 @@ async function main() {
   const fs = await import('fs');
   const path = await import('path');
   
+  // Check if we're testing against production or local
+  const isLocalhost = ORIGIN_URL.includes('localhost');
+  
+  if (isLocalhost) {
+    console.log('⚠️  Testing against localhost - make sure your dev server is running!');
+    console.log('   Run "npm run dev" in another terminal');
+    console.log('');
+  }
+  
   // Find an actual static file from the build
-  const staticDir = path.join(process.cwd(), '.next/static/chunks/app');
+  const staticDir = path.join(process.cwd(), '.next/static');
   let testFile = '';
   
   try {
-    const files = fs.readdirSync(staticDir, { recursive: true });
-    const jsFile = files.find(f => f.toString().endsWith('.js'));
-    if (jsFile) {
-      testFile = `/_next/static/chunks/app/${jsFile}`;
-      console.log(`📁 Found test file in build: ${testFile}`);
+    // Look for the build ID file which should always exist
+    const buildIdPath = path.join(process.cwd(), '.next/BUILD_ID');
+    if (fs.existsSync(buildIdPath)) {
+      const buildId = fs.readFileSync(buildIdPath, 'utf8').trim();
+      // Use a file that should exist in production builds
+      testFile = `/_next/static/${buildId}/_buildManifest.js`;
+      console.log(`📁 Using build ID: ${buildId}`);
       console.log('');
+    } else {
+      // Try to find any JS file in the static directory
+      const chunks = path.join(staticDir, 'chunks');
+      if (fs.existsSync(chunks)) {
+        const files = fs.readdirSync(chunks);
+        const jsFile = files.find(f => f.endsWith('.js'));
+        if (jsFile) {
+          testFile = `/_next/static/chunks/${jsFile}`;
+        }
+      }
     }
   } catch (error) {
     console.log('⚠️  Could not read build directory. Make sure to run "npm run build" first.');
@@ -103,8 +131,23 @@ async function main() {
   console.log('2. Or wait for TTL to expire');
   console.log('3. Use versioned filenames (Next.js does this automatically)');
   console.log('');
-  console.log('To test if origin is accessible:');
-  console.log(`   curl -I ${ORIGIN_URL}/_next/static/chunks/main.js`);
+  console.log('CloudFront Origin Configuration:');
+  console.log('================================');
+  console.log('IMPORTANT: Your CloudFront origin should point to your PRODUCTION deployment URL');
+  console.log('NOT localhost. Examples:');
+  console.log('- Vercel: your-app.vercel.app');
+  console.log('- AWS: your-alb.region.elb.amazonaws.com');
+  console.log('- Your domain: app.yourdomain.com');
+  console.log('');
+  console.log('The origin URL in your CloudFront distribution settings must match');
+  console.log('where your Next.js app is deployed in production.');
+  console.log('');
+  
+  if (ORIGIN_URL.includes('localhost')) {
+    console.log('⚠️  WARNING: Your NEXTAUTH_URL is set to localhost.');
+    console.log('   CloudFront cannot access localhost as an origin!');
+    console.log('   Update your CloudFront origin to point to your production URL.');
+  }
 }
 
 main().catch(console.error);
