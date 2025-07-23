@@ -67,6 +67,7 @@ export default function CommentSection({
   
   const [stats, setStats] = useState<Stats | null>(null);
   const [hasCookie, setHasCookie] = useState(false);
+  const [localSupportIncrement, setLocalSupportIncrement] = useState(0);
   
   // Check for cookie only on client side
   useEffect(() => {
@@ -160,6 +161,8 @@ export default function CommentSection({
           stats={stats || undefined}
           isAdmin={isSiteAdmin}
           supportMapMetadata={supportMapMetadata}
+          localSupportIncrement={localSupportIncrement}
+          onLocalSupportIncrement={() => setLocalSupportIncrement(prev => prev + 1)}
         />
         
         {/* ADMIN DEBUG PANEL - Only show for admins when cookie is set */}

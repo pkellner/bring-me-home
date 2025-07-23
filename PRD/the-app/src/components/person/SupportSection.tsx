@@ -36,6 +36,8 @@ interface SupportSectionProps {
     messageLocationCount: number;
     supportLocationCount: number;
   };
+  localSupportIncrement?: number;
+  onLocalSupportIncrement?: () => void;
 }
 
 export default function SupportSection({
@@ -46,6 +48,8 @@ export default function SupportSection({
   stats,
   isAdmin = false,
   supportMapMetadata,
+  localSupportIncrement = 0,
+  onLocalSupportIncrement,
 }: SupportSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [hasQuickSupported, setHasQuickSupported] = useState(false);
@@ -144,6 +148,11 @@ export default function SupportSection({
         // Track anonymous support in GA
         gtag.trackSupportAction('anonymous_support', personId);
         
+        // Increment the local counter immediately for instant UI feedback
+        if (onLocalSupportIncrement) {
+          onLocalSupportIncrement();
+        }
+        
         // Trigger a stats refresh by dispatching a custom event
         window.dispatchEvent(new CustomEvent('supportAdded'));
       }
@@ -210,10 +219,11 @@ export default function SupportSection({
     }, 300);
   };
 
-  // Calculate totals for mini stats
-  const totalSupport = stats ? stats.anonymousSupport.total + stats.messages.total : 0;
+  // Calculate totals for mini stats - include local increment
+  const adjustedAnonymousTotal = stats ? stats.anonymousSupport.total + localSupportIncrement : localSupportIncrement;
+  const totalSupport = stats ? adjustedAnonymousTotal + stats.messages.total : localSupportIncrement;
   const messagesPercent = totalSupport > 0 ? (stats!.messages.total / totalSupport) * 100 : 0;
-  const quickPercent = totalSupport > 0 ? (stats!.anonymousSupport.total / totalSupport) * 100 : 0;
+  const quickPercent = totalSupport > 0 ? (adjustedAnonymousTotal / totalSupport) * 100 : 0;
 
 
   // Remove the early return - we want to show the support options even with no data
@@ -254,7 +264,7 @@ export default function SupportSection({
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs">
                   <span className="text-gray-600">✍️ {stats.messages.total} messages</span>
-                  <span className="text-gray-600">💗 {stats.anonymousSupport.total} quick</span>
+                  <span className="text-gray-600">💗 {adjustedAnonymousTotal} quick</span>
                 </div>
               </>
             ) : (
