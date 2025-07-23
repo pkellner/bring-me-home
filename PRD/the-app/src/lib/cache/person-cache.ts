@@ -453,14 +453,37 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { personImages, ...personWithoutImages } = person;
+  const { personImages, detentionCenter, ...personWithoutImagesAndDetentionCenter } = person;
+
+  // Serialize detention center if it exists
+  let serializedDetentionCenter = null;
+  if (detentionCenter) {
+    serializedDetentionCenter = {
+      ...detentionCenter,
+      createdAt: detentionCenter.createdAt.toISOString(),
+      updatedAt: detentionCenter.updatedAt.toISOString(),
+      // Include the detentionCenterImage if it exists
+      detentionCenterImage: detentionCenter.detentionCenterImage ? {
+        ...detentionCenter.detentionCenterImage,
+        createdAt: detentionCenter.detentionCenterImage.createdAt.toISOString(),
+        updatedAt: detentionCenter.detentionCenterImage.updatedAt.toISOString(),
+        // Include the image data if it exists
+        image: detentionCenter.detentionCenterImage.image ? {
+          ...detentionCenter.detentionCenterImage.image,
+          createdAt: detentionCenter.detentionCenterImage.image.createdAt.toISOString(),
+          updatedAt: detentionCenter.detentionCenterImage.image.updatedAt.toISOString(),
+        } : undefined,
+      } : null,
+    };
+  }
 
   return {
-    ...personWithoutImages,
+    ...personWithoutImagesAndDetentionCenter,
     bondAmount: person.bondAmount ? (typeof person.bondAmount === 'string' ? person.bondAmount : person.bondAmount.toString()) : null,
     stories: serializedStories,
     comments: serializedComments,
     images,
+    detentionCenter: serializedDetentionCenter,
     detentionDate: person.detentionDate ? person.detentionDate.toISOString() : null,
     lastSeenDate: person.lastSeenDate ? person.lastSeenDate.toISOString() : null,
     lastHeardFromDate: person.lastHeardFromDate ? person.lastHeardFromDate.toISOString() : null,

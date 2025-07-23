@@ -20,6 +20,13 @@ export default async function EditDetentionCenterPage({
 
   const detentionCenter = await prisma.detentionCenter.findUnique({
     where: { id },
+    include: {
+      detentionCenterImage: {
+        select: {
+          imageId: true,
+        },
+      },
+    },
   });
 
   if (!detentionCenter) {

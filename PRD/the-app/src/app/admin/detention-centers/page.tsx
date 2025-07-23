@@ -23,6 +23,11 @@ export default async function DetentionCentersPage() {
           detainees: true,
         },
       },
+      detentionCenterImage: {
+        select: {
+          imageId: true,
+        },
+      },
     },
     orderBy: [{ state: 'asc' }, { city: 'asc' }, { name: 'asc' }],
   });

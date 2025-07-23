@@ -9,7 +9,8 @@ import { useImageUrl } from '@/hooks/useImageUrl';
 // Helper function to get detention center image ID
 function getDetentionCenterImageId(person: SerializedPerson): string | null | undefined {
   if (!person.detentionCenter) return null;
-  return person.detentionCenter.detentionCenterImage?.imageId || person.detentionCenter.imageId;
+  // Use the deprecated imageId field as it contains the correct image
+  return person.detentionCenter.imageId;
 }
 
 interface PersonInfoProps {
