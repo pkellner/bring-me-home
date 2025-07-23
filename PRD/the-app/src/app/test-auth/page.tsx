@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasRole } from '@/lib/permissions';
+import Link from '@/components/OptimizedLink';
 
 export default async function TestAuthPage() {
   const session = await getServerSession(authOptions);
@@ -55,9 +56,9 @@ export default async function TestAuthPage() {
         )}
         
         <div className="mt-6">
-          <a href="/admin" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <Link href="/admin" className="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             Try to Access /admin
-          </a>
+          </Link>
         </div>
       </div>
     </div>

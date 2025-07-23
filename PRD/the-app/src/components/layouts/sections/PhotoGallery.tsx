@@ -48,7 +48,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
             >
               <div className="relative w-full aspect-square">
                 <Image
-                  src={getImageUrl(image, { width: 600, height: 600, quality: 90 }) || ''}
+                  src={image.imageUrl || getImageUrl(image, { width: 600, height: 600, quality: 90 }) || ''}
                   alt={image.caption || `Photo ${index + 1} of ${person.firstName} ${person.lastName}`}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-200"
@@ -100,7 +100,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
             {/* Image container - 70% of viewport */}
             <div className="relative max-w-[70vw] max-h-[70vh] flex items-center justify-center">
               <Image
-                src={getImageUrl(selectedImage, { width: 1200, height: 800, quality: 90 }) || ''}
+                src={selectedImage.imageUrl || getImageUrl(selectedImage, { width: 1200, height: 800, quality: 90 }) || ''}
                 alt={selectedImage.caption || `Photo of ${person.firstName} ${person.lastName}`}
                 width={1200}
                 height={800}

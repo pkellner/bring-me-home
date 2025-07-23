@@ -10,6 +10,8 @@ import { validateImageBuffer } from '@/lib/image-utils';
 import { processAndStoreImage } from '@/lib/image-storage';
 import { createPersonSlug } from '@/lib/slug-utils';
 import { invalidatePersonCache } from '@/lib/cache/person-cache';
+import { invalidateTownCache } from '@/lib/cache/town-cache';
+import { invalidateHomepageCache } from '@/lib/cache/homepage-cache';
 
 const personSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -188,6 +190,13 @@ export async function createPerson(formData: FormData) {
       where: { id: person.id },
       include: { town: true }
     });
+
+    if (createdPerson) {
+      // Invalidate town cache since a new person was added
+      await invalidateTownCache(createdPerson.town.slug);
+      // Invalidate homepage cache since recent persons might have changed
+      await invalidateHomepageCache();
+    }
 
     revalidatePath('/admin/persons');
     return {
@@ -607,6 +616,10 @@ export async function updatePerson(id: string, formData: FormData) {
     if (updatedPerson) {
       // Invalidate the cached person data
       await invalidatePersonCache(updatedPerson.town.slug, updatedPerson.slug);
+      // Invalidate town cache since person data might have changed
+      await invalidateTownCache(updatedPerson.town.slug);
+      // Invalidate homepage cache in case this person appears in recent persons
+      await invalidateHomepageCache();
       
       // Revalidate the public person page
       revalidatePath(`/${updatedPerson.town.slug}/${updatedPerson.slug}`);
@@ -635,9 +648,24 @@ export async function deletePerson(id: string) {
   }
 
   try {
+    // Get person info before deleting for cache invalidation
+    const person = await prisma.person.findUnique({
+      where: { id },
+      include: { town: true }
+    });
+    
     await prisma.person.delete({
       where: { id },
     });
+
+    if (person) {
+      // Invalidate person cache
+      await invalidatePersonCache(person.town.slug, person.slug);
+      // Invalidate town cache since person list changed
+      await invalidateTownCache(person.town.slug);
+      // Invalidate homepage cache in case this person was in recent persons
+      await invalidateHomepageCache();
+    }
 
     revalidatePath('/admin/persons');
     return { success: true };
@@ -666,10 +694,16 @@ export async function togglePersonVisibility(
   }
 
   try {
-    await prisma.person.update({
+    const person = await prisma.person.update({
       where: { id: personId },
       data: { isActive },
+      include: { town: true }
     });
+
+    // Invalidate caches when visibility changes
+    await invalidatePersonCache(person.town.slug, person.slug);
+    await invalidateTownCache(person.town.slug);
+    await invalidateHomepageCache();
 
     revalidatePath('/admin/persons');
     return { success: true };
@@ -698,10 +732,31 @@ export async function updateBulkPersonVisibility(
   }
 
   try {
+    // Get all affected persons with their towns for cache invalidation
+    const affectedPersons = await prisma.person.findMany({
+      where: { id: { in: personIds } },
+      include: { town: true }
+    });
+    
     await prisma.person.updateMany({
       where: { id: { in: personIds } },
       data: { isActive },
     });
+
+    // Invalidate caches for all affected persons and towns
+    const uniqueTownSlugs = new Set<string>();
+    for (const person of affectedPersons) {
+      await invalidatePersonCache(person.town.slug, person.slug);
+      uniqueTownSlugs.add(person.town.slug);
+    }
+    
+    // Invalidate each unique town cache
+    for (const townSlug of uniqueTownSlugs) {
+      await invalidateTownCache(townSlug);
+    }
+    
+    // Invalidate homepage cache once
+    await invalidateHomepageCache();
 
     revalidatePath('/admin/persons');
     return { success: true };

@@ -12,8 +12,8 @@ interface PersonImageProps {
 export default function PersonImage({ person }: PersonImageProps) {
   // Use primary image
   const profileImage = person.images?.find(img => img.imageType === 'primary');
-  // Use the client-side image URL helper that respects server decisions
-  const imageUrl = getImageUrl(profileImage, { width: 600, height: 600, quality: 90 });
+  // Use pre-generated imageUrl when available, otherwise generate client-side
+  const imageUrl = profileImage?.imageUrl || getImageUrl(profileImage, { width: 600, height: 600, quality: 90 });
   //console.log("/src/components/layouts/sections/PersonImage.tsx: imageUrl", imageUrl);
 
   useImageLogging(

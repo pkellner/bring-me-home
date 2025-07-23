@@ -16,6 +16,8 @@ export const RedisNamespaces = {
   PERSON: 'person',
   COMMENT: 'comment',
   LOGIN: 'login',
+  TOWN: 'town',
+  HOMEPAGE: 'homepage',
 } as const;
 
 type RedisNamespace = typeof RedisNamespaces[keyof typeof RedisNamespaces];
@@ -45,6 +47,12 @@ export const RedisKeys = {
   // Cache keys
   personCache: (townSlug: string, personSlug: string, version: string = 'v1') => 
     generateRedisKey(RedisNamespaces.CACHE, 'person', townSlug, personSlug, version),
+  
+  townCache: (townSlug: string, version: string = 'v1') => 
+    generateRedisKey(RedisNamespaces.CACHE, 'town', townSlug, version),
+  
+  homepageCache: (version: string = 'v1') => 
+    generateRedisKey(RedisNamespaces.CACHE, 'homepage', version),
   
   // Health check keys
   healthTest: (timestamp: number, index: number) => 

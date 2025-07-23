@@ -17,7 +17,7 @@ export default function HeroImage({ person }: HeroImageProps) {
       {profileImage ? (
         <>
           <Image
-            src={generateUrl(profileImage.id, { width: 1200, height: 600, quality: 90 })}
+            src={profileImage.imageUrl || generateUrl(profileImage.id, { width: 1200, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             fill
             sizes="100vw"

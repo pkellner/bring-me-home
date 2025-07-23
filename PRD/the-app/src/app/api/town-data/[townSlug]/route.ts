@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getCachedTownData } from '@/lib/cache/town-cache';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ townSlug: string }> }
+) {
+  try {
+    const { townSlug } = await params;
+    
+    // Check for cache control headers
+    const forceRefresh = request.headers.get('cache-control') === 'no-cache';
+    
+    // Get cached data
+    const result = await getCachedTownData(townSlug, {
+      forceRefresh,
+    });
+
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'Town not found' },
+        { status: 404 }
+      );
+    }
+
+    // Add cache metadata to response headers
+    const response = NextResponse.json(result.data);
+    response.headers.set('X-Cache-Source', result.source);
+    response.headers.set('X-Cache-Latency', result.latency.toString());
+    
+    // Add cache control headers
+    if (!forceRefresh) {
+      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error fetching town data:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

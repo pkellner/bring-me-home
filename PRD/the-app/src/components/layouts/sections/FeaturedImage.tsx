@@ -17,7 +17,7 @@ export default function FeaturedImage({ person }: FeaturedImageProps) {
       {profileImage ? (
         <div className="relative rounded-lg overflow-hidden shadow-xl">
           <Image
-            src={generateUrl(profileImage.id, { width: 800, height: 600, quality: 90 })}
+            src={profileImage.imageUrl || generateUrl(profileImage.id, { width: 800, height: 600, quality: 90 })}
             alt={`${person.firstName} ${person.lastName}`}
             width={800}
             height={600}

@@ -50,7 +50,7 @@ export default function ArticleContent({ person }: ArticleContentProps) {
               .map((image, index) => (
                 <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg shadow-md">
                   <Image
-                    src={generateUrl(image.id, { width: 600, height: 600, quality: 85 })}
+                    src={image.imageUrl || generateUrl(image.id, { width: 600, height: 600, quality: 85 })}
                     alt={image.caption || `Photo ${index + 1}`}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
