@@ -1,8 +1,11 @@
 import { ImageResponse } from 'next/og';
-import { getConfig } from '@/lib/config';
+import { getSystemConfig } from '@/app/actions/systemConfig';
 
 export async function GET() {
-  const siteTitle = (await getConfig('site_title')) || 'Bring Me Home';
+  // Skip database query during build phase
+  const siteTitle = process.env.NEXT_PHASE === 'phase-production-build' 
+    ? 'Bring Me Home' 
+    : (await getSystemConfig('site_title')) || 'Bring Me Home';
 
   return new ImageResponse(
     (

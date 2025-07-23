@@ -32,13 +32,13 @@ export default function middleware(request: NextRequest) {
 
       // Skip HTTPS redirect for localhost
       const host = req.headers.get('host') || '';
-      const isLocalhost = host.includes('localhost') || 
-                         host.includes('127.0.0.1') || 
+      const isLocalhost = host.includes('localhost') ||
+                         host.includes('127.0.0.1') ||
                          host.includes('0.0.0.0');
-      
+
       // Only redirect to HTTPS in production on real domains
       if (
-        process.env.NODE_ENV === 'production' && 
+        process.env.NODE_ENV === 'production' &&
         !isLocalhost &&
         req.headers.get('x-forwarded-proto') === 'http'
       ) {
@@ -61,6 +61,7 @@ export default function middleware(request: NextRequest) {
       if (publicRoutes.includes(pathname)) {
         return NextResponse.next();
       }
+
 
       // Allow access to town pages (format: /townname) and person pages (format: /townname/personname)
       const townRegex = /^\/[^\/]+\/?$/;
@@ -86,6 +87,7 @@ export default function middleware(request: NextRequest) {
             description?: string;
             permissions: string;
           }>) || [];
+
         const hasAdminRole = roles.some(role =>
           ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
         );
@@ -142,6 +144,7 @@ export default function middleware(request: NextRequest) {
           if (publicRoutes.includes(pathname)) {
             return true;
           }
+
 
           // Allow access to town pages and person pages without auth
           const townRegex = /^\/[^\/]+\/?$/;

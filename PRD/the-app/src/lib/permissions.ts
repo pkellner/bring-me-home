@@ -24,8 +24,18 @@ export function hasPermission(
 }
 
 export function hasRole(session: Session | null, roleName: string): boolean {
+  console.log('[hasRole] Checking role:', roleName);
+  console.log('[hasRole] Session exists:', !!session);
+  console.log('[hasRole] User exists:', !!session?.user);
+  console.log('[hasRole] Roles exist:', !!session?.user?.roles);
+  console.log('[hasRole] Roles:', session?.user?.roles);
+  
   if (!session?.user?.roles) return false;
-  return session.user.roles.some(role => role.name === roleName);
+  
+  const hasMatchingRole = session.user.roles.some(role => role.name === roleName);
+  console.log('[hasRole] Has matching role:', hasMatchingRole);
+  
+  return hasMatchingRole;
 }
 
 export function isSiteAdmin(session: Session | null): boolean {

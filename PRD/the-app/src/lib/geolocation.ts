@@ -295,7 +295,8 @@ export class GeolocationService {
   }
 
   static async getProcessedLocations(personId: string) {
-    const [comments, support] = await Promise.all([
+    // Use Prisma transaction to batch queries
+    const [comments, support] = await prisma.$transaction([
       prisma.comment.findMany({
         where: {
           personId,
@@ -378,7 +379,8 @@ export class GeolocationService {
   }
   
   static async hasAnyIpAddresses(personId: string) {
-    const [messagesWithIp, supportWithIp] = await Promise.all([
+    // Use Prisma transaction to batch queries
+    const [messagesWithIp, supportWithIp] = await prisma.$transaction([
       prisma.comment.count({
         where: {
           personId,

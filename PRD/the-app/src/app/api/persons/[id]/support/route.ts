@@ -1,5 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getMemoryCache, getRedisCache } from '@/lib/cache/cache-manager';
+import { generateRedisKey, RedisNamespaces } from '@/lib/redis/redis-keys';
+
+async function getCachedSupportStats(personId: string) {
+  const cacheKey = generateRedisKey(RedisNamespaces.CACHE, 'support-stats', personId);
+  const TTL_SECONDS = parseInt(process.env.CACHE_SUPPORT_STATS_TTL || '300');
+  
+  // Try memory cache (respects CACHE_MEMORY_ENABLE)
+  const memoryCache = await getMemoryCache();
+  const cached = await memoryCache.get(cacheKey);
+  if (cached) return cached;
+  
+  // Try Redis cache (respects CACHE_REDIS_ENABLE)
+  const redisCache = await getRedisCache();
+  if (redisCache) {
+    const redisCached = await redisCache.get(cacheKey);
+    if (redisCached) {
+      await memoryCache.set(cacheKey, redisCached, TTL_SECONDS * 1000);
+      return redisCached;
+    }
+  }
+  
+  // Query database
+  const twentyFourHoursAgo = new Date();
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+  
+  const [totalAnonymousSupport, recentAnonymousSupport, totalMessages, recentMessages] = 
+    await Promise.all([
+      prisma.anonymousSupport.count({ where: { personId } }),
+      prisma.anonymousSupport.count({ 
+        where: { personId, createdAt: { gte: twentyFourHoursAgo } } 
+      }),
+      prisma.comment.count({ where: { personId, isApproved: true } }),
+      prisma.comment.count({ 
+        where: { personId, isApproved: true, createdAt: { gte: twentyFourHoursAgo } } 
+      }),
+    ]);
+  
+  const stats = {
+    anonymousSupport: { 
+      total: totalAnonymousSupport, 
+      last24Hours: recentAnonymousSupport 
+    },
+    messages: { 
+      total: totalMessages, 
+      last24Hours: recentMessages 
+    }
+  };
+  
+  // Cache result (respects cache enable settings)
+  await memoryCache.set(cacheKey, stats, TTL_SECONDS * 1000);
+  if (redisCache) {
+    await redisCache.set(cacheKey, stats, TTL_SECONDS);
+  }
+  
+  return stats;
+}
 
 export async function GET(
   request: NextRequest,
@@ -7,54 +64,7 @@ export async function GET(
 ) {
   try {
     const { id: personId } = await params;
-    
-    // Get total anonymous support count
-    const totalAnonymousSupport = await prisma.anonymousSupport.count({
-      where: { personId }
-    });
-    
-    // Get support in last 24 hours
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    
-    const recentAnonymousSupport = await prisma.anonymousSupport.count({
-      where: {
-        personId,
-        createdAt: {
-          gte: twentyFourHoursAgo
-        }
-      }
-    });
-    
-    // Get total approved comments (messages)
-    const totalMessages = await prisma.comment.count({
-      where: {
-        personId,
-        isApproved: true
-      }
-    });
-    
-    // Get messages in last 24 hours
-    const recentMessages = await prisma.comment.count({
-      where: {
-        personId,
-        isApproved: true,
-        createdAt: {
-          gte: twentyFourHoursAgo
-        }
-      }
-    });
-    
-    return NextResponse.json({
-      anonymousSupport: {
-        total: totalAnonymousSupport,
-        last24Hours: recentAnonymousSupport
-      },
-      messages: {
-        total: totalMessages,
-        last24Hours: recentMessages
-      }
-    });
+    return NextResponse.json(await getCachedSupportStats(personId));
   } catch (error) {
     console.error('Error fetching support stats:', error);
     return NextResponse.json(

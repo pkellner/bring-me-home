@@ -4,11 +4,21 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Connection tracking
+let activeQueries = 0;
+let totalQueries = 0;
+const queryStack: { query: string; timestamp: number; duration?: number }[] = [];
+
 // Define logging levels
 type LogLevel = '1' | '2' | '3' | '4' | '5';
 
 // Get Prisma log configuration based on environment variables
 function getPrismaLogConfig(): (Prisma.LogLevel | Prisma.LogDefinition)[] {
+  // Disable all logging during build process
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return ['error'];
+  }
+
   const isPrismaLogEnabled = process.env.PRISMA_LOG === 'true';
   const logLevel = (process.env.PRISMA_LOG_LEVEL || '1') as LogLevel;
 
@@ -107,6 +117,15 @@ function formatQueryLog(e: Prisma.QueryEvent, level: LogLevel) {
   console.log('---');
 }
 
+// Connection monitoring utilities
+export function getConnectionStats() {
+  return {
+    activeQueries,
+    totalQueries,
+    recentQueries: queryStack.slice(-20), // Last 20 queries
+  };
+}
+
 // Create PrismaClient with optimized connection pool settings
 const createPrismaClient = () => {
   const logConfig = getPrismaLogConfig();
@@ -122,27 +141,71 @@ const createPrismaClient = () => {
     },
   });
 
-  // Set up event-based logging for levels 1-5
-  if (isPrismaLogEnabled && logConfig.some(config => 
-    typeof config === 'object' && config.emit === 'event'
-  )) {
+  // Set up event-based logging for levels 1-5 (but not during build)
+  if (isPrismaLogEnabled && 
+      process.env.NEXT_PHASE !== 'phase-production-build' &&
+      logConfig.some(config => typeof config === 'object' && config.emit === 'event')
+  ) {
     client.$on('query' as never, (e: Prisma.QueryEvent) => {
       formatQueryLog(e, logLevel);
     });
   }
 
-  // For level 5, also enable additional debugging
-  if (isPrismaLogEnabled && logLevel === '5') {
-    client.$use(async (params, next) => {
-      const before = Date.now();
-      const result = await next(params);
-      const after = Date.now();
+  // Add comprehensive query tracking middleware (always enabled for debugging)
+  client.$use(async (params, next) => {
+    const queryStart = Date.now();
+    const queryId = `${params.model}.${params.action}-${queryStart}`;
+    
+    activeQueries++;
+    totalQueries++;
+    
+    // Log query start
+    if (process.env.QUERY_TRACKING === 'true') {
+      console.log(`\n[QUERY START #${totalQueries}] ${new Date().toISOString()}`);
+      console.log(`  Active Queries: ${activeQueries}`);
+      console.log(`  Model: ${params.model}`);
+      console.log(`  Action: ${params.action}`);
+      console.log(`  Query ID: ${queryId}`);
       
-      console.log(`[PRISMA MIDDLEWARE] ${params.model}.${params.action} took ${after - before}ms`);
-      console.log(`  Args:`, JSON.stringify(params.args, null, 2).substring(0, 500));
+      // Log stack trace to see where query originated
+      const stack = new Error().stack?.split('\n').slice(2, 5).join('\n  ');
+      console.log(`  Origin:\n  ${stack}`);
+    }
+    
+    queryStack.push({
+      query: `${params.model}.${params.action}`,
+      timestamp: queryStart,
+    });
+    
+    try {
+      const result = await next(params);
+      const queryEnd = Date.now();
+      const duration = queryEnd - queryStart;
+      
+      // Update query with duration
+      const stackEntry = queryStack.find(q => q.timestamp === queryStart);
+      if (stackEntry) {
+        stackEntry.duration = duration;
+      }
+      
+      if (process.env.QUERY_TRACKING === 'true') {
+        console.log(`[QUERY END #${totalQueries}] Duration: ${duration}ms`);
+        console.log(`  Active Queries: ${activeQueries - 1}`);
+      }
       
       return result;
-    });
+    } finally {
+      activeQueries--;
+    }
+  });
+  
+  // For level 5, also enable additional debugging (but not during build)
+  if (isPrismaLogEnabled && 
+      logLevel === '5' && 
+      process.env.NEXT_PHASE !== 'phase-production-build'
+  ) {
+    // Additional detailed logging for level 5
+    console.log('[PRISMA] Level 5 debugging enabled');
   }
 
   return client;

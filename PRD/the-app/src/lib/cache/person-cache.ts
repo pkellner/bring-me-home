@@ -2,10 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSystemLayoutTheme } from '@/app/actions/systemConfig';
-import { generateImageUrlServerWithCdn } from '@/lib/image-url-server';
+import { generateImageUrlFromData } from '@/lib/image-url-from-data';
 import { cacheStats } from './cache-stats';
 import { getMemoryCache, getRedisCache } from './cache-manager';
-import { GeolocationService } from '@/lib/geolocation';
+//import { GeolocationService } from '@/lib/geolocation';
 import { RedisKeys } from '@/lib/redis/redis-keys';
 import type { CacheResult, CacheOptions, PersonPageData } from '@/types/cache';
 import type { Prisma } from '@prisma/client';
@@ -425,7 +425,16 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
 
   const images = await Promise.all(
     person.personImages?.map(async (pi) => {
-      const imageUrl = await generateImageUrlServerWithCdn(pi.image.id, undefined, `/${townSlug}/${personSlug}`);
+      // Use the new function that doesn't query the database
+      const imageUrl = await generateImageUrlFromData(
+        {
+          id: pi.image.id,
+          storageType: pi.image.storageType,
+          s3Key: pi.image.s3Key,
+        },
+        undefined,
+        `/${townSlug}/${personSlug}`
+      );
 
       return {
         id: pi.image.id,
@@ -472,7 +481,7 @@ interface UserPermissions {
 
 async function getUserPermissions(personId: string, townId: string): Promise<UserPermissions> {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user?.id) {
     return {
       isAdmin: false,
@@ -509,13 +518,13 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
     userWithAccess?.userRoles.some(ur => ur.role.name === 'site-admin') ||
     session.user.roles?.some(role => role.name === 'site-admin') ||
     false;
-  
+
   // Check for town-admin role OR town access
-  const isTownAdmin = 
+  const isTownAdmin =
     userWithAccess?.userRoles.some(ur => ur.role.name === 'town-admin') ||
     session.user.roles?.some(role => role.name === 'town-admin') ||
     (userWithAccess?.townAccess?.length ?? 0) > 0;
-    
+
   const isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
 
   return {
@@ -528,16 +537,67 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
 
 export async function getSupportMapMetadata(personId: string) {
   try {
-    // Get location counts and check for IP addresses
-    const [locations, hasIpAddresses] = await Promise.all([
-      GeolocationService.getProcessedLocations(personId),
-      GeolocationService.hasAnyIpAddresses(personId),
+    // Combine all geolocation queries into a single transaction
+    const [comments, support, messagesWithIp, supportWithIp] = await prisma.$transaction([
+      // Get processed locations
+      prisma.comment.findMany({
+        where: {
+          personId,
+          latitude: { not: null },
+          longitude: { not: null },
+          isApproved: true
+        },
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
+          geoCity: true,
+          country: true,
+          createdAt: true
+        }
+      }),
+      prisma.anonymousSupport.findMany({
+        where: {
+          personId,
+          latitude: { not: null },
+          longitude: { not: null }
+        },
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
+          geoCity: true,
+          country: true,
+          createdAt: true
+        }
+      }),
+      // Check for IP addresses
+      prisma.comment.count({
+        where: {
+          personId,
+          ipAddress: {
+            not: null,
+            notIn: ['unknown']
+          }
+        }
+      }),
+      prisma.anonymousSupport.count({
+        where: {
+          personId,
+          ipAddress: {
+            not: null,
+            notIn: ['unknown']
+          }
+        }
+      })
     ]);
+
+    const hasIpAddresses = (messagesWithIp + supportWithIp) > 0;
 
     return {
       hasIpAddresses,
-      messageLocationCount: locations.messages.length,
-      supportLocationCount: locations.support.length,
+      messageLocationCount: comments.length,
+      supportLocationCount: support.length,
     };
   } catch (error) {
     console.error('Error fetching support map metadata:', error);
@@ -556,11 +616,19 @@ export async function getCachedPersonData(
 ): Promise<CacheResult<PersonPageData | null>> {
   const startTime = Date.now();
   const cacheKey = generateCacheKey(townSlug, personSlug);
+  const requestId = `${townSlug}/${personSlug}-${startTime}`;
+
+  if (process.env.QUERY_TRACKING === 'true') {
+    console.log(`\n[PERSON DATA REQUEST] ${requestId}`);
+    console.log(`  Time: ${new Date().toISOString()}`);
+    console.log(`  Town: ${townSlug}, Person: ${personSlug}`);
+    console.log(`  Force Refresh: ${options?.forceRefresh || false}`);
+  }
 
   // Skip cache if force refresh is requested
   if (options?.forceRefresh) {
     const person = await getPersonDataFromDatabase(townSlug, personSlug);
-    
+
     if (!person) {
       return {
         data: null,
@@ -569,12 +637,20 @@ export async function getCachedPersonData(
       };
     }
 
+    if (process.env.QUERY_TRACKING === 'true') {
+      console.log(`[PERSON DATA] Starting parallel operations for ${requestId}`);
+    }
+
     const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
       getSystemLayoutTheme(),
       getUserPermissions(person.id, person.townId),
       serializePersonData(person, townSlug, personSlug),
       getSupportMapMetadata(person.id),
     ]);
+
+    if (process.env.QUERY_TRACKING === 'true') {
+      console.log(`[PERSON DATA] Completed parallel operations for ${requestId}`);
+    }
 
     const data: PersonPageData = {
       person: serializedPerson as unknown as PersonPageData['person'],
@@ -607,7 +683,7 @@ export async function getCachedPersonData(
   try {
     const memoryCache = await getMemoryCache();
     const cachedData = await memoryCache.get<PersonPageData>(cacheKey);
-    
+
     if (cachedData) {
       const size = memoryCache.getSize ? memoryCache.getSize(cacheKey) : 0;
       const entryInfo = memoryCache.getEntryInfo ? memoryCache.getEntryInfo(cacheKey) : null;
@@ -623,7 +699,7 @@ export async function getCachedPersonData(
         latency: Date.now() - startTime,
       };
     }
-    
+
     cacheStats.recordMemoryMiss(cacheKey);
   } catch (error) {
     console.error('Memory cache error:', error);
@@ -635,7 +711,7 @@ export async function getCachedPersonData(
     const redisCache = await getRedisCache();
     if (redisCache) {
       const cachedData = await redisCache.get<PersonPageData>(cacheKey);
-      
+
       if (cachedData) {
         const size = redisCache.getSize ? redisCache.getSize(cacheKey) : 0;
         // Redis doesn't have getEntryInfo, but we can estimate based on TTL
@@ -646,7 +722,7 @@ export async function getCachedPersonData(
           expiresAt: new Date(Date.now() + redisTtl * 1000),
         };
         cacheStats.recordRedisHit(cacheKey, size, ttlInfo);
-        
+
         // Populate memory cache from Redis data
         try {
           const memoryCache = await getMemoryCache();
@@ -654,14 +730,14 @@ export async function getCachedPersonData(
         } catch (error) {
           console.error('Failed to populate memory cache from Redis:', error);
         }
-        
+
         return {
           data: cachedData,
           source: 'redis',
           latency: Date.now() - startTime,
         };
       }
-      
+
       cacheStats.recordRedisMiss(cacheKey);
     }
   } catch (error) {
@@ -672,7 +748,7 @@ export async function getCachedPersonData(
   // Fall back to database
   const person = await getPersonDataFromDatabase(townSlug, personSlug);
   cacheStats.recordDatabaseQuery(cacheKey);
-  
+
   if (!person) {
     return {
       data: null,
@@ -681,12 +757,20 @@ export async function getCachedPersonData(
     };
   }
 
+  if (process.env.QUERY_TRACKING === 'true') {
+    console.log(`[PERSON DATA] Starting parallel operations for ${requestId} (from DB)`);
+  }
+
   const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
     getSystemLayoutTheme(),
     getUserPermissions(person.id, person.townId),
     serializePersonData(person, townSlug, personSlug),
     getSupportMapMetadata(person.id),
   ]);
+
+  if (process.env.QUERY_TRACKING === 'true') {
+    console.log(`[PERSON DATA] Completed parallel operations for ${requestId} (from DB)`);
+  }
 
   const data: PersonPageData = {
     person: serializedPerson as unknown as PersonPageData['person'],
@@ -719,7 +803,7 @@ export async function getCachedPersonData(
 
 export async function invalidatePersonCache(townSlug: string, personSlug: string): Promise<void> {
   const cacheKey = generateCacheKey(townSlug, personSlug);
-  
+
   try {
     const [memoryCache, redisCache] = await Promise.all([
       getMemoryCache(),

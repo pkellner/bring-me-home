@@ -1,11 +1,18 @@
 import { Metadata } from 'next';
-import { getConfig } from '@/lib/config';
+import { getSystemConfig } from '@/app/actions/systemConfig';
 
 export async function generateSiteMetadata(): Promise<Metadata> {
-  const [siteTitle, siteDescription] = await Promise.all([
-    getConfig('site_title'),
-    getConfig('site_description'),
-  ]);
+  // Skip database queries during build phase to prevent unnecessary connections
+  let siteTitle: string | null = null;
+  let siteDescription: string | null = null;
+  
+  if (process.env.NEXT_PHASE !== 'phase-production-build') {
+    // Only query database when not in build phase
+    [siteTitle, siteDescription] = await Promise.all([
+      getSystemConfig('site_title'),
+      getSystemConfig('site_description'),
+    ]);
+  }
 
   // Use PRODUCTION_URL in production, otherwise use NEXT_PUBLIC_APP_URL
   const appUrl = process.env.NODE_ENV === 'production'

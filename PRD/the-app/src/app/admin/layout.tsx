@@ -12,6 +12,12 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
 
+  console.log('[AdminLayout] Session exists:', !!session);
+  if (session) {
+    console.log('[AdminLayout] User:', session.user.username);
+    console.log('[AdminLayout] Roles:', session.user.roles?.map(r => r.name));
+  }
+
   if (!session) {
     redirect('/auth/signin');
   }
@@ -22,7 +28,14 @@ export default async function AdminLayout({
     hasRole(session, 'town-admin') ||
     hasRole(session, 'person-admin');
 
+  console.log('[AdminLayout] Has admin role:', hasAdminRole);
+  console.log('[AdminLayout] Role check details:');
+  console.log('  - site-admin:', hasRole(session, 'site-admin'));
+  console.log('  - town-admin:', hasRole(session, 'town-admin'));
+  console.log('  - person-admin:', hasRole(session, 'person-admin'));
+
   if (!hasAdminRole) {
+    console.log('[AdminLayout] No admin role, redirecting to /');
     redirect('/');
   }
 

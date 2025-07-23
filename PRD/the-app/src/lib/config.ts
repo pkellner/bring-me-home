@@ -6,6 +6,11 @@ let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function getConfig(key: string): Promise<string | null> {
+  // Skip database queries during build phase
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return null;
+  }
+
   // Check if cache is still valid
   if (Date.now() - cacheTimestamp > CACHE_DURATION) {
     configCache = {};
@@ -38,6 +43,12 @@ export async function getConfigs(
   keys: string[]
 ): Promise<Record<string, string>> {
   const configs: Record<string, string> = {};
+
+  // Skip database queries during build phase
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    // Return empty strings for all keys during build
+    return keys.reduce((acc, key) => ({ ...acc, [key]: '' }), {});
+  }
 
   try {
     const dbConfigs = await prisma.systemConfig.findMany({
