@@ -213,6 +213,14 @@ export async function getCachedHomepageData(
 ): Promise<CacheResult<HomepageData>> {
   const startTime = Date.now();
   const cacheKey = generateCacheKey();
+  const requestId = `homepage-${startTime}`;
+
+  // Track cache requests (not database queries - use PRISMA_LOG for database query tracking)
+  if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+    console.log(`\n[CACHE REQUEST - Homepage] ${requestId}`);
+    console.log(`  Time: ${new Date().toISOString()}`);
+    console.log(`  Force Refresh: ${options?.forceRefresh || false}`);
+  }
 
   // Skip cache if force refresh is requested
   if (options?.forceRefresh) {

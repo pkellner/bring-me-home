@@ -618,8 +618,9 @@ export async function getCachedPersonData(
   const cacheKey = generateCacheKey(townSlug, personSlug);
   const requestId = `${townSlug}/${personSlug}-${startTime}`;
 
-  if (process.env.QUERY_TRACKING === 'true') {
-    console.log(`\n[PERSON DATA REQUEST] ${requestId}`);
+  // Track cache requests (not database queries - use PRISMA_LOG for database query tracking)
+  if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+    console.log(`\n[CACHE REQUEST - Person] ${requestId}`);
     console.log(`  Time: ${new Date().toISOString()}`);
     console.log(`  Town: ${townSlug}, Person: ${personSlug}`);
     console.log(`  Force Refresh: ${options?.forceRefresh || false}`);
@@ -637,8 +638,8 @@ export async function getCachedPersonData(
       };
     }
 
-    if (process.env.QUERY_TRACKING === 'true') {
-      console.log(`[PERSON DATA] Starting parallel operations for ${requestId}`);
+    if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+      console.log(`[CACHE REQUEST - Person] Starting parallel operations for ${requestId}`);
     }
 
     const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
@@ -648,8 +649,8 @@ export async function getCachedPersonData(
       getSupportMapMetadata(person.id),
     ]);
 
-    if (process.env.QUERY_TRACKING === 'true') {
-      console.log(`[PERSON DATA] Completed parallel operations for ${requestId}`);
+    if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+      console.log(`[CACHE REQUEST - Person] Completed parallel operations for ${requestId}`);
     }
 
     const data: PersonPageData = {
@@ -757,8 +758,8 @@ export async function getCachedPersonData(
     };
   }
 
-  if (process.env.QUERY_TRACKING === 'true') {
-    console.log(`[PERSON DATA] Starting parallel operations for ${requestId} (from DB)`);
+  if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+    console.log(`[CACHE REQUEST - Person] Starting parallel operations for ${requestId} (from DB)`);
   }
 
   const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
@@ -768,8 +769,8 @@ export async function getCachedPersonData(
     getSupportMapMetadata(person.id),
   ]);
 
-  if (process.env.QUERY_TRACKING === 'true') {
-    console.log(`[PERSON DATA] Completed parallel operations for ${requestId} (from DB)`);
+  if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+    console.log(`[CACHE REQUEST - Person] Completed parallel operations for ${requestId} (from DB)`);
   }
 
   const data: PersonPageData = {

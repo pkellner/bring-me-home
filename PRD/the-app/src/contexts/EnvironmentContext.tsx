@@ -32,11 +32,6 @@ export function EnvironmentProvider({
       setError(null);
       const config = await getEnvironmentConfig();
       setEnv(config);
-
-      // Enable console logging if configured
-      if (config.consoleLogging && config.environment === 'development') {
-        console.log('Environment configuration loaded:', config);
-      }
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error('Failed to load environment')

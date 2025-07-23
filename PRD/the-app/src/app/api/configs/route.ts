@@ -4,7 +4,6 @@ import { getPublicConfig } from '@/app/actions/config';
 export async function GET() {
   try {
     const config = await getPublicConfig();
-    console.log("/src/app/api/configs/route.ts: Public config fetched successfully: config:", config);
 
     return NextResponse.json(config, {
       headers: {

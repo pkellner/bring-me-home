@@ -251,6 +251,15 @@ export async function getCachedTownData(
 ): Promise<CacheResult<TownPageData | null>> {
   const startTime = Date.now();
   const cacheKey = generateCacheKey(townSlug);
+  const requestId = `${townSlug}-${startTime}`;
+
+  // Track cache requests (not database queries - use PRISMA_LOG for database query tracking)
+  if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+    console.log(`\n[CACHE REQUEST - Town] ${requestId}`);
+    console.log(`  Time: ${new Date().toISOString()}`);
+    console.log(`  Town: ${townSlug}`);
+    console.log(`  Force Refresh: ${options?.forceRefresh || false}`);
+  }
 
   // Skip cache if force refresh is requested
   if (options?.forceRefresh) {

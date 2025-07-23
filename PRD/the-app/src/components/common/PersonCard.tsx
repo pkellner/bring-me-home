@@ -1,4 +1,5 @@
 import Link from '@/components/OptimizedLink';
+import Image from 'next/image';
 import { Building2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { stripHtml } from '@/lib/stripHtml';
@@ -56,15 +57,18 @@ export default function PersonCard({
   return (
     <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow overflow-hidden h-full flex flex-col">
       {/* Image Section */}
-      <div className="h-64 bg-gray-200 flex items-center justify-center">
+      <div className="h-64 bg-gray-200 relative">
         {person.imageUrl ? (
-          <img
+          <Image
             src={person.imageUrl}
             alt={`${person.firstName} ${person.lastName}`}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={false}
           />
         ) : (
-          <div className="text-gray-400">
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
             <svg
               className="h-16 w-16"
               fill="currentColor"
