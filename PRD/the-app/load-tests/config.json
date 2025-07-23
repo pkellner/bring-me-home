@@ -1,0 +1,174 @@
+{
+  "baseUrl": "http://cache2.bring-me-home.com",
+  "alternativeUrls": {
+    "local": "http://localhost:3000",
+    "staging": "http://cache2.bring-me-home.com",
+    "production": "https://bring-me-home.com"
+  },
+  "testScenarios": {
+    "light": {
+      "duration": "30s",
+      "arrivalRate": 5,
+      "description": "Light load - 5 users per second for 30 seconds"
+    },
+    "medium": {
+      "duration": "60s",
+      "arrivalRate": 20,
+      "description": "Medium load - 20 users per second for 60 seconds"
+    },
+    "heavy": {
+      "duration": "120s",
+      "arrivalRate": 50,
+      "description": "Heavy load - 50 users per second for 2 minutes"
+    },
+    "stress": {
+      "duration": "300s",
+      "arrivalRate": 100,
+      "rampTo": 200,
+      "description": "Stress test - ramp from 100 to 200 users per second over 5 minutes"
+    }
+  },
+  "publicPages": {
+    "static": [
+      {
+        "path": "/",
+        "name": "Homepage",
+        "priority": "high"
+      },
+      {
+        "path": "/learn-more",
+        "name": "Learn More",
+        "priority": "medium"
+      },
+      {
+        "path": "/show-your-support",
+        "name": "Show Your Support",
+        "priority": "medium"
+      },
+      {
+        "path": "/code-of-conduct",
+        "name": "Code of Conduct",
+        "priority": "low"
+      },
+      {
+        "path": "/privacy-policy",
+        "name": "Privacy Policy",
+        "priority": "low"
+      },
+      {
+        "path": "/configs",
+        "name": "Configurations",
+        "priority": "low"
+      }
+    ],
+    "auth": [
+      {
+        "path": "/auth/signin",
+        "name": "Sign In",
+        "priority": "medium"
+      },
+      {
+        "path": "/auth/register",
+        "name": "Register",
+        "priority": "low"
+      },
+      {
+        "path": "/auth/forgot-password",
+        "name": "Forgot Password",
+        "priority": "low"
+      }
+    ],
+    "dynamic": {
+      "towns": {
+        "description": "Town listing pages - will be populated from database",
+        "urlPattern": "/{townSlug}",
+        "examples": [
+          "/borrego-springs",
+          "/mendocino",
+          "/pismo-beach",
+          "/lake-elsinore"
+        ]
+      },
+      "persons": {
+        "description": "Person detail pages - will be populated from database",
+        "urlPattern": "/{townSlug}/{personSlug}",
+        "examples": [
+          "/borrego-springs/john-smith",
+          "/mendocino/maria-garcia",
+          "/pismo-beach/robert-johnson"
+        ]
+      }
+    }
+  },
+  "userBehaviorProfiles": {
+    "casualBrowser": {
+      "name": "Casual Browser",
+      "weight": 40,
+      "actions": [
+        { "visit": "/", "probability": 100 },
+        { "visit": "randomTown", "probability": 70 },
+        { "visit": "randomPerson", "probability": 30 },
+        { "visit": "/learn-more", "probability": 20 }
+      ]
+    },
+    "familyMember": {
+      "name": "Family Member",
+      "weight": 30,
+      "actions": [
+        { "visit": "/", "probability": 100 },
+        { "visit": "specificTown", "probability": 90 },
+        { "visit": "specificPerson", "probability": 95 },
+        { "visit": "/show-your-support", "probability": 60 }
+      ]
+    },
+    "researcher": {
+      "name": "Researcher",
+      "weight": 20,
+      "actions": [
+        { "visit": "/", "probability": 100 },
+        { "visit": "multipleTowns", "probability": 80 },
+        { "visit": "multiplePersons", "probability": 70 },
+        { "visit": "/configs", "probability": 40 }
+      ]
+    },
+    "supportUser": {
+      "name": "Support User",
+      "weight": 10,
+      "actions": [
+        { "visit": "/", "probability": 100 },
+        { "visit": "/code-of-conduct", "probability": 50 },
+        { "visit": "/privacy-policy", "probability": 50 },
+        { "visit": "/learn-more", "probability": 80 }
+      ]
+    }
+  },
+  "performanceThresholds": {
+    "responseTime": {
+      "p95": 2000,
+      "p99": 5000,
+      "max": 10000
+    },
+    "errorRate": {
+      "threshold": 0.01,
+      "description": "Maximum 1% error rate"
+    },
+    "throughput": {
+      "min": 100,
+      "description": "Minimum 100 requests per second"
+    }
+  },
+  "cacheTestingOptions": {
+    "testCacheWarmup": true,
+    "testColdCache": true,
+    "cacheHeaders": {
+      "checkForPresence": ["cache-control", "etag", "last-modified"],
+      "validateMaxAge": true
+    }
+  },
+  "reportOptions": {
+    "generateHtmlReport": true,
+    "generateJsonReport": true,
+    "includeScreenshots": false,
+    "reportPath": "./load-tests/reports"
+  }
+}
