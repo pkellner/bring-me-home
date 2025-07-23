@@ -1,0 +1,158 @@
+{
+  "config": {
+    "target": "http://cache2.bring-me-home.com",
+    "phases": [
+      {
+        "duration": 60,
+        "arrivalRate": 20
+      }
+    ],
+    "processor": "./processor.js",
+    "plugins": {
+      "metrics-by-endpoint": {}
+    }
+  },
+  "scenarios": [
+    {
+      "name": "High Priority Pages",
+      "weight": 50,
+      "flow": [
+        {
+          "get": {
+            "url": "/",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/borrego_springs",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medium Priority Pages",
+      "weight": 35,
+      "flow": [
+        {
+          "get": {
+            "url": "/learn-more",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/show-your-support",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/auth/signin",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/borrego_springs/fidel_arias_torres",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Low Priority Pages",
+      "weight": 15,
+      "flow": [
+        {
+          "get": {
+            "url": "/code-of-conduct",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/privacy-policy",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/configs",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/auth/register",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/auth/forgot-password",
+            "headers": {
+              "User-Agent": "Artillery Load Test"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Journey - Family Member",
+      "weight": 20,
+      "flow": [
+        {
+          "get": {
+            "url": "/"
+          }
+        },
+        {
+          "think": 3
+        },
+        {
+          "get": {
+            "url": "/borrego_springs"
+          }
+        },
+        {
+          "think": 5
+        },
+        {
+          "get": {
+            "url": "/borrego_springs/fidel_arias_torres"
+          }
+        },
+        {
+          "think": 3
+        },
+        {
+          "get": {
+            "url": "/show-your-support"
+          }
+        }
+      ]
+    }
+  ]
+}
