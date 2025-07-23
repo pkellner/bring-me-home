@@ -147,7 +147,27 @@ npx tsx load-tests/simple-load-test.ts http://localhost:3000 50 120
 
 ### 2. Artillery Load Testing
 
-Professional-grade load testing with HTML reports.
+Artillery is a professional-grade load testing framework that simulates realistic user behavior and generates comprehensive performance reports.
+
+**What Artillery Does:**
+- **Simulates Multiple Users**: Creates virtual users that navigate your site like real visitors
+- **User Journey Testing**: Tests complete user flows (e.g., homepage → town → person → support)
+- **Concurrent Load**: Runs multiple user sessions simultaneously to test server capacity
+- **Performance Metrics**: Measures response times, error rates, and throughput
+- **HTML Reports**: Generates visual reports with graphs and charts
+- **Scenario-Based**: Different test scenarios (light, medium, heavy, stress) for various load levels
+- **Dynamic URL Discovery**: Fetches actual towns/persons from your database for realistic testing
+
+**How Artillery Works:**
+1. Connects to your database to find all active towns and persons
+2. Creates test scenarios that mix different user behaviors
+3. Gradually ramps up virtual users based on the selected scenario
+4. Measures performance metrics for each request
+5. Generates a detailed HTML report with visualizations
+
+**Artillery vs Simple Load Tests:**
+- **Simple tests**: Just hammer URLs as fast as possible
+- **Artillery**: Simulates realistic user behavior with "think time" between actions
 
 ```bash
 # Install Artillery (first time only)
@@ -169,7 +189,41 @@ npx artillery run load-tests/artillery-config.yml
 - HTML reports with graphs
 - Performance expectations
 
-### 3. K6 Load Testing
+### 3. Heavy Load Test - ALL URLs (`heavy-load-test-all-urls.ts`) - NEW!
+
+The most aggressive load test that tests EVERY SINGLE URL in your system with high concurrency.
+
+```bash
+# Test ALL URLs locally with 100 concurrent connections for 5 minutes
+npm run load-test:heavy
+
+# Custom parameters: URL, concurrent requests, duration in seconds
+npx tsx load-tests/heavy-load-test-all-urls.ts http://localhost:3000 150 600
+
+# External server (be careful - this generates significant load!)
+npm run load-test:heavy:external
+```
+
+**Features:**
+- Tests ALL towns and ALL persons (not just a sample)
+- 100 concurrent connections by default (configurable)
+- Round-robin through all URLs for even coverage
+- Shows complete list of all URLs before testing
+- Detailed performance breakdown by URL
+- Identifies slowest URLs and error-prone endpoints
+- Cache performance statistics
+- 3-second warning before starting (Ctrl+C to cancel)
+
+**Use Cases:**
+- Pre-deployment stress testing
+- Finding performance bottlenecks
+- Database connection pool testing
+- Cache effectiveness validation
+- Maximum capacity testing
+
+⚠️ **WARNING**: This test generates SIGNIFICANT load. Use with caution on production servers!
+
+### 4. K6 Load Testing
 
 Modern load testing with cloud-ready capabilities.
 

@@ -167,15 +167,46 @@ async function runLoadTest(scenario: string = 'medium') {
     
     console.log('\n📝 URLs to be tested:');
     console.log('─'.repeat(60));
-    console.log('HIGH PRIORITY:');
-    dynamicUrls.filter(u => u.priority === 'high').slice(0, 5).forEach(u => {
-      console.log(`  ${u.path}`);
+    
+    // Show all static URLs
+    const config = JSON.parse(readFileSync(join(__dirname, 'config.json'), 'utf-8')) as LoadTestConfig;
+    console.log('STATIC PAGES:');
+    config.publicPages.static.forEach((u: any) => {
+      console.log(`  ${u.path} - ${u.name}`);
     });
-    console.log('\nMEDIUM PRIORITY:');
-    dynamicUrls.filter(u => u.priority === 'medium').slice(0, 5).forEach(u => {
-      console.log(`  ${u.path}`);
+    
+    console.log('\nAUTH PAGES:');
+    config.publicPages.auth.forEach((u: any) => {
+      console.log(`  ${u.path} - ${u.name}`);
     });
-    console.log(`\n... and ${dynamicUrls.length - 10} more URLs`);
+    
+    // Show all dynamic URLs grouped by priority
+    const highPriority = dynamicUrls.filter(u => u.priority === 'high');
+    const mediumPriority = dynamicUrls.filter(u => u.priority === 'medium');
+    const lowPriority = dynamicUrls.filter(u => u.priority === 'low');
+    
+    if (highPriority.length > 0) {
+      console.log('\nHIGH PRIORITY (Towns):');
+      highPriority.forEach(u => {
+        console.log(`  ${u.path} - ${u.name}`);
+      });
+    }
+    
+    if (mediumPriority.length > 0) {
+      console.log('\nMEDIUM PRIORITY (Persons):');
+      mediumPriority.forEach(u => {
+        console.log(`  ${u.path} - ${u.name}`);
+      });
+    }
+    
+    if (lowPriority.length > 0) {
+      console.log('\nLOW PRIORITY:');
+      lowPriority.forEach(u => {
+        console.log(`  ${u.path} - ${u.name}`);
+      });
+    }
+    
+    console.log(`\nTotal URLs: ${config.publicPages.static.length + config.publicPages.auth.length + dynamicUrls.length}`);
     console.log('─'.repeat(60));
     
     // Generate Artillery config

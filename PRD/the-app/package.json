@@ -36,6 +36,8 @@
     "load-test:quick": "tsx load-tests/quick-test.ts",
     "load-test:comprehensive": "tsx load-tests/comprehensive-test.ts",
     "load-test:fallback": "tsx load-tests/simple-load-test-fallback.ts",
+    "load-test:heavy": "tsx load-tests/heavy-load-test-all-urls.ts",
+    "load-test:heavy:external": "tsx load-tests/heavy-load-test-all-urls.ts https://cache2.bring-me-home.com 50 180",
     "//test": "=== TESTING SCRIPTS ===",
     "//test-basic": "Basic test commands for everyday development",
     "test": "jest",
