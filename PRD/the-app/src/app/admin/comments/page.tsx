@@ -58,6 +58,13 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
           town: true,
         },
       },
+      personHistory: {
+        select: {
+          id: true,
+          description: true,
+          date: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -71,6 +78,10 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
     updatedAt: comment.updatedAt.toISOString(),
     approvedAt: comment.approvedAt?.toISOString() || null,
     birthdate: comment.birthdate?.toISOString() || null,
+    personHistory: comment.personHistory ? {
+      ...comment.personHistory,
+      date: comment.personHistory.date.toISOString(),
+    } : null,
     person: {
       ...comment.person,
       bondAmount: comment.person.bondAmount?.toString() || null,

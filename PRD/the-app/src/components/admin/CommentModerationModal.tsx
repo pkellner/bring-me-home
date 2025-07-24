@@ -37,6 +37,12 @@ interface Comment extends Record<string, unknown> {
   moderatorNotes: string | null;
   privateNoteToFamily: string | null;
   privacyRequiredDoNotShowPublicly?: boolean;
+  personHistoryId?: string | null;
+  personHistory?: {
+    id: string;
+    description: string;
+    date: Date | string;
+  } | null;
   person: {
     id: string;
     firstName: string;
@@ -285,6 +291,23 @@ export default function CommentModerationModal({
                   {comment.person.town.name}, {comment.person.town.state}
                 </p>
               </div>
+
+              {/* PersonHistory Information if comment is on an update */}
+              {comment.personHistoryId && comment.personHistory && (
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-1">Comment on Update</h4>
+                  <p className="text-sm text-gray-700 mb-1">
+                    From {new Date(comment.personHistory.date).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}:
+                  </p>
+                  <p className="text-sm text-gray-800 italic">
+                    &ldquo;{comment.personHistory.description}&rdquo;
+                  </p>
+                </div>
+              )}
 
               {/* Comment Content */}
               <div>

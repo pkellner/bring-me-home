@@ -12,6 +12,7 @@ const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
+  personHistoryId: z.string().optional(),
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email().optional().or(z.literal('')),
@@ -163,6 +164,7 @@ export async function submitComment(
 
     const rawData = {
       personId: formData.get('personId') as string,
+      personHistoryId: formData.get('personHistoryId') as string || undefined,
       firstName: formData.get('firstName') as string,
       lastName: formData.get('lastName') as string,
       email: formData.get('email') as string,
@@ -220,6 +222,7 @@ export async function submitComment(
     await prisma.comment.create({
       data: {
         personId: data.personId,
+        personHistoryId: data.personHistoryId || null,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email || null,
@@ -587,5 +590,72 @@ export async function toggleCommentStatus(
   } catch (error) {
     console.error('Failed to toggle comment status:', error);
     return { success: false, error: 'Failed to update comment status' };
+  }
+}
+
+export async function getCommentsByPersonHistoryId(personHistoryId: string) {
+  try {
+    const comments = await prisma.comment.findMany({
+      where: {
+        personHistoryId,
+        isApproved: true,
+        isActive: true,
+        privacyRequiredDoNotShowPublicly: false,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        content: true,
+        showComment: true,
+        displayNameOnly: true,
+        showOccupation: true,
+        showBirthdate: true,
+        showCityState: true,
+        occupation: true,
+        birthdate: true,
+        city: true,
+        state: true,
+        createdAt: true,
+      },
+    });
+
+    return comments;
+  } catch (error) {
+    console.error('Error fetching comments for PersonHistory:', error);
+    return [];
+  }
+}
+
+export async function getCommentCountsByPersonHistoryIds(personHistoryIds: string[]) {
+  try {
+    const counts = await prisma.comment.groupBy({
+      by: ['personHistoryId'],
+      where: {
+        personHistoryId: { in: personHistoryIds },
+        isApproved: true,
+        isActive: true,
+        privacyRequiredDoNotShowPublicly: false,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Convert to a map for easy lookup
+    const countMap = new Map<string, number>();
+    counts.forEach(count => {
+      if (count.personHistoryId) {
+        countMap.set(count.personHistoryId, count._count.id);
+      }
+    });
+
+    return countMap;
+  } catch (error) {
+    console.error('Error fetching comment counts for PersonHistory:', error);
+    return new Map<string, number>();
   }
 }

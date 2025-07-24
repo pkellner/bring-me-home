@@ -1,8 +1,9 @@
-import PersonHistorySection from '@/components/person/PersonHistorySection';
+import PersonHistoryTimeline from '@/components/person-history/PersonHistoryTimeline';
 import { SanitizedPersonHistory } from '@/types/sanitized';
 
 interface HistoryProps {
   person: {
+    id: string;
     firstName: string;
     lastName: string;
     personHistory?: SanitizedPersonHistory[];
@@ -17,8 +18,9 @@ export default function History({ person }: HistoryProps) {
   const personName = `${person.firstName} ${person.lastName}`;
 
   return (
-    <PersonHistorySection 
+    <PersonHistoryTimeline 
       history={person.personHistory}
+      personId={person.id}
       personName={personName}
     />
   );

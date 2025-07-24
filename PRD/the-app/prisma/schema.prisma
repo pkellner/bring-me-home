@@ -212,6 +212,7 @@ model Comment {
   isApproved               Boolean   @default(false)
   moderatorNotes           String?   @db.Text
   personId                 String
+  personHistoryId          String?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   familyVisibilityOverride String?
@@ -247,8 +248,10 @@ model Comment {
   country                  String?
   processedForLatLon       Boolean   @default(false)
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personHistory            PersonHistory? @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
 
   @@index([personId])
+  @@index([personHistoryId])
   @@index([visibility])
   @@index([type])
   @@index([isApproved])
@@ -518,6 +521,7 @@ model PersonHistory {
   updatedAt         DateTime @updatedAt
   person            Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   createdBy         User     @relation(fields: [createdByUserId], references: [id])
+  comments          Comment[]
 
   @@index([personId])
   @@index([visible])

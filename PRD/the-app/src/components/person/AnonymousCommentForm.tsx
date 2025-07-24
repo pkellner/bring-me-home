@@ -8,6 +8,7 @@ const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_
 
 interface AnonymousCommentFormProps {
   personId: string;
+  personHistoryId?: string;
   onSubmit: (formData: FormData) => void;
   isPending: boolean;
   state?: {
@@ -16,14 +17,19 @@ interface AnonymousCommentFormProps {
     errors?: Record<string, string[]>;
   };
   onCancel?: () => void;
+  title?: string;
+  submitButtonText?: string;
 }
 
 export default function AnonymousCommentForm({
   personId,
+  personHistoryId,
   onSubmit,
   isPending,
   state,
   onCancel,
+  title = "Add Your Support",
+  submitButtonText = "Submit Support",
 }: AnonymousCommentFormProps) {
   // Removed showForm state as we always show the form directly
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -184,7 +190,7 @@ export default function AnonymousCommentForm({
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900">
-            Add Your Support
+            {title}
           </h3>
           <div className="flex items-center gap-2">
             {isDirty && (
@@ -193,7 +199,7 @@ export default function AnonymousCommentForm({
                 disabled={isPending || isExecutingRecaptcha}
                 className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isExecutingRecaptcha ? 'Verifying...' : isPending ? 'Submitting...' : 'Submit Support'}
+                {isExecutingRecaptcha ? 'Verifying...' : isPending ? 'Submitting...' : submitButtonText}
               </button>
             )}
             {onCancel && (
@@ -212,6 +218,9 @@ export default function AnonymousCommentForm({
         </div>
 
         <input type="hidden" name="personId" value={personId} />
+        {personHistoryId && (
+          <input type="hidden" name="personHistoryId" value={personHistoryId} />
+        )}
         <input type="hidden" name="requiresFamilyApproval" value="true" />
 
         {/* Name fields */}
@@ -685,7 +694,7 @@ export default function AnonymousCommentForm({
                 <span>Submitting...</span>
               </span>
             ) : (
-              'Submit Support'
+              submitButtonText
             )}
           </button>
         </div>
@@ -695,6 +704,12 @@ export default function AnonymousCommentForm({
       <CommentConfirmationModal
         isOpen={showConfirmModal}
         isSubmitting={isPending}
+        title={personHistoryId ? "Review Your Comment" : "Review Your Support Message"}
+        description={personHistoryId 
+          ? "Your comment is being reviewed by the family to make sure it is OK with them."
+          : "Your message is being reviewed by the family to make sure it is OK with them."
+        }
+        confirmButtonText={personHistoryId ? "OK, Post My Comment" : "OK, Post My Support"}
         onConfirm={() => {
           if (pendingFormData) {
             startTransition(() => {

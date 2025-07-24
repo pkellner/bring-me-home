@@ -1,6 +1,7 @@
 'use client';
 
 import PersonPageClient from './PersonPageClient';
+import RecaptchaProvider from '@/components/providers/RecaptchaProvider';
 
 interface PersonPageWrapperProps {
   townSlug: string;
@@ -14,11 +15,13 @@ export default function PersonPageWrapper({ townSlug, personSlug }: PersonPageWr
     : 1000;
     
   return (
-    <PersonPageClient
-      townSlug={townSlug}
-      personSlug={personSlug}
-      adminLinkDelay={5}
-      spinnerDelay={spinnerDelay}
-    />
+    <RecaptchaProvider>
+      <PersonPageClient
+        townSlug={townSlug}
+        personSlug={personSlug}
+        adminLinkDelay={5}
+        spinnerDelay={spinnerDelay}
+      />
+    </RecaptchaProvider>
   );
 }

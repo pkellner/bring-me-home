@@ -682,3 +682,11 @@ const serializedComment = {
   - Database update still happens first, local state provides instant visual feedback
   - Total count and heart count both increment by 1 instantly upon successful submission
   - Numbers reset to actual database values on page refresh or cache update
+- **FEATURE**: Implemented PersonHistory comment system with amazing UI
+  - Added `personHistoryId` field to comments table for linking comments to specific updates
+  - Created `PersonHistoryTimeline` component with interactive, expandable comment threads
+  - Refactored `AnonymousCommentForm` to be reusable with customizable title and submit button text
+  - PersonHistory comments use same form as regular support with title "Comment On This"
+  - Admin interface shows which update comments relate to with grouping/filtering options
+  - Added "Group by Update" functionality in admin comments grid
+  - Comments clearly linked to specific updates with visual timeline design

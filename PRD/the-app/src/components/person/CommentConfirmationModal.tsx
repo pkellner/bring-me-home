@@ -31,6 +31,9 @@ interface CommentConfirmationModalProps {
   onCancel: () => void;
   commentData: CommentData;
   isSubmitting?: boolean;
+  title?: string;
+  description?: string;
+  confirmButtonText?: string;
 }
 
 export default function CommentConfirmationModal({
@@ -39,6 +42,9 @@ export default function CommentConfirmationModal({
   onCancel,
   commentData,
   isSubmitting = false,
+  title = "Review Your Support Message",
+  description = "Your message is being reviewed by the family to make sure it is OK with them.",
+  confirmButtonText = "OK, Post My Support",
 }: CommentConfirmationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -119,11 +125,10 @@ export default function CommentConfirmationModal({
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900">
-                Review Your Support Message
+                {title}
               </h3>
               <p className="mt-2 text-sm text-gray-600">
-                Your message is being reviewed by the family to make sure it is
-                OK with them.
+                {description}
               </p>
             </div>
 
@@ -348,7 +353,7 @@ export default function CommentConfirmationModal({
                     <span>Posting...</span>
                   </span>
                 ) : (
-                  'OK, Post My Support'
+                  confirmButtonText
                 )}
               </button>
             </div>
