@@ -247,7 +247,7 @@ export default function CommentSection({
                 }`}
                 style={{
                   ...(showAllComments && index >= initialShowCount && {
-                    animation: `fadeInUp 0.7s ease-out ${(index - initialShowCount) * 150 + 400}ms forwards`
+                    animation: `fadeInUp 0.7s ease-out 400ms forwards`
                   })
                 }}
               >
