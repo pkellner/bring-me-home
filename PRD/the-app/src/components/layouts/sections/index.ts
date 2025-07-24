@@ -13,3 +13,4 @@ export { default as FeaturedImage } from './FeaturedImage';
 export { default as ArticleContent } from './ArticleContent';
 export { default as Sidebar } from './Sidebar';
 export { default as MainContent } from './MainContent';
+export { default as History } from './History';

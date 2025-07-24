@@ -1,7 +1,9 @@
 'use client';
 
 import * as sections from './sections';
-import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter } from '@/types/sanitized';
+import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter, SanitizedPersonHistory } from '@/types/sanitized';
+import { format } from 'date-fns';
+import { formatDateForDisplay } from '@/lib/date-utils';
 
 // Extended types for LayoutRenderer specific needs
 type SerializedComment = SanitizedComment & {
@@ -97,6 +99,7 @@ export type SerializedPerson = {
   theme?: { id: string; name: string; cssVars: string | null } | null;
   comments: SerializedComment[];
   detentionCenter?: SerializedDetentionCenter;
+  personHistory?: SanitizedPersonHistory[];
   stories?: Array<{
     id: string;
     language: string;
@@ -146,6 +149,29 @@ export default function LayoutRenderer({
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
 
+  // Check for recent history notes (within 24 hours)
+  const getRecentHistoryNote = () => {
+    if (!person.personHistory || person.personHistory.length === 0) return null;
+    
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    
+    // Sort by date descending and find the most recent note within 24 hours
+    const recentNotes = person.personHistory
+      .filter(note => note.visible && new Date(note.date) > twentyFourHoursAgo)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return recentNotes.length > 0 ? recentNotes[0] : null;
+  };
+
+  const recentNote = getRecentHistoryNote();
+
+  // Function to truncate text with ellipsis
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
+
   // Apply theme CSS variables if provided
   const themeStyles = theme?.cssVars ? (
     <style dangerouslySetInnerHTML={{ __html: theme.cssVars }} />
@@ -167,6 +193,7 @@ export default function LayoutRenderer({
     'article-content': () => <sections.ArticleContent person={person} />,
     'sidebar': () => <sections.Sidebar person={person} isAdmin={isAdmin} />,
     'main-content': () => <sections.MainContent person={person} />,
+    'history': () => <sections.History person={person} />,
   };
 
   // Render layout based on type
@@ -174,7 +201,7 @@ export default function LayoutRenderer({
     switch (template.type) {
       case 'grid':
         // Sections that should always be full width
-        const fullWidthSections = ['gallery-grid', 'story', 'comments', 'top-row'];
+        const fullWidthSections = ['gallery-grid', 'story', 'history', 'comments', 'top-row'];
 
         // Separate sections into grid and full-width
         const gridSections = template.sections.filter((s: string) => !fullWidthSections.includes(s));
@@ -231,6 +258,11 @@ export default function LayoutRenderer({
             {/* Stories section - full width */}
             <div className="layout-section w-full">
               <sections.StoryWithLanguageToggle person={person} />
+            </div>
+
+            {/* History section - full width */}
+            <div className="layout-section w-full" id="history-section">
+              {components['history']()}
             </div>
 
             {/* Community support section - full width */}
@@ -436,6 +468,43 @@ export default function LayoutRenderer({
                       </div>
                     </button>
                   </div>
+                  
+                  {/* Recent Updates Notification */}
+                  {recentNote && (
+                    <div className="mt-4 w-full">
+                      <button
+                        onClick={() => {
+                          const element = document.getElementById('history-section');
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                        className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 text-left transition-all duration-300 hover:shadow-md hover:border-amber-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0 pr-4">
+                            <h4 className="text-base font-semibold text-gray-900 mb-1">
+                              Recent Update
+                            </h4>
+                            <p className="text-sm text-gray-700 truncate md:whitespace-normal md:line-clamp-2">
+                              &ldquo;{truncateText(recentNote.description, 80)}&rdquo;
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {format(formatDateForDisplay(recentNote.date), 'MMM d, yyyy • h:mm a')}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0 ml-4">
+                            <div className="flex items-center gap-2 text-amber-600">
+                              <span className="text-sm font-medium whitespace-nowrap">See recent updates</span>
+                              <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -447,16 +516,9 @@ export default function LayoutRenderer({
               <sections.StoryWithLanguageToggle person={person} />
             </div>
 
-            {/* Photo Gallery - elegant grid layout */}
-            <div className="layout-section w-full">
-              <div className="space-y-6">
-                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
-                  Photo Gallery
-                </h2>
-                <div className="[&>.gallery-section]:mt-0">
-                  {components['gallery-grid']()}
-                </div>
-              </div>
+            {/* History section - full width */}
+            <div className="layout-section w-full" id="history-section">
+              {components['history']()}
             </div>
 
             {/* Community Support - modern comment section */}
@@ -469,6 +531,18 @@ export default function LayoutRenderer({
                 </div>
               </div>
             )}
+
+            {/* Photo Gallery - elegant grid layout */}
+            <div className="layout-section w-full">
+              <div className="space-y-6">
+                <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
+                  Photo Gallery
+                </h2>
+                <div className="[&>.gallery-section]:mt-0">
+                  {components['gallery-grid']()}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </>

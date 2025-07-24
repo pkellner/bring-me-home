@@ -35,10 +35,10 @@ async function checkAllDetentionImages() {
         console.log(`⚠️  ${center.name} (${center.city}, ${center.state})`);
         console.log(`    Has BOTH legacy and new images`);
         console.log(`    Legacy: ${center.imageId}`);
-        console.log(`    New: ${center.detentionCenterImage.imageId}`);
+        console.log(`    New: ${center.detentionCenterImage?.imageId}`);
         
         // Check if they're the same
-        if (center.imageId === center.detentionCenterImage.imageId) {
+        if (center.imageId === center.detentionCenterImage?.imageId) {
           console.log(`    ✅ Same image ID (redundant but consistent)`);
         } else {
           console.log(`    ❌ Different image IDs (needs review)`);

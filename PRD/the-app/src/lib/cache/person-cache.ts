@@ -109,6 +109,21 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
         isActive: true;
       };
     };
+    personHistory: {
+      where: {
+        visible: true;
+      };
+      select: {
+        id: true;
+        description: true;
+        date: true;
+        visible: true;
+        sendNotifications: true;
+        createdByUsername: true;
+        createdAt: true;
+        updatedAt: true;
+      };
+    };
   };
 }>;
 
@@ -281,6 +296,24 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
           },
         ],
       },
+      personHistory: {
+        where: {
+          visible: true,
+        },
+        orderBy: {
+          date: 'desc',
+        },
+        select: {
+          id: true,
+          description: true,
+          date: true,
+          visible: true,
+          sendNotifications: true,
+          createdByUsername: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
   });
 
@@ -388,6 +421,16 @@ interface SerializedPersonData {
     approvedAt: string | null;
     approvedBy: string | null;
   }>;
+  personHistory: Array<{
+    id: string;
+    description: string;
+    date: string;
+    visible: boolean;
+    sendNotifications: boolean;
+    createdByUsername: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
   images: Array<{
     id: string;
     imageType: string;
@@ -421,6 +464,17 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
     personId: story.personId,
     createdAt: story.createdAt.toISOString(),
     updatedAt: story.updatedAt.toISOString(),
+  }));
+  
+  const serializedHistory = (person.personHistory || []).map((history) => ({
+    id: history.id,
+    description: history.description,
+    date: history.date.toISOString(),
+    visible: history.visible,
+    sendNotifications: history.sendNotifications,
+    createdByUsername: history.createdByUsername,
+    createdAt: history.createdAt.toISOString(),
+    updatedAt: history.updatedAt.toISOString(),
   }));
 
   const images = await Promise.all(
@@ -482,6 +536,7 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
     bondAmount: person.bondAmount ? (typeof person.bondAmount === 'string' ? person.bondAmount : person.bondAmount.toString()) : null,
     stories: serializedStories,
     comments: serializedComments,
+    personHistory: serializedHistory,
     images,
     detentionCenter: serializedDetentionCenter,
     detentionDate: person.detentionDate ? person.detentionDate.toISOString() : null,

@@ -122,7 +122,7 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
       name: 'Standard Profile',
       template: JSON.stringify({
         type: 'custom-person',
-        sections: ['top-row', 'story', 'comments'],
+        sections: ['top-row', 'story', 'history', 'comments'],
       }),
     };
 

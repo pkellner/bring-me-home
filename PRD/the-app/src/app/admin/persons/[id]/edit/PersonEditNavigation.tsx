@@ -25,6 +25,7 @@ export function PersonEditNavigation({
   const isDetailsPage = pathname === `/admin/persons/${personId}/edit`;
   const isPersonImagePage = pathname === `/admin/persons/${personId}/edit/person-image`;
   const isGalleryPage = pathname === `/admin/persons/${personId}/edit/gallery-images`;
+  const isHistoryPage = pathname === `/admin/persons/${personId}/edit/history`;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (hasChanges && pathname !== href) {
@@ -77,6 +78,19 @@ export function PersonEditNavigation({
             `}
           >
             Gallery Images
+          </Link>
+          <Link
+            href={`/admin/persons/${personId}/edit/history`}
+            onClick={(e) => handleNavClick(e, `/admin/persons/${personId}/edit/history`)}
+            className={`
+              px-6 py-3 text-sm font-medium border-b-2 transition-colors
+              ${isHistoryPage 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }
+            `}
+          >
+            History
           </Link>
         </nav>
         

@@ -24,6 +24,7 @@ model User {
   townAccess          TownAccess[]
   userRoles           UserRole[]
   passwordResetTokens PasswordResetToken[]
+  createdHistories    PersonHistory[]
 
   @@map("users")
 }
@@ -144,6 +145,7 @@ model Person {
   town                 Town                   @relation(fields: [townId], references: [id], onDelete: Cascade)
   stories              Story[]
   supporters           Supporter[]
+  personHistory        PersonHistory[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -501,4 +503,24 @@ model PasswordResetToken {
   @@index([token])
   @@index([expiresAt])
   @@map("password_reset_tokens")
+}
+
+model PersonHistory {
+  id                String   @id @default(cuid())
+  personId          String
+  description       String   @db.Text
+  date              DateTime
+  visible           Boolean  @default(true)
+  sendNotifications Boolean  @default(false)
+  createdByUsername String
+  createdByUserId   String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  person            Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  createdBy         User     @relation(fields: [createdByUserId], references: [id])
+
+  @@index([personId])
+  @@index([visible])
+  @@index([date])
+  @@map("person_history")
 }

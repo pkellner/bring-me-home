@@ -266,3 +266,15 @@ export type SanitizedPersonImage = {
   image?: SanitizedImageStorage;
   // Excluded: person relation
 };
+
+export type SanitizedPersonHistory = {
+  id: string;
+  description: string;
+  date: string; // ISO string for SSR
+  visible: boolean;
+  sendNotifications: boolean;
+  createdByUsername: string;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  // Excluded: person, createdBy relations
+};

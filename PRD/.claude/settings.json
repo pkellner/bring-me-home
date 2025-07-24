@@ -1,0 +1,12 @@
+{
+  "file_pattern_restrictions": {
+    "disallowed_patterns": [
+      "**/.env.production",
+      "**/..*",
+      "../**"
+    ],
+    "allowed_directories": [
+      "/Users/peterkellner/repos/bring-me-home/PRD"
+    ]
+  }
+}
