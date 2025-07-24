@@ -19,9 +19,10 @@ export default function PersonHistorySection({
   const [showButton, setShowButton] = useState(true);
   
   // Get initial show count from environment variable or default to 2
-  const initialShowCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
+  const parsedCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
     ? parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT, 10) 
-    : 2;
+    : NaN;
+  const initialShowCount = isNaN(parsedCount) ? 2 : parsedCount;
 
   useEffect(() => {
     if (showAll && showButton) {

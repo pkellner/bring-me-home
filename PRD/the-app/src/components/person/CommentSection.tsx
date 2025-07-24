@@ -73,9 +73,10 @@ export default function CommentSection({
   const [showButton, setShowButton] = useState(true);
   
   // Get initial show count from environment variable or default to 5
-  const initialShowCount = process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT 
+  const parsedCount = process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT 
     ? parseInt(process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT, 10) 
-    : 5;
+    : NaN;
+  const initialShowCount = isNaN(parsedCount) ? 5 : parsedCount;
   
   // Check for cookie only on client side
   useEffect(() => {
