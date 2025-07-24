@@ -17,6 +17,11 @@ export default function PersonHistorySection({
   const [showAll, setShowAll] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showButton, setShowButton] = useState(true);
+  
+  // Get initial show count from environment variable or default to 2
+  const initialShowCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
+    ? parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT, 10) 
+    : 2;
 
   useEffect(() => {
     if (showAll && showButton) {
@@ -50,8 +55,8 @@ export default function PersonHistorySection({
   );
 
   // Determine which entries to show
-  const entriesToShow = showAll ? sortedHistory : sortedHistory.slice(0, 2);
-  const hasMore = sortedHistory.length > 2;
+  const entriesToShow = showAll ? sortedHistory : sortedHistory.slice(0, initialShowCount);
+  const hasMore = sortedHistory.length > initialShowCount;
 
   return (
     <div className="space-y-6">
@@ -61,19 +66,19 @@ export default function PersonHistorySection({
       
       <div className="space-y-4">
         {entriesToShow.map((note, index) => {
-          // Calculate staggered delay for entries beyond the first 2
-          const delay = showAll && index >= 2 ? `${(index - 2) * 150 + 400}ms` : '0ms';
+          // Calculate staggered delay for entries beyond the initial show count
+          const delay = showAll && index >= initialShowCount ? `${(index - initialShowCount) * 150 + 400}ms` : '0ms';
           
           return (
             <div 
               key={note.id} 
               className={`bg-white rounded-lg p-6 border border-gray-200 shadow-sm transition-all duration-700 ease-out ${
-                showAll && index >= 2 
+                showAll && index >= initialShowCount 
                   ? 'opacity-0 translate-y-4' 
                   : 'opacity-100 translate-y-0'
               }`}
               style={{
-                ...(showAll && index >= 2 && {
+                ...(showAll && index >= initialShowCount && {
                   animation: `fadeInUp 0.7s ease-out ${delay} forwards`
                 })
               }}
