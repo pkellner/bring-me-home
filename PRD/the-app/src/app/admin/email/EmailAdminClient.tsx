@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createUsersFromCommentEmails, retryFailedEmails } from '@/app/actions/email-notifications';
 import { 
   EnvelopeIcon, 
@@ -117,6 +118,41 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
     });
   };
 
+  const handleProcessEmails = async () => {
+    setMessage(null);
+    
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/cron/send-emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`,
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setMessage({
+            type: 'success',
+            text: `Processed ${data.results.processed} emails: ${data.results.sent} sent, ${data.results.failed} failed`,
+          });
+          router.refresh();
+        } else {
+          setMessage({
+            type: 'error',
+            text: data.error || 'Failed to process emails',
+          });
+        }
+      } catch {
+        setMessage({
+          type: 'error',
+          text: 'Failed to trigger email processing',
+        });
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Action Buttons */}
@@ -140,7 +176,7 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="border rounded-lg p-4">
             <h3 className="text-lg font-medium text-gray-900 mb-2 flex items-center">
               <UserPlusIcon className="h-5 w-5 mr-2" />
@@ -181,6 +217,24 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
               className="w-full bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? 'Retrying...' : `Retry ${stats.byStatus.FAILED || 0} Failed Emails`}
+            </button>
+          </div>
+          
+          <div className="border rounded-lg p-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-2 flex items-center">
+              <PaperAirplaneIcon className="h-5 w-5 mr-2" />
+              Process Email Queue
+            </h3>
+            <p className="text-base text-gray-600 mb-4">
+              Manually trigger the email worker to process queued emails. This is normally done automatically 
+              every 5 minutes.
+            </p>
+            <button
+              onClick={handleProcessEmails}
+              disabled={isPending}
+              className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? 'Processing...' : 'Process Email Queue Now'}
             </button>
           </div>
         </div>
@@ -233,15 +287,27 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
         </div>
       </div>
       
+      {/* Email Templates Link */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Email Templates</h2>
+        <p className="text-base text-gray-700 mb-4">
+          Create and manage reusable email templates with variable substitution for consistent messaging.
+        </p>
+        <Link
+          href="/admin/email/templates"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Manage Templates
+        </Link>
+      </div>
+      
       {/* Future Enhancement Notice */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-base font-medium text-blue-900 mb-2">Coming Soon</h3>
         <ul className="text-base text-blue-800 space-y-1">
-          <li>• Detailed email logs with search and filtering</li>
-          <li>• Email templates management</li>
           <li>• Scheduled email campaigns</li>
           <li>• Webhook integration for delivery tracking</li>
-          <li>• Email analytics and engagement metrics</li>
+          <li>• Advanced email analytics and engagement metrics</li>
         </ul>
       </div>
     </div>

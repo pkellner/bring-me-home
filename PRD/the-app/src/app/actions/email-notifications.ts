@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { isSiteAdmin } from '@/lib/permissions';
 import bcrypt from 'bcryptjs';
 import { EmailStatus } from '@prisma/client';
+import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -217,7 +218,15 @@ export async function getPersonFollowers(personId: string) {
 }
 
 // Send email update to followers
-export async function sendUpdateEmail(personHistoryId: string) {
+export async function sendUpdateEmail(
+  personHistoryId: string,
+  customContent?: {
+    subject?: string;
+    htmlContent?: string;
+    textContent?: string;
+    templateId?: string;
+  }
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !isSiteAdmin(session)) {
     throw new Error('Unauthorized');
@@ -248,16 +257,53 @@ export async function sendUpdateEmail(personHistoryId: string) {
     // Get followers
     const followers = await getPersonFollowers(update.personId);
 
-    // Create email notifications
-    const emailNotifications = followers.map(follower => ({
-      userId: follower.id,
-      personId: update.personId,
-      personHistoryId: update.id,
-      subject: `Update on ${update.person.firstName} ${update.person.lastName}`,
-      htmlContent: generateUpdateEmailHtml(update),
-      textContent: generateUpdateEmailText(update),
-      status: EmailStatus.QUEUED,
-    }));
+    // Create email notifications with opt-out tokens
+    const emailNotifications = await Promise.all(
+      followers.map(async (follower) => {
+        // Generate unique opt-out tokens for this email
+        const personOptOutToken = await generateOptOutToken(follower.id, update.personId);
+        const allOptOutToken = await generateOptOutToken(follower.id);
+
+        // Replace variables in custom content if provided
+        let finalSubject = customContent?.subject || `Update on ${update.person.firstName} ${update.person.lastName}`;
+        let finalHtmlContent = customContent?.htmlContent || generateUpdateEmailHtml(update, personOptOutToken, allOptOutToken);
+        let finalTextContent = customContent?.textContent || generateUpdateEmailText(update, personOptOutToken, allOptOutToken);
+        
+        // Replace recipient-specific variables
+        const recipientVars = {
+          recipientName: `${follower.firstName || ''} ${follower.lastName || ''}`.trim() || 'Supporter',
+          recipientEmail: follower.email || '',
+          personOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`,
+          allOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`,
+        };
+        
+        finalSubject = finalSubject.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
+        finalSubject = finalSubject.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
+        
+        finalHtmlContent = finalHtmlContent.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
+        finalHtmlContent = finalHtmlContent.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
+        finalHtmlContent = finalHtmlContent.replace(/\{\{personOptOutUrl\}\}/g, recipientVars.personOptOutUrl);
+        finalHtmlContent = finalHtmlContent.replace(/\{\{allOptOutUrl\}\}/g, recipientVars.allOptOutUrl);
+        
+        if (finalTextContent) {
+          finalTextContent = finalTextContent.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
+          finalTextContent = finalTextContent.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
+          finalTextContent = finalTextContent.replace(/\{\{personOptOutUrl\}\}/g, recipientVars.personOptOutUrl);
+          finalTextContent = finalTextContent.replace(/\{\{allOptOutUrl\}\}/g, recipientVars.allOptOutUrl);
+        }
+
+        return {
+          userId: follower.id,
+          personId: update.personId,
+          personHistoryId: update.id,
+          subject: finalSubject,
+          htmlContent: finalHtmlContent,
+          textContent: finalTextContent,
+          status: EmailStatus.QUEUED,
+          templateId: customContent?.templateId,
+        };
+      })
+    );
 
     // Create all email notifications
     const created = await prisma.emailNotification.createMany({
@@ -275,21 +321,26 @@ export async function sendUpdateEmail(personHistoryId: string) {
 }
 
 // Generate HTML email content
-function generateUpdateEmailHtml(update: {
-  person: {
-    firstName: string;
-    lastName: string;
-    town: {
+function generateUpdateEmailHtml(
+  update: {
+    person: {
+      firstName: string;
+      lastName: string;
+      town: {
+        slug: string;
+      };
       slug: string;
     };
-    slug: string;
-  };
-  description: string;
-  date: Date;
-}): string {
+    description: string;
+    date: Date;
+  },
+  personOptOutToken: string,
+  allOptOutToken: string
+): string {
   const personName = `${update.person.firstName} ${update.person.lastName}`;
   const profileUrl = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`;
-  const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/profile#email-preferences`;
+  const personUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`;
+  const allUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`;
   
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -310,33 +361,77 @@ function generateUpdateEmailHtml(update: {
         </a>
       </div>
       
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 40px 0;">
+      <!-- Professional Email Footer -->
+      <table style="width: 100%; margin-top: 40px;">
+        <tr>
+          <td>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 0 0 30px 0;">
+          </td>
+        </tr>
+      </table>
       
-      <p style="font-size: 12px; color: #718096;">
-        You're receiving this email because you've shown support for ${personName}.
-        <br>
-        <a href="${unsubscribeUrl}" style="color: #4299e1;">Manage your email preferences</a>
-      </p>
+      <div style="text-align: center; padding: 0 20px;">
+        <p style="font-size: 13px; color: #718096; margin-bottom: 20px; line-height: 1.6;">
+          You're receiving this email because you've shown support for ${personName} on Bring Me Home.
+        </p>
+        
+        <div style="margin: 20px 0;">
+          <a href="${personUnsubscribeUrl}" style="
+            color: #718096;
+            font-size: 12px;
+            text-decoration: underline;
+            display: inline-block;
+            margin: 0 10px;
+          ">
+            Unsubscribe from emails about ${personName}
+          </a>
+          <span style="color: #cbd5e0; margin: 0 5px;">|</span>
+          <a href="${allUnsubscribeUrl}" style="
+            color: #718096;
+            font-size: 12px;
+            text-decoration: underline;
+            display: inline-block;
+            margin: 0 10px;
+          ">
+            Unsubscribe from all Bring Me Home emails
+          </a>
+        </div>
+        
+        <p style="font-size: 11px; color: #a0aec0; margin-top: 20px; line-height: 1.5;">
+          These are one-click unsubscribe links that expire after 14 days.<br>
+          To manage your email preferences or resubscribe, please log in at 
+          <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #a0aec0; text-decoration: underline;">bring-me-home.com</a>
+        </p>
+        
+        <p style="font-size: 11px; color: #cbd5e0; margin-top: 15px;">
+          © ${new Date().getFullYear()} Bring Me Home. All rights reserved.
+        </p>
+      </div>
     </div>
   `;
 }
 
 // Generate plain text email content
-function generateUpdateEmailText(update: {
-  person: {
-    firstName: string;
-    lastName: string;
-    town: {
+function generateUpdateEmailText(
+  update: {
+    person: {
+      firstName: string;
+      lastName: string;
+      town: {
+        slug: string;
+      };
       slug: string;
     };
-    slug: string;
-  };
-  description: string;
-  date: Date;
-}): string {
+    description: string;
+    date: Date;
+  },
+  personOptOutToken: string,
+  allOptOutToken: string
+): string {
   const personName = `${update.person.firstName} ${update.person.lastName}`;
   const profileUrl = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`;
-  const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/profile#email-preferences`;
+  const personUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`;
+  const allUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`;
   
   return `
 Update on ${personName}
@@ -347,10 +442,22 @@ Posted on ${new Date(update.date).toLocaleDateString()}
 
 View Profile: ${profileUrl}
 
----
+========================================
 
-You're receiving this email because you've shown support for ${personName}.
-Manage your email preferences: ${unsubscribeUrl}
+You're receiving this email because you've shown support for ${personName} on Bring Me Home.
+
+MANAGE EMAIL PREFERENCES:
+
+Unsubscribe from emails about ${personName}:
+${personUnsubscribeUrl}
+
+Unsubscribe from all Bring Me Home emails:
+${allUnsubscribeUrl}
+
+These are one-click unsubscribe links that expire after 14 days.
+To manage your email preferences or resubscribe, please log in at bring-me-home.com/profile
+
+© ${new Date().getFullYear()} Bring Me Home. All rights reserved.
   `;
 }
 
@@ -410,4 +517,121 @@ export async function retryFailedEmails(emailIds?: string[]) {
     console.error('Error retrying failed emails:', error);
     return { success: false, error: 'Failed to retry emails' };
   }
+}
+
+// Get all email notifications with filters
+export async function getEmailNotifications(filters?: {
+  status?: EmailStatus;
+  personId?: string;
+  userId?: string;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized');
+  }
+
+  const where: Record<string, unknown> = {};
+  
+  if (filters?.status) {
+    where.status = filters.status;
+  }
+  
+  if (filters?.personId) {
+    where.personId = filters.personId;
+  }
+  
+  if (filters?.userId) {
+    where.userId = filters.userId;
+  }
+
+  const emails = await prisma.emailNotification.findMany({
+    where,
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      person: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      personHistory: {
+        select: {
+          id: true,
+          description: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 500, // Limit to recent 500 emails
+  });
+
+  return emails;
+}
+
+// Send queued emails (mark as ready to send)
+export async function sendQueuedEmails(emailIds: string[]) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    // For now, we'll just update the status to indicate they're ready to be sent
+    // The actual sending will be done by the email worker
+    const updated = await prisma.emailNotification.updateMany({
+      where: {
+        id: { in: emailIds },
+        status: EmailStatus.QUEUED,
+      },
+      data: {
+        status: EmailStatus.SENDING,
+        // The email worker will pick these up
+      },
+    });
+
+    return {
+      success: true,
+      sentCount: updated.count,
+    };
+  } catch (error) {
+    console.error('Error sending emails:', error);
+    return { success: false, error: 'Failed to send emails' };
+  }
+}
+
+// Get distinct persons who have email notifications
+export async function getPersonsWithEmails() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized');
+  }
+
+  const persons = await prisma.person.findMany({
+    where: {
+      emailNotifications: {
+        some: {},
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+    },
+    orderBy: [
+      { firstName: 'asc' },
+      { lastName: 'asc' },
+    ],
+  });
+
+  return persons;
 }

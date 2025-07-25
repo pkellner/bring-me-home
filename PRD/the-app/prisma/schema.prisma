@@ -29,6 +29,7 @@ model User {
   emailOptOuts        EmailOptOut[]
   sentEmails          EmailNotification[]  @relation("sentTo")
   comments            Comment[]
+  emailOptOutTokens   EmailOptOutToken[]
 
   @@map("users")
 }
@@ -152,6 +153,7 @@ model Person {
   personHistory        PersonHistory[]
   emailOptOuts         EmailOptOut[]
   emailNotifications   EmailNotification[]
+  emailOptOutTokens    EmailOptOutToken[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -542,13 +544,17 @@ model PersonHistory {
 model EmailOptOut {
   id        String   @id @default(cuid())
   userId    String
-  personId  String
+  personId  String?
+  source    String   @default("manual") // "manual", "link", "admin"
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
   
   @@unique([userId, personId])
+  @@index([userId])
+  @@index([personId])
   @@map("email_opt_outs")
 }
 
@@ -572,15 +578,60 @@ model EmailNotification {
   scheduledFor      DateTime              @default(now())
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
+  templateId        String?
+  customizations    Json?
+  trackingEnabled   Boolean               @default(false)
+  webhookUrl        String?
+  webhookEvents     Json?
   
   user              User                  @relation("sentTo", fields: [userId], references: [id], onDelete: Cascade)
   person            Person?               @relation(fields: [personId], references: [id], onDelete: Cascade)
   personHistory     PersonHistory?        @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
+  template          EmailTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
   
   @@index([status, scheduledFor])
   @@index([userId])
   @@index([personId])
+  @@index([templateId])
+  @@index([messageId])
   @@map("email_notifications")
+}
+
+model EmailOptOutToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  personId  String?
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("email_opt_out_tokens")
+}
+
+model EmailTemplate {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  subject            String
+  htmlContent        String              @db.Text
+  textContent        String?             @db.Text
+  variables          Json?
+  isActive           Boolean             @default(true)
+  trackingEnabled    Boolean             @default(false)
+  webhookUrl         String?
+  webhookHeaders     Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  
+  emailNotifications EmailNotification[]
+  
+  @@map("email_templates")
 }
 
 enum EmailStatus {

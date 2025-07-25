@@ -51,8 +51,49 @@ export default async function ProfilePage() {
           },
         },
       },
+      emailOptOuts: {
+        include: {
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              slug: true,
+              town: {
+                select: {
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
+  
+  // Get all persons the user has shown support for (via comments)
+  const supportedPersons = user?.email ? await prisma.person.findMany({
+    where: {
+      comments: {
+        some: {
+          email: user.email,
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      slug: true,
+      town: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  }) : [];
   
   if (!user) {
     redirect('/auth/signin');
@@ -95,6 +136,15 @@ export default async function ProfilePage() {
         townState: pa.person.town.state,
         townSlug: pa.person.town.slug,
       },
+    })),
+    emailSubscriptions: supportedPersons.map(person => ({
+      personId: person.id,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      slug: person.slug,
+      townName: person.town.name,
+      townSlug: person.town.slug,
+      isOptedOut: user.emailOptOuts.some(opt => opt.personId === person.id),
     })),
   };
   

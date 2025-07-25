@@ -9,6 +9,7 @@ interface HistoryClientProps {
   personName: string;
   initialHistory: SanitizedPersonHistory[];
   isSiteAdmin: boolean;
+  isTownAdmin: boolean;
   townSlug: string;
   personSlug: string;
 }
@@ -18,6 +19,7 @@ export function HistoryClient({
   personName,
   initialHistory,
   isSiteAdmin,
+  isTownAdmin,
   townSlug,
   personSlug,
 }: HistoryClientProps) {
@@ -34,6 +36,7 @@ export function HistoryClient({
         personId={personId}
         initialHistory={initialHistory}
         isSiteAdmin={isSiteAdmin}
+        isTownAdmin={isTownAdmin}
         townSlug={townSlug}
         personSlug={personSlug}
       />

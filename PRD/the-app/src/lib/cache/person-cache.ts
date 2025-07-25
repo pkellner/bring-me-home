@@ -603,7 +603,11 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
     session.user.roles?.some(role => role.name === 'town-admin') ||
     (userWithAccess?.townAccess?.length ?? 0) > 0;
 
-  const isPersonAdmin = (userWithAccess?.personAccess?.length ?? 0) > 0;
+  // Check for person-admin role OR person access
+  const isPersonAdmin = 
+    userWithAccess?.userRoles.some(ur => ur.role.name === 'person-admin') ||
+    session.user.roles?.some(role => role.name === 'person-admin') ||
+    (userWithAccess?.personAccess?.length ?? 0) > 0;
 
   return {
     isAdmin: isSiteAdmin || isTownAdmin || isPersonAdmin,

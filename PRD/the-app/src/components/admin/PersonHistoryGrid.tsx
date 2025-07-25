@@ -7,12 +7,13 @@ import { createPersonHistory, updatePersonHistory, deletePersonHistory, deleteAl
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
-import { formatDateForDisplay, formatDateForInput } from '@/lib/date-utils';
+import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
 
 interface PersonHistoryGridProps {
   personId: string;
   initialHistory: SanitizedPersonHistory[];
   isSiteAdmin: boolean;
+  isTownAdmin: boolean;
   townSlug: string;
   personSlug: string;
 }
@@ -25,7 +26,7 @@ interface EditingState {
   sendNotifications: boolean;
 }
 
-export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, townSlug, personSlug }: PersonHistoryGridProps) {
+export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, isTownAdmin, townSlug, personSlug }: PersonHistoryGridProps) {
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
   const [isAdding, setIsAdding] = useState(false);
@@ -59,8 +60,11 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
   }, [newItemIds]);
 
   const handleEdit = useCallback((record: SanitizedPersonHistory) => {
-    // Use the utility function to get the correct date for the input
-    const dateStr = formatDateForInput(record.date);
+    // Use datetime format for town/system admins, date only for person admin
+    const canEditDateTime = isSiteAdmin || isTownAdmin;
+    const dateStr = canEditDateTime 
+      ? formatDateTimeForInput(record.date)
+      : formatDateForInput(record.date);
     
     setEditingState({
       id: record.id,
@@ -69,7 +73,7 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       visible: record.visible,
       sendNotifications: record.sendNotifications,
     });
-  }, []);
+  }, [isSiteAdmin, isTownAdmin]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingState({
@@ -206,16 +210,23 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       width: '150px',
       render: (_, record) => {
         if (editingState.id === record.id) {
-          return (
-            <input
-              type="date"
-              value={editingState.date}
-              onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
-              className="w-full px-2 py-1 border rounded"
-            />
-          );
+          // Only site admin and town admin can edit date/time
+          const canEditDateTime = isSiteAdmin || isTownAdmin;
+          if (canEditDateTime) {
+            return (
+              <input
+                type="datetime-local"
+                value={editingState.date}
+                onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
+                className="w-full px-2 py-1 border rounded"
+              />
+            );
+          } else {
+            // Person admin can't edit date/time
+            return <span className="text-gray-600">{format(new Date(record.date), 'MMM dd, yyyy HH:mm')}</span>;
+          }
         }
-        return format(formatDateForDisplay(record.date), 'MMM dd, yyyy');
+        return format(new Date(record.date), 'MMM dd, yyyy HH:mm');
       },
     },
     {
@@ -261,6 +272,12 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       key: 'createdByUsername',
       label: 'Created By',
       width: '150px',
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      width: '150px',
+      render: (_, record) => format(new Date(record.createdAt), 'MMM dd, yyyy HH:mm'),
     },
     {
       key: 'visible',
@@ -376,17 +393,8 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
               overflow: showAddForm ? 'visible' : 'hidden'
             }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  value={editingState.date}
-                  onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div className="flex items-end gap-4">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4">
                 <label className="flex items-center">
                   <input
                     type="checkbox"

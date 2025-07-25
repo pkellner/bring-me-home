@@ -1,7 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import PersonPageClient from './PersonPageClient';
-import RecaptchaProvider from '@/components/providers/RecaptchaProvider';
+
+// Dynamically import RecaptchaProvider with no SSR to prevent hydration issues
+const RecaptchaProvider = dynamic(
+  () => import('@/components/providers/RecaptchaProvider'),
+  { 
+    ssr: false,
+    loading: () => null 
+  }
+);
 
 interface PersonPageWrapperProps {
   townSlug: string;

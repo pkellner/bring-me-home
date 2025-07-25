@@ -12,9 +12,12 @@ interface HistoryProps {
       slug: string;
     };
   };
+  isPersonAdmin?: boolean;
+  isTownAdmin?: boolean;
+  isSiteAdmin?: boolean;
 }
 
-export default function History({ person }: HistoryProps) {
+export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmin }: HistoryProps) {
   if (!person.personHistory || person.personHistory.length === 0) {
     return null;
   }
@@ -28,6 +31,9 @@ export default function History({ person }: HistoryProps) {
       personName={personName}
       townSlug={person.town.slug}
       personSlug={person.slug}
+      isPersonAdmin={isPersonAdmin}
+      isTownAdmin={isTownAdmin}
+      isSiteAdmin={isSiteAdmin}
     />
   );
 }

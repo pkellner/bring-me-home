@@ -1,0 +1,154 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
+import { EmailStatus } from '@prisma/client';
+
+// This can be called by Vercel Cron or external cron services
+export async function GET(request: NextRequest) {
+  // Optional: Add authentication header check for security
+  const authHeader = request.headers.get('authorization');
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    // Get emails that are ready to send
+    const emailsToSend = await prisma.emailNotification.findMany({
+      where: {
+        status: EmailStatus.SENDING,
+        scheduledFor: {
+          lte: new Date(),
+        },
+        retryCount: {
+          lt: prisma.emailNotification.fields.maxRetries,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        template: {
+          select: {
+            trackingEnabled: true,
+            webhookUrl: true,
+          },
+        },
+      },
+      take: 50, // Process in batches
+    });
+
+    const results = {
+      processed: 0,
+      sent: 0,
+      failed: 0,
+    };
+
+    // Process each email
+    for (const emailNotification of emailsToSend) {
+      results.processed++;
+
+      if (!emailNotification.user.email) {
+        await prisma.emailNotification.update({
+          where: { id: emailNotification.id },
+          data: {
+            status: EmailStatus.FAILED,
+            errorMessage: 'User has no email address',
+            retryCount: { increment: 1 },
+          },
+        });
+        results.failed++;
+        continue;
+      }
+
+      try {
+        // Send the email
+        const result = await sendEmail({
+          to: emailNotification.user.email,
+          subject: emailNotification.subject,
+          html: emailNotification.htmlContent,
+          text: emailNotification.textContent || undefined,
+        });
+
+        // Update status to sent
+        const updateData: Record<string, unknown> = {
+          status: EmailStatus.SENT,
+          sentAt: new Date(),
+          messageId: result.messageId || null,
+          provider: result.provider || 'smtp',
+        };
+
+        // If tracking is enabled, prepare for webhook events
+        const trackingEnabled = emailNotification.trackingEnabled || emailNotification.template?.trackingEnabled;
+        const webhookUrl = emailNotification.webhookUrl || emailNotification.template?.webhookUrl;
+        
+        if (trackingEnabled && webhookUrl) {
+          updateData.webhookEvents = {
+            sent: {
+              timestamp: new Date().toISOString(),
+              messageId: result.messageId,
+            },
+          };
+        }
+
+        await prisma.emailNotification.update({
+          where: { id: emailNotification.id },
+          data: updateData,
+        });
+
+        results.sent++;
+      } catch (error) {
+        // Update status to failed with error message
+        await prisma.emailNotification.update({
+          where: { id: emailNotification.id },
+          data: {
+            status: EmailStatus.FAILED,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            retryCount: { increment: 1 },
+          },
+        });
+
+        results.failed++;
+      }
+    }
+
+    // Auto-retry failed emails that haven't exceeded max retries
+    const failedEmailsToRetry = await prisma.emailNotification.updateMany({
+      where: {
+        status: EmailStatus.FAILED,
+        retryCount: {
+          lt: prisma.emailNotification.fields.maxRetries,
+        },
+        updatedAt: {
+          lt: new Date(Date.now() - 5 * 60 * 1000), // Wait 5 minutes between retries
+        },
+      },
+      data: {
+        status: EmailStatus.SENDING,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      results: {
+        ...results,
+        retriedForNextRun: failedEmailsToRetry.count,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Email worker error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 });
+  }
+}
+
+// Also support POST for flexibility
+export async function POST(request: NextRequest) {
+  return GET(request);
+}

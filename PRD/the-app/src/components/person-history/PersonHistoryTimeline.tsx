@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import PersonHistoryItem from './PersonHistoryItem';
 import { getCommentCountsByPersonHistoryIds } from '@/app/actions/comments';
@@ -11,6 +12,9 @@ interface PersonHistoryTimelineProps {
   personName: string;
   townSlug?: string;
   personSlug?: string;
+  isPersonAdmin?: boolean;
+  isTownAdmin?: boolean;
+  isSiteAdmin?: boolean;
 }
 
 export default function PersonHistoryTimeline({ 
@@ -18,18 +22,18 @@ export default function PersonHistoryTimeline({
   personId,
   personName,
   townSlug,
-  personSlug
+  personSlug,
+  isPersonAdmin,
+  isTownAdmin,
+  isSiteAdmin
 }: PersonHistoryTimelineProps) {
   const [showAll, setShowAll] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   
-  // Get initial show count from environment variable or default to 3
-  const parsedCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
-    ? parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT, 10) 
-    : NaN;
-  const initialShowCount = isNaN(parsedCount) ? 3 : parsedCount;
+  // Show only the most recent update by default
+  const initialShowCount = 1;
 
   // Load comment counts
   useEffect(() => {
@@ -61,9 +65,19 @@ export default function PersonHistoryTimeline({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-light tracking-wide text-gray-800 border-b border-gray-200 pb-3">
-        Updates on {personName}
-      </h2>
+      <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+        <h2 className="text-2xl font-light tracking-wide text-gray-800">
+          Updates on {personName}
+        </h2>
+        {(isPersonAdmin || isTownAdmin || isSiteAdmin) && (
+          <Link
+            href={`/admin/persons/${personId}/edit/history`}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            [Manage and Add Updates]
+          </Link>
+        )}
+      </div>
       
       <div className="space-y-6">
         {entriesToShow.map((note, index) => (
@@ -100,7 +114,7 @@ export default function PersonHistoryTimeline({
             onClick={() => setShowAll(true)}
             className="inline-flex items-center px-6 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors duration-200"
           >
-            Show more updates
+            Show {sortedHistory.length - initialShowCount} Previous {sortedHistory.length - initialShowCount === 1 ? 'Update' : 'Updates'}
             <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>

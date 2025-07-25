@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { 
@@ -59,41 +59,34 @@ interface ProfileUser {
       townSlug: string;
     };
   }>;
+  emailSubscriptions: Array<{
+    personId: string;
+    firstName: string;
+    lastName: string;
+    slug: string;
+    townName: string;
+    townSlug: string;
+    isOptedOut: boolean;
+  }>;
 }
 
 // Email Preferences Component
 function EmailPreferences({ 
   initialOptOutOfAllEmail, 
-  personAccess 
+  emailSubscriptions 
 }: { 
   initialOptOutOfAllEmail: boolean;
-  personAccess: ProfileUser['personAccess'];
+  emailSubscriptions: ProfileUser['emailSubscriptions'];
 }) {
   const [globalOptOut, setGlobalOptOut] = useState(initialOptOutOfAllEmail);
-  const [personOptOuts, setPersonOptOuts] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [personOptOuts, setPersonOptOuts] = useState<string[]>(
+    emailSubscriptions.filter(sub => sub.isOptedOut).map(sub => sub.personId)
+  );
+  const [isLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // Load email opt-out preferences
-  useEffect(() => {
-    const loadPreferences = async () => {
-      try {
-        const response = await fetch('/api/profile/email-preferences');
-        if (response.ok) {
-          const data = await response.json();
-          setGlobalOptOut(data.globalOptOut);
-          setPersonOptOuts(data.personOptOuts || []);
-        }
-      } catch {
-        // Silent fail - use initial values
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadPreferences();
-  }, []);
 
   const handleGlobalOptOutChange = async (checked: boolean) => {
     setError('');
@@ -183,46 +176,58 @@ function EmailPreferences({
         </label>
       </div>
       
-      {/* Person-specific opt-outs */}
-      {personAccess.length > 0 && !globalOptOut && (
+      {/* Person-specific subscriptions */}
+      {emailSubscriptions.length > 0 && !globalOptOut && (
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-900 mb-3">
-            Email notifications by person
+            People you&apos;re following
           </h3>
+          <p className="text-xs text-gray-600 mb-4">
+            You&apos;ll receive email notifications when there are updates about these people.
+          </p>
           <div className="space-y-3">
-            {personAccess.map((access) => (
-              <div key={access.person.id} className="flex items-start">
-                <input
-                  type="checkbox"
-                  id={`person-opt-out-${access.person.id}`}
-                  checked={personOptOuts.includes(access.person.id)}
-                  onChange={(e) => handlePersonOptOutChange(access.person.id, e.target.checked)}
-                  disabled={isUpdating}
-                  className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1"
-                />
-                <label 
-                  htmlFor={`person-opt-out-${access.person.id}`} 
-                  className="ml-3"
-                >
+            {emailSubscriptions.map((subscription) => (
+              <div key={subscription.personId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1">
                   <div className="text-sm font-medium text-gray-900">
-                    Opt out of updates for {access.person.firstName} {access.person.lastName}
+                    {subscription.firstName} {subscription.lastName}
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {access.person.townName}, {access.person.townState}
+                  <div className="text-xs text-gray-600">
+                    {subscription.townName}
                   </div>
-                </label>
+                </div>
+                <div className="ml-4">
+                  {subscription.isOptedOut ? (
+                    <button
+                      onClick={() => handlePersonOptOutChange(subscription.personId, false)}
+                      disabled={isUpdating}
+                      className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
+                    >
+                      Resubscribe
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handlePersonOptOutChange(subscription.personId, true)}
+                      disabled={isUpdating}
+                      className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                    >
+                      Unsubscribe
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
       
-      {/* Info for users following persons via comments */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> If you&apos;ve left comments on person pages, you&apos;ll receive email updates when there are new updates about them (unless you opt out above).
-        </p>
-      </div>
+      {/* No subscriptions message */}
+      {emailSubscriptions.length === 0 && !globalOptOut && (
+        <div className="mt-6 text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+          <p>You&apos;re not currently following any detained persons.</p>
+          <p className="mt-2">When you leave a message of support on someone&apos;s profile, you&apos;ll automatically receive email updates about them.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -700,7 +705,7 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
               </h2>
               <EmailPreferences 
                 initialOptOutOfAllEmail={user.optOutOfAllEmail}
-                personAccess={user.personAccess}
+                emailSubscriptions={user.emailSubscriptions}
               />
             </div>
             

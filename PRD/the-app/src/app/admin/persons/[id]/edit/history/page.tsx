@@ -64,6 +64,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
   }));
 
   const userIsSiteAdmin = isSiteAdmin(session);
+  const userIsTownAdmin = isTownAdmin(session);
   const personName = `${person.firstName} ${person.lastName}`;
   const townSlug = person.town.slug;
   const personSlug = person.slug;
@@ -79,6 +80,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
         personName={personName}
         initialHistory={sanitizedHistory}
         isSiteAdmin={userIsSiteAdmin}
+        isTownAdmin={userIsTownAdmin}
         townSlug={townSlug}
         personSlug={personSlug}
       />

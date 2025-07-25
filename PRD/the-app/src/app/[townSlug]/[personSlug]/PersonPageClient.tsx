@@ -169,6 +169,8 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
           theme={theme}
           isAdmin={permissions?.isAdmin || false}
           isSiteAdmin={permissions?.isSiteAdmin || false}
+          isPersonAdmin={permissions?.isPersonAdmin || false}
+          isTownAdmin={permissions?.isTownAdmin || false}
           supportMapMetadata={data.supportMapMetadata}
         />
       </main>

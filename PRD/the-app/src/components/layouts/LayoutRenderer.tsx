@@ -130,6 +130,8 @@ interface LayoutRendererProps {
   };
   isAdmin?: boolean;
   isSiteAdmin?: boolean;
+  isPersonAdmin?: boolean;
+  isTownAdmin?: boolean;
   supportMapMetadata?: {
     hasIpAddresses: boolean;
     messageLocationCount: number;
@@ -145,6 +147,8 @@ export default function LayoutRenderer({
   theme,
   isAdmin = false,
   isSiteAdmin = false,
+  isPersonAdmin = false,
+  isTownAdmin = false,
   supportMapMetadata,
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
@@ -193,7 +197,7 @@ export default function LayoutRenderer({
     'article-content': () => <sections.ArticleContent person={person} />,
     'sidebar': () => <sections.Sidebar person={person} isAdmin={isAdmin} />,
     'main-content': () => <sections.MainContent person={person} />,
-    'history': () => <sections.History person={person} />,
+    'history': () => <sections.History person={person} isPersonAdmin={isPersonAdmin} isTownAdmin={isTownAdmin} isSiteAdmin={isSiteAdmin} />,
   };
 
   // Render layout based on type

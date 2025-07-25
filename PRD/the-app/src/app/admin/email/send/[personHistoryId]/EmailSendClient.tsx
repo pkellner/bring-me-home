@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/OptimizedLink';
 import { sendUpdateEmail } from '@/app/actions/email-notifications';
+import { getEmailTemplates } from '@/app/actions/email-templates';
 import { format } from 'date-fns';
+import { replaceTemplateVariables } from '@/lib/email-template-variables';
 import { 
   EnvelopeIcon, 
   UserGroupIcon,
@@ -13,6 +15,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   EyeIcon,
+  DocumentDuplicateIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 
 interface Person {
@@ -48,15 +52,82 @@ interface EmailSendClientProps {
   followers: Follower[];
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  htmlContent: string;
+  textContent: string | null;
+  isActive: boolean;
+}
+
 export default function EmailSendClient({ update, followers }: EmailSendClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPreview, setShowPreview] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [emailsSent, setEmailsSent] = useState(false);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [customSubject, setCustomSubject] = useState('');
+  const [customHtmlContent, setCustomHtmlContent] = useState('');
+  const [customTextContent, setCustomTextContent] = useState('');
+  const [useCustomContent, setUseCustomContent] = useState(false);
+  const [editingContent, setEditingContent] = useState(false);
   
   const personName = `${update.person.firstName} ${update.person.lastName}`;
   const profileUrl = `${process.env.NEXT_PUBLIC_URL || ''}/${update.person.town.slug}/${update.person.slug}`;
+
+  // Load email templates
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const result = await getEmailTemplates();
+        setTemplates(result.filter(t => t.isActive));
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+      }
+    };
+    loadTemplates();
+  }, []);
+
+  // Generate template variables
+  const getTemplateVariables = () => ({
+    recipientName: '{{recipientName}}',
+    recipientEmail: '{{recipientEmail}}',
+    personName,
+    personFirstName: update.person.firstName,
+    personLastName: update.person.lastName,
+    townName: update.person.town.name,
+    updateDescription: update.description,
+    updateDate: format(new Date(update.date), 'MMMM d, yyyy'),
+    profileUrl,
+    personOptOutUrl: '{{personOptOutUrl}}',
+    allOptOutUrl: '{{allOptOutUrl}}',
+    currentDate: format(new Date(), 'MMMM d, yyyy'),
+    siteUrl: process.env.NEXT_PUBLIC_URL || '',
+  });
+
+  // Update content when template is selected
+  useEffect(() => {
+    if (selectedTemplateId) {
+      const template = templates.find(t => t.id === selectedTemplateId);
+      if (template) {
+        const variables = getTemplateVariables();
+        setCustomSubject(replaceTemplateVariables(template.subject, variables));
+        setCustomHtmlContent(replaceTemplateVariables(template.htmlContent, variables));
+        setCustomTextContent(template.textContent ? replaceTemplateVariables(template.textContent, variables) : '');
+        setUseCustomContent(true);
+      }
+    } else {
+      // Use default content
+      setCustomSubject(`Update on ${personName}`);
+      setCustomHtmlContent(getDefaultEmailHtml());
+      setCustomTextContent('');
+      setUseCustomContent(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId, templates]);
   
   const handleSendEmails = async () => {
     if (!followers.length) {
@@ -74,7 +145,14 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
     setMessage(null);
     
     startTransition(async () => {
-      const result = await sendUpdateEmail(update.id);
+      const customContentData = useCustomContent ? {
+        subject: customSubject,
+        htmlContent: customHtmlContent,
+        textContent: customTextContent || undefined,
+        templateId: selectedTemplateId || undefined,
+      } : undefined;
+      
+      const result = await sendUpdateEmail(update.id, customContentData);
       
       if (result.success) {
         setEmailsSent(true);
@@ -91,9 +169,8 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
     });
   };
   
-  const emailPreview = {
-    subject: `Update on ${personName}`,
-    html: `
+  const getDefaultEmailHtml = () => {
+    return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a202c;">Update on ${personName}</h2>
         
@@ -120,7 +197,12 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
           <a href="#" style="color: #4299e1;">Manage your email preferences</a>
         </p>
       </div>
-    `,
+    `;
+  };
+
+  const emailPreview = {
+    subject: useCustomContent ? customSubject : `Update on ${personName}`,
+    html: useCustomContent ? customHtmlContent : getDefaultEmailHtml(),
   };
   
   return (
@@ -161,6 +243,77 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
               <p className="text-gray-900 whitespace-pre-wrap">{update.description}</p>
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Email Template Selection */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <DocumentDuplicateIcon className="h-5 w-5 mr-2" />
+          Email Template
+        </h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="template" className="block text-sm font-medium text-gray-700 mb-2">
+              Select Template
+            </label>
+            <select
+              id="template"
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Default Template</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {useCustomContent && (
+            <div className="mt-4">
+              <button
+                onClick={() => setEditingContent(!editingContent)}
+                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+              >
+                <PencilIcon className="h-4 w-4 mr-1" />
+                {editingContent ? 'Hide Editor' : 'Customize Content'}
+              </button>
+              
+              {editingContent && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                      Subject
+                    </label>
+                    <input
+                      id="subject"
+                      type="text"
+                      value={customSubject}
+                      onChange={(e) => setCustomSubject(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                      HTML Content
+                    </label>
+                    <textarea
+                      id="content"
+                      value={customHtmlContent}
+                      onChange={(e) => setCustomHtmlContent(e.target.value)}
+                      rows={15}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       

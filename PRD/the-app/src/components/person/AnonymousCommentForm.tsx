@@ -1,7 +1,7 @@
 'use client';
 
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useSafeRecaptcha } from '@/hooks/useRecaptcha';
 import CommentConfirmationModal from './CommentConfirmationModal';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
@@ -47,10 +47,10 @@ export default function AnonymousCommentForm({
   const [showBirthdate, setShowBirthdate] = useState(true);
   const [showComment, setShowComment] = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const { executeRecaptcha, isReady } = useSafeRecaptcha();
 
   if (debugCaptcha) {
-    console.log('[AnonymousCommentForm] Component mounted, executeRecaptcha available:', !!executeRecaptcha);
+    console.log('[AnonymousCommentForm] Component mounted, reCAPTCHA ready:', isReady);
   }
 
   // Track form changes
@@ -140,11 +140,11 @@ export default function AnonymousCommentForm({
           
           if (debugCaptcha) {
             console.log('[AnonymousCommentForm] Form submitted, checking reCAPTCHA...');
-            console.log('[AnonymousCommentForm] executeRecaptcha available:', !!executeRecaptcha);
+            console.log('[AnonymousCommentForm] reCAPTCHA ready:', isReady);
           }
           
           // Execute reCAPTCHA
-          if (!executeRecaptcha) {
+          if (!isReady) {
             const errorMsg = 'reCAPTCHA not loaded. Please refresh the page and try again.';
             if (debugCaptcha) {
               console.error('[AnonymousCommentForm] Error:', errorMsg);
@@ -170,7 +170,11 @@ export default function AnonymousCommentForm({
             }
             
             // Add the token to the form data
-            formData.append('recaptchaToken', token);
+            if (token) {
+              formData.append('recaptchaToken', token);
+            } else {
+              throw new Error('Failed to get reCAPTCHA token');
+            }
             
             // Capture form data and show confirmation modal
             setPendingFormData(formData);
@@ -181,7 +185,10 @@ export default function AnonymousCommentForm({
               console.error('[AnonymousCommentForm] Error type:', error instanceof Error ? error.constructor.name : typeof error);
               console.error('[AnonymousCommentForm] Error message:', error instanceof Error ? error.message : String(error));
             }
-            setRecaptchaError('reCAPTCHA verification failed. Please try again.');
+            
+            // Use the error message from our safe hook if available
+            const errorMessage = error instanceof Error ? error.message : 'reCAPTCHA verification failed. Please try again.';
+            setRecaptchaError(errorMessage);
           } finally {
             setIsExecutingRecaptcha(false);
           }

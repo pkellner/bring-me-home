@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
-import { formatDateForDisplay } from '@/lib/date-utils';
 import PersonHistoryComments from './PersonHistoryComments';
 import PersonHistoryCommentForm from './PersonHistoryCommentForm';
 import { useSession } from 'next-auth/react';
@@ -97,7 +96,7 @@ export default function PersonHistoryItem({
         <div className="p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="text-sm font-medium text-gray-700">
-              {format(formatDateForDisplay(historyItem.date), 'MMMM d, yyyy')}
+              {format(new Date(historyItem.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
             </div>
             <div className="text-xs text-gray-500">
               {canModerateComments && unapprovedCount > 0 && townSlug && personSlug ? (

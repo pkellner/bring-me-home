@@ -690,3 +690,9 @@ const serializedComment = {
   - Admin interface shows which update comments relate to with grouping/filtering options
   - Added "Group by Update" functionality in admin comments grid
   - Comments clearly linked to specific updates with visual timeline design
+- **FEATURE**: Added "Manage and Add Updates" button on public person pages
+  - Button appears in the "Updates on [Person Name]" section header (History section)
+  - Only visible to users with person admin, town admin, or system admin permissions
+  - Links directly to `/admin/persons/[id]/edit/history` page
+  - Styled as a link button similar to "[Manage Comments]" in the Community Support section
+  - Fixed permission checking to include role-based permissions, not just access records

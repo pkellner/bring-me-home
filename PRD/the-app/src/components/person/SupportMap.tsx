@@ -19,19 +19,31 @@ L.Icon.Default.mergeOptions({
 // Dynamic imports to avoid SSR issues
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-gray-100 animate-pulse" />
+  }
 );
 const TileLayer = dynamic(
   () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => null
+  }
 );
 const Marker = dynamic(
   () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => null
+  }
 );
 const Popup = dynamic(
   () => import('react-leaflet').then((mod) => mod.Popup),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => null
+  }
 );
 
 
@@ -64,7 +76,10 @@ const MapEventTracker = dynamic(
     };
     return Component;
   }),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => null
+  }
 );
 
 interface SupportMapProps {
