@@ -541,7 +541,13 @@ const serializedComment = {
 3. Automatic fallback to console logging if provider fails
 4. Detailed logging via `EMAIL_PROVIDER_LOG_SMTP=true`
 5. Comprehensive documentation in `/EMAIL.md`
-6. Example configuration:
+6. Email queue workflow:
+   - Emails are created with status `QUEUED`
+   - Must be changed to `SENDING` status before the cron job can process them
+   - "Process Email Queue Now" button changes QUEUED → SENDING and triggers cron job
+   - "Send Selected" from grid also changes selected emails from QUEUED → SENDING
+   - Cron job only processes emails with `SENDING` status
+7. Example configuration:
    ```env
    EMAIL_PROVIDER="sendgrid"  # Options: smtp, sendgrid, ses, console
    SENDGRID_API_KEY="your-api-key"

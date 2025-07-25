@@ -123,6 +123,32 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
     
     startTransition(async () => {
       try {
+        // First, change all QUEUED emails to SENDING status
+        const updateResponse = await fetch('/api/admin/emails/process-queue', {
+          method: 'POST',
+        });
+        
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json();
+          setMessage({
+            type: 'error',
+            text: errorData.error || 'Failed to update email queue',
+          });
+          return;
+        }
+        
+        const updateData = await updateResponse.json();
+        
+        // If no emails were updated, show message
+        if (updateData.count === 0) {
+          setMessage({
+            type: 'error',
+            text: 'No queued emails found to process',
+          });
+          return;
+        }
+        
+        // Now trigger the cron job to process the emails
         const response = await fetch('/api/cron/send-emails', {
           method: 'POST',
           headers: {
@@ -135,7 +161,7 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
         if (data.success) {
           setMessage({
             type: 'success',
-            text: `Processed ${data.results.processed} emails: ${data.results.sent} sent, ${data.results.failed} failed`,
+            text: `Marked ${updateData.count} emails for sending. Processed ${data.results.processed} emails: ${data.results.sent} sent, ${data.results.failed} failed`,
           });
           router.refresh();
         } else {
