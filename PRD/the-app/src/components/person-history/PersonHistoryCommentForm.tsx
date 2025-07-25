@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { submitComment } from '@/app/actions/comments';
-import AnonymousCommentForm from '@/components/person/AnonymousCommentForm';
+import AnonymousCommentFormWithRecaptcha from '@/components/person/AnonymousCommentFormWithRecaptcha';
 
 interface PersonHistoryCommentFormProps {
   personId: string;
@@ -44,7 +44,7 @@ export default function PersonHistoryCommentForm({
           Commenting on update: <span className="font-medium">&ldquo;{updateDescription.substring(0, 50)}...&rdquo;</span>
         </p>
       </div>
-      <AnonymousCommentForm
+      <AnonymousCommentFormWithRecaptcha
         personId={personId}
         personHistoryId={personHistoryId}
         onSubmit={handleSubmit}

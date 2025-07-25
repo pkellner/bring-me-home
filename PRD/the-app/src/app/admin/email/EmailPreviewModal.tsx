@@ -213,9 +213,16 @@ export default function EmailPreviewModal({ emailId, onClose }: EmailPreviewModa
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 320px)' }}>
           {showHtml ? (
             <div className="p-6">
-              <div className="border rounded-lg bg-white p-4">
+              <div className="border rounded-lg bg-white p-4 relative">
                 <iframe
-                  srcDoc={email.htmlContent}
+                  srcDoc={`
+                    <style>
+                      body { margin: 0; font-family: Arial, sans-serif; }
+                      a { pointer-events: none !important; cursor: default !important; }
+                      button { pointer-events: none !important; cursor: default !important; }
+                    </style>
+                    ${email.htmlContent}
+                  `}
                   className="w-full border-0"
                   style={{ minHeight: '400px' }}
                   title="Email HTML Preview"
@@ -226,6 +233,9 @@ export default function EmailPreviewModal({ emailId, onClose }: EmailPreviewModa
                   }}
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-2 italic text-center">
+                Note: Links and buttons are not clickable in this preview
+              </p>
             </div>
           ) : (
             <div className="p-6">

@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
       }
 
       try {
+        console.log(`[Email Cron] Sending email to ${emailNotification.user.email} (ID: ${emailNotification.id})`);
+        
         // Send the email
         const result = await sendEmail({
           to: emailNotification.user.email,
@@ -72,6 +74,30 @@ export async function GET(request: NextRequest) {
           html: emailNotification.htmlContent,
           text: emailNotification.textContent || undefined,
         });
+
+        console.log(`[Email Cron] Result for ${emailNotification.id}:`, {
+          provider: result.provider,
+          messageId: result.messageId,
+          error: result.error,
+        });
+
+        // Check if the email failed but fell back to console
+        if (result.error) {
+          console.log(`[Email Cron] Email failed for ${emailNotification.id}, marking as FAILED with error: ${result.error}`);
+          
+          // Email failed but was logged to console
+          await prisma.emailNotification.update({
+            where: { id: emailNotification.id },
+            data: {
+              status: EmailStatus.FAILED,
+              errorMessage: result.error,
+              retryCount: { increment: 1 },
+              provider: result.provider,
+            },
+          });
+          results.failed++;
+          continue;
+        }
 
         // Update status to sent
         const updateData: Record<string, unknown> = {

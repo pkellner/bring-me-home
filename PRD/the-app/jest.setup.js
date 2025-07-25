@@ -92,6 +92,54 @@ const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
+// Mock nanoid before any imports
+jest.mock('nanoid', () => ({
+  nanoid: jest.fn(() => 'test-token-12345')
+}));
+
+// Mock Prisma Client
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+    $use: jest.fn(),
+    user: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    comment: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    emailOptOut: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      deleteMany: jest.fn(),
+      upsert: jest.fn(),
+    },
+    emailOptOutToken: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    emailNotification: {
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+      fields: {
+        maxRetries: 3,
+      },
+    },
+  },
+}))
+
 // Add Request and Response globals for API route tests
 if (typeof global.Request === 'undefined') {
   global.Request = class Request {

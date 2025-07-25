@@ -70,7 +70,7 @@ const customJestConfig = {
   
   // Transform ignore patterns - handle ESM modules
   transformIgnorePatterns: [
-    'node_modules/(?!(jose|openid-client|oidc-token-hash|@panva|uuid)/)',
+    'node_modules/(?!(jose|openid-client|oidc-token-hash|@panva|uuid|nanoid)/)',
   ],
   
   // Module paths to mock automatically

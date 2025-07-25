@@ -13,11 +13,19 @@ interface UnsubscribeData {
   message?: string;
 }
 
+interface UnsubscribeResult {
+  success: boolean;
+  message: string;
+  isGloballyOptedOut: boolean;
+  error?: string;
+}
+
 export default function UnsubscribePage() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<UnsubscribeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [unsubscribed, setUnsubscribed] = useState(false);
+  const [unsubscribeResult, setUnsubscribeResult] = useState<UnsubscribeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const token = searchParams.get('token');
@@ -52,12 +60,13 @@ export default function UnsubscribePage() {
           body: JSON.stringify({ token }),
         });
 
-        const result = await unsubscribeResponse.json();
+        const result: UnsubscribeResult = await unsubscribeResponse.json();
 
         if (result.success) {
           setUnsubscribed(true);
+          setUnsubscribeResult(result);
         } else {
-          setError(result.message || result.error);
+          setError(result.message || result.error || 'Failed to unsubscribe');
         }
       } catch {
         setError('Failed to process unsubscribe request');
@@ -143,56 +152,25 @@ export default function UnsubscribePage() {
             <div className="mt-4 space-y-4">
               <p className="text-gray-700 font-medium">
                 {action === 'all'
-                  ? 'You have been successfully unsubscribed from all Bring Me Home emails.'
-                  : `You have been successfully unsubscribed from email updates about ${data.personName}.`}
+                  ? 'You have been unsubscribed from all emails.'
+                  : `You have been unsubscribed from following ${data.personName}.`}
               </p>
               
-              {action !== 'all' && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-700">
-                    Thank you for showing interest in {data.personName} and their well-being. 
-                    Your support has meant a lot to their family and community.
+              {action === 'person' && unsubscribeResult?.isGloballyOptedOut && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    Note: You are currently opted out from all emails from the site.
                   </p>
                 </div>
               )}
-              
-              <p className="text-sm text-gray-600">
-                You will no longer receive{' '}
-                {action === 'all'
-                  ? 'any emails from Bring Me Home'
-                  : `email notifications when there are updates about ${data.personName}`}.
-              </p>
             </div>
             
-            <div className="mt-6 bg-blue-50 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Changed your mind?</h3>
-              <p className="text-sm text-gray-600">
-                To resubscribe or manage your email preferences:{' '}
-              </p>
-              <ol className="mt-2 text-sm text-gray-600 list-decimal list-inside space-y-1">
-                <li>
-                  <Link href="/auth/signin" className="text-blue-600 hover:text-blue-700 underline">
-                    Sign in to your account
-                  </Link>
-                </li>
-                <li>Go to your Profile settings</li>
-                <li>Navigate to Email Preferences</li>
-                <li>Select which updates you&apos;d like to receive</li>
-              </ol>
-            </div>
-            
-            <div className="mt-6 space-y-3">
+            <div className="mt-6">
               <Link
                 href="/"
-                className="block w-full text-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Go to Homepage
-              </Link>
-              <Link
-                href="/profile"
-                className="block w-full text-center px-4 py-2 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Manage Email Preferences
               </Link>
             </div>
           </div>

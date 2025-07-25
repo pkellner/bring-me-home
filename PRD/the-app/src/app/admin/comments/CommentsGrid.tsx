@@ -319,7 +319,7 @@ function CommentsGrid({
     }
 
     const reason = prompt(
-      `Please provide a reason for rejecting ${pendingComments.length} comments:`
+      `Please provide a reason for rejecting ${pendingComments.length} ${pendingComments.length === 1 ? 'comment' : 'comments'}:`
     );
     if (!reason) {
       return;

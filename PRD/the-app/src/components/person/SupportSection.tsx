@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import AnonymousCommentForm from './AnonymousCommentForm';
+import AnonymousCommentFormWithRecaptcha from './AnonymousCommentFormWithRecaptcha';
 import { getCookie, setCookie, deleteCookie } from '@/lib/cookies';
 import { isSupportMapEnabled } from '@/app/actions/support-map';
 import * as gtag from '@/lib/gtag';
@@ -250,7 +250,7 @@ export default function SupportSection({
                       <div 
                         className="bg-blue-500 transition-all duration-700 ease-out"
                         style={{ width: `${messagesPercent}%` }}
-                        title={`${stats.messages.total} messages`}
+                        title={`${stats.messages.total} ${stats.messages.total === 1 ? 'message' : 'messages'}`}
                       />
                     )}
                     {quickPercent > 0 && (
@@ -263,7 +263,7 @@ export default function SupportSection({
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs">
-                  <span className="text-gray-600">✍️ {stats.messages.total} messages</span>
+                  <span className="text-gray-600">✍️ {stats.messages.total} {stats.messages.total === 1 ? 'message' : 'messages'}</span>
                   <span className="text-gray-600">💗 {adjustedAnonymousTotal} quick</span>
                 </div>
               </>
@@ -295,7 +295,7 @@ export default function SupportSection({
                   <span className="font-medium text-gray-700">View Support Map</span>
                   {(mapMessageCount > 0 || mapSupportCount > 0) && (
                     <span className="text-sm text-gray-500">
-                      ({mapMessageCount + mapSupportCount} locations)
+                      ({mapMessageCount + mapSupportCount} {(mapMessageCount + mapSupportCount) === 1 ? 'location' : 'locations'})
                     </span>
                   )}
                 </div>
@@ -329,7 +329,7 @@ export default function SupportSection({
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">
-                      Show Messages ({mapMessageCount})
+                      Show {mapMessageCount === 1 ? 'Message' : 'Messages'} ({mapMessageCount})
                     </span>
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   </label>
@@ -511,7 +511,7 @@ export default function SupportSection({
           }`}
         >
           <div className="border-t pt-6">
-            <AnonymousCommentForm
+            <AnonymousCommentFormWithRecaptcha
               personId={personId}
               onSubmit={onSubmit}
               isPending={isPending}

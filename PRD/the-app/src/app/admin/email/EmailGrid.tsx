@@ -10,6 +10,7 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import EmailPreviewModal from './EmailPreviewModal';
+import { updateEmailStatus } from '@/app/actions/email-notifications';
 
 interface EmailNotification {
   id: string;
@@ -132,10 +133,6 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
       return;
     }
 
-    if (!confirm(`Send ${selectedQueuedEmails.length} selected emails?`)) {
-      return;
-    }
-
     startTransition(async () => {
       await onSendSelected(selectedQueuedEmails);
       setSelectedEmails(new Set());
@@ -156,10 +153,6 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
       return;
     }
 
-    if (!confirm(`Retry ${selectedFailedEmails.length} selected emails?`)) {
-      return;
-    }
-
     startTransition(async () => {
       await onRetrySelected(selectedFailedEmails);
       setSelectedEmails(new Set());
@@ -170,6 +163,17 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
   const formatDate = (date: string | null) => {
     if (!date) return '-';
     return new Date(date).toLocaleString();
+  };
+
+  const handleStatusChange = async (emailId: string, newStatus: EmailStatus) => {
+    startTransition(async () => {
+      const result = await updateEmailStatus(emailId, newStatus);
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert('Failed to update email status');
+      }
+    });
   };
 
   return (
@@ -315,18 +319,27 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      statusColors[email.status]
-                    }`}
-                  >
-                    {email.status}
-                  </span>
-                  {email.status === 'FAILED' && email.errorMessage && (
-                    <div className="text-xs text-red-600 mt-1">
-                      {email.errorMessage.substring(0, 50)}...
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <select
+                      value={email.status}
+                      onChange={(e) => handleStatusChange(email.id, e.target.value as EmailStatus)}
+                      disabled={isPending}
+                      className={`block w-full px-2 py-1 text-xs font-semibold rounded-md border-0 focus:ring-2 focus:ring-blue-500 ${
+                        statusColors[email.status]
+                      }`}
+                    >
+                      {Object.values(EmailStatus).map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    {email.status === 'FAILED' && email.errorMessage && (
+                      <div className="text-xs text-red-600">
+                        {email.errorMessage.substring(0, 50)}...
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(email.scheduledFor)}
@@ -344,12 +357,10 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
                   {email.status === 'FAILED' && (
                     <button
                       onClick={async () => {
-                        if (confirm('Retry this email?')) {
-                          startTransition(async () => {
-                            await onRetrySelected([email.id]);
-                            router.refresh();
-                          });
-                        }
+                        startTransition(async () => {
+                          await onRetrySelected([email.id]);
+                          router.refresh();
+                        });
                       }}
                       className="text-orange-600 hover:text-orange-900"
                     >

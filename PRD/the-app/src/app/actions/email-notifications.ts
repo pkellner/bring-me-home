@@ -175,13 +175,14 @@ export async function getPersonFollowers(personId: string) {
     throw new Error('Unauthorized');
   }
 
-  // Get all users who have commented on this person
+  // Get all users who have APPROVED comments on this person
   const commenters = await prisma.comment.findMany({
     where: {
       personId,
       email: {
         not: null,
       },
+      isApproved: true, // Only consider approved comments
     },
     select: {
       email: true,
@@ -578,7 +579,7 @@ export async function getEmailNotifications(filters?: {
   return emails;
 }
 
-// Send queued emails (mark as ready to send)
+// Send queued emails (mark as ready to send and trigger sending)
 export async function sendQueuedEmails(emailIds: string[]) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !isSiteAdmin(session)) {
@@ -586,8 +587,7 @@ export async function sendQueuedEmails(emailIds: string[]) {
   }
 
   try {
-    // For now, we'll just update the status to indicate they're ready to be sent
-    // The actual sending will be done by the email worker
+    // Update status to SENDING
     const updated = await prisma.emailNotification.updateMany({
       where: {
         id: { in: emailIds },
@@ -595,9 +595,31 @@ export async function sendQueuedEmails(emailIds: string[]) {
       },
       data: {
         status: EmailStatus.SENDING,
-        // The email worker will pick these up
       },
     });
+
+    // Trigger the email sending by calling the cron endpoint
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const cronUrl = `${baseUrl}/api/cron/send-emails`;
+    
+    try {
+      const response = await fetch(cronUrl, {
+        method: 'GET',
+        headers: process.env.CRON_SECRET ? {
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        } : {},
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to trigger email cron job:', response.status, await response.text());
+      } else {
+        const result = await response.json();
+        console.log('Email cron job triggered:', result);
+      }
+    } catch (fetchError) {
+      console.error('Error calling email cron job:', fetchError);
+      // Don't throw - emails are marked as SENDING and cron can pick them up later
+    }
 
     return {
       success: true,
@@ -634,4 +656,34 @@ export async function getPersonsWithEmails() {
   });
 
   return persons;
+}
+
+// Update email notification status
+export async function updateEmailStatus(emailId: string, newStatus: EmailStatus) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    const updated = await prisma.emailNotification.update({
+      where: { id: emailId },
+      data: { 
+        status: newStatus,
+        // Clear error message if changing from FAILED to another status
+        errorMessage: newStatus !== EmailStatus.FAILED ? null : undefined,
+        // Update sentAt if changing to SENT
+        sentAt: newStatus === EmailStatus.SENT ? new Date() : undefined,
+        // Update deliveredAt if changing to DELIVERED
+        deliveredAt: newStatus === EmailStatus.DELIVERED ? new Date() : undefined,
+        // Update openedAt if changing to OPENED
+        openedAt: newStatus === EmailStatus.OPENED ? new Date() : undefined,
+      },
+    });
+
+    return { success: true, email: updated };
+  } catch (error) {
+    console.error('Error updating email status:', error);
+    return { success: false, error: 'Failed to update email status' };
+  }
 }

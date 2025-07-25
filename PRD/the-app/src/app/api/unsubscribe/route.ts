@@ -58,10 +58,17 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
+  // Check if user is globally opted out
+  const user = await prisma.user.findUnique({
+    where: { id: result.userId },
+    select: { optOutOfAllEmail: true },
+  });
+
   return NextResponse.json({
     success: true,
     message: result.personId 
-      ? 'You have been unsubscribed from updates about this person.'
+      ? 'You have been unsubscribed from following this person.'
       : 'You have been unsubscribed from all emails.',
+    isGloballyOptedOut: user?.optOutOfAllEmail || false,
   });
 }

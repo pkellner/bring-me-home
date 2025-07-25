@@ -65,7 +65,15 @@ interface SendEmailOptions {
   from?: string;
 }
 
-export async function sendEmail({ to, subject, html, text, from }: SendEmailOptions) {
+// Update return type to include error details
+export interface SendEmailResult {
+  messageId?: string;
+  provider: string;
+  error?: string;
+  errorDetails?: unknown;
+}
+
+export async function sendEmail({ to, subject, html, text, from }: SendEmailOptions): Promise<SendEmailResult> {
   const provider = getEmailProvider();
   const fromAddress = from || `"Bring Me Home" <${getEmail(EMAIL_TYPES.SUPPORT)}>`;
   // Better HTML to text conversion that preserves URLs
@@ -230,43 +238,91 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
   } catch (error) {
     console.error(`Error sending email via ${provider}:`, error);
     
-    // Log detailed error information if SMTP logging is enabled or if it's a SendGrid error
-    if (process.env.EMAIL_PROVIDER_LOG_SMTP === 'true' || (provider === 'sendgrid' && (error as Error & { code?: number })?.code === 401)) {
-      const err = error as Error & { 
-        code?: number; 
-        response?: { 
-          status?: number; 
-          body?: unknown; 
-          headers?: unknown; 
-          text?: string; 
-        } 
+    // Extract error details for returning to caller
+    let errorMessage = 'Unknown error';
+    let errorDetails: unknown = undefined;
+    
+    const err = error as Error & { 
+      code?: number | string; 
+      response?: { 
+        status?: number; 
+        body?: unknown; 
+        headers?: unknown; 
+        text?: string; 
       };
+      statusCode?: number;
+      message?: string;
+      $metadata?: {
+        httpStatusCode?: number;
+        requestId?: string;
+        extendedRequestId?: string;
+        cfId?: string;
+      };
+    };
+    
+    // Build error message based on provider
+    if (provider === 'ses' && err.$metadata) {
+      // AWS SES error format
+      errorMessage = `AWS SES Error: ${err.message || 'Unknown'}`;
+      if (err.$metadata.httpStatusCode) {
+        errorMessage += ` (HTTP ${err.$metadata.httpStatusCode})`;
+      }
+      if (err.$metadata.requestId) {
+        errorMessage += ` [RequestID: ${err.$metadata.requestId}]`;
+      }
+      errorDetails = {
+        provider: 'ses',
+        code: err.code,
+        statusCode: err.$metadata.httpStatusCode,
+        requestId: err.$metadata.requestId,
+        message: err.message,
+        metadata: err.$metadata
+      };
+    } else if (provider === 'sendgrid' && err.response?.body) {
+      // SendGrid error format
+      const sgErrors = (err.response.body as { errors?: Array<{ message?: string; field?: string }> })?.errors;
+      if (sgErrors && sgErrors.length > 0) {
+        errorMessage = `SendGrid Error: ${sgErrors.map(e => e.message).join(', ')}`;
+      } else {
+        errorMessage = `SendGrid Error: ${err.message || 'Unknown'} (HTTP ${err.response.status || 'unknown'})`;
+      }
+      errorDetails = {
+        provider: 'sendgrid',
+        code: err.code,
+        statusCode: err.response.status,
+        errors: sgErrors,
+        response: err.response.body
+      };
+    } else if (provider === 'smtp') {
+      // SMTP/Nodemailer error format
+      errorMessage = `SMTP Error: ${err.message || 'Unknown'}`;
+      if (err.code) {
+        errorMessage += ` (Code: ${err.code})`;
+      }
+      errorDetails = {
+        provider: 'smtp',
+        code: err.code,
+        message: err.message
+      };
+    } else {
+      // Generic error format
+      errorMessage = `${provider} Error: ${err.message || 'Unknown error'}`;
+      errorDetails = {
+        provider,
+        code: err.code,
+        message: err.message
+      };
+    }
+    
+    // Log detailed error information if SMTP logging is enabled
+    if (process.env.EMAIL_PROVIDER_LOG_SMTP === 'true') {
       console.log('\n❌ Email Send Error Details:');
       console.log('-------------------');
       console.log('Provider:', provider);
       console.log('Error Type:', err?.constructor?.name);
-      console.log('Error Message:', err?.message);
-      console.log('Error Code:', err?.code);
-      
-      if (err?.response) {
-        console.log('Response Status:', err.response?.status);
-        console.log('Response Body:', JSON.stringify(err.response?.body, null, 2));
-        console.log('Response Headers:', JSON.stringify(err.response?.headers, null, 2));
-        console.log('Response Text:', err.response?.text);
-      }
-      
-      // SendGrid specific error details
-      if (provider === 'sendgrid' && err?.response?.body && typeof err.response.body === 'object' && 'errors' in err.response.body) {
-        console.log('\nSendGrid Error Details:');
-        const errors = err.response.body.errors as Array<{ message?: string; field?: string; help?: string }>;
-        errors.forEach((error, index) => {
-          console.log(`Error ${index + 1}:`, error.message);
-          if (error.field) console.log('Field:', error.field);
-          if (error.help) console.log('Help:', error.help);
-        });
-      }
-      
-      console.log('\nFull Error Object:', JSON.stringify(err, null, 2));
+      console.log('Error Message:', errorMessage);
+      console.log('Error Details:', JSON.stringify(errorDetails, null, 2));
+      console.log('Full Error Object:', JSON.stringify(err, null, 2));
       console.log('-------------------\n');
     }
     
@@ -274,9 +330,15 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
     if (provider !== 'console') {
       console.log('Falling back to console logging...');
       logEmail();
-      return { messageId: 'console-fallback-' + Date.now(), provider: 'console' };
+      return { 
+        messageId: 'console-fallback-' + Date.now(), 
+        provider: 'console',
+        error: errorMessage,
+        errorDetails
+      };
     }
     
+    // For console provider, throw the error
     throw error;
   }
 }

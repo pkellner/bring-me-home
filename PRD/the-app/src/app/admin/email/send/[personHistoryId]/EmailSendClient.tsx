@@ -387,9 +387,18 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
             <div>
               <span className="text-sm font-medium text-gray-500">Content:</span>
               <div 
-                className="mt-2 border rounded p-4 bg-gray-50"
-                dangerouslySetInnerHTML={{ __html: emailPreview.html }}
-              />
+                className="mt-2 border rounded p-4 bg-gray-50 relative"
+              >
+                {/* Invisible overlay to prevent clicking */}
+                <div className="absolute inset-0 z-10" style={{ cursor: 'default' }} />
+                <div 
+                  dangerouslySetInnerHTML={{ __html: emailPreview.html }}
+                  style={{ pointerEvents: 'none' }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2 italic">
+                Note: Links are not clickable in this preview
+              </p>
             </div>
           </div>
         )}

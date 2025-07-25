@@ -696,3 +696,11 @@ const serializedComment = {
   - Links directly to `/admin/persons/[id]/edit/history` page
   - Styled as a link button similar to "[Manage Comments]" in the Community Support section
   - Fixed permission checking to include role-based permissions, not just access records
+  - When no history exists, shows empty state section with "No updates have been posted yet" and the manage button
+  - Empty state only appears for admins who can add updates, otherwise no section is shown
+- **ENHANCEMENT**: Fixed date/time display and added support counts on public person pages
+  - Recent Update section now shows correct local time instead of always showing 12:00AM
+  - Added comment count display to the right of Recent Update date/time (only shows if > 0)
+  - Added total "People Supporting" count to "Send a note of support" section (second line, right-aligned)
+  - Support count combines anonymous support and messages, only displays if > 0
+  - LayoutRenderer now fetches support stats and comment counts dynamically

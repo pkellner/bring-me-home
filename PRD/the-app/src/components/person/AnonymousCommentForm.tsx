@@ -6,7 +6,7 @@ import CommentConfirmationModal from './CommentConfirmationModal';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
 
-interface AnonymousCommentFormProps {
+export interface AnonymousCommentFormProps {
   personId: string;
   personHistoryId?: string;
   onSubmit: (formData: FormData) => void;

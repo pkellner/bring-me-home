@@ -1,9 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import * as sections from './sections';
 import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter, SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
-import { formatDateForDisplay } from '@/lib/date-utils';
 
 // Extended types for LayoutRenderer specific needs
 type SerializedComment = SanitizedComment & {
@@ -152,6 +152,45 @@ export default function LayoutRenderer({
   supportMapMetadata,
 }: LayoutRendererProps) {
   const template = JSON.parse(layout.template);
+  
+  // State for support stats and comment counts
+  const [supportStats, setSupportStats] = useState<{ anonymousSupport: { total: number }, messages: { total: number } } | null>(null);
+  const [historyCommentCounts, setHistoryCommentCounts] = useState<Map<string, number>>(new Map());
+
+  // Fetch support stats
+  useEffect(() => {
+    const fetchSupportStats = async () => {
+      try {
+        const response = await fetch(`/api/persons/${person.id}/support`);
+        if (response.ok) {
+          const data = await response.json();
+          setSupportStats(data);
+        }
+      } catch (error) {
+        console.error('Error fetching support stats:', error);
+      }
+    };
+
+    fetchSupportStats();
+  }, [person.id]);
+
+  // Fetch comment counts for history items
+  useEffect(() => {
+    const fetchCommentCounts = async () => {
+      if (!person.personHistory || person.personHistory.length === 0) return;
+      
+      try {
+        const { getCommentCountsByPersonHistoryIds } = await import('@/app/actions/comments');
+        const historyIds = person.personHistory.map(h => h.id);
+        const counts = await getCommentCountsByPersonHistoryIds(historyIds);
+        setHistoryCommentCounts(counts);
+      } catch (error) {
+        console.error('Error fetching comment counts:', error);
+      }
+    };
+
+    fetchCommentCounts();
+  }, [person.personHistory]);
 
   // Check for recent history notes (within 24 hours)
   const getRecentHistoryNote = () => {
@@ -459,6 +498,11 @@ export default function LayoutRenderer({
                           </h4>
                           <p className="text-sm text-gray-600 mt-1">
                             Your message can make a difference • Post anonymously or with your name
+                            {supportStats && (supportStats.anonymousSupport.total + supportStats.messages.total) > 0 && (
+                              <span className="block text-right text-indigo-700 font-medium">
+                                {supportStats.anonymousSupport.total + supportStats.messages.total} {(supportStats.anonymousSupport.total + supportStats.messages.total) === 1 ? 'Person' : 'People'} Supporting
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div className="flex-shrink-0 ml-4">
@@ -493,9 +537,16 @@ export default function LayoutRenderer({
                             <p className="text-sm text-gray-700 truncate md:whitespace-normal md:line-clamp-2">
                               &ldquo;{truncateText(recentNote.description, 80)}&rdquo;
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {format(formatDateForDisplay(recentNote.date), 'MMM d, yyyy • h:mm a')}
-                            </p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-gray-500">
+                                {format(new Date(recentNote.date), 'MMM d, yyyy • h:mm a')}
+                              </p>
+                              {historyCommentCounts.get(recentNote.id) !== undefined && historyCommentCounts.get(recentNote.id)! > 0 && (
+                                <p className="text-xs text-gray-600 font-medium">
+                                  {historyCommentCounts.get(recentNote.id)} comment{historyCommentCounts.get(recentNote.id) !== 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="flex-shrink-0 ml-4">
                             <div className="flex items-center gap-2 text-amber-600">
