@@ -1908,7 +1908,14 @@ async function main() {
   
   const joePlumberPersonId = createdIds.persons.get('Joe_Plumber')!;
   
-  // Add 4 unprocessed comments
+  // Add 4 unprocessed comments with email addresses for Joe Plumber
+  const supporterEmails = [
+    { email: 'maria.gonzalez@email.com', firstName: 'Maria', lastName: 'Gonzalez' },
+    { email: 'robert.smith@email.com', firstName: 'Robert', lastName: 'Smith' },
+    { email: 'jennifer.chen@email.com', firstName: 'Jennifer', lastName: 'Chen' },
+    { email: 'michael.johnson@email.com', firstName: 'Michael', lastName: 'Johnson' },
+  ];
+  
   for (let i = 0; i < 4; i++) {
     await prisma.comment.create({
       data: {
@@ -1924,6 +1931,10 @@ async function main() {
         ipAddress: randomElement(californiaIps),
         userAgent: randomElement(SEED_VALUES.userAgents),
         processedForLatLon: false, // Not processed yet!
+        email: supporterEmails[i].email,
+        firstName: supporterEmails[i].firstName,
+        lastName: supporterEmails[i].lastName,
+        showComment: true,
       }
     });
   }

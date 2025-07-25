@@ -235,13 +235,24 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
         return (
           <div className="flex items-start justify-between gap-4">
             <div className="whitespace-pre-wrap flex-1">{record.description}</div>
-            <a
-              href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap flex-shrink-0"
-              title="View comments for this update"
-            >
-              View Comments
-            </a>
+            <div className="flex gap-3 flex-shrink-0">
+              <a
+                href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
+                className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                title="View comments for this update"
+              >
+                View Comments
+              </a>
+              {isSiteAdmin && (
+                <a
+                  href={`/admin/email/send/${record.id}`}
+                  className="text-sm text-green-600 hover:text-green-800 whitespace-nowrap"
+                  title="Email followers about this update"
+                >
+                  Email Followers
+                </a>
+              )}
+            </div>
           </div>
         );
       },

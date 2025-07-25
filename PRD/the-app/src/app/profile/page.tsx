@@ -67,6 +67,7 @@ export default async function ProfilePage() {
     lastName: user.lastName || '',
     createdAt: user.createdAt.toISOString(),
     lastLogin: user.lastLogin?.toISOString() || null,
+    optOutOfAllEmail: user.optOutOfAllEmail,
     roles: user.userRoles.map(ur => ({
       id: ur.role.id,
       name: ur.role.name,

@@ -227,7 +227,7 @@ export function PersonImageTab({
               </div>
             ) : (
               <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400">No image selected</span>
+                <span className="text-gray-600 font-medium">No image selected</span>
               </div>
             )}
 
@@ -246,6 +246,7 @@ export function PersonImageTab({
                 variant="outline"
                 onClick={handleClearImage}
                 disabled={!imageToShow || isSaving}
+                className="text-gray-700 hover:text-gray-900"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear Image
@@ -255,6 +256,7 @@ export function PersonImageTab({
                 variant="default"
                 onClick={handleSelectImageClick}
                 disabled={isSaving}
+                className="bg-blue-600 text-white hover:bg-blue-700"
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Select Image

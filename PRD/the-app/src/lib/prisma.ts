@@ -142,7 +142,7 @@ const createPrismaClient = () => {
   });
 
   // Set up event-based logging for levels 1-5 (but not during build)
-  if (isPrismaLogEnabled && 
+  if (isPrismaLogEnabled &&
       process.env.NEXT_PHASE !== 'phase-production-build' &&
       logConfig.some(config => typeof config === 'object' && config.emit === 'event')
   ) {
@@ -155,10 +155,10 @@ const createPrismaClient = () => {
   client.$use(async (params, next) => {
     const queryStart = Date.now();
     const queryId = `${params.model}.${params.action}-${queryStart}`;
-    
+
     activeQueries++;
     totalQueries++;
-    
+
     // Log query start
     if (process.env.QUERY_TRACKING === 'true') {
       console.log(`\n[QUERY START #${totalQueries}] ${new Date().toISOString()}`);
@@ -166,42 +166,38 @@ const createPrismaClient = () => {
       console.log(`  Model: ${params.model}`);
       console.log(`  Action: ${params.action}`);
       console.log(`  Query ID: ${queryId}`);
-      
-      // Log stack trace to see where query originated
-      const stack = new Error().stack?.split('\n').slice(2, 5).join('\n  ');
-      console.log(`  Origin:\n  ${stack}`);
     }
-    
+
     queryStack.push({
       query: `${params.model}.${params.action}`,
       timestamp: queryStart,
     });
-    
+
     try {
       const result = await next(params);
       const queryEnd = Date.now();
       const duration = queryEnd - queryStart;
-      
+
       // Update query with duration
       const stackEntry = queryStack.find(q => q.timestamp === queryStart);
       if (stackEntry) {
         stackEntry.duration = duration;
       }
-      
+
       if (process.env.QUERY_TRACKING === 'true') {
         console.log(`[QUERY END #${totalQueries}] Duration: ${duration}ms`);
         console.log(`  Active Queries: ${activeQueries - 1}`);
       }
-      
+
       return result;
     } finally {
       activeQueries--;
     }
   });
-  
+
   // For level 5, also enable additional debugging (but not during build)
-  if (isPrismaLogEnabled && 
-      logLevel === '5' && 
+  if (isPrismaLogEnabled &&
+      logLevel === '5' &&
       process.env.NEXT_PHASE !== 'phase-production-build'
   ) {
     // Additional detailed logging for level 5

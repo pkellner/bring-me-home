@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { 
@@ -16,7 +16,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowLeftIcon,
-  HomeIcon
+  HomeIcon,
+  BellSlashIcon
 } from '@heroicons/react/24/outline';
 import Link from '@/components/OptimizedLink';
 import { performSignOut } from '@/lib/signout';
@@ -29,6 +30,7 @@ interface ProfileUser {
   lastName: string;
   createdAt: string;
   lastLogin: string | null;
+  optOutOfAllEmail: boolean;
   roles: Array<{
     id: string;
     name: string;
@@ -57,6 +59,172 @@ interface ProfileUser {
       townSlug: string;
     };
   }>;
+}
+
+// Email Preferences Component
+function EmailPreferences({ 
+  initialOptOutOfAllEmail, 
+  personAccess 
+}: { 
+  initialOptOutOfAllEmail: boolean;
+  personAccess: ProfileUser['personAccess'];
+}) {
+  const [globalOptOut, setGlobalOptOut] = useState(initialOptOutOfAllEmail);
+  const [personOptOuts, setPersonOptOuts] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  // Load email opt-out preferences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const response = await fetch('/api/profile/email-preferences');
+        if (response.ok) {
+          const data = await response.json();
+          setGlobalOptOut(data.globalOptOut);
+          setPersonOptOuts(data.personOptOuts || []);
+        }
+      } catch {
+        // Silent fail - use initial values
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPreferences();
+  }, []);
+
+  const handleGlobalOptOutChange = async (checked: boolean) => {
+    setError('');
+    setIsUpdating(true);
+    
+    try {
+      const response = await fetch('/api/profile/email-preferences/global', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ optOut: checked }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to update preferences');
+        return;
+      }
+      
+      setGlobalOptOut(checked);
+      router.refresh();
+    } catch {
+      setError('Failed to update preferences');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handlePersonOptOutChange = async (personId: string, checked: boolean) => {
+    setError('');
+    setIsUpdating(true);
+    
+    try {
+      const response = await fetch(`/api/profile/email-preferences/person/${personId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ optOut: checked }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to update preferences');
+        return;
+      }
+      
+      if (checked) {
+        setPersonOptOuts([...personOptOuts, personId]);
+      } else {
+        setPersonOptOuts(personOptOuts.filter(id => id !== personId));
+      }
+      router.refresh();
+    } catch {
+      setError('Failed to update preferences');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-gray-500">Loading preferences...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
+      
+      {/* Global opt-out */}
+      <div className="flex items-start">
+        <input
+          type="checkbox"
+          id="global-opt-out"
+          checked={globalOptOut}
+          onChange={(e) => handleGlobalOptOutChange(e.target.checked)}
+          disabled={isUpdating}
+          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1"
+        />
+        <label htmlFor="global-opt-out" className="ml-3">
+          <div className="text-sm font-medium text-gray-900">
+            Opt out of all email notifications
+          </div>
+          <div className="text-sm text-gray-600">
+            You will not receive any email updates about persons you follow
+          </div>
+        </label>
+      </div>
+      
+      {/* Person-specific opt-outs */}
+      {personAccess.length > 0 && !globalOptOut && (
+        <div className="mt-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">
+            Email notifications by person
+          </h3>
+          <div className="space-y-3">
+            {personAccess.map((access) => (
+              <div key={access.person.id} className="flex items-start">
+                <input
+                  type="checkbox"
+                  id={`person-opt-out-${access.person.id}`}
+                  checked={personOptOuts.includes(access.person.id)}
+                  onChange={(e) => handlePersonOptOutChange(access.person.id, e.target.checked)}
+                  disabled={isUpdating}
+                  className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1"
+                />
+                <label 
+                  htmlFor={`person-opt-out-${access.person.id}`} 
+                  className="ml-3"
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    Opt out of updates for {access.person.firstName} {access.person.lastName}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {access.person.townName}, {access.person.townState}
+                  </div>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Info for users following persons via comments */}
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <strong>Note:</strong> If you&apos;ve left comments on person pages, you&apos;ll receive email updates when there are new updates about them (unless you opt out above).
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function ProfileClient({ user }: { user: ProfileUser }) {
@@ -522,6 +690,18 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
                   </div>
                 </form>
               )}
+            </div>
+            
+            {/* Email Preferences Section */}
+            <div className="px-6 py-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <BellSlashIcon className="h-5 w-5 mr-2 text-gray-500" />
+                Email Preferences
+              </h2>
+              <EmailPreferences 
+                initialOptOutOfAllEmail={user.optOutOfAllEmail}
+                personAccess={user.personAccess}
+              />
             </div>
             
             {/* Roles Section - Only show if user has roles */}

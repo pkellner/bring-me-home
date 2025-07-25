@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 import { headers } from 'next/headers';
+import bcrypt from 'bcryptjs';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
 
@@ -218,11 +219,39 @@ export async function submitComment(
     const ipAddress = forwarded ? forwarded.split(',')[0] : headersList.get('x-real-ip') || 'unknown';
     const userAgent = headersList.get('user-agent') || undefined;
 
+    // Check if a user exists with this email
+    let userId: string | null = null;
+    if (data.email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.email },
+        select: { id: true },
+      });
+
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        // Create a new user with the email as username
+        const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+        const newUser = await prisma.user.create({
+          data: {
+            username: data.email,
+            email: data.email,
+            password: tempPassword,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            isActive: true,
+          },
+        });
+        userId = newUser.id;
+      }
+    }
+
     // Create the comment
     await prisma.comment.create({
       data: {
         personId: data.personId,
         personHistoryId: data.personHistoryId || null,
+        userId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email || null,
@@ -292,6 +321,33 @@ export async function approveComment(
     throw new Error('No access to this person');
   }
 
+  // Check if comment has email but no userId, and try to link or create user
+  let userId = comment.userId;
+  if (!userId && comment.email) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: comment.email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      // Create a new user with the email as username
+      const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+      const newUser = await prisma.user.create({
+        data: {
+          username: comment.email,
+          email: comment.email,
+          password: tempPassword,
+          firstName: comment.firstName || undefined,
+          lastName: comment.lastName || undefined,
+          isActive: true,
+        },
+      });
+      userId = newUser.id;
+    }
+  }
+
   await prisma.comment.update({
     where: { id: commentId },
     data: {
@@ -299,6 +355,7 @@ export async function approveComment(
       approvedAt: new Date(),
       approvedBy: session.user.id,
       moderatorNotes: moderatorNotes || null,
+      userId,
     },
   });
 
@@ -382,6 +439,33 @@ export async function updateCommentAndApprove(
     throw new Error('Comment not found');
   }
 
+  // Check if comment has email but no userId, and try to link or create user
+  let userId = comment.userId;
+  if (!userId && comment.email) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: comment.email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      // Create a new user with the email as username
+      const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+      const newUser = await prisma.user.create({
+        data: {
+          username: comment.email,
+          email: comment.email,
+          password: tempPassword,
+          firstName: comment.firstName || undefined,
+          lastName: comment.lastName || undefined,
+          isActive: true,
+        },
+      });
+      userId = newUser.id;
+    }
+  }
+
   await prisma.comment.update({
     where: { id: commentId },
     data: {
@@ -390,6 +474,7 @@ export async function updateCommentAndApprove(
       approvedAt: new Date(),
       approvedBy: session.user.id,
       moderatorNotes: moderatorNotes || null,
+      userId,
       ...(additionalFields && {
         occupation: additionalFields.occupation || null,
         birthdate: additionalFields.birthdate

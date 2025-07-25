@@ -16,6 +16,7 @@ import {
   SwatchIcon,
   UserIcon,
   UsersIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {
@@ -29,6 +30,7 @@ const iconMap = {
   layouts: Squares2X2Icon,
   themes: SwatchIcon,
   detentionCenters: BuildingLibraryIcon,
+  email: EnvelopeIcon,
 };
 
 interface AdminNavigationProps {
@@ -97,6 +99,13 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       disabled: false,
     },
     {
+      name: 'Email',
+      href: '/admin/email',
+      icon: 'email' as keyof typeof iconMap,
+      show: isSiteAdminUser, // Only site admins can manage email notifications
+      disabled: false,
+    },
+    {
       name: 'Layouts',
       href: '/admin/layouts',
       icon: 'layouts' as keyof typeof iconMap,
@@ -140,7 +149,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
                   return (
                     <span
                       key={item.name}
-                      className="inline-flex items-center px-3 py-1 my-1 border rounded-md text-sm font-medium border-gray-200 text-gray-300 cursor-not-allowed"
+                      className="inline-flex items-center px-3 py-1 my-1 border rounded-md text-sm font-medium border-gray-300 text-gray-500 cursor-not-allowed"
                       title="You don't have permission to access this section"
                     >
                       {(() => {
@@ -221,7 +230,7 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
               return (
                 <span
                   key={item.name}
-                  className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-300 cursor-not-allowed"
+                  className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-500 cursor-not-allowed"
                   title="You don't have permission to access this section"
                 >
                   <div className="flex items-center">

@@ -15,6 +15,7 @@ model User {
   firstName           String?
   lastName            String?
   isActive            Boolean              @default(true)
+  optOutOfAllEmail    Boolean              @default(false)
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -25,6 +26,9 @@ model User {
   userRoles           UserRole[]
   passwordResetTokens PasswordResetToken[]
   createdHistories    PersonHistory[]
+  emailOptOuts        EmailOptOut[]
+  sentEmails          EmailNotification[]  @relation("sentTo")
+  comments            Comment[]
 
   @@map("users")
 }
@@ -146,6 +150,8 @@ model Person {
   stories              Story[]
   supporters           Supporter[]
   personHistory        PersonHistory[]
+  emailOptOuts         EmailOptOut[]
+  emailNotifications   EmailNotification[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -197,7 +203,7 @@ model Supporter {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   person            Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
-  user              User?     @relation(fields: [userId], references: [id])
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([personId])
   @@index([email])
@@ -247,8 +253,10 @@ model Comment {
   region                   String?
   country                  String?
   processedForLatLon       Boolean   @default(false)
+  userId                   String?
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
   personHistory            PersonHistory? @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
+  user                     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([personId])
   @@index([personHistoryId])
@@ -257,6 +265,7 @@ model Comment {
   @@index([isApproved])
   @@index([email])
   @@index([processedForLatLon])
+  @@index([userId])
   @@map("comments")
 }
 
@@ -454,7 +463,7 @@ model ImageStorage {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   detentionCenterImages DetentionCenterImage[]
-  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id])
+  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   personImages          PersonImage[]
 
   @@index([uploadedById])
@@ -520,11 +529,66 @@ model PersonHistory {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   person            Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  createdBy         User     @relation(fields: [createdByUserId], references: [id])
+  createdBy         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
   comments          Comment[]
+  emailNotifications EmailNotification[]
 
   @@index([personId])
   @@index([visible])
   @@index([date])
   @@map("person_history")
+}
+
+model EmailOptOut {
+  id        String   @id @default(cuid())
+  userId    String
+  personId  String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, personId])
+  @@map("email_opt_outs")
+}
+
+model EmailNotification {
+  id                String                @id @default(cuid())
+  userId            String
+  personId          String?
+  personHistoryId   String?
+  subject           String
+  htmlContent       String                @db.Text
+  textContent       String?               @db.Text
+  status            EmailStatus           @default(QUEUED)
+  provider          String?
+  messageId         String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  errorMessage      String?               @db.Text
+  retryCount        Int                   @default(0)
+  maxRetries        Int                   @default(3)
+  scheduledFor      DateTime              @default(now())
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  user              User                  @relation("sentTo", fields: [userId], references: [id], onDelete: Cascade)
+  person            Person?               @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personHistory     PersonHistory?        @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
+  
+  @@index([status, scheduledFor])
+  @@index([userId])
+  @@index([personId])
+  @@map("email_notifications")
+}
+
+enum EmailStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+  OPENED
 }
