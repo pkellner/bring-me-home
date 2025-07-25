@@ -659,3 +659,30 @@ export async function getCommentCountsByPersonHistoryIds(personHistoryIds: strin
     return new Map<string, number>();
   }
 }
+
+export async function getAllCommentsByPersonHistoryId(personHistoryId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    // Only allow admins to see all comments including unapproved ones
+    if (!session?.user?.roles?.some(role => ['site-admin', 'town-admin', 'person-admin'].includes(role.name))) {
+      return [];
+    }
+    
+    const comments = await prisma.comment.findMany({
+      where: {
+        personHistoryId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        isApproved: true,
+      },
+    });
+
+    return comments;
+  } catch (error) {
+    console.error('Error fetching all comments by person history ID:', error);
+    return [];
+  }
+}

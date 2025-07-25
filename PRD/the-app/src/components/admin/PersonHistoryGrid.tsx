@@ -13,6 +13,8 @@ interface PersonHistoryGridProps {
   personId: string;
   initialHistory: SanitizedPersonHistory[];
   isSiteAdmin: boolean;
+  townSlug: string;
+  personSlug: string;
 }
 
 interface EditingState {
@@ -23,7 +25,7 @@ interface EditingState {
   sendNotifications: boolean;
 }
 
-export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin }: PersonHistoryGridProps) {
+export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, townSlug, personSlug }: PersonHistoryGridProps) {
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
   const [isAdding, setIsAdding] = useState(false);
@@ -230,7 +232,18 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
             />
           );
         }
-        return <div className="whitespace-pre-wrap">{record.description}</div>;
+        return (
+          <div className="flex items-start justify-between gap-4">
+            <div className="whitespace-pre-wrap flex-1">{record.description}</div>
+            <a
+              href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
+              className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap flex-shrink-0"
+              title="View comments for this update"
+            >
+              View Comments
+            </a>
+          </div>
+        );
       },
     },
     {
@@ -328,7 +341,7 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add History Note
+              Add Update on Person
             </button>
             {isSiteAdmin && history.length > 0 && (
               <button
@@ -429,7 +442,7 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
           data={sortedHistory}
           columns={columns}
           actions={actions}
-          title="Person History"
+          title="Person Updates History"
           showCreate={false}
         />
       </div>

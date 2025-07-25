@@ -6,7 +6,11 @@ interface HistoryProps {
     id: string;
     firstName: string;
     lastName: string;
+    slug: string;
     personHistory?: SanitizedPersonHistory[];
+    town: {
+      slug: string;
+    };
   };
 }
 
@@ -22,6 +26,8 @@ export default function History({ person }: HistoryProps) {
       history={person.personHistory}
       personId={person.id}
       personName={personName}
+      townSlug={person.town.slug}
+      personSlug={person.slug}
     />
   );
 }

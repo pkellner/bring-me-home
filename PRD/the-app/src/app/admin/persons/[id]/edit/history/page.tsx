@@ -79,6 +79,8 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
         personName={personName}
         initialHistory={sanitizedHistory}
         isSiteAdmin={userIsSiteAdmin}
+        townSlug={townSlug}
+        personSlug={personSlug}
       />
     </>
   );

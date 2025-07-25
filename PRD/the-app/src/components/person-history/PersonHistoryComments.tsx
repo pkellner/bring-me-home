@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface PersonHistoryCommentsProps {
   personHistoryId: string;
   onCommentAdded?: () => void;
+  refreshTrigger?: number;
 }
 
 interface Comment {
@@ -28,6 +29,7 @@ interface Comment {
 
 export default function PersonHistoryComments({
   personHistoryId,
+  refreshTrigger = 0,
 }: PersonHistoryCommentsProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function PersonHistoryComments({
     };
     
     loadComments();
-  }, [personHistoryId]);
+  }, [personHistoryId, refreshTrigger]);
 
 
   const formatCommenterInfo = (comment: Comment) => {

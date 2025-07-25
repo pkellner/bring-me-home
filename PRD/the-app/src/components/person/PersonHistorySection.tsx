@@ -4,25 +4,66 @@ import { useState, useEffect } from 'react';
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
 import { formatDateForDisplay } from '@/lib/date-utils';
+import { useSession } from 'next-auth/react';
+import Link from '@/components/OptimizedLink';
+import { getAllCommentsByPersonHistoryId } from '@/app/actions/comments';
 
 interface PersonHistorySectionProps {
   history: SanitizedPersonHistory[];
   personName: string;
+  personId: string;
+  townSlug: string;
+  personSlug: string;
 }
 
 export default function PersonHistorySection({ 
   history, 
-  personName
+  personName,
+  townSlug,
+  personSlug
 }: PersonHistorySectionProps) {
   const [showAll, setShowAll] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showButton, setShowButton] = useState(true);
+  const [unapprovedCounts, setUnapprovedCounts] = useState<Map<string, number>>(new Map());
+  const { data: session } = useSession();
   
   // Get initial show count from environment variable or default to 2
   const parsedCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
     ? parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT, 10) 
     : NaN;
   const initialShowCount = isNaN(parsedCount) ? 2 : parsedCount;
+
+  // Check if user has permission to moderate comments
+  const canModerateComments = session?.user?.roles?.some(
+    role => ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
+  ) || false;
+
+  // Load unapproved comment counts if user can moderate
+  useEffect(() => {
+    if (canModerateComments && history.length > 0) {
+      const loadUnapprovedCounts = async () => {
+        const counts = new Map<string, number>();
+        
+        // Load counts for each history item
+        await Promise.all(
+          history.map(async (item) => {
+            try {
+              const comments = await getAllCommentsByPersonHistoryId(item.id);
+              const unapprovedCount = comments.filter(c => !c.isApproved).length;
+              counts.set(item.id, unapprovedCount);
+            } catch (error) {
+              console.error('Error loading comment counts:', error);
+            }
+          })
+        );
+        
+        setUnapprovedCounts(counts);
+      };
+      
+      loadUnapprovedCounts();
+    }
+  }, [canModerateComments, history]);
 
   useEffect(() => {
     if (showAll && showButton) {
@@ -89,7 +130,16 @@ export default function PersonHistorySection({
                   {format(formatDateForDisplay(note.date), 'MMMM d, yyyy')}
                 </div>
                 <div className="text-xs text-gray-500">
-                  Posted by {note.createdByUsername}
+                  {canModerateComments && unapprovedCounts.get(note.id) ? (
+                    <Link
+                      href={`/admin/comments/${townSlug}/${personSlug}#${note.id}`}
+                      className="text-red-600 hover:text-red-700 font-medium"
+                    >
+                      {unapprovedCounts.get(note.id)} comment{unapprovedCounts.get(note.id) !== 1 ? 's' : ''} unapproved
+                    </Link>
+                  ) : (
+                    <>Posted by {note.createdByUsername}</>
+                  )}
                 </div>
               </div>
               <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">

@@ -9,6 +9,8 @@ interface HistoryClientProps {
   personName: string;
   initialHistory: SanitizedPersonHistory[];
   isSiteAdmin: boolean;
+  townSlug: string;
+  personSlug: string;
 }
 
 export function HistoryClient({
@@ -16,6 +18,8 @@ export function HistoryClient({
   personName,
   initialHistory,
   isSiteAdmin,
+  townSlug,
+  personSlug,
 }: HistoryClientProps) {
   // History tab doesn't have unsaved changes since it saves immediately
   const hasChanges = false;
@@ -30,6 +34,8 @@ export function HistoryClient({
         personId={personId}
         initialHistory={initialHistory}
         isSiteAdmin={isSiteAdmin}
+        townSlug={townSlug}
+        personSlug={personSlug}
       />
     </PersonEditLayout>
   );

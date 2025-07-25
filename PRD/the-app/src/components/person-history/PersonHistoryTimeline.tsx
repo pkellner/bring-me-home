@@ -9,16 +9,21 @@ interface PersonHistoryTimelineProps {
   history: SanitizedPersonHistory[];
   personId: string;
   personName: string;
+  townSlug?: string;
+  personSlug?: string;
 }
 
 export default function PersonHistoryTimeline({ 
   history, 
   personId,
-  personName
+  personName,
+  townSlug,
+  personSlug
 }: PersonHistoryTimelineProps) {
   const [showAll, setShowAll] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   
   // Get initial show count from environment variable or default to 3
   const parsedCount = process.env.NEXT_PUBLIC_PERSON_HISTORY_INITIAL_SHOW_COUNT 
@@ -71,6 +76,20 @@ export default function PersonHistoryTimeline({
             isLoadingComments={isLoadingCounts}
             showAnimation={showAll && index >= initialShowCount}
             animationDelay={showAll && index >= initialShowCount ? `${(index - initialShowCount) * 150 + 400}ms` : '0ms'}
+            isExpanded={expandedItems.has(note.id)}
+            onExpandedChange={(expanded) => {
+              setExpandedItems(prev => {
+                const newSet = new Set(prev);
+                if (expanded) {
+                  newSet.add(note.id);
+                } else {
+                  newSet.delete(note.id);
+                }
+                return newSet;
+              });
+            }}
+            townSlug={townSlug}
+            personSlug={personSlug}
           />
         ))}
       </div>

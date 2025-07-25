@@ -82,6 +82,26 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     }
   }
 
+  // Get all PersonHistory records for this person to create numbering
+  const personHistories = await prisma.personHistory.findMany({
+    where: {
+      personId: person.id,
+    },
+    orderBy: {
+      date: 'asc', // Order by date ascending to assign numbers chronologically
+    },
+    select: {
+      id: true,
+      date: true,
+    },
+  });
+
+  // Create a map of personHistoryId to number
+  const personHistoryNumberMap: Record<string, number> = {};
+  personHistories.forEach((history, index) => {
+    personHistoryNumberMap[history.id] = index + 1;
+  });
+
   const rawComments = await prisma.comment.findMany({
     where: {
       personId: person.id,
@@ -92,6 +112,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
           town: true,
         },
       },
+      personHistory: true,
     },
     orderBy: {
       createdAt: 'desc',
@@ -105,6 +126,12 @@ export default async function PersonCommentsPage({ params }: PageProps) {
     updatedAt: comment.updatedAt.toISOString(),
     approvedAt: comment.approvedAt?.toISOString() || null,
     birthdate: comment.birthdate?.toISOString() || null,
+    personHistory: comment.personHistory ? {
+      ...comment.personHistory,
+      date: comment.personHistory.date.toISOString(),
+      createdAt: comment.personHistory.createdAt.toISOString(),
+      updatedAt: comment.personHistory.updatedAt.toISOString(),
+    } : null,
     person: {
       ...comment.person,
       bondAmount: comment.person.bondAmount?.toString() || null,
@@ -184,6 +211,7 @@ export default async function PersonCommentsPage({ params }: PageProps) {
         isSiteAdmin={isSiteAdmin}
         isPersonAdmin={isPersonAdmin}
         deleteDaysThreshold={deleteDaysThreshold}
+        personHistoryNumberMap={personHistoryNumberMap}
       />
     </div>
   );

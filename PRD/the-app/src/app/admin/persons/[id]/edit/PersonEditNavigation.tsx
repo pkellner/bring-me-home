@@ -90,7 +90,7 @@ export function PersonEditNavigation({
               }
             `}
           >
-            History
+            Updates
           </Link>
         </nav>
         
