@@ -505,13 +505,21 @@ export async function approveBulkComments(commentIds: string[]) {
   }
 
   try {
+    // Get all comments with their details
+    const comments = await prisma.comment.findMany({
+      where: { id: { in: commentIds } },
+      select: { 
+        id: true,
+        personId: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        userId: true,
+      },
+    });
+
     // If not site admin, verify access to all comments
     if (!isSiteAdmin(session)) {
-      const comments = await prisma.comment.findMany({
-        where: { id: { in: commentIds } },
-        select: { personId: true },
-      });
-
       // Check if user has write access to all persons
       for (const comment of comments) {
         if (!hasPersonAccess(session, comment.personId, 'write')) {
@@ -520,14 +528,47 @@ export async function approveBulkComments(commentIds: string[]) {
       }
     }
 
-    await prisma.comment.updateMany({
-      where: { id: { in: commentIds } },
-      data: {
-        isApproved: true,
-        approvedAt: new Date(),
-        approvedBy: session.user.id,
-      },
-    });
+    // Process each comment individually to handle user linking
+    for (const comment of comments) {
+      let userId = comment.userId;
+      
+      // If comment has email but no userId, try to link or create user
+      if (!userId && comment.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: comment.email },
+          select: { id: true },
+        });
+
+        if (existingUser) {
+          userId = existingUser.id;
+        } else {
+          // Create a new user with the email as username
+          const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+          const newUser = await prisma.user.create({
+            data: {
+              username: comment.email,
+              email: comment.email,
+              password: tempPassword,
+              firstName: comment.firstName || undefined,
+              lastName: comment.lastName || undefined,
+              isActive: true,
+            },
+          });
+          userId = newUser.id;
+        }
+      }
+
+      // Update the comment with approval and user link
+      await prisma.comment.update({
+        where: { id: comment.id },
+        data: {
+          isApproved: true,
+          approvedAt: new Date(),
+          approvedBy: session.user.id,
+          userId,
+        },
+      });
+    }
 
     revalidatePath('/admin/comments');
     return { success: true };
