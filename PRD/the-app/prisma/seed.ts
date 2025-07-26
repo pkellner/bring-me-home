@@ -2454,6 +2454,411 @@ async function main() {
     await prisma.systemConfig.create({ data: config });
   }
 
+  // Create email templates
+  console.log('Creating email templates...');
+  const emailTemplates = [
+    {
+      name: 'comment_submission',
+      subject: 'Your support message for {{personName}} has been received',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Thank you for your support message</h2>
+          <p>Hi {{firstName}},</p>
+          <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+          
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>What happens next?</strong></p>
+            <ul style="margin: 10px 0;">
+              <li>Your message is awaiting approval from the family</li>
+              <li>Once approved, you'll receive another email notification</li>
+              <li>Your message will then be visible on the public page</li>
+            </ul>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <p><strong>Email Verification (Optional)</strong></p>
+            <p>While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.</p>
+            <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <p><strong>Manage Your Privacy</strong></p>
+            <p>If you didn't submit this message or want to manage your privacy settings:</p>
+            <ul>
+              <li><a href="{{profileUrl}}" style="color: #4F46E5;">Manage anonymous comment settings</a></li>
+              <li><a href="{{profileUrl}}" style="color: #4F46E5;">Block future anonymous posts using your email</a></li>
+            </ul>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            You're receiving this because a message was submitted using your email address.<br>
+            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all notifications</a> | 
+            <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a>
+          </p>
+        </div>
+      `,
+      textContent: `Thank you for your support message
+
+Hi {{firstName}},
+
+We've received your message of support for {{personName}} in {{townName}}.
+
+What happens next?
+- Your message is awaiting approval from the family
+- Once approved, you'll receive another email notification
+- Your message will then be visible on the public page
+
+Email Verification (Optional)
+While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.
+Verify your email: {{profileUrl}}
+
+Manage Your Privacy
+If you didn't submit this message or want to manage your privacy settings:
+- Manage anonymous comment settings: {{profileUrl}}
+- Block future anonymous posts using your email: {{profileUrl}}
+
+---
+You're receiving this because a message was submitted using your email address.
+Unsubscribe: {{unsubscribeUrl}}
+Manage preferences: {{profileUrl}}`,
+      variables: JSON.stringify({
+        firstName: 'Commenter first name',
+        personName: 'Person being supported',
+        townName: 'Town name',
+        profileUrl: 'Profile URL',
+        unsubscribeUrl: 'Unsubscribe URL'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'email_verification',
+      subject: 'Verify your email address',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Verify Your Email Address</h2>
+          <p>Hi {{firstName}},</p>
+          <p>Please verify your email address to help us ensure secure communication.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+          </div>
+          
+          <p style="color: #666;">Or copy and paste this link into your browser:</p>
+          <p style="color: #4F46E5; word-break: break-all;">{{verificationUrl}}</p>
+          
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>Why verify your email?</strong></p>
+            <p style="margin: 10px 0 0 0; color: #92400E;">Verifying your email helps families know that messages of support are genuine and from real people who care about their loved ones.</p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            If you didn't create an account, you can safely ignore this email.<br>
+            <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a>
+          </p>
+        </div>
+      `,
+      textContent: `Verify Your Email Address
+
+Hi {{firstName}},
+
+Please verify your email address to help us ensure secure communication.
+
+Verify your email: {{verificationUrl}}
+
+Why verify your email?
+Verifying your email helps families know that messages of support are genuine and from real people who care about their loved ones.
+
+---
+If you didn't create an account, you can safely ignore this email.
+Manage preferences: {{profileUrl}}`,
+      variables: JSON.stringify({
+        firstName: 'User first name',
+        verificationUrl: 'Email verification URL',
+        profileUrl: 'Profile URL'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'welcome_registration',
+      subject: 'Welcome to Bring Me Home',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Welcome to Bring Me Home</h2>
+          <p>Hi {{firstName}},</p>
+          <p>Thank you for creating an account. Your support means a lot to families with loved ones in detention.</p>
+          
+          <div style="background-color: #F3F4F6; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">What you can do now:</h3>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Show support for detained community members</li>
+              <li>Receive updates about people you're following</li>
+              <li>Help amplify their stories and needs</li>
+            </ul>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <p><strong>Verify Your Email (Recommended)</strong></p>
+            <p>While not required, verifying your email helps build trust with families and ensures you receive important updates.</p>
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Email Address</a>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Manage Your Profile</a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a> | 
+            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all emails</a>
+          </p>
+        </div>
+      `,
+      textContent: `Welcome to Bring Me Home
+
+Hi {{firstName}},
+
+Thank you for creating an account. Your support means a lot to families with loved ones in detention.
+
+What you can do now:
+- Show support for detained community members
+- Receive updates about people you're following
+- Help amplify their stories and needs
+
+Verify Your Email (Recommended)
+While not required, verifying your email helps build trust with families and ensures you receive important updates.
+Verify your email: {{verificationUrl}}
+
+Manage your profile: {{profileUrl}}
+
+---
+Manage preferences: {{profileUrl}}
+Unsubscribe: {{unsubscribeUrl}}`,
+      variables: JSON.stringify({
+        firstName: 'User first name',
+        verificationUrl: 'Email verification URL',
+        profileUrl: 'Profile URL',
+        unsubscribeUrl: 'Unsubscribe URL'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'password_reset',
+      subject: 'Password Reset Request',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p>Hi {{firstName}},</p>
+          <p>We received a request to reset the password for your account.</p>
+          
+          <div style="margin: 30px 0;">
+            <a href="{{resetUrl}}" style="display: inline-block; background-color: #DC2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+          </div>
+          
+          <p style="color: #666;">Or copy and paste this link into your browser:</p>
+          <p style="color: #4F46E5; word-break: break-all;">{{resetUrl}}</p>
+          
+          <div style="background-color: #FEE2E2; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #991B1B;"><strong>Important:</strong></p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #991B1B;">
+              <li>This link will expire in 1 hour</li>
+              <li>If you didn't request this reset, please ignore this email</li>
+              <li>Your password won't change until you create a new one</li>
+            </ul>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            If you didn't request a password reset, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+      textContent: `Password Reset Request
+
+Hi {{firstName}},
+
+We received a request to reset the password for your account.
+
+Reset your password: {{resetUrl}}
+
+Important:
+- This link will expire in 1 hour
+- If you didn't request this reset, please ignore this email
+- Your password won't change until you create a new one
+
+---
+If you didn't request a password reset, you can safely ignore this email.`,
+      variables: JSON.stringify({
+        firstName: 'User first name or "there"',
+        resetUrl: 'Password reset URL'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'comment_verification',
+      subject: 'Verify your support for {{personName}}',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Your message of support has been approved!</h2>
+          <p>Hi {{commenterName}},</p>
+          <p>Great news! The family has approved your message of support for <strong>{{personName}}</strong>.</p>
+          
+          <div style="background-color: #F0FDF4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #166534;"><strong>Your message is now visible</strong></p>
+            <p style="margin: 10px 0 0 0; color: #166534;">Your support is now publicly displayed on {{personName}}'s page, where it can provide hope and encouragement.</p>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <p><strong>Verify this message (Optional but helpful)</strong></p>
+            <p>Help the family and community know this message is genuine by verifying it was you:</p>
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Yes, I wrote this message</a>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+          </div>
+          
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 30px 0;">
+            <p style="margin: 0; font-weight: bold; color: #92400E;">If this wasn't you:</p>
+            <p style="margin: 10px 0; color: #92400E;">If you didn't write this message, someone may have used your email address by mistake. You can hide all messages associated with your email:</p>
+            <a href="{{hideUrl}}" style="display: inline-block; background-color: #DC2626; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Hide My Messages</a>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <p><strong>Manage Your Messages</strong></p>
+            <p>You can view and manage all messages associated with your email address:</p>
+            <a href="{{manageUrl}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px;">Manage All My Messages</a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from notifications</a>
+          </p>
+        </div>
+      `,
+      textContent: `Your message of support has been approved!
+
+Hi {{commenterName}},
+
+Great news! The family has approved your message of support for {{personName}}.
+
+Your message is now visible
+Your support is now publicly displayed on {{personName}}'s page, where it can provide hope and encouragement.
+
+Verify this message (Optional but helpful)
+Help the family and community know this message is genuine by verifying it was you:
+{{verificationUrl}}
+
+View {{personName}}'s page: {{personUrl}}
+
+---
+If this wasn't you:
+If you didn't write this message, someone may have used your email address by mistake.
+Hide all your messages: {{hideUrl}}
+
+Manage all your messages: {{manageUrl}}
+
+Unsubscribe: {{unsubscribeUrl}}`,
+      variables: JSON.stringify({
+        commenterName: 'Commenter name',
+        personName: 'Person being supported',
+        verificationUrl: 'Comment verification URL',
+        personUrl: 'Person profile URL',
+        hideUrl: 'URL to hide all messages from this email',
+        manageUrl: 'URL to manage all messages',
+        unsubscribeUrl: 'Unsubscribe URL'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'anonymous_verification',
+      subject: 'Verify your email for {{personName}}',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Please verify your email</h2>
+          <p>Hi {{firstName}},</p>
+          <p>Thank you for submitting a message of support for <strong>{{personName}}</strong>.</p>
+          
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>One quick step needed</strong></p>
+            <p style="margin: 10px 0 0 0; color: #92400E;">To help protect families from spam, we need to verify your email address. This only takes a moment.</p>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Verify My Email</a>
+          </div>
+
+          <p>Once verified:</p>
+          <ul style="color: #666;">
+            <li>Your message will be marked as from a verified person</li>
+            <li>Families will know your support is genuine</li>
+            <li>You'll receive updates when your messages are approved</li>
+          </ul>
+
+          <p style="color: #666; font-size: 14px;">Creating an account is completely optional. Verifying your email simply helps families know that real people care about their loved ones.</p>
+
+          <div style="background-color: #FEE2E2; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; font-weight: bold; color: #991B1B;">If this wasn't you:</p>
+            <p style="margin: 10px 0 0 0; color: #991B1B;">If you didn't submit a message, someone may have used your email address by mistake. When your comment is approved, you'll receive another email with options to hide your messages or block future use of your email.</p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #666;">
+            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all emails</a><br>
+            <span style="color: #999;">You'll have more privacy options when your message is approved.</span>
+          </p>
+        </div>
+      `,
+      textContent: `Please verify your email
+
+Hi {{firstName}},
+
+Thank you for submitting a message of support for {{personName}}.
+
+One quick step needed:
+To help protect families from spam, we need to verify your email address. This only takes a moment.
+
+Verify your email: {{verificationUrl}}
+
+Once verified:
+- Your message will be marked as from a verified person
+- Families will know your support is genuine
+- You'll receive updates when your messages are approved
+
+Creating an account is completely optional. Verifying your email simply helps families know that real people care about their loved ones.
+
+If this wasn't you:
+If you didn't submit a message, someone may have used your email address by mistake. When your comment is approved, you'll receive another email with options to hide your messages or block future use of your email.
+
+---
+Unsubscribe: {{unsubscribeUrl}}
+You'll have more privacy options when your message is approved.`,
+      variables: JSON.stringify({
+        firstName: 'Sender first name',
+        personName: 'Person being supported',
+        verificationUrl: 'Email verification URL',
+        unsubscribeUrl: 'Unsubscribe URL'
+      }),
+      isActive: true,
+    }
+  ];
+
+  for (const template of emailTemplates) {
+    await prisma.emailTemplate.upsert({
+      where: { name: template.name },
+      update: template,
+      create: template,
+    });
+  }
+  console.log(`Created ${emailTemplates.length} email templates.`);
+
   // Count detained persons and stories
   const detainedCount = persons.filter(p => p.detentionCenterName).length;
   const storyCount = await prisma.story.count();

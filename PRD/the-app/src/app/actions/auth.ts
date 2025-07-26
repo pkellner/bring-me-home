@@ -17,8 +17,12 @@ export async function registerUser(formData: FormData) {
 
   const validation = CreateUserSchema.safeParse(rawData);
   if (!validation.success) {
+    // Get the first error message for better user experience
+    const firstError = validation.error.issues[0];
+    const errorMessage = firstError?.message || 'Invalid input data';
+    
     return {
-      error: 'Invalid input data',
+      error: errorMessage,
       details: validation.error.issues,
     };
   }

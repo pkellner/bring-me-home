@@ -2,10 +2,13 @@ import { z } from 'zod';
 
 export const CreateUserSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(50),
-  email: z.string().email('Invalid email format').optional(),
+  email: z.union([
+    z.string().email('Invalid email format'),
+    z.literal(''),
+  ]).optional().transform(val => val === '' ? undefined : val),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(1, 'First name is required').max(100).optional(),
-  lastName: z.string().min(1, 'Last name is required').max(100).optional(),
+  firstName: z.string().optional().transform(val => val === '' ? undefined : val),
+  lastName: z.string().optional().transform(val => val === '' ? undefined : val),
 });
 
 export const UpdateUserSchema = CreateUserSchema.partial().omit({

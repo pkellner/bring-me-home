@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables } from '@/lib/email-template-variables';
-import { getEmail, EMAIL_TYPES } from '@/config/emails';
 
 export async function POST(request: Request) {
   try {
@@ -86,11 +85,11 @@ export async function POST(request: Request) {
     try {
       // Get the password reset email template
       const template = await prisma.emailTemplate.findUnique({
-        where: { name: 'Password Reset' },
+        where: { name: 'password_reset' },
       });
 
-      if (!template) {
-        console.error('Password reset email template not found');
+      if (!template || !template.isActive) {
+        console.error('Password reset email template not found or inactive');
         return NextResponse.json({ success: true }); // Still return success to prevent enumeration
       }
 
@@ -99,10 +98,8 @@ export async function POST(request: Request) {
       const resetUrl = `${baseUrl}/auth/reset-password?token=${tokenToSend}`;
       
       const templateData = {
+        firstName: user.firstName || 'there',
         resetUrl,
-        userName: user.firstName || '',
-        userEmail: user.email!,
-        supportEmail: getEmail(EMAIL_TYPES.SUPPORT),
       };
 
       const subject = replaceTemplateVariables(template.subject, templateData);
@@ -119,6 +116,7 @@ export async function POST(request: Request) {
           status: EmailStatus.QUEUED,
           templateId: template.id,
           sentTo: user.email!,
+          customizations: templateData,
         }
       });
 

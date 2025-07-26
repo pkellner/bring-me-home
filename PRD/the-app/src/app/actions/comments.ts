@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import { generateVerificationToken, hashToken, generateVerificationUrls } from '@/lib/comment-verification';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables } from '@/lib/email-template-variables';
+import { sendAnonymousVerificationEmail } from './email-verification';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
 
@@ -227,6 +228,7 @@ export async function submitComment(
     let userId: string | null = null;
     let autoHideComment = false;
     let warningMessage: string | undefined;
+    let isAnonymousSubmission = true; // Track if this is an anonymous submission
     
     if (data.email) {
       const existingUser = await prisma.user.findUnique({
@@ -241,6 +243,9 @@ export async function submitComment(
           autoHideComment = true;
           warningMessage = 'Comments from this email are hidden by default. The user must log in and enable anonymous comments in their profile settings to make them visible.';
         }
+        // If user exists, check if they're actually logged in
+        const session = await getServerSession(authOptions);
+        isAnonymousSubmission = !session || session.user?.id !== existingUser.id;
       } else {
         // Create a new user with the email as username
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
@@ -256,11 +261,13 @@ export async function submitComment(
           },
         });
         userId = newUser.id;
+        // New user creation means this is anonymous
+        isAnonymousSubmission = true;
       }
     }
 
     // Create the comment
-    await prisma.comment.create({
+    const newComment = await prisma.comment.create({
       data: {
         personId: data.personId,
         personHistoryId: data.personHistoryId || null,
@@ -296,25 +303,8 @@ export async function submitComment(
     });
 
     // Send email notification if email was provided
-    if (data.email && userId) {
+    if (data.email) {
       try {
-        // Generate or get verification token for this email
-        let verificationToken = await prisma.commentVerificationToken.findUnique({
-          where: { email: data.email },
-        });
-
-        if (!verificationToken) {
-          const token = crypto.randomBytes(32).toString('base64url');
-          const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-          
-          verificationToken = await prisma.commentVerificationToken.create({
-            data: {
-              email: data.email,
-              tokenHash,
-            },
-          });
-        }
-
         // Get person details
         const personData = await prisma.person.findUnique({
           where: { id: data.personId },
@@ -330,86 +320,52 @@ export async function submitComment(
 
         if (personData) {
           const personFullName = `${personData.firstName} ${personData.lastName}`;
-          const profileUrl = `${process.env.NEXTAUTH_URL}/profile`;
-          const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${crypto.randomBytes(32).toString('base64url')}`;
           
-          const htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">Thank you for your support message</h2>
-              <p>Hi ${data.firstName || 'there'},</p>
-              <p>We've received your message of support for <strong>${personFullName}</strong> in ${personData.town.name}.</p>
+          // For anonymous submissions, send the anonymous verification email
+          if (isAnonymousSubmission) {
+            await sendAnonymousVerificationEmail(newComment.id, data.email, personFullName, data.firstName);
+          } else {
+            // For registered users, send the standard comment submission email
+            const profileUrl = `${process.env.NEXTAUTH_URL}/profile`;
+            const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${crypto.randomBytes(32).toString('base64url')}`;
+            
+            // Get the comment submission template
+            const template = await prisma.emailTemplate.findUnique({
+              where: { name: 'comment_submission' },
+            });
+
+            if (template && template.isActive) {
+              // Use template
+              const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
               
-              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p style="margin: 0;"><strong>What happens next?</strong></p>
-                <ul style="margin: 10px 0;">
-                  <li>Your message is awaiting approval from the family</li>
-                  <li>Once approved, you'll receive another email notification</li>
-                  <li>Your message will then be visible on the public page</li>
-                </ul>
-              </div>
+              const templateData = {
+                firstName: data.firstName || 'there',
+                personName: personFullName,
+                townName: personData.town.name,
+                profileUrl,
+                unsubscribeUrl,
+              };
 
-              <div style="margin: 30px 0;">
-                <p><strong>Email Verification (Optional)</strong></p>
-                <p>While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.</p>
-                <a href="${profileUrl}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
-              </div>
+              const subject = replaceTemplateVariables(template.subject, templateData);
+              const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
+              const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
 
-              <div style="margin: 30px 0;">
-                <p><strong>Manage Your Privacy</strong></p>
-                <p>If you didn't submit this message or want to manage your privacy settings:</p>
-                <ul>
-                  <li><a href="${profileUrl}" style="color: #4F46E5;">Manage anonymous comment settings</a></li>
-                  <li><a href="${profileUrl}" style="color: #4F46E5;">Block future anonymous posts using your email</a></li>
-                </ul>
-              </div>
-
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-              
-              <p style="font-size: 12px; color: #666;">
-                You're receiving this because a message was submitted using your email address.<br>
-                <a href="${unsubscribeUrl}" style="color: #666;">Unsubscribe from all notifications</a> | 
-                <a href="${profileUrl}" style="color: #666;">Manage email preferences</a>
-              </p>
-            </div>
-          `;
-
-          const textContent = `Thank you for your support message
-
-Hi ${data.firstName || 'there'},
-
-We've received your message of support for ${personFullName} in ${personData.town.name}.
-
-What happens next?
-- Your message is awaiting approval from the family
-- Once approved, you'll receive another email notification
-- Your message will then be visible on the public page
-
-Email Verification (Optional)
-While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.
-Verify your email: ${profileUrl}
-
-Manage Your Privacy
-If you didn't submit this message or want to manage your privacy settings:
-- Manage anonymous comment settings: ${profileUrl}
-- Block future anonymous posts using your email: ${profileUrl}
-
----
-You're receiving this because a message was submitted using your email address.
-Unsubscribe: ${unsubscribeUrl}
-Manage preferences: ${profileUrl}`;
-
-          // Queue the email
-          await prisma.emailNotification.create({
-            data: {
-              userId,
-              personId: data.personId,
-              subject: `Your support message for ${personFullName} has been received`,
-              htmlContent,
-              textContent,
-              status: EmailStatus.QUEUED,
-              sentTo: data.email,
-            },
-          });
+              // Queue the email
+              await prisma.emailNotification.create({
+                data: {
+                  userId,
+                  personId: data.personId,
+                  templateId: template.id,
+                  subject,
+                  htmlContent,
+                  textContent,
+                  status: EmailStatus.QUEUED,
+                  sentTo: data.email,
+                  customizations: templateData,
+                },
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to queue comment submission notification:', error);

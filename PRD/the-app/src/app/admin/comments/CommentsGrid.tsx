@@ -582,8 +582,8 @@ function CommentsGrid({
       sortable: true,
       render: value => {
         const date = new Date(value as Date);
-        const pacificDate = date.toLocaleString('en-US', {
-          timeZone: 'America/Los_Angeles',
+        // Display in user's local timezone
+        const localDate = date.toLocaleString('en-US', {
           month: 'numeric',
           day: 'numeric',
           year: '2-digit',
@@ -591,11 +591,21 @@ function CommentsGrid({
           minute: '2-digit',
           hour12: true,
         });
-        const [datePart, timePart] = pacificDate.split(', ');
+        const [datePart, timePart] = localDate.split(', ');
+        
+        // Also show UTC time for clarity
+        const utcTime = date.toLocaleString('en-US', {
+          timeZone: 'UTC',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+        
         return (
           <div className="text-center">
             <div className="text-sm text-gray-900">{datePart}</div>
             <div className="text-xs text-gray-500">{timePart}</div>
+            <div className="text-xs text-gray-400" title={`${utcTime} UTC`}>Local time</div>
           </div>
         );
       },
