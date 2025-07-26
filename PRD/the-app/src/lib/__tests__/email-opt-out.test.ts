@@ -99,7 +99,7 @@ describe('Email Opt-Out Logic', () => {
         return [];
       });
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(1);
       expect(followers[0].email).toBe('user1@example.com');
@@ -137,7 +137,7 @@ describe('Email Opt-Out Logic', () => {
         users.personOptOut
       ]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(2);
       expect(followers.map(f => f.email)).not.toContain('user2@example.com');
@@ -153,7 +153,7 @@ describe('Email Opt-Out Logic', () => {
         users.globalOptOut // This wouldn't actually be returned due to global opt-out
       ].filter(u => !u.optOutOfAllEmail));
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(1);
       expect(followers[0].email).toBe('user1@example.com');
@@ -167,7 +167,7 @@ describe('Email Opt-Out Logic', () => {
         users.noOptOut
       ]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       // user5@example.com has no account, so only 1 follower
       expect(followers).toHaveLength(1);
@@ -178,7 +178,7 @@ describe('Email Opt-Out Logic', () => {
       prisma.comment.findMany.mockResolvedValue([]);
       prisma.user.findMany.mockResolvedValue([]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(0);
     });
@@ -194,7 +194,7 @@ describe('Email Opt-Out Logic', () => {
         users.noOptOut
       ]);
 
-      await getPersonFollowers(mockPersonId);
+      await getPersonFollowers(mockPersonId, false);
       
       // Verify null emails are filtered out
       expect(prisma.user.findMany).toHaveBeenCalledWith(
@@ -223,7 +223,7 @@ describe('Email Opt-Out Logic', () => {
       // User has global opt-out, so should not be returned
       prisma.user.findMany.mockResolvedValue([]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(0);
     });
@@ -236,7 +236,7 @@ describe('Email Opt-Out Logic', () => {
       // User has global opt-out, so query should exclude them
       prisma.user.findMany.mockResolvedValue([]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(0);
     });
@@ -252,7 +252,7 @@ describe('Email Opt-Out Logic', () => {
         users.noOptOut
       ]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       // Should only return one user despite multiple comments
       expect(followers).toHaveLength(1);
@@ -272,7 +272,7 @@ describe('Email Opt-Out Logic', () => {
         users.noOptOut
       ]);
 
-      const followersP2 = await getPersonFollowers(person2Id);
+      const followersP2 = await getPersonFollowers(person2Id, false);
       
       expect(followersP2).toHaveLength(1);
       
@@ -304,7 +304,7 @@ describe('Email Opt-Out Logic', () => {
         users.personOptOut
       ]);
 
-      await getPersonFollowers(mockPersonId);
+      await getPersonFollowers(mockPersonId, false);
       
       // Verify the comment query includes isApproved filter
       expect(prisma.comment.findMany).toHaveBeenCalledWith({
@@ -354,7 +354,7 @@ describe('Email Opt-Out Logic', () => {
       
       prisma.user.findMany.mockResolvedValue([users.noOptOut]);
 
-      const followers = await getPersonFollowers(mockPersonId);
+      const followers = await getPersonFollowers(mockPersonId, false);
       
       expect(followers).toHaveLength(1);
       expect(followers[0].email).toBe('user1@example.com');

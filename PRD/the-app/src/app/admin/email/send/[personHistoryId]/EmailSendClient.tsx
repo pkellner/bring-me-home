@@ -74,9 +74,42 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
   const [customTextContent, setCustomTextContent] = useState('');
   const [useCustomContent, setUseCustomContent] = useState(false);
   const [editingContent, setEditingContent] = useState(false);
+  const [selectedFollowers, setSelectedFollowers] = useState<Set<string>>(
+    new Set(followers.map(f => f.id))
+  );
   
   const personName = `${update.person.firstName} ${update.person.lastName}`;
   const profileUrl = `${process.env.NEXT_PUBLIC_URL || ''}/${update.person.town.slug}/${update.person.slug}`;
+
+  // Helper function to format email display
+  const formatEmailDisplay = (follower: Follower) => {
+    const name = follower.firstName || follower.lastName 
+      ? `${follower.firstName || ''} ${follower.lastName || ''}`.trim()
+      : 'Anonymous';
+    return `${name} <${follower.email}>`;
+  };
+
+  // Handle follower selection
+  const handleFollowerToggle = (followerId: string) => {
+    setSelectedFollowers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(followerId)) {
+        newSet.delete(followerId);
+      } else {
+        newSet.add(followerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all
+  const handleSelectAll = () => {
+    if (selectedFollowers.size === followers.length) {
+      setSelectedFollowers(new Set());
+    } else {
+      setSelectedFollowers(new Set(followers.map(f => f.id)));
+    }
+  };
 
   // Load email templates
   useEffect(() => {
@@ -130,15 +163,15 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
   }, [selectedTemplateId, templates]);
   
   const handleSendEmails = async () => {
-    if (!followers.length) {
+    if (selectedFollowers.size === 0) {
       setMessage({
         type: 'error',
-        text: 'No followers to email',
+        text: 'Please select at least one recipient',
       });
       return;
     }
     
-    if (!confirm(`Send email update to ${followers.length} followers?`)) {
+    if (!confirm(`Send email update to ${selectedFollowers.size} selected followers?`)) {
       return;
     }
     
@@ -152,7 +185,8 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
         templateId: selectedTemplateId || undefined,
       } : undefined;
       
-      const result = await sendUpdateEmail(update.id, customContentData);
+      const selectedIds = Array.from(selectedFollowers);
+      const result = await sendUpdateEmail(update.id, customContentData, selectedIds);
       
       if (result.success) {
         setEmailsSent(true);
@@ -335,27 +369,44 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
         ) : (
           <div>
             <p className="text-gray-600 mb-4">
-              This email will be sent to <span className="font-semibold">{followers.length}</span> followers
-              who have commented on {update.person.firstName}&apos;s page and have not opted out of email notifications.
+              Found <span className="font-semibold">{followers.length}</span> followers
+              who have commented on {update.person.firstName}&apos;s page or updates and have not opted out of email notifications.
+              <br />
+              <span className="text-sm text-gray-500 mt-1">
+                Selected: <span className="font-semibold text-gray-700">{selectedFollowers.size}</span> of {followers.length}
+              </span>
             </p>
             
-            {/* Show first few recipients */}
-            <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Recipients:</h3>
-              <div className="space-y-1">
-                {followers.slice(0, 10).map((follower) => (
-                  <div key={follower.id} className="text-sm text-gray-600">
-                    {follower.firstName || follower.lastName 
-                      ? `${follower.firstName || ''} ${follower.lastName || ''}`.trim()
-                      : 'Anonymous'} 
-                    <span className="text-gray-400 ml-1">({follower.email})</span>
-                  </div>
+            {/* Recipients with checkboxes */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700">Select Recipients:</h3>
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {selectedFollowers.size === followers.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {followers.map((follower) => (
+                  <label
+                    key={follower.id}
+                    className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFollowers.has(follower.id)}
+                      onChange={() => handleFollowerToggle(follower.id)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-3 text-sm text-gray-700">
+                      {formatEmailDisplay(follower)}
+                    </span>
+                  </label>
                 ))}
-                {followers.length > 10 && (
-                  <div className="text-sm text-gray-500 italic mt-2">
-                    ... and {followers.length - 10} more
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -424,7 +475,7 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
         <div className="flex gap-3">
           <button
             onClick={handleSendEmails}
-            disabled={isPending || followers.length === 0 || emailsSent}
+            disabled={isPending || selectedFollowers.size === 0 || emailsSent}
             className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PaperAirplaneIcon className="h-4 w-4 mr-2" />
@@ -432,7 +483,7 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
               ? 'Sending...' 
               : emailsSent 
                 ? 'Emails Sent' 
-                : `Send Email to ${followers.length} Followers`}
+                : `Send Email to ${selectedFollowers.size} Selected ${selectedFollowers.size === 1 ? 'Follower' : 'Followers'}`}
           </button>
           
           <button

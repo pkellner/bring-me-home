@@ -41,8 +41,8 @@ export default async function EmailSendPage({
     notFound();
   }
   
-  // Get followers for this person
-  const followers = await getPersonFollowers(update.personId);
+  // Get all followers for this person (including both regular comments and history comments)
+  const followers = await getPersonFollowers(update.personId, true);
   
   return (
     <div>

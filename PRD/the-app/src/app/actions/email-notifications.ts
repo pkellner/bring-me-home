@@ -169,21 +169,46 @@ export async function createUsersFromCommentEmails() {
 }
 
 // Get followers for a person (users who have commented and not opted out)
-export async function getPersonFollowers(personId: string) {
+export async function getPersonFollowers(personId: string, includeHistoryComments = false) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !isSiteAdmin(session)) {
     throw new Error('Unauthorized');
   }
 
-  // Get all users who have APPROVED comments on this person
-  const commenters = await prisma.comment.findMany({
-    where: {
-      personId,
-      email: {
-        not: null,
-      },
-      isApproved: true, // Only consider approved comments
+  // Build where clause for comments
+  const whereClause: {
+    email: { not: null };
+    isApproved: boolean;
+    OR?: Array<{ personId?: string; personHistoryId?: { in: string[] } }>;
+    personId?: string;
+  } = {
+    email: {
+      not: null,
     },
+    isApproved: true, // Only consider approved comments
+  };
+
+  if (includeHistoryComments) {
+    // Get all person history IDs for this person
+    const personHistories = await prisma.personHistory.findMany({
+      where: { personId },
+      select: { id: true },
+    });
+    const historyIds = personHistories.map(h => h.id);
+
+    // Include both regular comments on the person AND comments on their history
+    whereClause.OR = [
+      { personId },
+      { personHistoryId: { in: historyIds } },
+    ];
+  } else {
+    // Only get comments directly on the person
+    whereClause.personId = personId;
+  }
+
+  // Get all users who have APPROVED comments
+  const commenters = await prisma.comment.findMany({
+    where: whereClause,
     select: {
       email: true,
     },
@@ -226,7 +251,8 @@ export async function sendUpdateEmail(
     htmlContent?: string;
     textContent?: string;
     templateId?: string;
-  }
+  },
+  selectedFollowerIds?: string[]
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !isSiteAdmin(session)) {
@@ -256,7 +282,12 @@ export async function sendUpdateEmail(
     }
 
     // Get followers
-    const followers = await getPersonFollowers(update.personId);
+    let followers = await getPersonFollowers(update.personId, true);
+    
+    // Filter to only selected followers if provided
+    if (selectedFollowerIds && selectedFollowerIds.length > 0) {
+      followers = followers.filter(f => selectedFollowerIds.includes(f.id));
+    }
 
     // Create email notifications with opt-out tokens
     const emailNotifications = await Promise.all(
