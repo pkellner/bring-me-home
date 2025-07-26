@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { revalidatePath } from 'next/cache';
+import { cleanupDeletedUserData } from './user-cleanup';
 
 export async function createUser(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -129,10 +130,12 @@ export async function updateUser(userId: string, formData: FormData) {
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
     isActive: formData.get('isActive') === 'true',
+    allowAnonymousComments: formData.get('allowAnonymousComments') === 'true',
   };
 
   const validation = UpdateUserSchema.extend({
     isActive: z.boolean().optional(),
+    allowAnonymousComments: z.boolean().optional(),
   }).safeParse(rawData);
 
   if (!validation.success) {
@@ -284,6 +287,7 @@ export async function updateUser(userId: string, formData: FormData) {
           firstName: currentUser.firstName,
           lastName: currentUser.lastName,
           isActive: currentUser.isActive,
+          allowAnonymousComments: currentUser.allowAnonymousComments,
           roles: currentUser.userRoles.length,
           townAccess: currentUser.townAccess.length,
           personAccess: currentUser.personAccess.length,
@@ -316,9 +320,16 @@ export async function deleteUser(userId: string) {
   }
 
   try {
-    // Get user data for audit log
+    // Get user data for audit log and cleanup
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      }
     });
 
     if (!user) {
@@ -334,6 +345,13 @@ export async function deleteUser(userId: string) {
     await prisma.user.delete({
       where: { id: userId },
     });
+
+    // Cleanup orphaned data (comment tokens, etc.)
+    const cleanupResult = await cleanupDeletedUserData(user.email);
+    
+    if (!cleanupResult.success) {
+      console.error('Failed to cleanup user data:', cleanupResult.error);
+    }
 
     // Create audit log
     await prisma.auditLog.create({

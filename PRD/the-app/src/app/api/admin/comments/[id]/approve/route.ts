@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
+import { approveBulkComments } from '@/app/actions/comments';
 
 export async function POST(
   request: NextRequest,
@@ -33,15 +34,53 @@ export async function POST(
     }
 
     // Check if user has access to this person (unless they're a site admin)
-    if (!isSiteAdmin(session) && !hasPersonAccess(session, comment.personId, 'write')) {
+    if (!isSiteAdmin(session) && comment.personId && !hasPersonAccess(session, comment.personId, 'write')) {
       return NextResponse.json({ error: 'No access to this person' }, { status: 403 });
     }
 
-    // Toggle approval status
+    console.log(`[API APPROVE] Processing approval toggle for comment ${id}, current status: ${comment.isApproved}`);
+
+    // If comment is currently not approved and we're approving it, use approveBulkComments
+    // to handle email verification
+    if (!comment.isApproved) {
+      console.log(`[API APPROVE] Approving comment ${id} using approveBulkComments`);
+      const result = await approveBulkComments([id]);
+      
+      if (!result.success) {
+        return NextResponse.json({ error: result.error || 'Failed to approve comment' }, { status: 500 });
+      }
+
+      // Get the updated comment
+      const updatedComment = await prisma.comment.findUnique({
+        where: { id },
+        include: {
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              town: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        comment: updatedComment,
+      });
+    }
+
+    // If we're disapproving (toggling from approved to not approved), just update directly
+    console.log(`[API APPROVE] Disapproving comment ${id}`);
     const updatedComment = await prisma.comment.update({
       where: { id },
       data: {
-        isApproved: !comment.isApproved,
+        isApproved: false,
         updatedAt: new Date(),
       },
       include: {

@@ -74,6 +74,13 @@ export default async function TownCommentsPage({ params }: PageProps) {
           town: true,
         },
       },
+      user: {
+        select: {
+          id: true,
+          allowAnonymousComments: true,
+          emailVerified: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',

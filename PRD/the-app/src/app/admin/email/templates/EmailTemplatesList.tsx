@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { deleteEmailTemplate } from '@/app/actions/email-templates';
+import EmailPreview from '@/components/admin/EmailPreview';
 import {
   PencilIcon,
   TrashIcon,
@@ -17,6 +18,8 @@ interface EmailTemplate {
   id: string;
   name: string;
   subject: string;
+  htmlContent: string;
+  textContent?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +33,7 @@ export default function EmailTemplatesList({ templates }: EmailTemplatesListProp
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
 
   const handleDelete = async (template: EmailTemplate) => {
     if (!confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
@@ -122,13 +126,13 @@ export default function EmailTemplatesList({ templates }: EmailTemplatesListProp
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Link
-                      href={`/admin/email/templates/${template.id}/preview`}
+                    <button
+                      onClick={() => setPreviewTemplate(template)}
                       className="p-2 text-gray-400 hover:text-gray-500"
                       title="Preview"
                     >
                       <EyeIcon className="h-5 w-5" />
-                    </Link>
+                    </button>
                     <Link
                       href={`/admin/email/templates/${template.id}/edit`}
                       className="p-2 text-gray-400 hover:text-gray-500"
@@ -151,6 +155,58 @@ export default function EmailTemplatesList({ templates }: EmailTemplatesListProp
           ))}
         </ul>
       )}
+      
+      {/* Email Preview Modal */}
+      {previewTemplate && (
+        <EmailPreview
+          subject={previewTemplate.subject}
+          htmlContent={previewTemplate.htmlContent}
+          textContent={previewTemplate.textContent}
+          isOpen={!!previewTemplate}
+          onClose={() => setPreviewTemplate(null)}
+          sampleData={getSampleData(previewTemplate.name)}
+        />
+      )}
     </div>
   );
+}
+
+// Generate sample data based on template type
+function getSampleData(templateName: string): Record<string, unknown> {
+  const templateType = templateName.includes('comment') ? 'comment_verification' : 'person_update';
+  
+  const baseData = {
+    recipientName: 'John Doe',
+    recipientEmail: 'john.doe@example.com',
+    currentDate: new Date().toLocaleDateString(),
+    siteUrl: 'https://bring-me-home.com',
+  };
+
+  if (templateType === 'comment_verification') {
+    return {
+      ...baseData,
+      personName: 'Maria Rodriguez',
+      personFirstName: 'Maria',
+      personLastName: 'Rodriguez',
+      townName: 'El Paso',
+      commentContent: 'Sending prayers and support to Maria and her family. Stay strong!',
+      commentDate: new Date().toLocaleDateString(),
+      verificationUrl: 'https://bring-me-home.com/verify/comments?token=abc123',
+      hideUrl: 'https://bring-me-home.com/verify/comments?token=abc123&action=hide',
+      manageUrl: 'https://bring-me-home.com/profile',
+    };
+  } else {
+    return {
+      ...baseData,
+      personName: 'Maria Rodriguez',
+      personFirstName: 'Maria',
+      personLastName: 'Rodriguez',
+      townName: 'El Paso',
+      updateDescription: 'Maria has been successfully reunited with her family after 3 months. The family is deeply grateful for all the support and prayers during this difficult time.',
+      updateDate: new Date().toLocaleDateString(),
+      profileUrl: 'https://bring-me-home.com/el-paso/maria-rodriguez',
+      personOptOutUrl: 'https://bring-me-home.com/unsubscribe?person=maria-rodriguez',
+      allOptOutUrl: 'https://bring-me-home.com/unsubscribe?all=true',
+    };
+  }
 }

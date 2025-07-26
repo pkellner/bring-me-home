@@ -113,6 +113,13 @@ export default async function PersonCommentsPage({ params }: PageProps) {
         },
       },
       personHistory: true,
+      user: {
+        select: {
+          id: true,
+          allowAnonymousComments: true,
+          emailVerified: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',

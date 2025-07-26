@@ -10,6 +10,7 @@ import {
   getPersonsWithEmails,
   sendQueuedEmails,
   retryFailedEmails,
+  deleteEmailNotifications,
 } from '@/app/actions/email-notifications';
 
 export default async function EmailAdminPage() {
@@ -32,6 +33,7 @@ export default async function EmailAdminPage() {
     status: email.status,
     userId: email.userId,
     user: email.user,
+    sentTo: email.sentTo,
     person: email.person,
     personHistory: email.personHistory,
     scheduledFor: email.scheduledFor.toISOString(),
@@ -61,6 +63,10 @@ export default async function EmailAdminPage() {
           onRetrySelected={async (emailIds) => {
             'use server';
             await retryFailedEmails(emailIds);
+          }}
+          onDeleteSelected={async (emailIds) => {
+            'use server';
+            await deleteEmailNotifications(emailIds);
           }}
         />
       </div>

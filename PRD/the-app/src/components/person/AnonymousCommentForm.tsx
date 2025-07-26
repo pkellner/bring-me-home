@@ -15,6 +15,7 @@ export interface AnonymousCommentFormProps {
     success?: boolean;
     error?: string;
     errors?: Record<string, string[]>;
+    warning?: string;
   };
   onCancel?: () => void;
   title?: string;
@@ -46,6 +47,7 @@ export default function AnonymousCommentForm({
   const [showOccupation, setShowOccupation] = useState(true);
   const [showBirthdate, setShowBirthdate] = useState(true);
   const [showComment, setShowComment] = useState(true);
+  const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha, isReady } = useSafeRecaptcha();
 
@@ -174,6 +176,24 @@ export default function AnonymousCommentForm({
               formData.append('recaptchaToken', token);
             } else {
               throw new Error('Failed to get reCAPTCHA token');
+            }
+            
+            // Check if email has anonymous comments blocked
+            const emailValue = formData.get('email') as string;
+            if (emailValue) {
+              try {
+                const response = await fetch('/api/profile/anonymous-comments?' + new URLSearchParams({ email: emailValue }));
+                if (response.ok) {
+                  const data = await response.json();
+                  if (!data.allowAnonymousComments) {
+                    setEmailBlockWarning('Comments from this email will be hidden by default. The owner of this email address has disabled anonymous comments. They must log in and enable anonymous comments in their profile settings to make them visible.');
+                  } else {
+                    setEmailBlockWarning(null);
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to check email status:', error);
+              }
             }
             
             // Capture form data and show confirmation modal
@@ -717,6 +737,7 @@ export default function AnonymousCommentForm({
           : "Your message is being reviewed by the family to make sure it is OK with them."
         }
         confirmButtonText={personHistoryId ? "OK, Post My Comment" : "OK, Post My Support"}
+        warningMessage={emailBlockWarning}
         onConfirm={() => {
           if (pendingFormData) {
             startTransition(() => {
@@ -724,11 +745,13 @@ export default function AnonymousCommentForm({
             });
             setShowConfirmModal(false);
             setPendingFormData(null);
+            setEmailBlockWarning(null);
           }
         }}
         onCancel={() => {
           setShowConfirmModal(false);
           setPendingFormData(null);
+          setEmailBlockWarning(null);
           // Reset the form
           if (formRef.current) {
             formRef.current.reset();

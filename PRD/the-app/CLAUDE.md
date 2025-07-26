@@ -710,3 +710,11 @@ const serializedComment = {
   - Added total "People Supporting" count to "Send a note of support" section (second line, right-aligned)
   - Support count combines anonymous support and messages, only displays if > 0
   - LayoutRenderer now fetches support stats and comment counts dynamically
+- **IMPORTANT**: User deletion and data cleanup
+  - When a user is deleted, some data needs manual cleanup:
+    - `CommentVerificationToken` records (tied to email, not userId)
+    - `Comment` records have `onDelete: SetNull` so PII remains
+  - Use `npx tsx scripts/cleanup-orphaned-data.ts` to clean orphaned data
+  - The `deleteUser` action now automatically calls cleanup for new deletions
+  - Tables with proper cascade delete: UserRole, TownAccess, PersonAccess, PasswordResetToken, EmailOptOut, EmailNotification
+  - AnonymousSupport does NOT store email or PII data

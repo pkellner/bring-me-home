@@ -33,6 +33,12 @@ export default async function UsersPage() {
           person: true,
         },
       },
+      comments: {
+        select: {
+          id: true,
+          hideRequested: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',

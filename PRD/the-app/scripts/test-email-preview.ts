@@ -35,7 +35,7 @@ async function main() {
       console.log('ID:', email.id);
       console.log('Subject:', email.subject);
       console.log('Status:', email.status);
-      console.log('User:', email.user.email);
+      console.log('User:', email.user?.email || email.sentTo || 'N/A');
       console.log('\nUse this ID to test: /api/admin/emails/' + email.id);
     } else {
       console.log('No email notifications found in database');

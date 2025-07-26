@@ -8,6 +8,10 @@ import { revalidatePath } from 'next/cache';
 import { hasPermission, hasPersonAccess, isSiteAdmin } from '@/lib/permissions';
 import { headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { generateVerificationToken, hashToken, generateVerificationUrls } from '@/lib/comment-verification';
+import { EmailStatus } from '@prisma/client';
+import { replaceTemplateVariables } from '@/lib/email-template-variables';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
 
@@ -221,14 +225,22 @@ export async function submitComment(
 
     // Check if a user exists with this email
     let userId: string | null = null;
+    let autoHideComment = false;
+    let warningMessage: string | undefined;
+    
     if (data.email) {
       const existingUser = await prisma.user.findUnique({
         where: { email: data.email },
-        select: { id: true },
+        select: { id: true, allowAnonymousComments: true },
       });
 
       if (existingUser) {
         userId = existingUser.id;
+        // Check if this user has disabled anonymous comments
+        if (!existingUser.allowAnonymousComments) {
+          autoHideComment = true;
+          warningMessage = 'Comments from this email are hidden by default. The user must log in and enable anonymous comments in their profile settings to make them visible.';
+        }
       } else {
         // Create a new user with the email as username
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
@@ -240,6 +252,7 @@ export async function submitComment(
             firstName: data.firstName,
             lastName: data.lastName,
             isActive: true,
+            allowAnonymousComments: true, // New users can post anonymously by default
           },
         });
         userId = newUser.id;
@@ -275,13 +288,138 @@ export async function submitComment(
         visibility: 'public',
         isActive: true,
         isApproved: false, // Requires approval
+        hideRequested: autoHideComment, // Auto-hide if user has disabled anonymous comments
+        hideRequestedAt: autoHideComment ? new Date() : null,
         ipAddress,
         userAgent,
       },
     });
 
+    // Send email notification if email was provided
+    if (data.email && userId) {
+      try {
+        // Generate or get verification token for this email
+        let verificationToken = await prisma.commentVerificationToken.findUnique({
+          where: { email: data.email },
+        });
+
+        if (!verificationToken) {
+          const token = crypto.randomBytes(32).toString('base64url');
+          const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+          
+          verificationToken = await prisma.commentVerificationToken.create({
+            data: {
+              email: data.email,
+              tokenHash,
+            },
+          });
+        }
+
+        // Get person details
+        const personData = await prisma.person.findUnique({
+          where: { id: data.personId },
+          select: {
+            firstName: true,
+            lastName: true,
+            town: {
+              select: { name: true, slug: true },
+            },
+            slug: true,
+          },
+        });
+
+        if (personData) {
+          const personFullName = `${personData.firstName} ${personData.lastName}`;
+          const profileUrl = `${process.env.NEXTAUTH_URL}/profile`;
+          const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${crypto.randomBytes(32).toString('base64url')}`;
+          
+          const htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Thank you for your support message</h2>
+              <p>Hi ${data.firstName || 'there'},</p>
+              <p>We've received your message of support for <strong>${personFullName}</strong> in ${personData.town.name}.</p>
+              
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>What happens next?</strong></p>
+                <ul style="margin: 10px 0;">
+                  <li>Your message is awaiting approval from the family</li>
+                  <li>Once approved, you'll receive another email notification</li>
+                  <li>Your message will then be visible on the public page</li>
+                </ul>
+              </div>
+
+              <div style="margin: 30px 0;">
+                <p><strong>Email Verification (Optional)</strong></p>
+                <p>While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.</p>
+                <a href="${profileUrl}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
+              </div>
+
+              <div style="margin: 30px 0;">
+                <p><strong>Manage Your Privacy</strong></p>
+                <p>If you didn't submit this message or want to manage your privacy settings:</p>
+                <ul>
+                  <li><a href="${profileUrl}" style="color: #4F46E5;">Manage anonymous comment settings</a></li>
+                  <li><a href="${profileUrl}" style="color: #4F46E5;">Block future anonymous posts using your email</a></li>
+                </ul>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+              
+              <p style="font-size: 12px; color: #666;">
+                You're receiving this because a message was submitted using your email address.<br>
+                <a href="${unsubscribeUrl}" style="color: #666;">Unsubscribe from all notifications</a> | 
+                <a href="${profileUrl}" style="color: #666;">Manage email preferences</a>
+              </p>
+            </div>
+          `;
+
+          const textContent = `Thank you for your support message
+
+Hi ${data.firstName || 'there'},
+
+We've received your message of support for ${personFullName} in ${personData.town.name}.
+
+What happens next?
+- Your message is awaiting approval from the family
+- Once approved, you'll receive another email notification
+- Your message will then be visible on the public page
+
+Email Verification (Optional)
+While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.
+Verify your email: ${profileUrl}
+
+Manage Your Privacy
+If you didn't submit this message or want to manage your privacy settings:
+- Manage anonymous comment settings: ${profileUrl}
+- Block future anonymous posts using your email: ${profileUrl}
+
+---
+You're receiving this because a message was submitted using your email address.
+Unsubscribe: ${unsubscribeUrl}
+Manage preferences: ${profileUrl}`;
+
+          // Queue the email
+          await prisma.emailNotification.create({
+            data: {
+              userId,
+              personId: data.personId,
+              subject: `Your support message for ${personFullName} has been received`,
+              htmlContent,
+              textContent,
+              status: EmailStatus.QUEUED,
+              sentTo: data.email,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to queue comment submission notification:', error);
+        // Don't fail the comment submission if email fails
+      }
+    }
+
     return {
       success: true,
+      warning: warningMessage,
     };
   } catch (error) {
     console.error('Error submitting comment:', error);
@@ -494,6 +632,8 @@ export async function updateCommentAndApprove(
 }
 
 export async function approveBulkComments(commentIds: string[]) {
+  console.log(`[APPROVE COMMENTS] Starting approval for ${commentIds.length} comments:`, commentIds);
+  
   const session = await getServerSession(authOptions);
   if (!session) {
     return { success: false, error: 'Unauthorized' };
@@ -505,31 +645,47 @@ export async function approveBulkComments(commentIds: string[]) {
   }
 
   try {
-    // Get all comments with their details
-    const comments = await prisma.comment.findMany({
+    // Get comments with person and town info for emails
+    console.log('[APPROVE COMMENTS] Fetching comment details...');
+    const commentsWithDetails = await prisma.comment.findMany({
       where: { id: { in: commentIds } },
-      select: { 
-        id: true,
-        personId: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        userId: true,
+      include: {
+        person: {
+          include: {
+            town: true,
+          },
+        },
+        personHistory: {
+          include: {
+            person: {
+              include: {
+                town: true,
+              },
+            },
+          },
+        },
       },
+    });
+
+    console.log(`[APPROVE COMMENTS] Found ${commentsWithDetails.length} comments`);
+    commentsWithDetails.forEach(c => {
+      console.log(`[APPROVE COMMENTS] Comment ${c.id}: email=${c.email}, personId=${c.personId}, personHistoryId=${c.personHistoryId}`);
     });
 
     // If not site admin, verify access to all comments
     if (!isSiteAdmin(session)) {
       // Check if user has write access to all persons
-      for (const comment of comments) {
-        if (!hasPersonAccess(session, comment.personId, 'write')) {
+      for (const comment of commentsWithDetails) {
+        // Get the person ID from either direct person relation or through personHistory
+        const personId = comment.person?.id || comment.personHistory?.person?.id;
+        if (!personId || !hasPersonAccess(session, personId, 'write')) {
           return { success: false, error: 'No access to some persons' };
         }
       }
     }
 
     // Process each comment individually to handle user linking
-    for (const comment of comments) {
+    for (const comment of commentsWithDetails) {
       let userId = comment.userId;
       
       // If comment has email but no userId, try to link or create user
@@ -566,8 +722,144 @@ export async function approveBulkComments(commentIds: string[]) {
           approvedAt: new Date(),
           approvedBy: session.user.id,
           userId,
+          verificationEmailSentAt: new Date(),
         },
       });
+
+      // Send verification email if comment has email
+      if (comment.email) {
+        console.log(`[EMAIL VERIFICATION] Processing comment ${comment.id} with email: ${comment.email}`);
+        try {
+          // Check for existing token or create new one
+          let token = '';
+          const existingToken = await prisma.commentVerificationToken.findFirst({
+            where: {
+              email: comment.email,
+              isActive: true,
+            },
+          });
+          console.log(`[EMAIL VERIFICATION] Existing token found: ${existingToken ? 'YES' : 'NO'}`);
+
+          if (!existingToken) {
+            // Generate new token
+            token = generateVerificationToken();
+            const tokenHash = hashToken(token);
+            console.log(`[EMAIL VERIFICATION] Creating new token for ${comment.email}`);
+
+            await prisma.commentVerificationToken.create({
+              data: {
+                email: comment.email,
+                tokenHash,
+              },
+            });
+            console.log(`[EMAIL VERIFICATION] New token created successfully`);
+          } else {
+            // Always generate a fresh token for each email
+            token = generateVerificationToken();
+            const tokenHash = hashToken(token);
+            console.log(`[EMAIL VERIFICATION] Generating fresh token for ${comment.email}`);
+
+            await prisma.commentVerificationToken.update({
+              where: { id: existingToken.id },
+              data: {
+                tokenHash,
+                lastUsedAt: new Date(),
+                // Reset the isActive flag to ensure token is valid
+                isActive: true,
+              },
+            });
+            console.log(`[EMAIL VERIFICATION] Fresh token generated and stored successfully`);
+          }
+
+          // Get email template
+          const template = await prisma.emailTemplate.findUnique({
+            where: { name: 'comment_verification' },
+          });
+          console.log(`[EMAIL VERIFICATION] Email template found: ${template ? 'YES' : 'NO'}`);
+
+          if (template) {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            // Get person data from either direct relation or through personHistory
+            const personData = comment.person || comment.personHistory?.person;
+            const townData = personData?.town;
+            
+            console.log(`[EMAIL VERIFICATION] Person data found: ${personData ? 'YES' : 'NO'}`);
+            console.log(`[EMAIL VERIFICATION] Town data found: ${townData ? 'YES' : 'NO'}`);
+            
+            if (!personData || !townData) {
+              console.error(`[EMAIL VERIFICATION] ERROR: No person data found for comment: ${comment.id}`);
+              console.error(`[EMAIL VERIFICATION] Comment person: ${comment.person ? 'exists' : 'null'}`);
+              console.error(`[EMAIL VERIFICATION] Comment personHistory: ${comment.personHistory ? 'exists' : 'null'}`);
+              continue; // Skip this comment if no person data
+            }
+
+            const urls = generateVerificationUrls(
+              baseUrl,
+              token,
+              personData.slug,
+              townData.slug,
+              comment.id
+            );
+            
+            console.log(`[EMAIL VERIFICATION] Generated URLs:`, {
+              token: token.substring(0, 10) + '...',
+              hideUrl: urls.hideUrl,
+            });
+
+            const templateData = {
+              recipientName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
+              recipientEmail: comment.email,
+              personName: `${personData.firstName} ${personData.lastName}`,
+              personFirstName: personData.firstName,
+              personLastName: personData.lastName,
+              townName: townData.name,
+              commentContent: comment.content ? comment.content.substring(0, 200) + (comment.content.length > 200 ? '...' : '') : 'Your support message',
+              commentDate: new Date().toLocaleDateString(),
+              verificationUrl: urls.verificationUrl,
+              hideUrl: urls.hideUrl,
+              manageUrl: urls.manageUrl,
+              currentDate: new Date().toLocaleDateString(),
+              siteUrl: baseUrl,
+            };
+
+            const subject = replaceTemplateVariables(template.subject, templateData);
+            const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
+            const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : undefined;
+
+            // Find if there's a user with this email
+            const emailUser = await prisma.user.findUnique({
+              where: { email: comment.email },
+              select: { id: true },
+            });
+
+            console.log(`[EMAIL VERIFICATION] Creating email notification for ${comment.email}`);
+            console.log(`[EMAIL VERIFICATION] PersonId: ${personData.id}, PersonHistoryId: ${comment.personHistoryId || 'none'}`);
+            
+            // Queue the verification email instead of sending directly
+            const emailNotification = await prisma.emailNotification.create({
+              data: {
+                userId: emailUser?.id || userId, // Use the commenter's user ID if they have an account, otherwise current user
+                personId: personData.id,
+                personHistoryId: comment.personHistoryId,
+                subject,
+                htmlContent,
+                textContent,
+                status: EmailStatus.QUEUED,
+                templateId: template.id,
+                sentTo: comment.email,
+              }
+            });
+            console.log(`[EMAIL VERIFICATION] Email notification created successfully with ID: ${emailNotification.id}`);
+          } else {
+            console.error(`[EMAIL VERIFICATION] ERROR: No email template found with name 'comment_verification'`);
+          }
+        } catch (error) {
+          console.error('[EMAIL VERIFICATION] ERROR: Failed to process verification email:', error);
+          // Don't fail the approval if email fails
+        }
+      } else {
+        console.log(`[EMAIL VERIFICATION] Comment ${comment.id} has no email address, skipping verification email`);
+      }
     }
 
     revalidatePath('/admin/comments');

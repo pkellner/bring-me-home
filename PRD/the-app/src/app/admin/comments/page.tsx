@@ -65,6 +65,13 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
           date: true,
         },
       },
+      user: {
+        select: {
+          id: true,
+          allowAnonymousComments: true,
+          emailVerified: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',

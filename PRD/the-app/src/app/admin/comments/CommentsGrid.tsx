@@ -49,6 +49,7 @@ interface Comment extends Record<string, unknown> {
   moderatorNotes: string | null;
   privateNoteToFamily: string | null;
   privacyRequiredDoNotShowPublicly?: boolean;
+  hideRequested?: boolean;
   personHistoryId?: string | null;
   personHistory?: {
     id: string;
@@ -546,21 +547,31 @@ function CommentsGrid({
       width: 'w-20',
       sortable: true,
       render: (value, record) => (
-        record.privacyRequiredDoNotShowPublicly ? (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            Private
-          </span>
-        ) : (
-          <CommentStatusToggle
-            commentId={record.id}
-            initialIsApproved={record.isApproved}
-            onUpdate={(commentId, isApproved) => {
-              setComments(prev =>
-                prev.map(c => (c.id === commentId ? { ...c, isApproved } : c))
-              );
-            }}
-          />
-        )
+        <div className="flex flex-col gap-1">
+          {record.privacyRequiredDoNotShowPublicly ? (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              Private
+            </span>
+          ) : (
+            <CommentStatusToggle
+              commentId={record.id}
+              initialIsApproved={record.isApproved}
+              onUpdate={(commentId, isApproved) => {
+                setComments(prev =>
+                  prev.map(c => (c.id === commentId ? { ...c, isApproved } : c))
+                );
+              }}
+            />
+          )}
+          {record.hideRequested && (
+            <span 
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+              title={record.user && typeof record.user === 'object' && 'allowAnonymousComments' in record.user && !(record.user as {allowAnonymousComments?: boolean}).allowAnonymousComments ? "Auto-hidden: User disabled anonymous comments" : "Hidden by user request"}
+            >
+              {record.user && typeof record.user === 'object' && 'allowAnonymousComments' in record.user && !(record.user as {allowAnonymousComments?: boolean}).allowAnonymousComments ? 'Auto-hidden' : 'Hidden'}
+            </span>
+          )}
+        </div>
       ),
     },
     {

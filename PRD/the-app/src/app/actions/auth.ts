@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { CreateUserSchema } from '@/schemas/user';
 import { revalidatePath } from 'next/cache';
+import { sendVerificationEmail } from './email-verification';
 
 export async function registerUser(formData: FormData) {
   const rawData = {
@@ -89,6 +90,14 @@ export async function registerUser(formData: FormData) {
         }),
       },
     });
+
+    // Send welcome/verification email if user provided an email
+    if (user.email) {
+      const verificationResult = await sendVerificationEmail(user.id, true); // true for new registration
+      if (!verificationResult.success) {
+        console.error('Failed to send verification email:', verificationResult.error);
+      }
+    }
 
     revalidatePath('/admin/users');
     return { success: true, user: { id: user.id, username: user.username } };

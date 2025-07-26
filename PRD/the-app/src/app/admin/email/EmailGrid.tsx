@@ -8,6 +8,7 @@ import {
   PaperAirplaneIcon,
   EyeIcon,
   ArrowPathIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import EmailPreviewModal from './EmailPreviewModal';
 import { updateEmailStatus } from '@/app/actions/email-notifications';
@@ -16,12 +17,13 @@ interface EmailNotification {
   id: string;
   subject: string;
   status: EmailStatus;
-  userId: string;
+  userId: string | null;
   user: {
     email: string | null;
     firstName: string | null;
     lastName: string | null;
-  };
+  } | null;
+  sentTo?: string | null;
   person?: {
     id: string;
     firstName: string;
@@ -43,6 +45,7 @@ interface EmailGridProps {
   persons: Array<{ id: string; firstName: string; lastName: string }>;
   onSendSelected: (emailIds: string[]) => Promise<void>;
   onRetrySelected: (emailIds: string[]) => Promise<void>;
+  onDeleteSelected: (emailIds: string[]) => Promise<void>;
 }
 
 const statusColors: Record<EmailStatus, string> = {
@@ -55,7 +58,7 @@ const statusColors: Record<EmailStatus, string> = {
   OPENED: 'bg-purple-100 text-purple-800',
 };
 
-export default function EmailGrid({ emails, persons, onSendSelected, onRetrySelected }: EmailGridProps) {
+export default function EmailGrid({ emails, persons, onSendSelected, onRetrySelected, onDeleteSelected }: EmailGridProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
@@ -83,8 +86,8 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter((email) => {
-        const userEmail = email.user.email?.toLowerCase() || '';
-        const userName = `${email.user.firstName || ''} ${email.user.lastName || ''}`.toLowerCase();
+        const userEmail = email.user?.email?.toLowerCase() || '';
+        const userName = `${email.user?.firstName || ''} ${email.user?.lastName || ''}`.toLowerCase();
         const personName = email.person
           ? `${email.person.firstName} ${email.person.lastName}`.toLowerCase()
           : '';
@@ -155,6 +158,19 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
 
     startTransition(async () => {
       await onRetrySelected(selectedFailedEmails);
+      setSelectedEmails(new Set());
+      router.refresh();
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedEmails.size === 0) return;
+
+    const confirmMessage = `Are you sure you want to delete ${selectedEmails.size} selected email(s)? This action cannot be undone.`;
+    if (!confirm(confirmMessage)) return;
+
+    startTransition(async () => {
+      await onDeleteSelected(Array.from(selectedEmails));
       setSelectedEmails(new Set());
       router.refresh();
     });
@@ -242,6 +258,14 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
             <ArrowPathIcon className="h-4 w-4 mr-2" />
             Retry Selected ({selectedEmails.size})
           </button>
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isPending || selectedEmails.size === 0}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <TrashIcon className="h-4 w-4 mr-2" />
+            Delete Selected ({selectedEmails.size})
+          </button>
         </div>
       </div>
 
@@ -297,9 +321,11 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {email.user.firstName} {email.user.lastName}
+                    {email.user ? `${email.user.firstName} ${email.user.lastName}` : 'External'}
                   </div>
-                  <div className="text-sm text-gray-500">{email.user.email}</div>
+                  <div className="text-sm text-gray-500">
+                    {email.sentTo || email.user?.email || 'No email'}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">{email.subject}</div>

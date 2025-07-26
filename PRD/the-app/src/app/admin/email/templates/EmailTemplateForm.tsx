@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   createEmailTemplate, 
   updateEmailTemplate,
-  previewEmailTemplate,
 } from '@/app/actions/email-templates';
-import { getTemplateVariables } from '@/lib/email-template-variables';
+import { getTemplateVariables, replaceTemplateVariables } from '@/lib/email-template-variables';
+import EmailPreview from '@/components/admin/EmailPreview';
 import { 
   InformationCircleIcon,
   EyeIcon,
@@ -32,8 +32,11 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<{ subject: string; htmlContent: string; textContent: string | null } | null>(null);
+  const [livePreview, setLivePreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'html' | 'text'>('html');
+  const [templateType, setTemplateType] = useState<'person_update' | 'comment_verification' | 'general'>(
+    template?.name.includes('comment') ? 'comment_verification' : 'person_update'
+  );
   
   const [formData, setFormData] = useState({
     name: template?.name || '',
@@ -43,7 +46,7 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
     isActive: template?.isActive ?? true,
   });
 
-  const templateVariables = getTemplateVariables('person_update');
+  const templateVariables = getTemplateVariables(templateType);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,26 +66,52 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
     });
   };
 
-  const handlePreview = async () => {
-    if (!template?.id) {
-      setError('Please save the template first to preview');
-      return;
-    }
+  // Generate sample data based on template type
+  const getSampleData = useCallback(() => {
+    const baseData = {
+      recipientName: 'John Doe',
+      recipientEmail: 'john.doe@example.com',
+      currentDate: new Date().toLocaleDateString(),
+      siteUrl: process.env.NEXTAUTH_URL || 'https://bring-me-home.com',
+    };
 
-    startTransition(async () => {
-      const result = await previewEmailTemplate(template.id, getSampleData());
-      
-      if (result.success) {
-        setPreviewData(result.preview || null);
-        setShowPreview(true);
-      } else {
-        setError(result.error || 'Failed to preview template');
-      }
-    });
+    if (templateType === 'comment_verification') {
+      return {
+        ...baseData,
+        personName: 'Maria Rodriguez',
+        personFirstName: 'Maria',
+        personLastName: 'Rodriguez',
+        townName: 'El Paso',
+        commentContent: 'Sending prayers and support to Maria and her family. Stay strong!',
+        commentDate: new Date().toLocaleDateString(),
+        verificationUrl: 'https://bring-me-home.com/verify/comments?token=abc123',
+        hideUrl: 'https://bring-me-home.com/verify/comments?token=abc123&action=hide',
+        manageUrl: 'https://bring-me-home.com/profile',
+      };
+    } else {
+      return {
+        ...baseData,
+        personName: 'Maria Rodriguez',
+        personFirstName: 'Maria',
+        personLastName: 'Rodriguez',
+        townName: 'El Paso',
+        updateDescription: 'Maria has been successfully reunited with her family after 3 months. The family is deeply grateful for all the support and prayers during this difficult time.',
+        updateDate: new Date().toLocaleDateString(),
+        profileUrl: 'https://bring-me-home.com/el-paso/maria-rodriguez',
+        personOptOutUrl: 'https://bring-me-home.com/unsubscribe?person=maria-rodriguez',
+        allOptOutUrl: 'https://bring-me-home.com/unsubscribe?all=true',
+      };
+    }
+  }, [templateType]);
+
+  const handlePreview = () => {
+    setShowPreview(true);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className={livePreview ? 'grid grid-cols-2 gap-6' : ''}>
+      {/* Form Column */}
+      <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
           {error}
@@ -94,6 +123,25 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
         <h2 className="text-lg font-medium text-gray-900 mb-4">Template Information</h2>
         
         <div className="space-y-4">
+          <div>
+            <label htmlFor="template-type" className="block text-sm font-medium text-gray-700">
+              Template Type
+            </label>
+            <select
+              id="template-type"
+              value={templateType}
+              onChange={(e) => setTemplateType(e.target.value as typeof templateType)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              <option value="person_update">Person Update</option>
+              <option value="comment_verification">Comment Verification</option>
+              <option value="general">General</option>
+            </select>
+            <p className="mt-1 text-sm text-gray-500">
+              Template type determines which variables are available
+            </p>
+          </div>
+
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
               Template Name
@@ -228,17 +276,23 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
           Cancel
         </button>
         <div className="flex space-x-3">
-          {template && (
-            <button
-              type="button"
-              onClick={handlePreview}
-              disabled={isPending}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              <EyeIcon className="h-4 w-4 mr-2" />
-              Preview
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setLivePreview(!livePreview)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <EyeIcon className="h-4 w-4 mr-2" />
+            {livePreview ? 'Hide' : 'Show'} Live Preview
+          </button>
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={isPending}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <EyeIcon className="h-4 w-4 mr-2" />
+            Full Preview
+          </button>
           <button
             type="submit"
             disabled={isPending}
@@ -249,29 +303,48 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
         </div>
       </div>
 
-      {/* Preview Modal */}
-      {showPreview && previewData && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-            <div className="px-6 py-4 border-b">
-              <h3 className="text-lg font-medium">Email Preview</h3>
-              <p className="text-sm text-gray-600 mt-1">Subject: {previewData.subject}</p>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: previewData.htmlContent }} />
-            </div>
-            <div className="px-6 py-4 border-t flex justify-end">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Close
-              </button>
-            </div>
+      {/* Email Preview Modal */}
+      <EmailPreview
+        subject={formData.subject}
+        htmlContent={formData.htmlContent}
+        textContent={formData.textContent}
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        sampleData={getSampleData()}
+        onRefresh={() => {
+          // Force re-render with current form data
+          setShowPreview(false);
+          setTimeout(() => setShowPreview(true), 10);
+        }}
+      />
+    </form>
+
+    {/* Live Preview Column */}
+    {livePreview && (
+      <div className="space-y-6">
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">Live Preview</h2>
+            <button
+              type="button"
+              onClick={() => setLivePreview(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Hide Preview
+            </button>
+          </div>
+          <div className="border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+            <iframe
+              srcDoc={wrapEmailForPreview(formData.subject, formData.htmlContent, getSampleData())}
+              className="w-full h-full border-0"
+              sandbox="allow-same-origin"
+              title="Live Email Preview"
+            />
           </div>
         </div>
-      )}
-    </form>
+      </div>
+    )}
+  </div>
   );
 }
 
@@ -353,20 +426,69 @@ function getDefaultHtmlTemplate() {
 </html>`;
 }
 
-function getSampleData() {
-  return {
-    recipientName: 'John Doe',
-    recipientEmail: 'john.doe@example.com',
-    personName: 'Jane Smith',
-    personFirstName: 'Jane',
-    personLastName: 'Smith',
-    townName: 'Springfield',
-    updateDescription: 'Jane has been moved to a new detention center. The family appreciates your continued support during this difficult time.',
-    updateDate: new Date().toLocaleDateString(),
-    profileUrl: '#',
-    personOptOutUrl: '#',
-    allOptOutUrl: '#',
-    currentDate: new Date().toLocaleDateString(),
-    siteUrl: process.env.NEXTAUTH_URL || 'https://bring-me-home.com',
-  };
+// Helper function to wrap email content for live preview
+function wrapEmailForPreview(subject: string, htmlContent: string, sampleData: Record<string, unknown>) {
+  const processedSubject = replaceTemplateVariables(subject, sampleData);
+  const processedHtml = replaceTemplateVariables(htmlContent, sampleData);
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${processedSubject}</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 20px;
+          background: #f5f5f5;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .email-header {
+          background: white;
+          border-bottom: 1px solid #e0e0e0;
+          padding: 20px;
+          margin: -20px -20px 20px -20px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .email-subject {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+          margin: 0;
+        }
+        .email-meta {
+          font-size: 13px;
+          color: #666;
+          margin-top: 8px;
+        }
+        .email-content {
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+        /* Disable all interactions */
+        a, button {
+          pointer-events: none;
+          cursor: default;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-header">
+        <h1 class="email-subject">${processedSubject}</h1>
+        <div class="email-meta">
+          <strong>From:</strong> Bring Me Home &lt;noreply@bring-me-home.com&gt;<br>
+          <strong>To:</strong> ${sampleData.recipientEmail}<br>
+          <strong>Date:</strong> ${new Date().toLocaleString()}
+        </div>
+      </div>
+      <div class="email-content">
+        ${processedHtml}
+      </div>
+    </body>
+    </html>
+  `;
 }

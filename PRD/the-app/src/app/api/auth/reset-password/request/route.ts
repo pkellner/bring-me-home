@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendPasswordResetEmail } from '@/lib/email';
 import { nanoid } from 'nanoid';
+import { EmailStatus } from '@prisma/client';
+import { replaceTemplateVariables } from '@/lib/email-template-variables';
+import { getEmail, EMAIL_TYPES } from '@/config/emails';
 
 export async function POST(request: Request) {
   try {
@@ -79,13 +81,50 @@ export async function POST(request: Request) {
       tokenToSend = newToken;
     }
 
-    // Send reset email (always send, whether using existing or new token)
-    console.log('Attempting to send password reset email to:', user.email);
+    // Queue reset email (always queue, whether using existing or new token)
+    console.log('Attempting to queue password reset email for:', user.email);
     try {
-      await sendPasswordResetEmail(user.email!, tokenToSend);
-      console.log('Password reset email sent successfully');
+      // Get the password reset email template
+      const template = await prisma.emailTemplate.findUnique({
+        where: { name: 'Password Reset' },
+      });
+
+      if (!template) {
+        console.error('Password reset email template not found');
+        return NextResponse.json({ success: true }); // Still return success to prevent enumeration
+      }
+
+      // Prepare template variables
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const resetUrl = `${baseUrl}/auth/reset-password?token=${tokenToSend}`;
+      
+      const templateData = {
+        resetUrl,
+        userName: user.firstName || '',
+        userEmail: user.email!,
+        supportEmail: getEmail(EMAIL_TYPES.SUPPORT),
+      };
+
+      const subject = replaceTemplateVariables(template.subject, templateData);
+      const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
+      const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : undefined;
+
+      // Queue the email instead of sending directly
+      await prisma.emailNotification.create({
+        data: {
+          userId: user.id,
+          subject,
+          htmlContent,
+          textContent,
+          status: EmailStatus.QUEUED,
+          templateId: template.id,
+          sentTo: user.email!,
+        }
+      });
+
+      console.log('Password reset email queued successfully');
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
+      console.error('Failed to queue password reset email:', emailError);
       // Still return success to user, but log the error
     }
 

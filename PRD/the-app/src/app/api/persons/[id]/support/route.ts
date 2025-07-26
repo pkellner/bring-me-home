@@ -32,9 +32,9 @@ async function getCachedSupportStats(personId: string) {
       prisma.anonymousSupport.count({ 
         where: { personId, createdAt: { gte: twentyFourHoursAgo } } 
       }),
-      prisma.comment.count({ where: { personId, isApproved: true } }),
+      prisma.comment.count({ where: { personId, isApproved: true, hideRequested: false } }),
       prisma.comment.count({ 
-        where: { personId, isApproved: true, createdAt: { gte: twentyFourHoursAgo } } 
+        where: { personId, isApproved: true, hideRequested: false, createdAt: { gte: twentyFourHoursAgo } } 
       }),
     ]);
   

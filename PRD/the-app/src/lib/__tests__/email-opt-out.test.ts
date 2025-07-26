@@ -306,7 +306,7 @@ describe('Email Opt-Out Logic', () => {
 
       await getPersonFollowers(mockPersonId, false);
       
-      // Verify the comment query includes isApproved filter
+      // Verify the comment query includes isApproved and hideRequested filters
       expect(prisma.comment.findMany).toHaveBeenCalledWith({
         where: {
           personId: mockPersonId,
@@ -314,6 +314,7 @@ describe('Email Opt-Out Logic', () => {
             not: null,
           },
           isApproved: true,
+          hideRequested: false,
         },
         select: {
           email: true,

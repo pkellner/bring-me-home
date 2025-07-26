@@ -40,6 +40,7 @@ interface CommentFormState {
   success?: boolean;
   error?: string;
   errors?: Record<string, string[]>;
+  warning?: string;
 }
 
 interface Stats {

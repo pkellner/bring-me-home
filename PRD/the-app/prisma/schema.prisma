@@ -11,11 +11,15 @@ model User {
   id                  String               @id @default(cuid())
   username            String               @unique
   email               String?              @unique
+  emailVerified       DateTime?
+  emailVerificationToken String?           @unique
+  emailVerificationExpires DateTime?
   password            String
   firstName           String?
   lastName            String?
   isActive            Boolean              @default(true)
   optOutOfAllEmail    Boolean              @default(false)
+  allowAnonymousComments Boolean           @default(true)
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -256,6 +260,9 @@ model Comment {
   country                  String?
   processedForLatLon       Boolean   @default(false)
   userId                   String?
+  hideRequested            Boolean   @default(false)
+  hideRequestedAt          DateTime?
+  verificationEmailSentAt  DateTime?
   person                   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
   personHistory            PersonHistory? @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
   user                     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -268,6 +275,7 @@ model Comment {
   @@index([email])
   @@index([processedForLatLon])
   @@index([userId])
+  @@index([hideRequested])
   @@map("comments")
 }
 
@@ -560,7 +568,7 @@ model EmailOptOut {
 
 model EmailNotification {
   id                String                @id @default(cuid())
-  userId            String
+  userId            String?               // Made optional for non-user emails
   personId          String?
   personHistoryId   String?
   subject           String
@@ -569,6 +577,7 @@ model EmailNotification {
   status            EmailStatus           @default(QUEUED)
   provider          String?
   messageId         String?
+  sentTo            String?               // Email address to send to
   sentAt            DateTime?
   deliveredAt       DateTime?
   openedAt          DateTime?
@@ -584,7 +593,7 @@ model EmailNotification {
   webhookUrl        String?
   webhookEvents     Json?
   
-  user              User                  @relation("sentTo", fields: [userId], references: [id], onDelete: Cascade)
+  user              User?                 @relation("sentTo", fields: [userId], references: [id], onDelete: Cascade)
   person            Person?               @relation(fields: [personId], references: [id], onDelete: Cascade)
   personHistory     PersonHistory?        @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
   template          EmailTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -594,6 +603,7 @@ model EmailNotification {
   @@index([personId])
   @@index([templateId])
   @@index([messageId])
+  @@index([sentTo])
   @@map("email_notifications")
 }
 
@@ -632,6 +642,24 @@ model EmailTemplate {
   emailNotifications EmailNotification[]
   
   @@map("email_templates")
+}
+
+model CommentVerificationToken {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  tokenHash   String    @unique
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  usageCount  Int       @default(0)
+  lastAction  String?
+  revokedAt   DateTime?
+  revokedBy   String?
+  
+  @@index([email])
+  @@index([tokenHash])
+  @@index([isActive])
+  @@map("comment_verification_tokens")
 }
 
 enum EmailStatus {

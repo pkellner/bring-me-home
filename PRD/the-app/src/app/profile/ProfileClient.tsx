@@ -17,20 +17,27 @@ import {
   XCircleIcon,
   ArrowLeftIcon,
   HomeIcon,
-  BellSlashIcon
+  BellSlashIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import Link from '@/components/OptimizedLink';
 import { performSignOut } from '@/lib/signout';
+import CommentManagement from '@/components/profile/CommentManagement';
+import { resendVerificationEmail } from '@/app/actions/email-verification';
 
 interface ProfileUser {
   id: string;
   username: string;
   email: string;
+  emailVerified: string | null;
   firstName: string;
   lastName: string;
   createdAt: string;
   lastLogin: string | null;
   optOutOfAllEmail: boolean;
+  allowAnonymousComments: boolean;
   roles: Array<{
     id: string;
     name: string;
@@ -73,18 +80,22 @@ interface ProfileUser {
 // Email Preferences Component
 function EmailPreferences({ 
   initialOptOutOfAllEmail, 
+  initialAllowAnonymousComments,
   emailSubscriptions 
 }: { 
   initialOptOutOfAllEmail: boolean;
+  initialAllowAnonymousComments: boolean;
   emailSubscriptions: ProfileUser['emailSubscriptions'];
 }) {
   const [globalOptOut, setGlobalOptOut] = useState(initialOptOutOfAllEmail);
+  const [allowAnonymousComments, setAllowAnonymousComments] = useState(initialAllowAnonymousComments);
   const [personOptOuts, setPersonOptOuts] = useState<string[]>(
     emailSubscriptions.filter(sub => sub.isOptedOut).map(sub => sub.personId)
   );
   const [isLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
+  const [showActiveSubscriptions, setShowActiveSubscriptions] = useState(false);
   const router = useRouter();
 
 
@@ -109,6 +120,32 @@ function EmailPreferences({
       router.refresh();
     } catch {
       setError('Failed to update preferences');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleAllowAnonymousCommentsChange = async (checked: boolean) => {
+    setError('');
+    setIsUpdating(true);
+    
+    try {
+      const response = await fetch('/api/profile/anonymous-comments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowAnonymousComments: checked }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to update anonymous comment preferences');
+        return;
+      }
+      
+      setAllowAnonymousComments(checked);
+      router.refresh();
+    } catch {
+      setError('Failed to update anonymous comment preferences');
     } finally {
       setIsUpdating(false);
     }
@@ -176,63 +213,186 @@ function EmailPreferences({
         </label>
       </div>
       
-      {/* Person-specific subscriptions */}
-      {emailSubscriptions.length > 0 && !globalOptOut && (
+      {/* Anonymous comments setting */}
+      <div className="flex items-start mt-4">
+        <input
+          type="checkbox"
+          id="allow-anonymous-comments"
+          checked={allowAnonymousComments}
+          onChange={(e) => handleAllowAnonymousCommentsChange(e.target.checked)}
+          disabled={isUpdating}
+          className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1"
+        />
+        <label htmlFor="allow-anonymous-comments" className="ml-3">
+          <div className="text-sm font-medium text-gray-900">
+            Allow anonymous comments with my email
+          </div>
+          <div className="text-sm text-gray-600">
+            When unchecked, any anonymous comments posted with your email address will be automatically hidden and require your approval to be visible
+          </div>
+        </label>
+      </div>
+      
+      {/* Person-specific opt-outs */}
+      {!globalOptOut && (
         <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">
-            People you&apos;re following
-          </h3>
-          <p className="text-xs text-gray-600 mb-4">
-            You&apos;ll receive email notifications when there are updates about these people.
-          </p>
-          <div className="space-y-3">
-            {emailSubscriptions.map((subscription) => (
-              <div key={subscription.personId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">
-                    {subscription.firstName} {subscription.lastName}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {subscription.townName}
-                  </div>
-                </div>
-                <div className="ml-4">
-                  {subscription.isOptedOut ? (
-                    <button
-                      onClick={() => handlePersonOptOutChange(subscription.personId, false)}
-                      disabled={isUpdating}
-                      className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
-                    >
-                      Resubscribe
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handlePersonOptOutChange(subscription.personId, true)}
-                      disabled={isUpdating}
-                      className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-                    >
-                      Unsubscribe
-                    </button>
+          {personOptOuts.length > 0 ? (
+            <>
+              <h3 className="text-sm font-medium text-gray-900 mb-3">
+                Email notification opt-outs
+              </h3>
+              <p className="text-xs text-gray-600 mb-4">
+                You have opted out of receiving email updates about these people. You can resubscribe at any time.
+              </p>
+              <div className="space-y-3">
+                {emailSubscriptions
+                  .filter(sub => personOptOuts.includes(sub.personId))
+                  .map((subscription) => (
+                    <div key={subscription.personId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {subscription.firstName} {subscription.lastName}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {subscription.townName}
+                        </div>
+                        <div className="text-xs text-red-600 mt-1">
+                          Not receiving email updates
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <button
+                          onClick={() => handlePersonOptOutChange(subscription.personId, false)}
+                          disabled={isUpdating}
+                          className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50 px-3 py-1 border border-green-600 rounded hover:bg-green-50"
+                        >
+                          Resubscribe
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <p className="font-medium text-gray-700">No email opt-outs</p>
+              <p className="mt-1">You&apos;re receiving email updates for all people you&apos;ve shown support for.</p>
+              <p className="mt-2 text-xs">To stop receiving updates about a specific person, you can manage your subscriptions below.</p>
+            </div>
+          )}
+          
+          {/* Show active subscriptions if user has any */}
+          {emailSubscriptions.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowActiveSubscriptions(!showActiveSubscriptions)}
+                className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <span>Manage email subscriptions ({emailSubscriptions.filter(sub => !personOptOuts.includes(sub.personId)).length} active)</span>
+                {showActiveSubscriptions ? (
+                  <ChevronUpIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4" />
+                )}
+              </button>
+              
+              {showActiveSubscriptions && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-gray-600 mb-2">
+                    You&apos;re receiving email updates about these people because you&apos;ve shown support for them.
+                  </p>
+                  {emailSubscriptions
+                    .filter(sub => !personOptOuts.includes(sub.personId))
+                    .map((subscription) => (
+                      <div key={subscription.personId} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {subscription.firstName} {subscription.lastName}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {subscription.townName}
+                          </div>
+                          <div className="text-xs text-green-600 mt-1">
+                            Receiving email updates
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <button
+                            onClick={() => handlePersonOptOutChange(subscription.personId, true)}
+                            disabled={isUpdating}
+                            className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50 px-3 py-1 border border-red-600 rounded hover:bg-red-50"
+                          >
+                            Unsubscribe
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  {emailSubscriptions.filter(sub => !personOptOuts.includes(sub.personId)).length === 0 && (
+                    <p className="text-sm text-gray-500 italic p-3">All subscriptions are currently opted out.</p>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* No subscriptions message */}
-      {emailSubscriptions.length === 0 && !globalOptOut && (
-        <div className="mt-6 text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
-          <p>You&apos;re not currently following any detained persons.</p>
-          <p className="mt-2">When you leave a message of support on someone&apos;s profile, you&apos;ll automatically receive email updates about them.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-export default function ProfileClient({ user }: { user: ProfileUser }) {
+interface Comment {
+  id: string;
+  content: string | null;
+  createdAt: Date;
+  hideRequested: boolean;
+  isActive: boolean;
+  isApproved: boolean;
+  personName: string;
+  personSlug: string;
+  townSlug: string;
+}
+
+interface PersonGroup {
+  person: {
+    id: string;
+    name: string;
+    slug: string;
+    townSlug: string;
+  };
+  comments: Array<{
+    id: string;
+    content: string | null;
+    createdAt: Date;
+    hideRequested: boolean;
+    isActive: boolean;
+    isApproved: boolean;
+  }>;
+}
+
+interface CommentToken {
+  id: string;
+  email: string;
+  tokenHash: string;
+  isActive: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export default function ProfileClient({ 
+  user, 
+  comments,
+  groupedByPerson,
+  isAdmin = false,
+  isViewingOwnProfile = true,
+  commentTokens = null,
+}: { 
+  user: ProfileUser;
+  comments: Comment[];
+  groupedByPerson: Record<string, PersonGroup>;
+  isAdmin?: boolean;
+  isViewingOwnProfile?: boolean;
+  commentTokens?: CommentToken[] | null;
+}) {
   const router = useRouter();
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [email, setEmail] = useState(user.email);
@@ -460,19 +620,29 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-8">
-            <div className="flex items-center">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 mr-4">
-                <UserIcon className="h-12 w-12 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 mr-4">
+                  <UserIcon className="h-12 w-12 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">
+                    {user.firstName || user.lastName 
+                      ? `${user.firstName} ${user.lastName}`.trim()
+                      : user.username}
+                  </h1>
+                  {isAdmin && !isViewingOwnProfile && (
+                    <p className="text-indigo-100 mt-1">Viewing as Administrator</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  {user.firstName || user.lastName 
-                    ? `${user.firstName} ${user.lastName}`.trim()
-                    : user.username}
-                </h1>
-                <p className="text-indigo-100 mt-1">@{user.username}</p>
-              </div>
+              {isAdmin && !isViewingOwnProfile && (
+                <div className="bg-red-600 bg-opacity-90 px-4 py-2 rounded-lg">
+                  <p className="text-sm font-semibold text-white">Admin View</p>
+                </div>
+              )}
             </div>
+            <p className="text-indigo-100 mt-1">@{user.username}</p>
           </div>
           
           {/* Content */}
@@ -516,14 +686,52 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
               )}
               
               {!isEditingEmail ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-900">{user.email}</span>
-                  <button
-                    onClick={() => setIsEditingEmail(true)}
-                    className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-                  >
-                    Change Email
-                  </button>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-gray-900">{user.email}</span>
+                      {user.emailVerified ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircleIcon className="h-3 w-3 mr-1" />
+                          Verified
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                          Unverified
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setIsEditingEmail(true)}
+                      className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                    >
+                      Change Email
+                    </button>
+                  </div>
+                  {!user.emailVerified && isViewingOwnProfile && (
+                    <div className="flex items-start space-x-2 bg-yellow-50 p-3 rounded-lg">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-yellow-800">
+                          Your email address is not verified. Please check your inbox for a verification email.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            const result = await resendVerificationEmail();
+                            if (result.success) {
+                              setEmailSuccess('Verification email sent! Please check your inbox.');
+                            } else {
+                              setEmailError(result.error || 'Failed to send verification email');
+                            }
+                          }}
+                          className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+                        >
+                          Resend verification email
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleEmailUpdate} className="space-y-4">
@@ -553,6 +761,7 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
                         setIsEditingEmail(false);
                         setEmail(user.email);
                         setEmailError('');
+                        setEmailSuccess('');
                       }}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                     >
@@ -705,12 +914,25 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
               </h2>
               <EmailPreferences 
                 initialOptOutOfAllEmail={user.optOutOfAllEmail}
+                initialAllowAnonymousComments={user.allowAnonymousComments}
                 emailSubscriptions={user.emailSubscriptions}
               />
             </div>
+
+            {/* Comments Management Section */}
+            {comments.length > 0 && (
+              <div className="px-6 py-6">
+                <CommentManagement 
+                  userId={user.id}
+                  comments={comments}
+                  groupedByPerson={groupedByPerson}
+                />
+              </div>
+            )}
             
-            {/* Roles Section - Only show if user has roles */}
-            {user.roles.length > 0 && (
+            {/* Roles Section - Only show if user has roles other than viewer */}
+            {user.roles.length > 0 && 
+             !(user.roles.length === 1 && user.roles[0].name === 'viewer') && (
               <div className="px-6 py-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <ShieldCheckIcon className="h-5 w-5 mr-2 text-gray-500" />
@@ -794,6 +1016,121 @@ export default function ProfileClient({ user }: { user: ProfileUser }) {
                       </div>
                     </Link>
                   ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Admin Only Section */}
+            {isAdmin && !isViewingOwnProfile && (
+              <div className="border-t-4 border-red-200 bg-red-50">
+                <div className="px-6 py-6">
+                  <h2 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
+                    <ShieldCheckIcon className="h-5 w-5 mr-2 text-red-700" />
+                    Admin Only Information
+                  </h2>
+                  
+                  {/* User ID and Creation Info */}
+                  <div className="mb-6 bg-white rounded-lg p-4 border border-red-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">User Details</h3>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <dt className="text-gray-600">User ID:</dt>
+                        <dd className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{user.id}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-600">Account Created:</dt>
+                        <dd>{format(new Date(user.createdAt), 'PPpp')}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-600">Last Login:</dt>
+                        <dd>{user.lastLogin ? format(new Date(user.lastLogin), 'PPpp') : 'Never'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-600">Email Status:</dt>
+                        <dd className="flex items-center">
+                          {user.email ? (
+                            user.emailVerified ? (
+                              <>
+                                <CheckCircleIcon className="h-4 w-4 text-green-600 mr-1" />
+                                <span>Verified</span>
+                              </>
+                            ) : (
+                              <>
+                                <ExclamationTriangleIcon className="h-4 w-4 text-yellow-600 mr-1" />
+                                <span>Unverified</span>
+                              </>
+                            )
+                          ) : (
+                            <>
+                              <XCircleIcon className="h-4 w-4 text-red-600 mr-1" />
+                              <span>No email</span>
+                            </>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                  
+                  {/* Comment Verification Tokens */}
+                  {commentTokens && commentTokens.length > 0 && (
+                    <div className="bg-white rounded-lg p-4 border border-red-200">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3">Comment Verification Tokens</h3>
+                      <div className="space-y-2">
+                        {commentTokens.map((token) => (
+                          <div key={token.id} className="bg-gray-50 rounded p-3 text-sm">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium text-gray-900">Token Hash:</span>
+                                  <code className="text-xs bg-gray-200 px-2 py-1 rounded font-mono">
+                                    {token.tokenHash}
+                                  </code>
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    token.isActive 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {token.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div>Created: {format(new Date(token.createdAt), 'PPp')}</div>
+                                  <div>Last Used: {token.lastUsedAt ? format(new Date(token.lastUsedAt), 'PPp') : 'Never'}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 text-xs text-gray-500">
+                        Showing up to 10 most recent active tokens for email: {user.email}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* No Tokens Message */}
+                  {(!commentTokens || commentTokens.length === 0) && user.email && (
+                    <div className="bg-white rounded-lg p-4 border border-red-200">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-2">Comment Verification Tokens</h3>
+                      <p className="text-sm text-gray-600">No active verification tokens found for this user.</p>
+                    </div>
+                  )}
+                  
+                  {/* Admin Actions */}
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <Link
+                      href={`/admin/users/${user.id}/edit`}
+                      className="inline-flex items-center px-4 py-2 bg-white border border-red-300 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
+                    >
+                      Edit User Settings
+                    </Link>
+                    <Link
+                      href="/admin/comments"
+                      className="inline-flex items-center px-4 py-2 bg-white border border-red-300 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
+                    >
+                      View All Comments
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}

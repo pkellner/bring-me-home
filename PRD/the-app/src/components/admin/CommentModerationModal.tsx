@@ -43,6 +43,11 @@ interface Comment extends Record<string, unknown> {
     description: string;
     date: Date | string;
   } | null;
+  user?: {
+    id: string;
+    allowAnonymousComments: boolean;
+    emailVerified: Date | string | null;
+  } | null;
   person: {
     id: string;
     firstName: string;
@@ -230,7 +235,18 @@ export default function CommentModerationModal({
                   </div>
                   <div>
                     <span className="font-semibold text-gray-800">Email:</span>{' '}
-                    <span className="text-gray-900 font-medium">{comment.email || 'Not provided'}</span>
+                    <span className="text-gray-900 font-medium">
+                      {comment.email || 'Not provided'}
+                      {comment.email && comment.user && (
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          comment.user.emailVerified 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {comment.user.emailVerified ? '✓ Verified' : '⚠ Unverified'}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div>
                     <span className="font-semibold text-gray-800">Phone:</span>{' '}

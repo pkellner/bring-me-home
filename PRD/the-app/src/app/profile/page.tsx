@@ -3,17 +3,30 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import ProfileClient from './ProfileClient';
+import { getUserComments } from '@/app/actions/user-comments';
+import { isSiteAdmin } from '@/lib/permissions';
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ userId?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
     redirect('/auth/signin');
   }
   
+  const params = await searchParams;
+  const isAdmin = isSiteAdmin(session);
+  
+  // Determine which user to show
+  const targetUserId = params.userId && isAdmin ? params.userId : session.user.id;
+  const isViewingOwnProfile = targetUserId === session.user.id;
+  
   // Get full user data including roles and access
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: targetUserId },
     include: {
       userRoles: {
         include: {
@@ -99,16 +112,34 @@ export default async function ProfilePage() {
     redirect('/auth/signin');
   }
   
+  // Get user's comments
+  const { comments, groupedByPerson } = await getUserComments(user.id);
+  
+  // Get comment verification tokens if admin viewing another user
+  let commentTokens = null;
+  if (isAdmin && !isViewingOwnProfile && user.email) {
+    commentTokens = await prisma.commentVerificationToken.findMany({
+      where: { 
+        email: user.email,
+        isActive: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+  }
+  
   // Serialize the data for client component
   const serializedUser = {
     id: user.id,
     username: user.username,
     email: user.email || '',
+    emailVerified: user.emailVerified ? user.emailVerified.toISOString() : null,
     firstName: user.firstName || '',
     lastName: user.lastName || '',
     createdAt: user.createdAt.toISOString(),
     lastLogin: user.lastLogin?.toISOString() || null,
     optOutOfAllEmail: user.optOutOfAllEmail,
+    allowAnonymousComments: user.allowAnonymousComments,
     roles: user.userRoles.map(ur => ({
       id: ur.role.id,
       name: ur.role.name,
@@ -148,5 +179,19 @@ export default async function ProfilePage() {
     })),
   };
   
-  return <ProfileClient user={serializedUser} />;
+  return <ProfileClient 
+    user={serializedUser} 
+    comments={comments}
+    groupedByPerson={groupedByPerson}
+    isAdmin={isAdmin}
+    isViewingOwnProfile={isViewingOwnProfile}
+    commentTokens={commentTokens ? commentTokens.map(token => ({
+      id: token.id,
+      email: token.email,
+      tokenHash: token.tokenHash.substring(0, 8) + '...',
+      isActive: token.isActive,
+      lastUsedAt: token.lastUsedAt?.toISOString() || null,
+      createdAt: token.createdAt.toISOString(),
+    })) : null}
+  />;
 }

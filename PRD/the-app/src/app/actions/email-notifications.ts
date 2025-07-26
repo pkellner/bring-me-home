@@ -179,6 +179,7 @@ export async function getPersonFollowers(personId: string, includeHistoryComment
   const whereClause: {
     email: { not: null };
     isApproved: boolean;
+    hideRequested: boolean;
     OR?: Array<{ personId?: string; personHistoryId?: { in: string[] } }>;
     personId?: string;
   } = {
@@ -186,6 +187,7 @@ export async function getPersonFollowers(personId: string, includeHistoryComment
       not: null,
     },
     isApproved: true, // Only consider approved comments
+    hideRequested: false, // Exclude hidden comments
   };
 
   if (includeHistoryComments) {
@@ -716,5 +718,26 @@ export async function updateEmailStatus(emailId: string, newStatus: EmailStatus)
   } catch (error) {
     console.error('Error updating email status:', error);
     return { success: false, error: 'Failed to update email status' };
+  }
+}
+
+// Delete selected email notifications
+export async function deleteEmailNotifications(emailIds: string[]) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !isSiteAdmin(session)) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    const result = await prisma.emailNotification.deleteMany({
+      where: {
+        id: { in: emailIds },
+      },
+    });
+
+    return { success: true, count: result.count };
+  } catch (error) {
+    console.error('Error deleting email notifications:', error);
+    return { success: false, error: 'Failed to delete email notifications' };
   }
 }

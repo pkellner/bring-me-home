@@ -15,6 +15,9 @@ import {
   KeyIcon,
   ShieldCheckIcon,
   UserIcon,
+  EyeIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
 interface UserRole {
@@ -42,12 +45,15 @@ interface User extends Record<string, unknown> {
   id: string;
   username: string;
   email: string | null;
+  emailVerified: Date | null;
   firstName: string | null;
   lastName: string | null;
   isActive: boolean;
+  allowAnonymousComments: boolean;
   userRoles: UserRole[];
   townAccess: TownAccess[];
   personAccess: PersonAccess[];
+  comments?: { id: string; hideRequested: boolean }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -210,6 +216,31 @@ export default function UsersGrid({
       ),
     },
     {
+      key: 'emailVerified',
+      label: 'Email Status',
+      sortable: true,
+      render: (value, record) => {
+        if (!record.email) {
+          return <span className="text-sm text-gray-400">No email</span>;
+        }
+        return (
+          <div className="flex items-center">
+            {record.emailVerified ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <CheckCircleIcon className="h-3 w-3 mr-1" />
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                Unverified
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'firstName',
       label: 'Name',
       sortable: true,
@@ -273,6 +304,48 @@ export default function UsersGrid({
       ),
     },
     {
+      key: 'allowAnonymousComments',
+      label: 'Anonymous Comments',
+      sortable: true,
+      render: (value, record) => (
+        <div className="flex items-center">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              record.allowAnonymousComments
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {record.allowAnonymousComments ? 'Allowed' : 'Blocked'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'comments',
+      label: 'Hidden Comments',
+      render: (value, record) => {
+        const hiddenCount = record.comments?.filter((c) => c.hideRequested).length || 0;
+        const totalCount = record.comments?.length || 0;
+        
+        return (
+          <div className="text-sm">
+            {hiddenCount > 0 ? (
+              <span className="text-yellow-600 font-medium">
+                {hiddenCount} hidden / {totalCount} total
+              </span>
+            ) : totalCount > 0 ? (
+              <span className="text-gray-600">
+                0 hidden / {totalCount} total
+              </span>
+            ) : (
+              <span className="text-gray-400">No comments</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'isActive',
       label: 'Status',
       sortable: true,
@@ -298,6 +371,14 @@ export default function UsersGrid({
       label: 'Edit User',
       href: user => `/admin/users/${user.id}/edit`,
       show: () => canEdit,
+    },
+    {
+      type: 'custom',
+      label: 'View Profile',
+      icon: EyeIcon,
+      onClick: (user) => router.push(`/profile?userId=${user.id}`),
+      show: () => canEdit,
+      className: 'text-blue-600 hover:text-blue-800',
     },
     {
       type: 'custom',

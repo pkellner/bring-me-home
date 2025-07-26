@@ -17,7 +17,12 @@ export default async function EmailTemplatesPage() {
   
   // Serialize dates for client component
   const serializedTemplates = templates.map(template => ({
-    ...template,
+    id: template.id,
+    name: template.name,
+    subject: template.subject,
+    htmlContent: template.htmlContent,
+    textContent: template.textContent,
+    isActive: template.isActive,
     createdAt: template.createdAt.toISOString(),
     updatedAt: template.updatedAt.toISOString(),
   }));

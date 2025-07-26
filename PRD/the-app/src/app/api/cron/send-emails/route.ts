@@ -51,12 +51,15 @@ export async function GET(request: NextRequest) {
     for (const emailNotification of emailsToSend) {
       results.processed++;
 
-      if (!emailNotification.user.email) {
+      // Determine the recipient email address
+      const recipientEmail = emailNotification.sentTo || emailNotification.user?.email;
+      
+      if (!recipientEmail) {
         await prisma.emailNotification.update({
           where: { id: emailNotification.id },
           data: {
             status: EmailStatus.FAILED,
-            errorMessage: 'User has no email address',
+            errorMessage: 'No recipient email address',
             retryCount: { increment: 1 },
           },
         });
@@ -65,11 +68,11 @@ export async function GET(request: NextRequest) {
       }
 
       try {
-        console.log(`[Email Cron] Sending email to ${emailNotification.user.email} (ID: ${emailNotification.id})`);
+        console.log(`[Email Cron] Sending email to ${recipientEmail} (ID: ${emailNotification.id})`);
         
         // Send the email
         const result = await sendEmail({
-          to: emailNotification.user.email,
+          to: recipientEmail,
           subject: emailNotification.subject,
           html: emailNotification.htmlContent,
           text: emailNotification.textContent || undefined,

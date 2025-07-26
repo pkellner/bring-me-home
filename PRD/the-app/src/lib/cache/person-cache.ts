@@ -69,6 +69,7 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
     comments: {
       where: {
         isActive: true;
+        hideRequested: false;
       };
       select: {
         id: true;
@@ -93,6 +94,7 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
         privacyRequiredDoNotShowPublicly: true;
         isApproved: true;
         isActive: true;
+        hideRequested: true;
         personId: true;
         type: true;
         visibility: true;
@@ -245,6 +247,7 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
       comments: {
         where: {
           isActive: true,
+          hideRequested: false,
         },
         select: {
           id: true,
@@ -269,6 +272,7 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
           privacyRequiredDoNotShowPublicly: true,
           isApproved: true,
           isActive: true,
+          hideRequested: true,
           personId: true,
           type: true,
           visibility: true,

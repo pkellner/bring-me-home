@@ -1,5 +1,5 @@
 // Get available template variables based on template type
-export function getTemplateVariables(templateType: 'person_update' | 'general') {
+export function getTemplateVariables(templateType: 'person_update' | 'comment_verification' | 'general') {
   const commonVariables = {
     recipientName: 'Recipient full name',
     recipientEmail: 'Recipient email address',
@@ -19,6 +19,18 @@ export function getTemplateVariables(templateType: 'person_update' | 'general') 
       profileUrl: 'Person profile URL',
       personOptOutUrl: 'Unsubscribe from person updates URL',
       allOptOutUrl: 'Unsubscribe from all emails URL',
+    },
+    comment_verification: {
+      ...commonVariables,
+      personName: 'Person full name',
+      personFirstName: 'Person first name',
+      personLastName: 'Person last name',
+      townName: 'Town name',
+      commentContent: 'Comment content preview',
+      commentDate: 'Comment date',
+      verificationUrl: 'View comment URL',
+      hideUrl: 'Hide all comments URL',
+      manageUrl: 'Manage comments URL',
     },
     general: {
       ...commonVariables,

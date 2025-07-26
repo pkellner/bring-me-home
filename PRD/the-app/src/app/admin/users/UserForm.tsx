@@ -34,6 +34,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   isActive: boolean;
+  allowAnonymousComments: boolean;
   userRoles: Array<{
     role: { id: string; name: string };
   }>;
@@ -395,6 +396,23 @@ export default function UserForm({
                     className="ml-2 block text-sm text-gray-900"
                   >
                     Active
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="allowAnonymousComments"
+                    name="allowAnonymousComments"
+                    value="true"
+                    defaultChecked={user?.allowAnonymousComments ?? true}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <label
+                    htmlFor="allowAnonymousComments"
+                    className="ml-2 block text-sm text-gray-900"
+                  >
+                    Allow Anonymous Comments
                   </label>
                 </div>
               </div>
