@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/comment-verification';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -423,6 +424,55 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       allowAnonymousComments: updatedUser.allowAnonymousComments 
+    });
+  } catch (error) {
+    console.error('Error updating anonymous comments preference:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { allowAnonymousComments, email } = body;
+
+    if (typeof allowAnonymousComments !== 'boolean' || !email) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    // Check authorization: either session or valid token
+    const session = await getServerSession(authOptions);
+    const token = request.headers.get('x-verification-token');
+    
+    let authorized = false;
+    
+    // Check if user is logged in and owns this email
+    if (session?.user?.email === email) {
+      authorized = true;
+    }
+    
+    // Check if valid token for this email
+    if (token && !authorized) {
+      const verificationToken = await verifyToken(token);
+      if (verificationToken && verificationToken.email === email) {
+        authorized = true;
+      }
+    }
+    
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Update the user's allowAnonymousComments setting
+    const updatedUsers = await prisma.user.updateMany({
+      where: { email },
+      data: { allowAnonymousComments },
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      allowAnonymousComments,
+      updated: updatedUsers.count 
     });
   } catch (error) {
     console.error('Error updating anonymous comments preference:', error);

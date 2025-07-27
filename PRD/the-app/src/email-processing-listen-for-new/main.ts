@@ -36,7 +36,7 @@ async function log(level: 'info' | 'warning' | 'error', category: string, messag
   } catch (error) {
     console.error('Failed to write log:', error);
   }
-  
+
   // Also log to console
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [${level.toUpperCase()}] [${category}] ${message}`, metadata || '');
@@ -48,7 +48,7 @@ async function shouldStop(): Promise<{ stop: boolean; reason?: string }> {
     const control = await prisma.emailProcessorControl.findUnique({
       where: { id: 'control' },
     });
-    
+
     if (!control) {
       // Create default control record if it doesn't exist
       await prisma.emailProcessorControl.create({
@@ -56,21 +56,21 @@ async function shouldStop(): Promise<{ stop: boolean; reason?: string }> {
       });
       return { stop: false };
     }
-    
+
     // Update last check time
     await prisma.emailProcessorControl.update({
       where: { id: 'control' },
       data: { lastCheckAt: new Date() },
     });
-    
+
     if (control.isAborted) {
       return { stop: true, reason: `Aborted by ${control.abortedBy} at ${control.abortedAt}` };
     }
-    
+
     if (control.isPaused) {
       return { stop: false, reason: `Paused by ${control.pausedBy} at ${control.pausedAt}` };
     }
-    
+
     return { stop: false };
   } catch (error) {
     await log('error', 'control', 'Failed to check control status', { error: error instanceof Error ? error.message : error });
@@ -78,9 +78,13 @@ async function shouldStop(): Promise<{ stop: boolean; reason?: string }> {
   }
 }
 
+// Track pause state globally
+let isPaused = false;
+let lastPauseReason: string | undefined;
+
 async function processEmailBatch(): Promise<{ sent: number; failed: number; stopped?: boolean }> {
   const batchId = randomUUID();
-  
+
   try {
     // Check if we should stop
     const controlCheck = await shouldStop();
@@ -89,13 +93,20 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
       return { sent: 0, failed: 0, stopped: true };
     }
     if (controlCheck.reason) {
-      // Paused - skip this batch
-      await log('info', 'batch', 'Processor paused, skipping batch', { batchId, reason: controlCheck.reason });
+      // Only log if pause state changed
+      if (!isPaused) {
+        await log('info', 'batch', 'Processor paused', { batchId, reason: controlCheck.reason });
+        isPaused = true;
+        lastPauseReason = controlCheck.reason;
+      }
       return { sent: 0, failed: 0 };
+    } else if (isPaused) {
+      // We were paused but now resumed
+      await log('info', 'batch', 'Processor resumed', { batchId, previousPauseReason: lastPauseReason });
+      isPaused = false;
+      lastPauseReason = undefined;
     }
-    
-    await log('info', 'batch', 'Starting email batch processing', { batchId });
-    
+
     // First, update all QUEUED emails to SENDING status (same as the button does)
     const updateResult = await prisma.emailNotification.updateMany({
       where: {
@@ -109,6 +120,7 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
       },
     });
 
+    // Only log if we actually updated emails
     if (updateResult.count > 0) {
       await log('info', 'batch', `Updated ${updateResult.count} emails from QUEUED to SENDING`, { batchId, count: updateResult.count });
     }
@@ -139,13 +151,14 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
       },
     });
 
+    // If no emails to process, return silently
     if (emailsToSend.length === 0) {
-      await log('info', 'batch', 'No emails to process', { batchId });
       return { sent: 0, failed: 0 };
     }
-    
-    await log('info', 'batch', `Found ${emailsToSend.length} emails to process`, { 
-      batchId, 
+
+    // Only log if we have emails to process
+    await log('info', 'batch', `Found ${emailsToSend.length} emails to process`, {
+      batchId,
       count: emailsToSend.length,
       emails: emailsToSend.map(e => ({ id: e.id, to: e.sentTo || e.user?.email, subject: e.subject }))
     });
@@ -158,12 +171,12 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
 
       if (!recipientEmail) {
         // Mark as failed if no recipient
-        await log('warning', 'email', 'Email has no recipient address', { 
-          batchId, 
+        await log('warning', 'email', 'Email has no recipient address', {
+          batchId,
           emailId: emailNotification.id,
-          userId: emailNotification.userId 
+          userId: emailNotification.userId
         });
-        
+
         await prisma.emailNotification.update({
           where: { id: emailNotification.id },
           data: {
@@ -194,17 +207,17 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
         // Check control status before each batch
         const controlCheck = await shouldStop();
         if (controlCheck.stop || controlCheck.reason) {
-          await log('warning', 'batch', 'Stopping batch processing', { 
-            batchId, 
+          await log('warning', 'batch', 'Stopping batch processing', {
+            batchId,
             reason: controlCheck.reason,
             processed: { sent: totalSent, failed: totalFailed }
           });
           return { sent: totalSent, failed: totalFailed, stopped: controlCheck.stop };
         }
-        
+
         const batch = emails.slice(i, i + EMAIL_BATCH_SIZE);
-        await log('info', 'batch', `Processing batch of ${batch.length} emails`, { 
-          batchId, 
+        await log('info', 'batch', `Processing batch of ${batch.length} emails`, {
+          batchId,
           batchSize: batch.length,
           batchIndex: Math.floor(i / EMAIL_BATCH_SIZE) + 1
         });
@@ -230,7 +243,7 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
             // Batch result
             totalSent += result.succeeded.length;
             totalFailed += result.failed.length;
-            
+
             await log('info', 'batch', `Batch processed: ${result.succeeded.length} sent, ${result.failed.length} failed`, {
               batchId,
               succeeded: result.succeeded.length,
@@ -247,7 +260,7 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
                   provider: success.provider,
                   messageId: success.messageId
                 });
-                
+
                 await prisma.emailNotification.update({
                   where: { id: success.emailId },
                   data: {
@@ -271,7 +284,7 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
                   error: failure.error,
                   provider: failure.provider
                 });
-                
+
                 await prisma.emailNotification.update({
                   where: { id: failure.emailId },
                   data: {
@@ -292,7 +305,7 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
             error: error instanceof Error ? error.message : 'Unknown error',
             batchSize: batch.length
           });
-          
+
           for (const email of batch) {
             await prisma.emailNotification.update({
               where: { id: email.id },
@@ -324,20 +337,22 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
         status: EmailStatus.SENDING,
       },
     });
-    
+
     if (retriedResult.count > 0) {
       await log('info', 'batch', `Marked ${retriedResult.count} failed emails for retry`, {
         batchId,
         retriedCount: retriedResult.count
       });
     }
-    
-    await log('info', 'batch', 'Batch processing completed', {
-      batchId,
-      sent: totalSent,
-      failed: totalFailed,
-      duration: Date.now() - new Date().getTime()
-    });
+
+    // Only log completion if we actually processed something
+    if (totalSent > 0 || totalFailed > 0) {
+      await log('info', 'batch', 'Batch processing completed', {
+        batchId,
+        sent: totalSent,
+        failed: totalFailed
+      });
+    }
 
     return { sent: totalSent, failed: totalFailed };
   } catch (error) {
@@ -390,7 +405,7 @@ async function main() {
     try {
       const startTime = Date.now();
       const { stopped } = await processEmailBatch();
-      
+
       // Check if we should stop
       if (stopped) {
         await log('warning', 'shutdown', 'Processor stopped by control signal', { processId: PROCESS_ID });
@@ -416,7 +431,7 @@ async function main() {
       }
     }
   }
-  
+
   // Clean shutdown
   await shutdown();
 }

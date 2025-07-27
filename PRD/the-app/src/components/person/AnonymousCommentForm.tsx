@@ -120,23 +120,23 @@ export default function AnonymousCommentForm({
   // Track form changes
   const handleFormChange = useCallback(() => {
     if (!formRef.current) return;
-    
+
     const currentFormData = new FormData(formRef.current);
     const formValues: Record<string, string> = {};
-    
+
     // Get all form values
     for (const [key, val] of currentFormData.entries()) {
       if (typeof val === 'string') {
         formValues[key] = val;
       }
     }
-    
+
     // Check if form is dirty by comparing with saved data
     const hasChanges = Object.keys(formValues).some(key => {
       if (key === 'personId' || key === 'recaptchaToken') return false;
       return formValues[key] !== (savedFormData[key] || '');
     });
-    
+
     setIsDirty(hasChanges);
   }, [savedFormData]);
 
@@ -166,7 +166,7 @@ export default function AnonymousCommentForm({
   // Scroll to first error
   const scrollToError = useCallback(() => {
     if (!state?.errors) return;
-    
+
     // Find first field with error
     const errorFields = Object.keys(state.errors);
     if (errorFields.length > 0) {
@@ -213,12 +213,12 @@ export default function AnonymousCommentForm({
         onChange={handleFormChange}
         action={async formData => {
           setRecaptchaError(null);
-          
+
           if (debugCaptcha) {
             console.log('[AnonymousCommentForm] Form submitted, checking reCAPTCHA...');
             console.log('[AnonymousCommentForm] reCAPTCHA ready:', isReady);
           }
-          
+
           // Execute reCAPTCHA
           if (!isReady) {
             const errorMsg = 'reCAPTCHA not loaded. Please refresh the page and try again.';
@@ -228,30 +228,30 @@ export default function AnonymousCommentForm({
             setRecaptchaError(errorMsg);
             return;
           }
-          
+
           setIsExecutingRecaptcha(true);
-          
+
           try {
             if (debugCaptcha) {
               console.log('[AnonymousCommentForm] Executing reCAPTCHA with action: submit_comment');
             }
-            
+
             const token = await executeRecaptcha('submit_comment');
-            
+
             if (debugCaptcha) {
               console.log('[AnonymousCommentForm] reCAPTCHA token received:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
               console.log('[AnonymousCommentForm] Token length:', token?.length);
               console.log('[AnonymousCommentForm] Token type:', typeof token);
               console.log('[AnonymousCommentForm] Full token (first 100 chars):', token ? token.substring(0, 100) : 'NO TOKEN');
             }
-            
+
             // Add the token to the form data
             if (token) {
               formData.append('recaptchaToken', token);
             } else {
               throw new Error('Failed to get reCAPTCHA token');
             }
-            
+
             // Check if email has anonymous comments blocked
             const emailValue = formData.get('email') as string;
             if (emailValue) {
@@ -260,7 +260,10 @@ export default function AnonymousCommentForm({
                 if (response.ok) {
                   const data = await response.json();
                   if (!data.allowAnonymousComments) {
-                    setEmailBlockWarning('Comments from this email will be hidden by default. The owner of this email address has disabled anonymous comments. They must check their email for a link to enable the visibility of their comments.');
+                    setEmailBlockWarning('This comment from this email will be hidden. The ' +
+                      'owner of this email address has disabled new comments associated with email. That ' +
+                      'owner must check their email for a link to manage their comments' +
+                      'in order for this comment to be shown.');
                   } else {
                     setEmailBlockWarning(null);
                   }
@@ -269,7 +272,7 @@ export default function AnonymousCommentForm({
                 console.error('Failed to check email status:', error);
               }
             }
-            
+
             // Capture form data and show confirmation modal
             setPendingFormData(formData);
             setShowConfirmModal(true);
@@ -279,7 +282,7 @@ export default function AnonymousCommentForm({
               console.error('[AnonymousCommentForm] Error type:', error instanceof Error ? error.constructor.name : typeof error);
               console.error('[AnonymousCommentForm] Error message:', error instanceof Error ? error.message : String(error));
             }
-            
+
             // Use the error message from our safe hook if available
             const errorMessage = error instanceof Error ? error.message : 'reCAPTCHA verification failed. Please try again.';
             setRecaptchaError(errorMessage);
@@ -816,7 +819,7 @@ export default function AnonymousCommentForm({
         isOpen={showConfirmModal}
         isSubmitting={isPending}
         title={personHistoryId ? "Review Your Comment" : "Review Your Support Message"}
-        description={personHistoryId 
+        description={personHistoryId
           ? "Your comment is being reviewed by the family to make sure it is OK with them."
           : "Your message is being reviewed by the family to make sure it is OK with them."
         }

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import CommentHideToggle from '@/components/admin/CommentHideToggle';
+import AnonymousCommentsToggle from '@/components/admin/AnonymousCommentsToggle';
 
 interface Comment {
   id: string;
@@ -16,7 +18,7 @@ interface Comment {
 }
 
 interface CommentVerificationClientProps {
-  token: string;
+  token: string | null;
   email: string;
   totalCount: number;
   hiddenCount: number;
@@ -26,6 +28,7 @@ interface CommentVerificationClientProps {
   allowAnonymousComments?: boolean;
   userName?: string;
   username?: string;
+  isAdmin?: boolean;
 }
 
 export default function CommentVerificationClient({
@@ -34,19 +37,35 @@ export default function CommentVerificationClient({
   totalCount,
   hiddenCount,
   visibleCount,
-  comments,
+  comments: initialComments,
   hasAccount,
   allowAnonymousComments,
   userName,
   username,
+  isAdmin,
 }: CommentVerificationClientProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [comments, setComments] = useState(initialComments);
+  const [currentAllowAnonymousComments, setCurrentAllowAnonymousComments] = useState(allowAnonymousComments ?? true);
 
   const handleAction = async (action: 'hide' | 'unhide') => {
     setIsProcessing(true);
     // Simply navigate to the same page with the action parameter
     // The server component will handle the action and show the result
-    window.location.href = `/verify/comments?token=${token}&action=${action}`;
+    const url = token 
+      ? `/verify/comments?token=${token}&action=${action}`
+      : `/verify/comments?action=${action}`;
+    window.location.href = url;
+  };
+  
+  const handleCommentUpdate = (commentId: string, hideRequested: boolean) => {
+    setComments(prevComments => 
+      prevComments.map(comment => 
+        comment.id === commentId 
+          ? { ...comment, hideRequested } 
+          : comment
+      )
+    );
   };
 
   return (
@@ -90,24 +109,22 @@ export default function CommentVerificationClient({
                       </p>
                     )}
                     <div className="flex items-start space-x-3">
-                      <div className={`mt-1 w-5 h-5 rounded-full flex-shrink-0 ${allowAnonymousComments ? 'bg-green-500' : 'bg-red-500'}`}>
-                        <svg className="w-5 h-5 text-white p-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {allowAnonymousComments ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                          )}
-                        </svg>
+                      <div className="flex-shrink-0 mt-1">
+                        <AnonymousCommentsToggle
+                          initialAllowAnonymousComments={currentAllowAnonymousComments}
+                          email={email}
+                          token={token}
+                          onUpdate={setCurrentAllowAnonymousComments}
+                        />
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-700">
-                          <span className="font-medium">Anonymous comments:</span>{' '}
-                          {allowAnonymousComments ? 'Allowed' : 'Not allowed'}
+                        <p className="text-gray-700 font-medium mb-1">
+                          Anonymous comments
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {allowAnonymousComments
-                            ? 'Anonymous comments posted with your email will be visible immediately after approval.'
-                            : 'Anonymous comments posted with your email will be automatically hidden and require your approval to be visible.'}
+                        <p className="text-sm text-gray-600">
+                          {currentAllowAnonymousComments
+                            ? 'New anonymous comments posted with your email will be visible on the site immediately after admin approval.'
+                            : 'New anonymous comments posted with your email will be automatically hidden. You can review and unhide them individually using this page.'}
                         </p>
                       </div>
                     </div>
@@ -118,8 +135,9 @@ export default function CommentVerificationClient({
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                 <h2 className="font-semibold text-lg mb-2" style={{ color: '#111827' }}>Security Notice</h2>
                 <p className="text-gray-700">
-                  If you did not write these comments, you can hide them all with one click. 
-                  Hidden comments will not be visible on the public website.
+                  {currentAllowAnonymousComments
+                    ? 'If you did not write these comments, you can hide them all with one click. You can also disable anonymous comments above to automatically hide future comments posted with your email.'
+                    : 'Anonymous comments are currently disabled. Any new comments posted with your email will be automatically hidden until you review them. You can enable anonymous comments above if you trust comments posted with your email.'}
                 </p>
               </div>
 
@@ -201,15 +219,24 @@ export default function CommentVerificationClient({
                         )}
                       </div>
                       <div className="flex-shrink-0">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            comment.hideRequested
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {comment.hideRequested ? 'Hidden' : 'Visible'}
-                        </span>
+                        {isAdmin || token ? (
+                          <CommentHideToggle
+                            commentId={comment.id}
+                            initialHideRequested={comment.hideRequested}
+                            onUpdate={handleCommentUpdate}
+                            token={token}
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              comment.hideRequested
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {comment.hideRequested ? 'Hidden' : 'Visible'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
