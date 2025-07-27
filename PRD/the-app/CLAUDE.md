@@ -543,6 +543,11 @@ const serializedComment = {
 6. Always sends email on valid requests (even with existing tokens)
 7. See EMAIL.md for detailed email configuration
 
+**Notes about Authentication IMPORTANT **
+Most users of this app will not even know that there is an authentication system. The app is designed to allow families to view and support missing persons without needing to log in or create accounts. 
+However, some features (like commenting) require authentication. This is why we create a magic link for users to verify their email and manage their comments. make sure when creating
+dialogs, email templates and everything else, that you keep from saying things like talking about a profile or account, since most users will never know they have one.
+
 **Email System**
 1. Multiple provider support: SMTP, SendGrid, AWS SES, Console (for dev)
 2. Provider selection via `EMAIL_PROVIDER` environment variable
@@ -569,12 +574,35 @@ const serializedComment = {
 - **`displayNameOnly`**: Shows name but hides occupation, age, and location
 - **`showComment`**: Controls whether comment text is shown or replaced with "Showing support"
 - **`requiresFamilyApproval`**: All comments require approval (always true, not a user choice)
+- **`hideRequested`**: User-requested hiding of their comments (see below)
+- **`hideRequestedAt`**: Timestamp when comment was hidden by user request
 - **Display flags** (`showOccupation`, `showBirthdate`, `showCityState`): Individual field visibility
+
+**Comment Hiding and User Preferences:**
+- **`hideRequested` (Comment model)**: When true, the comment is hidden from public view at the user's request
+- **`hideRequestedAt` (Comment model)**: Records when the user requested to hide the comment
+- **`allowAnonymousComments` (User model)**: Controls automatic hiding of new anonymous comments
+  - When `true`: New anonymous comments with the user's email are visible after admin approval
+  - When `false`: New anonymous comments with the user's email are automatically set to `hideRequested = true`
+
+**How These Fields Work Together:**
+1. When a user sets `allowAnonymousComments = false`:
+   - All existing comments with their email can be bulk hidden
+   - New comments posted with their email automatically get `hideRequested = true`
+   - This prevents unauthorized use of their email address
+2. Users can manage these settings via:
+   - `/verify/comments?token=XXX` - Magic link sent to their email
+   - Individual toggle buttons for each comment
+   - Bulk hide/show all comments buttons
+3. Admin view shows:
+   - "Hidden" - When `hideRequested = true` (user requested)
+   - "Auto-hidden" - When `hideRequested = true` AND user has `allowAnonymousComments = false`
 
 **Privacy Cascading Rules:**
 1. When `privacyRequiredDoNotShowPublicly` is true, all other display options are disabled
 2. When `displayNameOnly` is true, occupation/age/location are hidden regardless of individual flags
-3. Comments always start with `isApproved: false` and need admin approval
+3. When `hideRequested` is true, the comment is hidden regardless of other settings
+4. Comments always start with `isApproved: false` and need admin approval
 
 **Comment Flow:**
 1. User submits comment via `/src/components/person/AnonymousCommentForm.tsx`
@@ -726,3 +754,11 @@ const serializedComment = {
   - The `deleteUser` action now automatically calls cleanup for new deletions
   - Tables with proper cascade delete: UserRole, TownAccess, PersonAccess, PasswordResetToken, EmailOptOut, EmailNotification
   - AnonymousSupport does NOT store email or PII data
+- **FEATURE**: Enhanced comment privacy with hideRequested and allowAnonymousComments integration
+  - Added toggle buttons to `/verify/comments` page for individual comment visibility control
+  - Admin access to comment verification page without requiring token
+  - Toggle button for `allowAnonymousComments` setting on comment verification page
+  - When `allowAnonymousComments = false`, new comments are auto-hidden with `hideRequested = true`
+  - Admin comments grid shows "Auto-hidden" vs "Hidden" based on user's `allowAnonymousComments` setting
+  - Created `/api/comments/[id]/hide` endpoint for toggling individual comment visibility
+  - Dynamic UI text that adapts based on user's anonymous comments preference
