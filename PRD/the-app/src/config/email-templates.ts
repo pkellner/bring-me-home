@@ -366,18 +366,15 @@ If you didn't request a password reset, you can safely ignore this email.`,
         </div>
 
         <div style="margin: 30px 0;">
-          <p><strong>Manage Your Messages</strong></p>
-          <p>You can view and manage all messages associated with your email address:</p>
-          <a href="{{manageUrl}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px;">Manage All My Messages</a>
+          <p><strong>Privacy Options</strong></p>
+          <p>Control how your messages appear:</p>
+          <a href="{{manageUrl}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px;">Manage Message Settings</a>
         </div>
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
         <div style="font-size: 12px; color: #666; text-align: center;">
-          <p style="margin: 5px 0;">Email preferences:</p>
-          <p style="margin: 5px 0;">
-            <a href="{{manageUrl}}" style="color: #666;">Manage all email settings</a>
-          </p>
+          <p style="margin: 5px 0;">Privacy settings: <a href="{{manageUrl}}" style="color: #666;">Manage your message visibility</a></p>
         </div>
       </div>
     `,
@@ -569,20 +566,14 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
     subject: 'Your support message for {{personName}} requires account access',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Your message has been received</h2>
+        <h2 style="color: #333;">Your support message has been saved</h2>
         <p>Hi {{firstName}},</p>
         <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
         
         <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 0; color: #92400E;"><strong>Important: Account Settings Required</strong></p>
-          <p style="margin: 10px 0 0 0; color: #92400E;">Your account is currently set to not allow comments to be posted publicly, even after family approval.</p>
-          <p style="margin: 10px 0 0 0; color: #92400E;">To change this setting:</p>
-          <ol style="margin: 10px 0 0 20px; padding-left: 10px; color: #92400E;">
-            <li>Log in to your account at <a href="{{profileUrl}}" style="color: #92400E;">{{profileUrl}}</a></li>
-            <li>Go to your profile settings</li>
-            <li>Enable "Allow my comments to be shown publicly"</li>
-          </ol>
-          <p style="margin: 10px 0 0 0; color: #92400E;">If you don't remember your password, use the "Forgot Password" link on the login page.</p>
+          <p style="margin: 0; color: #92400E;"><strong>Important: Your messages are currently blocked</strong></p>
+          <p style="margin: 10px 0 0 0; color: #92400E;">All your support messages are being saved but won't be shown publicly, even after family approval.</p>
+          <p style="margin: 10px 0 0 0; color: #92400E;">You can change this setting without logging in by clicking the button below.</p>
         </div>
 
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -595,14 +586,15 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
         </div>
 
         <div style="margin: 30px 0;">
-          <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In to Update Settings</a>
+          <a href="{{showUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Allow My Messages to Be Shown</a>
         </div>
 
         <div style="background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 0; color: #075985;"><strong>Not sure if this was you?</strong></p>
+          <p style="margin: 0; color: #075985;"><strong>Privacy Options</strong></p>
+          <p style="margin: 10px 0 0 0; color: #075985;">You can manage your message settings without logging in:</p>
           <ul style="margin: 10px 0; color: #075985;">
-            <li><a href="{{hideUrl}}" style="color: #075985;">Hide all messages from this email</a></li>
-            <li><a href="{{manageUrl}}" style="color: #075985;">Manage message privacy</a></li>
+            <li><a href="{{showUrl}}" style="color: #075985;">Allow my messages to be shown publicly</a></li>
+            <li><a href="{{hideUrl}}" style="color: #075985;">Keep all my messages private</a></li>
           </ul>
         </div>
 
@@ -619,24 +611,19 @@ Hi {{firstName}},
 
 We've received your message of support for {{personName}} in {{townName}}.
 
-IMPORTANT: Account Settings Required
-Your account is currently set to not allow comments to be posted publicly, even after family approval.
+IMPORTANT: Your messages are currently blocked
+All your support messages are being saved but won't be shown publicly, even after family approval.
 
-To change this setting:
-1. Log in to your account at {{profileUrl}}
-2. Go to your profile settings
-3. Enable "Allow my comments to be shown publicly"
-
-If you don't remember your password, use the "Forgot Password" link on the login page.
+You can change this setting without logging in using the links below.
 
 About your message:
 - Your message has been saved and is awaiting family approval
 - However, it will remain private unless you update your account settings
 - The family will still see your message for approval
 
-Not sure if this was you?
-- Hide all messages: {{hideUrl}}
-- Manage privacy: {{manageUrl}}
+Privacy Options - manage without logging in:
+- Allow my messages to be shown: {{showUrl}}
+- Keep all my messages private: {{hideUrl}}
 
 ---
 Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
@@ -645,9 +632,8 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
       firstName: 'Sender first name',
       personName: 'Person being supported',
       townName: 'Town name',
-      profileUrl: 'Profile URL',
+      showUrl: 'URL to allow messages to be shown',
       hideUrl: 'URL to hide all messages',
-      manageUrl: 'URL to manage messages',
       personUnsubscribeUrl: 'URL to unsubscribe from this person',
       allUnsubscribeUrl: 'URL to unsubscribe from all emails'
     },

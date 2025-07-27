@@ -179,6 +179,15 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
           town: true,
         },
       },
+      personHistory: {
+        include: {
+          person: {
+            include: {
+              town: true,
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -193,15 +202,20 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
     allowAnonymousComments={user?.allowAnonymousComments}
     userName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
     username={user?.username}
-    comments={comments.map(c => ({
-      id: c.id,
-      content: c.content,
-      hideRequested: c.hideRequested,
-      createdAt: c.createdAt.toISOString(),
-      personName: `${c.person.firstName} ${c.person.lastName}`,
-      personSlug: c.person.slug,
-      townSlug: c.person.town.slug,
-    }))}
+    comments={comments.map(c => {
+      const person = c.person || c.personHistory?.person;
+      return {
+        id: c.id,
+        content: c.content,
+        hideRequested: c.hideRequested,
+        createdAt: c.createdAt.toISOString(),
+        personName: person ? `${person.firstName} ${person.lastName}` : 'Unknown',
+        personSlug: person?.slug || '',
+        townSlug: person?.town?.slug || '',
+        isUpdateComment: !!c.personHistoryId,
+        updateDescription: c.personHistory?.description || null,
+      };
+    })}
   />;
 }
 

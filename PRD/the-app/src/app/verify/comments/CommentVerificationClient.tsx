@@ -11,6 +11,8 @@ interface Comment {
   personName: string;
   personSlug: string;
   townSlug: string;
+  isUpdateComment: boolean;
+  updateDescription: string | null;
 }
 
 interface CommentVerificationClientProps {
@@ -48,15 +50,15 @@ export default function CommentVerificationClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-6">
-            <h1 className="text-3xl font-bold text-white">Manage Your Comments</h1>
-            <p className="text-indigo-100 mt-2">Control the visibility of comments associated with {email}</p>
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 sm:px-8 py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Manage Your Comments</h1>
+            <p className="text-indigo-100 mt-2 text-sm sm:text-base break-all">Control the visibility of comments associated with {email}</p>
           </div>
 
-          <div className="p-8">
+          <div className="p-6 sm:p-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-gray-50 rounded-lg p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{totalCount}</div>
@@ -100,16 +102,13 @@ export default function CommentVerificationClient({
                       <div className="flex-1">
                         <p className="text-gray-700">
                           <span className="font-medium">Anonymous comments:</span>{' '}
-                          {allowAnonymousComments ? 'Allowed' : 'Blocked'}
+                          {allowAnonymousComments ? 'Allowed' : 'Not allowed'}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           {allowAnonymousComments
                             ? 'Anonymous comments posted with your email will be visible immediately after approval.'
                             : 'Anonymous comments posted with your email will be automatically hidden and require your approval to be visible.'}
                         </p>
-                        <Link href="/profile" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium mt-2 inline-block">
-                          Change this setting in your profile →
-                        </Link>
                       </div>
                     </div>
                   </div>
@@ -167,24 +166,43 @@ export default function CommentVerificationClient({
                       comment.hideRequested ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Link
-                          href={`/${comment.townSlug}/${comment.personSlug}`}
-                          className="font-medium text-indigo-600 hover:text-indigo-700"
-                        >
-                          {comment.personName}
-                        </Link>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {new Date(comment.createdAt).toLocaleDateString()}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <Link
+                            href={`/${comment.townSlug}/${comment.personSlug}`}
+                            className="font-medium text-indigo-600 hover:text-indigo-700 break-words"
+                          >
+                            {comment.personName}
+                          </Link>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            comment.isUpdateComment 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {comment.isUpdateComment ? 'Update Comment' : 'General Comment'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(comment.createdAt).toLocaleString('en-US', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short'
+                          })}
                         </p>
-                        {comment.content && (
-                          <p className="mt-2 text-gray-700">{comment.content}</p>
+                        {comment.isUpdateComment && comment.updateDescription && (
+                          <p className="text-sm text-gray-600 mt-1 italic">
+                            On update: "{comment.updateDescription}"
+                          </p>
+                        )}
+                        {comment.content ? (
+                          <p className="mt-3 text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
+                        ) : (
+                          <p className="mt-3 text-gray-500 italic">No message content</p>
                         )}
                       </div>
-                      <div className="ml-4">
+                      <div className="flex-shrink-0">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                             comment.hideRequested
                               ? 'bg-red-100 text-red-800'
                               : 'bg-green-100 text-green-800'
@@ -199,96 +217,86 @@ export default function CommentVerificationClient({
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t text-center">
-              {!hasAccount ? (
-                <>
-                  <p className="text-gray-600 mb-2">
-                    Want more control over your comments? Create an account to manage them individually.
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    With an account, you can also control whether anonymous comments posted with your email 
-                    are automatically hidden or shown.
-                  </p>
-                  <div className="space-x-4">
-                    <Link
-                      href="/auth/register"
-                      className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-                    >
-                      Create Account
-                    </Link>
-                    <Link
-                      href="/auth/signin"
-                      className="inline-block bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors"
-                    >
-                      Sign In
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-gray-600 mb-4">
-                    Manage your account settings and individual comments in your profile.
-                  </p>
-                  <Link
-                    href="/profile"
-                    className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-                  >
-                    Go to Profile
-                  </Link>
-                  
-                  {username && username !== email && (
-                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 text-left max-w-2xl mx-auto">
-                      <h4 className="font-semibold mb-3" style={{ color: '#111827' }}>About Your Profile Access</h4>
-                      <div className="space-y-3 text-sm text-gray-700">
-                        <p>
-                          To modify more information about your account at bring-me-home.com, you&apos;ll need to log in with your username and password.
-                        </p>
-                        <p>
-                          <strong>Important:</strong> Your username is: <strong>{username}</strong> (not your email address).
-                        </p>
-                        <p>
-                          If you don&apos;t remember your password, you&apos;ll need to use the &quot;Forgot Password&quot; option on the login page. This will send a password reset email to {email}, allowing you to set a new password that you know.
-                        </p>
-                        <p>
-                          <strong>Note:</strong> You don&apos;t need to log in to comment on detained people and provide encouragement. Account access is only needed if you want more control over your profile settings, such as:
-                        </p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>Managing individual comments</li>
-                          <li>Controlling how anonymous comments are handled</li>
-                          <li>Updating your email preferences</li>
-                          <li>Changing your account information</li>
-                        </ul>
+            <div className="mt-8 pt-6 border-t">
+              <details className="group">
+                <summary className="cursor-pointer text-center">
+                  <span className="inline-flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                    <span>Advanced Usage of Bring-me-home.com</span>
+                    <svg className="ml-2 h-5 w-5 transform group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                
+                <div className="mt-6 space-y-6">
+                  {!hasAccount ? (
+                    <div className="text-center">
+                      <p className="text-gray-600 mb-2">
+                        Want more control over your comments? Create an account to manage them individually.
+                      </p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        With an account, you can also control whether anonymous comments posted with your email 
+                        are automatically hidden or shown.
+                      </p>
+                      <div className="space-x-4">
+                        <Link
+                          href="/auth/register"
+                          className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                        >
+                          Create Account
+                        </Link>
+                        <Link
+                          href="/auth/signin"
+                          className="inline-block bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors"
+                        >
+                          Sign In
+                        </Link>
                       </div>
                     </div>
-                  )}
-                  
-                  {username && username === email && (
-                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 text-left max-w-2xl mx-auto">
-                      <h4 className="font-semibold mb-3" style={{ color: '#111827' }}>About Your Profile Access</h4>
-                      <div className="space-y-3 text-sm text-gray-700">
-                        <p>
-                          To modify more information about your account at bring-me-home.com, you&apos;ll need to log in with your username and password.
+                  ) : (
+                    <>
+                      <div className="text-center mb-6">
+                        <p className="text-gray-600 mb-4">
+                          You have an account associated with this email. You can access additional features by logging in.
                         </p>
-                        <p>
-                          <strong>Important:</strong> Your username is your email address ({email}).
-                        </p>
-                        <p>
-                          If you don&apos;t remember your password, you&apos;ll need to use the &quot;Forgot Password&quot; option on the login page. This will send a password reset email to {email}, allowing you to set a new password that you know.
-                        </p>
-                        <p>
-                          <strong>Note:</strong> You don&apos;t need to log in to comment on detained people and provide encouragement. Account access is only needed if you want more control over your profile settings, such as:
-                        </p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>Managing individual comments</li>
-                          <li>Controlling how anonymous comments are handled</li>
-                          <li>Updating your email preferences</li>
-                          <li>Changing your account information</li>
-                        </ul>
+                        <Link
+                          href="/profile"
+                          className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                        >
+                          Go to Profile
+                        </Link>
                       </div>
-                    </div>
+                      
+                      {username && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto">
+                          <h4 className="font-semibold mb-3" style={{ color: '#111827' }}>About Your Profile Access</h4>
+                          <div className="space-y-3 text-sm text-gray-700">
+                            <p>
+                              To modify more information about your account at bring-me-home.com, you&apos;ll need to log in with your username and password.
+                            </p>
+                            <p>
+                              <strong>Important:</strong> Your username is: <strong>{username}</strong> 
+                              {username !== email && ' (not your email address)'}.
+                            </p>
+                            <p>
+                              If you don&apos;t remember your password, you&apos;ll need to use the &quot;Forgot Password&quot; option on the login page. This will send a password reset email to {email}, allowing you to set a new password that you know.
+                            </p>
+                            <p>
+                              <strong>Note:</strong> You don&apos;t need to log in to comment on detained people and provide encouragement. Account access is only needed if you want more control over your profile settings, such as:
+                            </p>
+                            <ul className="list-disc list-inside ml-4 space-y-1">
+                              <li>Managing individual comments</li>
+                              <li>Controlling how anonymous comments are handled</li>
+                              <li>Updating your email preferences</li>
+                              <li>Changing your account information</li>
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
-                </>
-              )}
+                </div>
+              </details>
             </div>
           </div>
         </div>
