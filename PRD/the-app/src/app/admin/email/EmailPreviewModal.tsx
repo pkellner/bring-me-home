@@ -26,6 +26,8 @@ interface EmailNotificationPreview {
   sentAt: string | null;
   trackingEnabled: boolean;
   webhookUrl: string | null;
+  lastMailServerMessage: string | null;
+  lastMailServerMessageDate: string | null;
 }
 
 interface EmailPreviewModalProps {
@@ -169,6 +171,21 @@ export default function EmailPreviewModal({ emailId, onClose }: EmailPreviewModa
                   <span className="ml-4">
                     <span className="font-medium text-gray-700">Webhook:</span>{' '}
                     <span className="text-gray-600">{email.webhookUrl}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {email.lastMailServerMessage && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="text-sm">
+                <span className="font-medium text-gray-700">Server Response:</span>{' '}
+                <span className={email.status === 'FAILED' ? 'text-red-600' : 'text-green-600'}>
+                  {email.lastMailServerMessage}
+                </span>
+                {email.lastMailServerMessageDate && (
+                  <span className="ml-2 text-gray-500">
+                    ({new Date(email.lastMailServerMessageDate).toLocaleString()})
                   </span>
                 )}
               </div>

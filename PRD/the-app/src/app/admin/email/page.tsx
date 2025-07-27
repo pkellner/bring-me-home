@@ -38,7 +38,8 @@ export default async function EmailAdminPage() {
     personHistory: email.personHistory,
     scheduledFor: email.scheduledFor.toISOString(),
     sentAt: email.sentAt?.toISOString() || null,
-    errorMessage: email.errorMessage,
+    lastMailServerMessage: email.lastMailServerMessage,
+    lastMailServerMessageDate: email.lastMailServerMessageDate?.toISOString() || null,
     retryCount: email.retryCount,
     createdAt: email.createdAt.toISOString(),
   }));

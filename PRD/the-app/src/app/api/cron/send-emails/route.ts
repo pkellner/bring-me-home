@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
           where: { id: emailNotification.id },
           data: {
             status: EmailStatus.FAILED,
-            errorMessage: 'No recipient email address',
+            lastMailServerMessage: 'No recipient email address',
+            lastMailServerMessageDate: new Date(),
             retryCount: { increment: 1 },
           },
         });
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
             where: { id: emailNotification.id },
             data: {
               status: EmailStatus.FAILED,
-              errorMessage: result.error,
+              lastMailServerMessage: result.error,
+              lastMailServerMessageDate: new Date(),
               retryCount: { increment: 1 },
               provider: result.provider,
             },
@@ -108,6 +110,8 @@ export async function GET(request: NextRequest) {
           sentAt: new Date(),
           messageId: result.messageId || null,
           provider: result.provider || 'smtp',
+          lastMailServerMessage: `Email sent successfully via ${result.provider}${result.messageId ? ` (ID: ${result.messageId})` : ''}`,
+          lastMailServerMessageDate: new Date(),
         };
 
         // If tracking is enabled, prepare for webhook events
@@ -135,7 +139,8 @@ export async function GET(request: NextRequest) {
           where: { id: emailNotification.id },
           data: {
             status: EmailStatus.FAILED,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            lastMailServerMessage: error instanceof Error ? error.message : 'Unknown error',
+            lastMailServerMessageDate: new Date(),
             retryCount: { increment: 1 },
           },
         });

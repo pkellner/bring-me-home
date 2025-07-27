@@ -564,7 +564,8 @@ model EmailNotification {
   sentAt            DateTime?
   deliveredAt       DateTime?
   openedAt          DateTime?
-  errorMessage      String?               @db.Text
+  lastMailServerMessage      String?               @db.Text
+  lastMailServerMessageDate  DateTime?
   retryCount        Int                   @default(0)
   maxRetries        Int                   @default(3)
   scheduledFor      DateTime              @default(now())

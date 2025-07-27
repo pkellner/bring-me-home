@@ -76,7 +76,8 @@ async function main() {
       select: {
         id: true,
         subject: true,
-        errorMessage: true,
+        lastMailServerMessage: true,
+        lastMailServerMessageDate: true,
         createdAt: true,
       },
       orderBy: {
@@ -89,7 +90,7 @@ async function main() {
       console.log('\nRecent failed emails:');
       failedEmails.forEach((email) => {
         console.log(`- ${email.subject}`);
-        console.log(`  Error: ${email.errorMessage}`);
+        console.log(`  Server Message: ${email.lastMailServerMessage}`);
         console.log(`  Time: ${email.createdAt.toLocaleString()}\n`);
       });
     }

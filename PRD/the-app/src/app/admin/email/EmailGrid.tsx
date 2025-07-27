@@ -35,7 +35,8 @@ interface EmailNotification {
   } | null;
   scheduledFor: string;
   sentAt: string | null;
-  errorMessage: string | null;
+  lastMailServerMessage: string | null;
+  lastMailServerMessageDate: string | null;
   retryCount: number;
   createdAt: string;
 }
@@ -288,7 +289,7 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Recipient
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                 Subject
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -327,7 +328,7 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
                     {email.sentTo || email.user?.email || 'No email'}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 min-w-[200px]">
                   <div className="text-sm text-gray-900">{email.subject}</div>
                   {email.personHistory && (
                     <div className="text-xs text-gray-500 mt-1">
@@ -360,9 +361,20 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
                         </option>
                       ))}
                     </select>
-                    {email.status === 'FAILED' && email.errorMessage && (
-                      <div className="text-xs text-red-600">
-                        {email.errorMessage.substring(0, 50)}...
+                    {email.lastMailServerMessage && (
+                      <div className="relative group">
+                        <div className="text-xs text-gray-600 truncate max-w-[150px] cursor-help">
+                          {email.lastMailServerMessage}
+                        </div>
+                        <div className="absolute z-50 invisible group-hover:visible bg-gray-900 text-white text-xs rounded-lg p-3 mt-1 w-max max-w-md whitespace-normal break-words shadow-lg left-0">
+                          <div className="font-medium mb-1">Server Response:</div>
+                          {email.lastMailServerMessage}
+                          {email.lastMailServerMessageDate && (
+                            <div className="text-gray-300 mt-2 text-xs">
+                              {new Date(email.lastMailServerMessageDate).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

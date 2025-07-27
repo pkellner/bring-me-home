@@ -28,10 +28,18 @@ export interface AnonymousCommentFormProps {
       email: string;
       firstName: string;
       lastName: string;
+      phone?: string | null;
       occupation?: string | null;
       birthdate?: Date | null;
       city?: string | null;
       state?: string | null;
+      wantsToHelpMore?: boolean;
+      displayNameOnly?: boolean;
+      showOccupation?: boolean;
+      showBirthdate?: boolean;
+      showCityState?: boolean;
+      showComment?: boolean;
+      privacyRequiredDoNotShowPublicly?: boolean;
     };
   };
   magicToken?: string | null;
@@ -64,6 +72,7 @@ export default function AnonymousCommentForm({
   const [showOccupation, setShowOccupation] = useState(true);
   const [showBirthdate, setShowBirthdate] = useState(true);
   const [showComment, setShowComment] = useState(true);
+  const [wantsToHelpMore, setWantsToHelpMore] = useState(false);
   const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(null);
   const [fetchedMagicLinkData, setFetchedMagicLinkData] = useState<typeof magicLinkData | null>(null);
   const [isLoadingMagicLink, setIsLoadingMagicLink] = useState(false);
@@ -93,6 +102,20 @@ export default function AnonymousCommentForm({
 
   // Use fetched data if available, otherwise use provided data
   const effectiveMagicLinkData = fetchedMagicLinkData || magicLinkData;
+
+  // Initialize form states when magic link data is available
+  useEffect(() => {
+    if (effectiveMagicLinkData?.previousComment) {
+      const pc = effectiveMagicLinkData.previousComment;
+      setWantsToHelpMore(pc.wantsToHelpMore || false);
+      setDisplayNameOnly(pc.displayNameOnly || false);
+      setShowOccupation(pc.showOccupation ?? true);
+      setShowBirthdate(pc.showBirthdate ?? true);
+      setShowCityState(pc.showCityState ?? true);
+      setShowComment(pc.showComment ?? true);
+      setPrivacyRequired(pc.privacyRequiredDoNotShowPublicly || false);
+    }
+  }, [effectiveMagicLinkData]);
 
   // Track form changes
   const handleFormChange = useCallback(() => {
@@ -129,6 +152,7 @@ export default function AnonymousCommentForm({
     setShowOccupation(true);
     setShowBirthdate(true);
     setShowComment(true);
+    setWantsToHelpMore(false);
     setIsDirty(false);
     setSavedFormData({});
     if (formRef.current) {
@@ -382,6 +406,7 @@ export default function AnonymousCommentForm({
               type="tel"
               id="phone"
               name="phone"
+              defaultValue={effectiveMagicLinkData?.previousComment?.phone || ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               placeholder="(555) 123-4567"
             />
@@ -606,6 +631,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
                 name="wantsToHelpMore"
                 value="true"
+                checked={wantsToHelpMore}
+                onChange={(e) => setWantsToHelpMore(e.target.checked)}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <span className="ml-2 text-sm text-gray-700">

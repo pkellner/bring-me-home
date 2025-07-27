@@ -60,7 +60,8 @@ async function main() {
         status: true,
         sentTo: true,
         createdAt: true,
-        errorMessage: true,
+        lastMailServerMessage: true,
+        lastMailServerMessageDate: true,
         template: {
           select: { name: true }
         }
@@ -71,7 +72,7 @@ async function main() {
     failedEmails.forEach((email) => {
       console.log(`  ${email.createdAt.toISOString()} - ${email.subject}`);
       console.log(`    To: ${email.sentTo}, Template: ${email.template?.name || 'N/A'}`);
-      if (email.errorMessage) console.log(`    Error: ${email.errorMessage}`);
+      if (email.lastMailServerMessage) console.log(`    Server Message: ${email.lastMailServerMessage}`);
     });
 
   } catch (error) {

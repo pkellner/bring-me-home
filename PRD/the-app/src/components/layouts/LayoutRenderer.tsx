@@ -191,7 +191,7 @@ export default function LayoutRenderer({
       setTimeout(() => {
         const updateElement = document.getElementById(`update-${targetUpdateId}`);
         if (updateElement) {
-          updateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          updateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
           // Highlight the update briefly
           updateElement.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
           setTimeout(() => {

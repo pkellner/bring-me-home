@@ -477,7 +477,8 @@ export async function retryFailedEmails(emailIds?: string[]) {
       where,
       data: {
         status: EmailStatus.QUEUED,
-        errorMessage: null,
+        lastMailServerMessage: null,
+        lastMailServerMessageDate: null,
       },
     });
 
@@ -641,8 +642,9 @@ export async function updateEmailStatus(emailId: string, newStatus: EmailStatus)
       where: { id: emailId },
       data: { 
         status: newStatus,
-        // Clear error message if changing from FAILED to another status
-        errorMessage: newStatus !== EmailStatus.FAILED ? null : undefined,
+        // Clear server message if changing from FAILED to another status
+        lastMailServerMessage: newStatus !== EmailStatus.FAILED ? null : undefined,
+        lastMailServerMessageDate: newStatus !== EmailStatus.FAILED ? null : undefined,
         // Update sentAt if changing to SENT
         sentAt: newStatus === EmailStatus.SENT ? new Date() : undefined,
         // Update deliveredAt if changing to DELIVERED
