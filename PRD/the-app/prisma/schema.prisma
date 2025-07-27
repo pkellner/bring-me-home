@@ -20,8 +20,6 @@ model User {
   isActive            Boolean              @default(true)
   optOutOfAllEmail    Boolean              @default(false)
   allowAnonymousComments Boolean           @default(true)
-  notifyOnNewComments Boolean              @default(false)
-  notifyFrequency     String               @default("immediate")
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -37,6 +35,7 @@ model User {
   comments            Comment[]
   emailOptOutTokens   EmailOptOutToken[]
   magicLinkTokens     MagicLinkToken[]
+  notificationPreferences PersonNotificationPreference[]
 
   @@map("users")
 }
@@ -157,6 +156,7 @@ model Person {
   emailNotifications   EmailNotification[]
   emailOptOutTokens    EmailOptOutToken[]
   magicLinkTokens      MagicLinkToken[]
+  notificationPreferences PersonNotificationPreference[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -666,6 +666,24 @@ model MagicLinkToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("magic_link_tokens")
+}
+
+model PersonNotificationPreference {
+  id                  String   @id @default(cuid())
+  userId              String
+  personId            String
+  notifyOnNewComments Boolean  @default(false)
+  notifyFrequency     String   @default("immediate")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person              Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, personId])
+  @@index([userId])
+  @@index([personId])
+  @@map("person_notification_preferences")
 }
 
 enum EmailStatus {

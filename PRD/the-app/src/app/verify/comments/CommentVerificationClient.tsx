@@ -191,7 +191,7 @@ export default function CommentVerificationClient({
                         </p>
                         {comment.isUpdateComment && comment.updateDescription && (
                           <p className="text-sm text-gray-600 mt-1 italic">
-                            On update: "{comment.updateDescription}"
+                            On update: &ldquo;{comment.updateDescription}&rdquo;
                           </p>
                         )}
                         {comment.content ? (

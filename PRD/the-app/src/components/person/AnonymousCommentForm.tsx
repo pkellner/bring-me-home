@@ -260,7 +260,7 @@ export default function AnonymousCommentForm({
                 if (response.ok) {
                   const data = await response.json();
                   if (!data.allowAnonymousComments) {
-                    setEmailBlockWarning('Comments from this email will be hidden by default. The owner of this email address has disabled anonymous comments. They must log in and enable anonymous comments in their profile settings to make them visible.');
+                    setEmailBlockWarning('Comments from this email will be hidden by default. The owner of this email address has disabled anonymous comments. They must check their email for a link to enable the visibility of their comments.');
                   } else {
                     setEmailBlockWarning(null);
                   }

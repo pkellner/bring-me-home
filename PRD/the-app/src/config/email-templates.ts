@@ -580,7 +580,7 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
           <p style="margin: 0;"><strong>About your message:</strong></p>
           <ul style="margin: 10px 0;">
             <li>Your message has been saved and is awaiting family approval</li>
-            <li>However, it will remain private unless you update your account settings</li>
+            <li>However, it will remain private unless you change your privacy preference</li>
             <li>The family will still see your message for approval</li>
           </ul>
         </div>
@@ -618,7 +618,7 @@ You can change this setting without logging in using the links below.
 
 About your message:
 - Your message has been saved and is awaiting family approval
-- However, it will remain private unless you update your account settings
+- However, it will remain private unless you change your privacy preference
 - The family will still see your message for approval
 
 Privacy Options - manage without logging in:

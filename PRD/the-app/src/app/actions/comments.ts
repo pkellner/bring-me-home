@@ -390,6 +390,7 @@ export async function submitComment(
               }
             });
             
+            const showUrl = `${baseUrl}/verify/comments?token=${commentToken}&action=show`;
             const hideUrl = `${baseUrl}/verify/comments?token=${commentToken}&action=hide`;
             const manageUrl = `${baseUrl}/verify/comments?token=${commentToken}&action=manage`;
             
@@ -400,6 +401,7 @@ export async function submitComment(
               profileUrl,
               personUrl,
               verificationUrl,
+              showUrl,
               hideUrl,
               manageUrl,
               personUnsubscribeUrl,
