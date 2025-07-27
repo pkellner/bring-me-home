@@ -10,6 +10,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "Bring Me Home" is a Next.js 15 application that helps families connect with missing persons in detention centers. It features multi-tenant support for different towns, role-based access control, and community engagement through comments and support messages.
 
+## Documentation Structure
+
+- **Root Directory**: Contains only `README.md` for project overview and `CLAUDE.md` for AI assistant guidance
+- **`/docs` Directory**: Contains all feature-specific documentation and technical guides
+  - Email configuration, CDN setup, deployment guides, testing strategies, etc.
+  - All technical documentation should be placed in the `/docs` folder
+  - Browse `/docs` to find detailed guides on specific features and configurations
+
 ## Essential Commands
 
 **🚨 CRITICAL REQUIREMENT: Always run `npm run build` after making ANY code changes! 🚨**

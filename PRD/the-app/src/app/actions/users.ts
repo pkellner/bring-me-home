@@ -499,6 +499,64 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
   }
 }
 
+export async function revokeUserCommentToken(userEmail: string) {
+  const session = await getServerSession(authOptions);
+
+  if (!hasPermission(session, 'users', 'update')) {
+    return { 
+      success: false,
+      error: 'You do not have permission to revoke comment tokens'
+    };
+  }
+
+  try {
+    // Find and revoke the comment verification token for this email
+    const token = await prisma.commentVerificationToken.findUnique({
+      where: { email: userEmail },
+    });
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'No comment token found for this email'
+      };
+    }
+
+    // Update the token to mark it as revoked
+    await prisma.commentVerificationToken.update({
+      where: { email: userEmail },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokedBy: session?.user?.id || 'system',
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: session?.user?.id,
+        action: 'REVOKE_COMMENT_TOKEN',
+        entityType: 'CommentVerificationToken',
+        entityId: token.id,
+        newValues: JSON.stringify({ email: userEmail }),
+      },
+    });
+
+    revalidatePath('/admin/users');
+    return { 
+      success: true,
+      message: 'Comment token revoked successfully'
+    };
+  } catch (error) {
+    console.error('Revoke comment token error:', error);
+    return { 
+      success: false,
+      error: 'Failed to revoke comment token'
+    };
+  }
+}
+
 export async function getUsersList(page: number = 1, pageSize: number = 100) {
   const session = await getServerSession(authOptions);
 

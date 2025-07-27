@@ -271,9 +271,9 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
       </div>
 
       {/* Email Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-96 overflow-y-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
               <th className="px-6 py-3 text-left">
                 <input

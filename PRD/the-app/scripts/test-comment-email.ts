@@ -137,9 +137,16 @@ async function main() {
 
       console.log('\n✅ Email sent successfully!');
       console.log(`   Provider: ${result.provider}`);
-      console.log(`   Message ID: ${result.messageId}`);
-      if (result.error) {
+      if ('messageId' in result && result.messageId) {
+        console.log(`   Message ID: ${result.messageId}`);
+      }
+      if ('error' in result && result.error) {
         console.log(`   ⚠️  Error: ${result.error}`);
+      }
+      if ('succeeded' in result) {
+        // Batch result
+        console.log(`   Succeeded: ${result.succeeded.length}`);
+        console.log(`   Failed: ${result.failed.length}`);
       }
 
       // Update comment to mark email as sent

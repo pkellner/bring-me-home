@@ -19,6 +19,8 @@
     "db:status:prod": "npx prisma migrate status",
     "email:seed": "tsx scripts/seed-email-templates.ts",
     "email:verify": "tsx scripts/verify-email-templates.ts",
+    "process:emails": "tsx scripts/process-email-queue.ts",
+    "wait-for-email-all-accounts": "tsx src/email-processing-listen-for-new/main.ts",
     "debug:no-images": "tsx scripts/find-persons-without-images.ts",
     "debug:analyze-images": "tsx scripts/analyze-person-images.ts",
     "debug:check-rendering": "tsx scripts/check-image-rendering.ts",

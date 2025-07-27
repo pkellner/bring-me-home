@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import sgMail from '@sendgrid/mail';
+import sgMail, { MailDataRequired } from '@sendgrid/mail';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { getEmail, EMAIL_TYPES } from '@/config/emails';
 
@@ -57,12 +57,13 @@ const createSMTPTransporter = () => {
   return nodemailer.createTransport(emailConfig);
 };
 
-interface SendEmailOptions {
+export interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
   from?: string;
+  emailId?: string; // Optional ID for tracking in batch operations
 }
 
 // Update return type to include error details
@@ -71,20 +72,32 @@ export interface SendEmailResult {
   provider: string;
   error?: string;
   errorDetails?: unknown;
+  emailId?: string; // Echo back the emailId if provided
 }
 
-export async function sendEmail({ to, subject, html, text, from }: SendEmailOptions): Promise<SendEmailResult> {
-  const provider = getEmailProvider();
-  const fromAddress = from || `"Bring Me Home" <${getEmail(EMAIL_TYPES.SUPPORT)}>`;
-  // Better HTML to text conversion that preserves URLs
-  const textContent = text || html
+export interface BatchEmailResult {
+  succeeded: SendEmailResult[];
+  failed: SendEmailResult[];
+  provider: string;
+}
+
+// Helper function to convert HTML to text
+const htmlToText = (html: string): string => {
+  return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<\/div>/gi, '\n')
     .replace(/<[^>]*>/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-    
+};
+
+// Single email sending function (internal)
+async function sendSingleEmail(options: SendEmailOptions, provider: EmailProvider): Promise<SendEmailResult> {
+  const { to, subject, html, text, from, emailId } = options;
+  const fromAddress = from || `"Bring Me Home" <${getEmail(EMAIL_TYPES.SUPPORT)}>`;
+  const textContent = text || htmlToText(html);
+  
   // Debug logging
   console.log(`\n🔧 Email Debug: Provider=${provider}, LOG_SMTP=${process.env.EMAIL_PROVIDER_LOG_SMTP}`);
   
@@ -136,7 +149,7 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
           console.log('-------------------\n');
         }
         
-        return { messageId: info.messageId, provider: 'smtp' };
+        return { messageId: info.messageId, provider: 'smtp', emailId };
       }
       
       case 'sendgrid': {
@@ -174,7 +187,7 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
           console.log('-------------------\n');
         }
         
-        return { messageId: response.headers['x-message-id'], provider: 'sendgrid' };
+        return { messageId: response.headers['x-message-id'], provider: 'sendgrid', emailId };
       }
       
       case 'ses': {
@@ -226,13 +239,13 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
           console.log('-------------------\n');
         }
         
-        return { messageId: response.MessageId, provider: 'ses' };
+        return { messageId: response.MessageId, provider: 'ses', emailId };
       }
       
       case 'console':
       default: {
         logEmail();
-        return { messageId: 'console-' + Date.now(), provider: 'console' };
+        return { messageId: 'console-' + Date.now(), provider: 'console', emailId };
       }
     }
   } catch (error) {
@@ -326,20 +339,214 @@ export async function sendEmail({ to, subject, html, text, from }: SendEmailOpti
       console.log('-------------------\n');
     }
     
-    // If not already using console provider, fall back to console logging
-    if (provider !== 'console') {
+    return { 
+      provider,
+      error: errorMessage,
+      errorDetails,
+      emailId
+    };
+  }
+}
+
+// Batch sending for SendGrid
+async function sendBatchSendGrid(emails: SendEmailOptions[], batchSize: number): Promise<BatchEmailResult> {
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || getEmail(EMAIL_TYPES.SUPPORT);
+  const succeeded: SendEmailResult[] = [];
+  const failed: SendEmailResult[] = [];
+
+  // Process in batches
+  for (let i = 0; i < emails.length; i += batchSize) {
+    const batch = emails.slice(i, i + batchSize);
+    
+    try {
+      // Prepare batch messages
+      const messages: MailDataRequired[] = batch.map(email => ({
+        to: email.to,
+        from: fromEmail,
+        subject: email.subject,
+        text: email.text || htmlToText(email.html),
+        html: email.html,
+      }));
+
+      console.log(`📤 Sending batch of ${messages.length} emails via SendGrid...`);
+      
+      // Send batch
+      const response = await sgMail.send(messages);
+      
+      // SendGrid returns an array of responses for batch sends
+      const responses = Array.isArray(response[0]) ? response : [response];
+      
+      // Process responses
+      responses.forEach((res, index) => {
+        const email = batch[index];
+        // Type assertion for SendGrid response
+        const sgResponse = res as { statusCode: number; headers: Record<string, string> };
+        if (sgResponse.statusCode >= 200 && sgResponse.statusCode < 300) {
+          succeeded.push({
+            messageId: sgResponse.headers?.['x-message-id'] || `sg-${Date.now()}-${index}`,
+            provider: 'sendgrid',
+            emailId: email.emailId
+          });
+        } else {
+          failed.push({
+            provider: 'sendgrid',
+            error: `HTTP ${sgResponse.statusCode}`,
+            emailId: email.emailId
+          });
+        }
+      });
+    } catch (error) {
+      // If batch fails, try individual sends
+      console.error('Batch send failed, falling back to individual sends:', error);
+      
+      for (const email of batch) {
+        const result = await sendSingleEmail(email, 'sendgrid');
+        if (result.error) {
+          failed.push(result);
+        } else {
+          succeeded.push(result);
+        }
+      }
+    }
+  }
+
+  return { succeeded, failed, provider: 'sendgrid' };
+}
+
+// Batch sending for AWS SES
+async function sendBatchSES(emails: SendEmailOptions[], batchSize: number): Promise<BatchEmailResult> {
+  const sesClient = createSESClient();
+  if (!sesClient) {
+    throw new Error('Failed to create SES client');
+  }
+
+  const succeeded: SendEmailResult[] = [];
+  const failed: SendEmailResult[] = [];
+
+  // AWS SES doesn't have a true batch API like SendGrid
+  // We'll process emails in parallel for better performance
+  const sesMaxBatch = Math.min(batchSize, 10); // Process up to 10 in parallel
+
+  for (let i = 0; i < emails.length; i += sesMaxBatch) {
+    const batch = emails.slice(i, i + sesMaxBatch);
+    
+    // Process batch in parallel
+    const promises = batch.map(email => sendSingleEmail(email, 'ses'));
+    
+    try {
+      const results = await Promise.all(promises);
+      
+      results.forEach((result) => {
+        if (result.error) {
+          failed.push(result);
+        } else {
+          succeeded.push(result);
+        }
+      });
+      
+      console.log(`✅ Batch of ${batch.length} emails processed via AWS SES`);
+    } catch (error) {
+      // If parallel processing fails, try sequential
+      console.error('Parallel processing failed, falling back to sequential:', error);
+      
+      for (const email of batch) {
+        try {
+          const result = await sendSingleEmail(email, 'ses');
+          if (result.error) {
+            failed.push(result);
+          } else {
+            succeeded.push(result);
+          }
+        } catch (err) {
+          failed.push({
+            provider: 'ses',
+            error: err instanceof Error ? err.message : 'Unknown error',
+            emailId: email.emailId
+          });
+        }
+      }
+    }
+  }
+
+  return { succeeded, failed, provider: 'ses' };
+}
+
+// Main sendEmail function that handles both single and batch
+export async function sendEmail(
+  emailOrEmails: SendEmailOptions | SendEmailOptions[],
+  batchSize: number = 10
+): Promise<SendEmailResult | BatchEmailResult> {
+  const provider = getEmailProvider();
+  
+  // Handle single email
+  if (!Array.isArray(emailOrEmails)) {
+    const result = await sendSingleEmail(emailOrEmails, provider);
+    
+    // If using console provider and error occurred, don't throw
+    if (provider === 'console' && result.error) {
+      return result;
+    }
+    
+    // For other providers, maintain backward compatibility with fallback
+    if (result.error && provider !== 'console') {
       console.log('Falling back to console logging...');
-      logEmail();
+      
+      // Log the email
+      console.log('\n========================================');
+      console.log(`📧 EMAIL LOG (Provider: console - fallback from ${provider})`);
+      console.log('========================================');
+      console.log('To:', emailOrEmails.to);
+      console.log('Subject:', emailOrEmails.subject);
+      console.log('From:', emailOrEmails.from || `"Bring Me Home" <${getEmail(EMAIL_TYPES.SUPPORT)}>`);
+      console.log('========================================');
+      console.log('Email HTML Content:');
+      console.log('========================================');
+      console.log(emailOrEmails.html);
+      console.log('========================================');
+      console.log('Text Version:');
+      console.log(emailOrEmails.text || htmlToText(emailOrEmails.html));
+      console.log('========================================\n');
+      
       return { 
         messageId: 'console-fallback-' + Date.now(), 
         provider: 'console',
-        error: errorMessage,
-        errorDetails
+        error: result.error,
+        errorDetails: result.errorDetails,
+        emailId: emailOrEmails.emailId
       };
     }
     
-    // For console provider, throw the error
-    throw error;
+    return result;
+  }
+
+  // Handle batch emails
+  console.log(`\n📨 Processing batch of ${emailOrEmails.length} emails with provider: ${provider}`);
+  
+  switch (provider) {
+    case 'sendgrid':
+      return await sendBatchSendGrid(emailOrEmails, batchSize);
+    
+    case 'ses':
+      return await sendBatchSES(emailOrEmails, batchSize);
+    
+    case 'smtp':
+    case 'console':
+    default: {
+      // For providers that don't support batch, send sequentially
+      const succeeded: SendEmailResult[] = [];
+      const failed: SendEmailResult[] = [];
+      
+      for (const email of emailOrEmails) {
+        const result = await sendSingleEmail(email, provider);
+        if (result.error) {
+          failed.push(result);
+        } else {
+          succeeded.push(result);
+        }
+      }
+      
+      return { succeeded, failed, provider };
+    }
   }
 }
 
@@ -377,11 +584,16 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
     </div>
   `;
 
-  await sendEmail({
+  const result = await sendEmail({
     to: email,
     subject: 'Reset Your Bring Me Home Password',
     html,
   });
+
+  // For backward compatibility, throw error if single email fails
+  if ('error' in result && result.error && provider !== 'console') {
+    throw new Error(result.error);
+  }
 }
 
 // Export provider detection for use in other parts of the app

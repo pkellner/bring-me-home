@@ -79,6 +79,14 @@ export async function GET(request: NextRequest) {
           text: emailNotification.textContent || undefined,
         });
 
+        // Type guard to ensure we're dealing with single email result
+        if ('succeeded' in result) {
+          // This shouldn't happen as we're sending single emails
+          console.error(`[Email Cron] Unexpected batch result for single email ${emailNotification.id}`);
+          results.failed++;
+          continue;
+        }
+
         console.log(`[Email Cron] Result for ${emailNotification.id}:`, {
           provider: result.provider,
           messageId: result.messageId,

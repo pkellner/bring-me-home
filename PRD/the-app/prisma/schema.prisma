@@ -675,3 +675,40 @@ enum EmailStatus {
   BOUNCED
   OPENED
 }
+
+// Email processor log entries
+model EmailProcessorLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  level       String   // info, warning, error
+  category    String   // startup, shutdown, batch, email, error
+  message     String   @db.Text
+  metadata    Json?    // Additional structured data
+  emailId     String?  // Reference to specific email if applicable
+  batchId     String?  // Group related log entries
+  processId   String?  // Identify the processor instance
+  createdAt   DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([category])
+  @@index([emailId])
+  @@index([batchId])
+  @@index([processId])
+  @@map("email_processor_logs")
+}
+
+// Email processor control - single row table
+model EmailProcessorControl {
+  id          String   @id @default("control") // Single row
+  isPaused    Boolean  @default(false)
+  isAborted   Boolean  @default(false)
+  pausedBy    String?  // User who paused
+  pausedAt    DateTime?
+  abortedBy   String?  // User who aborted
+  abortedAt   DateTime?
+  lastCheckAt DateTime? // When processor last checked status
+  updatedAt   DateTime @updatedAt
+  
+  @@map("email_processor_control")
+}

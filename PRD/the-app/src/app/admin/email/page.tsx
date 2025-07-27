@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { isSiteAdmin } from '@/lib/permissions';
 import EmailAdminClient from './EmailAdminClient';
 import EmailGrid from './EmailGrid';
+import EmailProcessorMonitor from '@/components/admin/EmailProcessorMonitor';
 import { 
   getEmailStats, 
   getEmailNotifications, 
@@ -50,6 +51,9 @@ export default async function EmailAdminPage() {
       
       {/* Statistics and Actions */}
       <EmailAdminClient initialStats={stats} />
+      
+      {/* Email Processor Monitor - moved up and given more prominence */}
+      <EmailProcessorMonitor />
       
       {/* Email Grid */}
       <div>
