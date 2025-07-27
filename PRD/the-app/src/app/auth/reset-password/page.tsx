@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from '@/components/OptimizedLink';
 
 export default function ResetPasswordPage() {
@@ -13,8 +13,8 @@ export default function ResetPasswordPage() {
   const [isValidating, setIsValidating] = useState(true);
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [username, setUsername] = useState('');
-  
-  const router = useRouter();
+  const [email, setEmail] = useState('');
+
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
         });
 
         const data = await response.json();
-        
+
         if (!response.ok || !data.valid) {
           setError(data.error || 'This password reset link has expired or is invalid');
           setIsTokenValid(false);
@@ -88,11 +88,9 @@ export default function ResetPasswordPage() {
       if (data.username) {
         setUsername(data.username);
       }
-      
-      // Redirect to sign in after 5 seconds
-      setTimeout(() => {
-        router.push('/auth/signin?message=Password reset successful. Please sign in with your new password.');
-      }, 5000);
+      if (data.email) {
+        setEmail(data.email);
+      }
     } catch {
       setError('Failed to reset password. Please try again.');
     } finally {
@@ -150,12 +148,28 @@ export default function ResetPasswordPage() {
             </p>
             {username && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-800 font-medium">
-                  Your username is: <span className="font-bold">{username}</span>
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Use this username (not your email) to sign in
-                </p>
+                {username === email ? (
+                  <>
+                    <p className="text-sm text-blue-800 font-medium">
+                      Your username is: <span className="font-bold">{username}</span>
+                    </p>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Note: Your username and email address are the same. You will always need to log in with this username here.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      You can change your actual email address in your profile settings if needed, but your username will remain the same.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-blue-800 font-medium">
+                      Your username is: <span className="font-bold">{username}</span>
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Use this username (not your email) to sign in
+                    </p>
+                  </>
+                )}
               </div>
             )}
             <p className="text-xs text-gray-500">

@@ -82,7 +82,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      username: resetToken.user.username 
+      username: resetToken.user.username,
+      email: resetToken.user.email
     });
   } catch (error) {
     console.error('Password reset error:', error);

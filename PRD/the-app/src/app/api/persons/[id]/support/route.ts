@@ -22,40 +22,49 @@ async function getCachedSupportStats(personId: string) {
     }
   }
   
-  // Query database
-  const twentyFourHoursAgo = new Date();
-  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-  
-  const [totalAnonymousSupport, recentAnonymousSupport, totalMessages, recentMessages] = 
-    await Promise.all([
-      prisma.anonymousSupport.count({ where: { personId } }),
-      prisma.anonymousSupport.count({ 
-        where: { personId, createdAt: { gte: twentyFourHoursAgo } } 
-      }),
-      prisma.comment.count({ where: { personId, isApproved: true, hideRequested: false } }),
-      prisma.comment.count({ 
-        where: { personId, isApproved: true, hideRequested: false, createdAt: { gte: twentyFourHoursAgo } } 
-      }),
-    ]);
-  
-  const stats = {
-    anonymousSupport: { 
-      total: totalAnonymousSupport, 
-      last24Hours: recentAnonymousSupport 
-    },
-    messages: { 
-      total: totalMessages, 
-      last24Hours: recentMessages 
+  // Query database with error handling
+  try {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    
+    const [totalAnonymousSupport, recentAnonymousSupport, totalMessages, recentMessages] = 
+      await Promise.all([
+        prisma.anonymousSupport.count({ where: { personId } }),
+        prisma.anonymousSupport.count({ 
+          where: { personId, createdAt: { gte: twentyFourHoursAgo } } 
+        }),
+        prisma.comment.count({ where: { personId, isApproved: true, hideRequested: false } }),
+        prisma.comment.count({ 
+          where: { personId, isApproved: true, hideRequested: false, createdAt: { gte: twentyFourHoursAgo } } 
+        }),
+      ]);
+    
+    const stats = {
+      anonymousSupport: { 
+        total: totalAnonymousSupport, 
+        last24Hours: recentAnonymousSupport 
+      },
+      messages: { 
+        total: totalMessages, 
+        last24Hours: recentMessages 
+      }
+    };
+    
+    // Cache result (respects cache enable settings)
+    await memoryCache.set(cacheKey, stats, TTL_SECONDS * 1000);
+    if (redisCache) {
+      await redisCache.set(cacheKey, stats, TTL_SECONDS);
     }
-  };
-  
-  // Cache result (respects cache enable settings)
-  await memoryCache.set(cacheKey, stats, TTL_SECONDS * 1000);
-  if (redisCache) {
-    await redisCache.set(cacheKey, stats, TTL_SECONDS);
+    
+    return stats;
+  } catch (error) {
+    console.error('Database query error in getCachedSupportStats:', error);
+    // Return default stats if database is unavailable
+    return {
+      anonymousSupport: { total: 0, last24Hours: 0 },
+      messages: { total: 0, last24Hours: 0 }
+    };
   }
-  
-  return stats;
 }
 
 export async function GET(

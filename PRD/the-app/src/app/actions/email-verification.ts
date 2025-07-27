@@ -122,7 +122,42 @@ export async function verifyEmail(token: string) {
       }
     });
 
-    return { success: true, message: 'Email verified successfully' };
+    // Get the most recent comment from this user to find the person they were commenting on
+    const recentComment = await prisma.comment.findFirst({
+      where: { 
+        userId: user.id,
+        isActive: true
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        personId: true,
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            slug: true,
+            town: {
+              select: {
+                slug: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return { 
+      success: true, 
+      message: 'Email verified successfully',
+      person: recentComment?.person ? {
+        id: recentComment.person.id,
+        firstName: recentComment.person.firstName,
+        lastName: recentComment.person.lastName,
+        slug: recentComment.person.slug,
+        townSlug: recentComment.person.town.slug
+      } : undefined
+    };
   } catch (error) {
     console.error('Error verifying email:', error);
     return { success: false, error: 'Failed to verify email' };
@@ -266,7 +301,17 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     // Get comment details for the email
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
-      select: { personId: true }
+      select: { 
+        personId: true,
+        person: {
+          select: {
+            slug: true,
+            town: {
+              select: { slug: true }
+            }
+          }
+        }
+      }
     });
 
     if (!comment) {
@@ -276,7 +321,10 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     // Generate URLs for the email
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const verificationUrl = `${baseUrl}/verify/anonymous?token=${token}`;
-    const unsubscribeUrl = `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`;
+    const hideUrl = `${baseUrl}/verify/comments?token=${token}&action=hide`;
+    const manageUrl = `${baseUrl}/verify/comments?token=${token}&action=manage`;
+    // For anonymous users, we can't use opt-out tokens yet, so we'll provide the manage URL
+    const unsubscribeUrl = manageUrl; // They can manage their privacy settings here
     
     const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
     
@@ -284,7 +332,11 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
       firstName: firstName || 'there',
       personName,
       verificationUrl,
+      hideUrl,
+      manageUrl,
       unsubscribeUrl,
+      personSlug: comment.person?.slug || '',
+      townSlug: comment.person?.town?.slug || '',
     };
 
     const subject = replaceTemplateVariables(template.subject, templateData);

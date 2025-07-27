@@ -34,6 +34,9 @@ async function VerifyEmailContent({ searchParams }: { searchParams: { token?: st
   const result = await verifyEmail(token);
 
   if (result.success) {
+    const personName = result.person ? `${result.person.firstName} ${result.person.lastName}` : null;
+    const personUrl = result.person ? `/${result.person.townSlug}/${result.person.slug}` : '/';
+    
     return (
       <div className="text-center">
         <div className="mb-6">
@@ -42,12 +45,26 @@ async function VerifyEmailContent({ searchParams }: { searchParams: { token?: st
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h1>
-        <p className="text-gray-600 mb-8">Your email address has been successfully verified.</p>
+        <p className="text-gray-600 mb-4">Thank you for verifying your email address.</p>
+        
+        {personName && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-blue-800 text-sm">
+              The family of <strong>{personName}</strong> will be notified that you&apos;ve verified your email.
+              This helps them know that messages of support are from real people who care.
+            </p>
+          </div>
+        )}
+        
+        <p className="text-gray-600 mb-8">
+          Your support means a lot to the families with loved ones in detention.
+        </p>
+        
         <Link
-          href="/auth/signin"
+          href={personUrl}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Sign In to Your Account
+          {personName ? `View ${personName}'s Page` : 'Go to Homepage'}
         </Link>
       </div>
     );

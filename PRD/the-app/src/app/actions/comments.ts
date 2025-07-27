@@ -12,7 +12,6 @@ import crypto from 'crypto';
 import { generateVerificationToken, hashToken, generateVerificationUrls } from '@/lib/comment-verification';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables } from '@/lib/email-template-variables';
-import { sendAnonymousVerificationEmail } from './email-verification';
 
 const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
 
@@ -228,12 +227,13 @@ export async function submitComment(
     let userId: string | null = null;
     let autoHideComment = false;
     let warningMessage: string | undefined;
-    let isAnonymousSubmission = true; // Track if this is an anonymous submission
+    let userCreated = false;
+    let existingUser: { id: string; allowAnonymousComments: boolean; emailVerified: Date | null } | null = null;
     
     if (data.email) {
-      const existingUser = await prisma.user.findUnique({
+      existingUser = await prisma.user.findUnique({
         where: { email: data.email },
-        select: { id: true, allowAnonymousComments: true },
+        select: { id: true, allowAnonymousComments: true, emailVerified: true },
       });
 
       if (existingUser) {
@@ -243,9 +243,6 @@ export async function submitComment(
           autoHideComment = true;
           warningMessage = 'Comments from this email are hidden by default. The user must log in and enable anonymous comments in their profile settings to make them visible.';
         }
-        // If user exists, check if they're actually logged in
-        const session = await getServerSession(authOptions);
-        isAnonymousSubmission = !session || session.user?.id !== existingUser.id;
       } else {
         // Create a new user with the email as username
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
@@ -261,13 +258,12 @@ export async function submitComment(
           },
         });
         userId = newUser.id;
-        // New user creation means this is anonymous
-        isAnonymousSubmission = true;
+        userCreated = true;
       }
     }
 
     // Create the comment
-    const newComment = await prisma.comment.create({
+    await prisma.comment.create({
       data: {
         personId: data.personId,
         personHistoryId: data.personHistoryId || null,
@@ -303,7 +299,7 @@ export async function submitComment(
     });
 
     // Send email notification if email was provided
-    if (data.email) {
+    if (data.email && userId) {
       try {
         // Get person details
         const personData = await prisma.person.findUnique({
@@ -320,51 +316,114 @@ export async function submitComment(
 
         if (personData) {
           const personFullName = `${personData.firstName} ${personData.lastName}`;
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const profileUrl = `${baseUrl}/profile`;
+          const personUrl = `${baseUrl}/${personData.town.slug}/${personData.slug}`;
           
-          // For anonymous submissions, send the anonymous verification email
-          if (isAnonymousSubmission) {
-            await sendAnonymousVerificationEmail(newComment.id, data.email, personFullName, data.firstName);
+          // Import required functions
+          const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
+          const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+          const { generateVerificationToken, hashToken } = await import('@/lib/comment-verification');
+          
+          // Determine which template to use based on user status
+          let templateName: string;
+          let needsVerification = false;
+          
+          if (userCreated || (existingUser && !existingUser.emailVerified)) {
+            // New user or unverified existing user
+            templateName = 'comment_submission';
+            needsVerification = true;
+          } else if (existingUser && !existingUser.allowAnonymousComments) {
+            // User has disabled anonymous comments
+            templateName = 'comment_submission_blocked';
           } else {
-            // For registered users, send the standard comment submission email
-            const profileUrl = `${process.env.NEXTAUTH_URL}/profile`;
-            const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${crypto.randomBytes(32).toString('base64url')}`;
+            // Verified user with anonymous comments allowed
+            templateName = 'comment_submission_verified';
+          }
+          
+          // Get the appropriate template
+          const template = await prisma.emailTemplate.findUnique({
+            where: { name: templateName },
+          });
+
+          if (template && template.isActive) {
+            // Generate unsubscribe tokens
+            const personOptOutToken = await generateOptOutToken(userId, data.personId);
+            const allOptOutToken = await generateOptOutToken(userId);
+            const personUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${personOptOutToken}&action=person`;
+            const allUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${allOptOutToken}&action=all`;
             
-            // Get the comment submission template
-            const template = await prisma.emailTemplate.findUnique({
-              where: { name: 'comment_submission' },
-            });
-
-            if (template && template.isActive) {
-              // Use template
-              const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
+            // Generate verification URL if needed
+            let verificationUrl = '';
+            if (needsVerification) {
+              // Generate email verification token
+              const token = crypto.randomBytes(32).toString('hex');
+              const expires = new Date();
+              expires.setHours(expires.getHours() + 24);
               
-              const templateData = {
-                firstName: data.firstName || 'there',
-                personName: personFullName,
-                townName: personData.town.name,
-                profileUrl,
-                unsubscribeUrl,
-              };
-
-              const subject = replaceTemplateVariables(template.subject, templateData);
-              const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
-              const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
-
-              // Queue the email
-              await prisma.emailNotification.create({
+              await prisma.user.update({
+                where: { id: userId },
                 data: {
-                  userId,
-                  personId: data.personId,
-                  templateId: template.id,
-                  subject,
-                  htmlContent,
-                  textContent,
-                  status: EmailStatus.QUEUED,
-                  sentTo: data.email,
-                  customizations: templateData,
-                },
+                  emailVerificationToken: token,
+                  emailVerificationExpires: expires
+                }
               });
+              
+              verificationUrl = `${baseUrl}/verify/email?token=${token}`;
             }
+            
+            // For comment verification (hide/manage links for anonymous users)
+            const commentToken = generateVerificationToken();
+            const tokenHash = hashToken(commentToken);
+            
+            // Create or update comment verification token
+            await prisma.commentVerificationToken.upsert({
+              where: { email: data.email },
+              update: {
+                tokenHash,
+                lastUsedAt: new Date(),
+                isActive: true
+              },
+              create: {
+                email: data.email,
+                tokenHash,
+              }
+            });
+            
+            const hideUrl = `${baseUrl}/verify/comments?token=${commentToken}&action=hide`;
+            const manageUrl = `${baseUrl}/verify/comments?token=${commentToken}&action=manage`;
+            
+            const templateData = {
+              firstName: data.firstName || 'there',
+              personName: personFullName,
+              townName: personData.town.name,
+              profileUrl,
+              personUrl,
+              verificationUrl,
+              hideUrl,
+              manageUrl,
+              personUnsubscribeUrl,
+              allUnsubscribeUrl,
+            };
+
+            const subject = replaceTemplateVariables(template.subject, templateData);
+            const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
+            const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
+
+            // Queue the email
+            await prisma.emailNotification.create({
+              data: {
+                userId,
+                personId: data.personId,
+                templateId: template.id,
+                subject,
+                htmlContent,
+                textContent,
+                status: EmailStatus.QUEUED,
+                sentTo: data.email,
+                customizations: templateData,
+              },
+            });
           }
         }
       } catch (error) {
@@ -763,17 +822,21 @@ export async function approveBulkComments(commentIds: string[]) {
             });
 
             const templateData = {
+              // Template expects these specific variable names
+              commenterName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
+              personName: `${personData.firstName} ${personData.lastName}`,
+              verificationUrl: urls.verificationUrl,
+              personUrl: urls.verificationUrl, // Links to the person's page
+              hideUrl: urls.hideUrl,
+              manageUrl: urls.manageUrl,
+              // Additional data the template might use
               recipientName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
               recipientEmail: comment.email,
-              personName: `${personData.firstName} ${personData.lastName}`,
               personFirstName: personData.firstName,
               personLastName: personData.lastName,
               townName: townData.name,
               commentContent: comment.content ? comment.content.substring(0, 200) + (comment.content.length > 200 ? '...' : '') : 'Your support message',
               commentDate: new Date().toLocaleDateString(),
-              verificationUrl: urls.verificationUrl,
-              hideUrl: urls.hideUrl,
-              manageUrl: urls.manageUrl,
               currentDate: new Date().toLocaleDateString(),
               siteUrl: baseUrl,
             };

@@ -2231,6 +2231,186 @@ async function main() {
     });
   }
 
+  // Add PersonHistory records for Joe Plumber
+  console.log('Adding PersonHistory records for Joe Plumber...');
+  const personHistoryRecords = [
+    {
+      description: 'Immigration hearing scheduled for March 15, 2024 at Otay Mesa Immigration Court. Family attorney will be present.',
+      date: new Date('2024-03-01T10:00:00Z'),
+      visible: true,
+      sendNotifications: false,
+    },
+    {
+      description: 'Joe was transferred from San Diego Processing Center to Otay Mesa Detention Center. Visitation rules have changed - now limited to weekends only.',
+      date: new Date('2024-02-15T14:30:00Z'),
+      visible: true,
+      sendNotifications: true,
+    },
+    {
+      description: 'Community fundraiser raised $5,000 for Joe\'s legal defense fund! Thank you to everyone who contributed. The Borrego Springs Rotary Club matched donations.',
+      date: new Date('2024-02-01T09:00:00Z'),
+      visible: true,
+      sendNotifications: false,
+    },
+  ];
+
+  const createdHistories = [];
+  for (const historyData of personHistoryRecords) {
+    const history = await prisma.personHistory.create({
+      data: {
+        personId: joePlumberId,
+        description: historyData.description,
+        date: historyData.date,
+        visible: historyData.visible,
+        sendNotifications: historyData.sendNotifications,
+        createdByUsername: adminUser.username,
+        createdByUserId: adminUser.id,
+      },
+    });
+    createdHistories.push(history);
+  }
+
+  // Add comments associated with each PersonHistory record
+  console.log('Adding comments to PersonHistory records...');
+  
+  // Comments for the first history (hearing scheduled)
+  const hearingComments = [
+    {
+      firstName: 'Sarah',
+      lastName: 'Martinez',
+      email: 'sarah.martinez@email.com',
+      content: 'We\'ll be there to support Joe at the hearing! The whole neighborhood is planning to attend.',
+      city: 'Borrego Springs',
+      state: 'CA',
+    },
+    {
+      firstName: 'Tom',
+      lastName: 'Anderson',
+      email: 'tom.anderson@email.com',
+      content: 'Praying for a positive outcome. Joe fixed our pipes last winter and refused payment because he knew we were struggling.',
+      city: 'San Diego',
+      state: 'CA',
+    },
+  ];
+
+  // Comments for the second history (transfer)
+  const transferComments = [
+    {
+      firstName: 'Linda',
+      lastName: 'Wong',
+      email: 'linda.wong@email.com',
+      content: 'The new visitation schedule is really hard on his kids. They can only see their dad on weekends now.',
+      city: 'Borrego Springs',
+      state: 'CA',
+    },
+    {
+      firstName: 'Carlos',
+      lastName: 'Rodriguez',
+      email: 'carlos.rodriguez@email.com',
+      content: 'Is there a carpool being organized for weekend visits? Happy to help drive families to Otay Mesa.',
+      city: 'Borrego Springs',
+      state: 'CA',
+    },
+    {
+      firstName: 'Emily',
+      lastName: 'Thompson',
+      email: 'emily.thompson@email.com',
+      content: 'This transfer makes it even harder for the family. Joe needs to be closer to home, not further away.',
+      city: 'El Cajon',
+      state: 'CA',
+    },
+  ];
+
+  // Comments for the third history (fundraiser)
+  const fundraiserComments = [
+    {
+      firstName: 'Mark',
+      lastName: 'Davis',
+      email: 'mark.davis@email.com',
+      content: 'Amazing community support! Joe has helped so many of us over the years. Time to return the favor.',
+      city: 'Borrego Springs',
+      state: 'CA',
+    },
+    {
+      firstName: 'Patricia',
+      lastName: 'Nguyen',
+      email: 'patricia.nguyen@email.com',
+      content: 'The Rotary Club matching donations shows how much Joe means to this community. Proud to be part of Borrego Springs!',
+      city: 'Borrego Springs',
+      state: 'CA',
+    },
+    {
+      firstName: 'James',
+      lastName: 'Miller',
+      email: 'james.miller@email.com',
+      content: 'Just donated $100. Joe installed our water heater for free when my husband was sick. Least we can do.',
+      city: 'Julian',
+      state: 'CA',
+    },
+  ];
+
+  // Create comments for each history
+  const allHistoryComments = [
+    { history: createdHistories[0], comments: hearingComments },
+    { history: createdHistories[1], comments: transferComments },
+    { history: createdHistories[2], comments: fundraiserComments },
+  ];
+
+  for (const { history, comments } of allHistoryComments) {
+    for (const commentData of comments) {
+      const ipAddress = randomElement(['98.234.56.78', '67.189.234.12', '74.125.224.72']);
+      
+      // Create or find user for the comment
+      let user = await prisma.user.findUnique({
+        where: { email: commentData.email },
+      });
+
+      if (!user) {
+        const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+        user = await prisma.user.create({
+          data: {
+            username: commentData.email,
+            email: commentData.email,
+            password: tempPassword,
+            firstName: commentData.firstName,
+            lastName: commentData.lastName,
+            isActive: true,
+            emailVerified: new Date(), // Mark as verified for seed data
+            allowAnonymousComments: true,
+          },
+        });
+      }
+
+      await prisma.comment.create({
+        data: {
+          personId: joePlumberId,
+          personHistoryId: history.id,
+          userId: user.id,
+          firstName: commentData.firstName,
+          lastName: commentData.lastName,
+          email: commentData.email,
+          city: commentData.city,
+          state: commentData.state,
+          content: commentData.content,
+          type: 'support',
+          visibility: 'public',
+          isActive: true,
+          isApproved: true,
+          approvedAt: new Date(),
+          approvedBy: adminUser.id,
+          requiresFamilyApproval: true,
+          displayNameOnly: false,
+          showOccupation: true,
+          showBirthdate: true,
+          showCityState: true,
+          privacyRequiredDoNotShowPublicly: false,
+          ipAddress,
+          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+      });
+    }
+  }
+
   // Create system config
   console.log('Creating system configuration...');
   const systemConfigs = [
@@ -2476,26 +2656,28 @@ async function main() {
           </div>
 
           <div style="margin: 30px 0;">
-            <p><strong>Email Verification (Optional)</strong></p>
+            <p><strong>Email Verification (Recommended)</strong></p>
             <p>While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.</p>
-            <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
           </div>
 
           <div style="margin: 30px 0;">
-            <p><strong>Manage Your Privacy</strong></p>
-            <p>If you didn't submit this message or want to manage your privacy settings:</p>
-            <ul>
-              <li><a href="{{profileUrl}}" style="color: #4F46E5;">Manage anonymous comment settings</a></li>
-              <li><a href="{{profileUrl}}" style="color: #4F46E5;">Block future anonymous posts using your email</a></li>
+            <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+          </div>
+
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>Someone may have used your email address by mistake. Take action now:</strong></p>
+            <ul style="margin: 10px 0; color: #92400E;">
+              <li><a href="{{hideUrl}}" style="color: #92400E;">Hide all my messages from public view</a></li>
+              <li><a href="{{manageUrl}}" style="color: #92400E;">Manage all my messages</a></li>
             </ul>
           </div>
 
           <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
           
           <p style="font-size: 12px; color: #666;">
-            You're receiving this because a message was submitted using your email address.<br>
-            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all notifications</a> | 
-            <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a>
+            Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+            Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
           </p>
         </div>
       `,
@@ -2510,25 +2692,29 @@ What happens next?
 - Once approved, you'll receive another email notification
 - Your message will then be visible on the public page
 
-Email Verification (Optional)
+Email Verification (Recommended)
 While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.
-Verify your email: {{profileUrl}}
+Verify your email: {{verificationUrl}}
 
-Manage Your Privacy
-If you didn't submit this message or want to manage your privacy settings:
-- Manage anonymous comment settings: {{profileUrl}}
-- Block future anonymous posts using your email: {{profileUrl}}
+View {{personName}}'s page: {{personUrl}}
+
+Someone may have used your email address by mistake. Take action now:
+- Hide all my messages: {{hideUrl}}
+- Manage all my messages: {{manageUrl}}
 
 ---
-You're receiving this because a message was submitted using your email address.
-Unsubscribe: {{unsubscribeUrl}}
-Manage preferences: {{profileUrl}}`,
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
       variables: JSON.stringify({
         firstName: 'Commenter first name',
         personName: 'Person being supported',
         townName: 'Town name',
-        profileUrl: 'Profile URL',
-        unsubscribeUrl: 'Unsubscribe URL'
+        personUrl: 'Person profile URL',
+        verificationUrl: 'Email verification URL',
+        hideUrl: 'URL to hide all messages',
+        manageUrl: 'URL to manage messages',
+        personUnsubscribeUrl: 'URL to unsubscribe from this person',
+        allUnsubscribeUrl: 'URL to unsubscribe from all emails'
       }),
       isActive: true,
     },
@@ -2737,9 +2923,12 @@ If you didn't request a password reset, you can safely ignore this email.`,
           
           <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
           
-          <p style="font-size: 12px; color: #666;">
-            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from notifications</a>
-          </p>
+          <div style="font-size: 12px; color: #666; text-align: center;">
+            <p style="margin: 5px 0;">Email preferences:</p>
+            <p style="margin: 5px 0;">
+              <a href="{{manageUrl}}" style="color: #666;">Manage all email settings</a>
+            </p>
+          </div>
         </div>
       `,
       textContent: `Your message of support has been approved!
@@ -2764,87 +2953,250 @@ Hide all your messages: {{hideUrl}}
 
 Manage all your messages: {{manageUrl}}
 
-Unsubscribe: {{unsubscribeUrl}}`,
+To manage email preferences, visit: {{manageUrl}}`,
       variables: JSON.stringify({
         commenterName: 'Commenter name',
         personName: 'Person being supported',
         verificationUrl: 'Comment verification URL',
         personUrl: 'Person profile URL',
         hideUrl: 'URL to hide all messages from this email',
-        manageUrl: 'URL to manage all messages',
-        unsubscribeUrl: 'Unsubscribe URL'
+        manageUrl: 'URL to manage all messages'
       }),
       isActive: true,
     },
     {
       name: 'anonymous_verification',
-      subject: 'Verify your email for {{personName}}',
+      subject: 'Action needed: Verify your support message for {{personName}}',
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Please verify your email</h2>
+          <h2 style="color: #333;">Your message has been submitted</h2>
           <p>Hi {{firstName}},</p>
-          <p>Thank you for submitting a message of support for <strong>{{personName}}</strong>.</p>
+          <p>We received a message of support for <strong>{{personName}}</strong> using your email address.</p>
           
-          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0; color: #92400E;"><strong>One quick step needed</strong></p>
-            <p style="margin: 10px 0 0 0; color: #92400E;">To help protect families from spam, we need to verify your email address. This only takes a moment.</p>
+          <div style="background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #075985;"><strong>What happens next:</strong></p>
+            <ol style="margin: 10px 0 0 20px; padding-left: 10px; color: #075985;">
+              <li>Your message is currently pending family approval</li>
+              <li>To help prevent spam, please verify your email below</li>
+              <li>Once approved by the family, your message will be visible on the public page</li>
+            </ol>
+          </div>
+
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify My Email</a>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This confirms you're a real person, not spam</p>
           </div>
 
           <div style="margin: 30px 0;">
-            <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Verify My Email</a>
+            <p style="font-size: 14px; color: #666;"><strong>Note:</strong> You do not need to create an account. We only need to verify your email to prevent spam and ensure families receive genuine messages of support.</p>
           </div>
 
-          <p>Once verified:</p>
-          <ul style="color: #666;">
-            <li>Your message will be marked as from a verified person</li>
-            <li>Families will know your support is genuine</li>
-            <li>You'll receive updates when your messages are approved</li>
-          </ul>
-
-          <p style="color: #666; font-size: 14px;">Creating an account is completely optional. Verifying your email simply helps families know that real people care about their loved ones.</p>
-
           <div style="background-color: #FEE2E2; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0; font-weight: bold; color: #991B1B;">If this wasn't you:</p>
-            <p style="margin: 10px 0 0 0; color: #991B1B;">If you didn't submit a message, someone may have used your email address by mistake. When your comment is approved, you'll receive another email with options to hide your messages or block future use of your email.</p>
+            <p style="margin: 0; font-weight: bold; color: #991B1B;">⚠️ If this wasn't you:</p>
+            <p style="margin: 10px 0; color: #991B1B;">Someone may have used your email address by mistake. Take action now:</p>
+            <ul style="margin: 15px 0;">
+              <li><a href="{{hideUrl}}" style="color: #991B1B;">Hide all my messages from public view</a></li>
+              <li><a href="{{manageUrl}}" style="color: #991B1B;">Manage all my messages</a></li>
+            </ul>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #991B1B;">This will immediately hide any messages using your email and prevent future ones.</p>
           </div>
           
           <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
           
-          <p style="font-size: 12px; color: #666;">
-            <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all emails</a><br>
-            <span style="color: #999;">You'll have more privacy options when your message is approved.</span>
+          <p style="font-size: 12px; color: #666; text-align: center;">
+            To manage your messages or update preferences, use the links above.
           </p>
         </div>
       `,
-      textContent: `Please verify your email
+      textContent: `Your message has been submitted
 
 Hi {{firstName}},
 
-Thank you for submitting a message of support for {{personName}}.
+We received a message of support for {{personName}} using your email address.
 
-One quick step needed:
-To help protect families from spam, we need to verify your email address. This only takes a moment.
+What happens next:
+1. Your message is currently pending family approval
+2. To help prevent spam, please verify your email below
+3. Once approved by the family, your message will be visible on the public page
 
 Verify your email: {{verificationUrl}}
 
-Once verified:
-- Your message will be marked as from a verified person
-- Families will know your support is genuine
-- You'll receive updates when your messages are approved
+Note: You do not need to create an account. We only need to verify your email to prevent spam and ensure families receive genuine messages of support.
 
-Creating an account is completely optional. Verifying your email simply helps families know that real people care about their loved ones.
+⚠️ If this wasn't you:
+Someone may have used your email address by mistake. Take action now:
 
-If this wasn't you:
-If you didn't submit a message, someone may have used your email address by mistake. When your comment is approved, you'll receive another email with options to hide your messages or block future use of your email.
+Hide all my messages: {{hideUrl}}
+Manage my privacy: {{manageUrl}}
+
+This will immediately hide any messages using your email and prevent future ones.
 
 ---
-Unsubscribe: {{unsubscribeUrl}}
-You'll have more privacy options when your message is approved.`,
+To manage your messages or update preferences, use the links above.`,
       variables: JSON.stringify({
         firstName: 'Sender first name',
         personName: 'Person being supported',
         verificationUrl: 'Email verification URL',
-        unsubscribeUrl: 'Unsubscribe URL'
+        hideUrl: 'URL to hide all messages from this email',
+        manageUrl: 'URL to manage all messages'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'comment_submission_verified',
+      subject: 'Your support message for {{personName}} has been received',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Thank you for your support message</h2>
+          <p>Hi {{firstName}},</p>
+          <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+          
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>What happens next?</strong></p>
+            <ul style="margin: 10px 0;">
+              <li>Your message is awaiting approval from the family</li>
+              <li>Once approved, you'll receive another email notification</li>
+              <li>Your message will then be visible on the public page</li>
+            </ul>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+          </div>
+
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>Someone may have used your email address by mistake. Take action now:</strong></p>
+            <ul style="margin: 10px 0; color: #92400E;">
+              <li><a href="{{hideUrl}}" style="color: #92400E;">Hide all my messages from public view</a></li>
+              <li><a href="{{manageUrl}}" style="color: #92400E;">Manage all my messages</a></li>
+            </ul>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="font-size: 12px; color: #666;">
+            Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+            Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+          </p>
+        </div>
+      `,
+      textContent: `Thank you for your support message
+
+Hi {{firstName}},
+
+We've received your message of support for {{personName}} in {{townName}}.
+
+What happens next?
+- Your message is awaiting approval from the family
+- Once approved, you'll receive another email notification  
+- Your message will then be visible on the public page
+
+View {{personName}}'s page: {{personUrl}}
+
+Someone may have used your email address by mistake. Take action now:
+- Hide all my messages: {{hideUrl}}
+- Manage all my messages: {{manageUrl}}
+
+---
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+      variables: JSON.stringify({
+        firstName: 'Sender first name',
+        personName: 'Person being supported',
+        townName: 'Town name',
+        personUrl: 'Person profile URL',
+        hideUrl: 'URL to hide all messages',
+        manageUrl: 'URL to manage messages',
+        personUnsubscribeUrl: 'URL to unsubscribe from this person',
+        allUnsubscribeUrl: 'URL to unsubscribe from all emails'
+      }),
+      isActive: true,
+    },
+    {
+      name: 'comment_submission_blocked',
+      subject: 'Your support message for {{personName}} requires account access',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Your message has been received</h2>
+          <p>Hi {{firstName}},</p>
+          <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+          
+          <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>Important: Account Settings Required</strong></p>
+            <p style="margin: 10px 0 0 0; color: #92400E;">Your account is currently set to not allow comments to be posted publicly, even after family approval.</p>
+            <p style="margin: 10px 0 0 0; color: #92400E;">To change this setting:</p>
+            <ol style="margin: 10px 0 0 20px; padding-left: 10px; color: #92400E;">
+              <li>Log in to your account at <a href="{{profileUrl}}" style="color: #92400E;">{{profileUrl}}</a></li>
+              <li>Go to your profile settings</li>
+              <li>Enable "Allow my comments to be shown publicly"</li>
+            </ol>
+            <p style="margin: 10px 0 0 0; color: #92400E;">If you don't remember your password, use the "Forgot Password" link on the login page.</p>
+          </div>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>About your message:</strong></p>
+            <ul style="margin: 10px 0;">
+              <li>Your message has been saved and is awaiting family approval</li>
+              <li>However, it will remain private unless you update your account settings</li>
+              <li>The family will still see your message for approval</li>
+            </ul>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In to Update Settings</a>
+          </div>
+
+          <div style="background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #075985;"><strong>Not sure if this was you?</strong></p>
+            <ul style="margin: 10px 0; color: #075985;">
+              <li><a href="{{hideUrl}}" style="color: #075985;">Hide all messages from this email</a></li>
+              <li><a href="{{manageUrl}}" style="color: #075985;">Manage message privacy</a></li>
+            </ul>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="font-size: 12px; color: #666;">
+            Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+            Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+          </p>
+        </div>
+      `,
+      textContent: `Your message requires account access
+
+Hi {{firstName}},
+
+We've received your message of support for {{personName}} in {{townName}}.
+
+IMPORTANT: Account Settings Required
+Your account is currently set to not allow comments to be posted publicly, even after family approval.
+
+To change this setting:
+1. Log in to your account at {{profileUrl}}
+2. Go to your profile settings
+3. Enable "Allow my comments to be shown publicly"
+
+If you don't remember your password, use the "Forgot Password" link on the login page.
+
+About your message:
+- Your message has been saved and is awaiting family approval
+- However, it will remain private unless you update your account settings
+- The family will still see your message for approval
+
+Not sure if this was you?
+- Hide all messages: {{hideUrl}}
+- Manage privacy: {{manageUrl}}
+
+---
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+      variables: JSON.stringify({
+        firstName: 'Sender first name',
+        personName: 'Person being supported',
+        townName: 'Town name',
+        profileUrl: 'Profile URL',
+        hideUrl: 'URL to hide all messages',
+        manageUrl: 'URL to manage messages',
+        personUnsubscribeUrl: 'URL to unsubscribe from this person',
+        allUnsubscribeUrl: 'URL to unsubscribe from all emails'
       }),
       isActive: true,
     }
