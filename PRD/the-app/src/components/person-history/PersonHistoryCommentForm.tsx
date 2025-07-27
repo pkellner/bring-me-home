@@ -10,6 +10,7 @@ interface PersonHistoryCommentFormProps {
   updateDescription: string;
   onSuccess: () => void;
   onCancel: () => void;
+  magicToken?: string | null;
 }
 
 export default function PersonHistoryCommentForm({
@@ -18,6 +19,7 @@ export default function PersonHistoryCommentForm({
   updateDescription,
   onSuccess,
   onCancel,
+  magicToken,
 }: PersonHistoryCommentFormProps) {
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<{
@@ -53,6 +55,7 @@ export default function PersonHistoryCommentForm({
         onCancel={onCancel}
         title="Comment On This"
         submitButtonText="Post Comment"
+        magicToken={magicToken}
       />
     </div>
   );

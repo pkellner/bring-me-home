@@ -12,6 +12,90 @@ export interface EmailTemplate {
 
 export const emailTemplates: EmailTemplate[] = [
   {
+    name: 'person_history_update',
+    subject: 'Update about {{personName}}: {{updateDescription}}',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Update about {{personName}}</h2>
+        <p>Hi {{recipientName}},</p>
+        <p>The family of <strong>{{personName}}</strong> has posted a new update.</p>
+        
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Update from {{updateDate}}:</h3>
+          <p style="white-space: pre-wrap; margin: 0;">{{updateText}}</p>
+        </div>
+
+        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #1976d2;">Show Your Support</h3>
+          <p style="margin-bottom: 15px;">Your messages of support mean a lot to {{personName}}'s family during this difficult time. Would you like to send them a message of encouragement?</p>
+          <a href="{{commentLink}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Leave a Support Message</a>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="{{profileUrl}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Full Profile</a>
+        </div>
+
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E;"><strong>Someone may have used your email address by mistake. Take action now:</strong></p>
+          <ul style="margin: 10px 0; color: #92400E;">
+            <li><a href="{{hideUrl}}" style="color: #92400E;">Hide all my messages from public view</a></li>
+            <li><a href="{{manageUrl}}" style="color: #92400E;">Manage all my messages</a></li>
+          </ul>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive updates about {{personName}}? <a href="{{personOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
+      </div>
+    `,
+    textContent: `Update about {{personName}}
+
+Hi {{recipientName}},
+
+The family of {{personName}} has posted a new update.
+
+Update from {{updateDate}}:
+{{updateText}}
+
+Show Your Support
+Your messages of support mean a lot to {{personName}}'s family during this difficult time. Would you like to send them a message of encouragement?
+
+Leave a Support Message: {{commentLink}}
+
+View {{personName}}'s Full Profile: {{profileUrl}}
+
+Someone may have used your email address by mistake. Take action now:
+- Hide all my messages from public view: {{hideUrl}}
+- Manage all my messages: {{manageUrl}}
+
+---
+Don't want to receive updates about {{personName}}? Unsubscribe: {{personOptOutUrl}}
+Don't want to receive any emails from this site? Unsubscribe from all: {{allOptOutUrl}}`,
+    variables: {
+      recipientName: 'Recipient first name',
+      recipientEmail: 'Recipient email address',
+      personName: 'Person being updated',
+      personFirstName: 'Person first name',
+      personLastName: 'Person last name',
+      townName: 'Town name',
+      updateDescription: 'Brief update description for subject',
+      updateText: 'Full update text',
+      updateDate: 'Update date formatted',
+      updateId: 'Update ID for deep linking',
+      commentLink: 'Magic link to pre-filled comment form',
+      profileUrl: 'Person profile URL',
+      hideUrl: 'URL to hide all messages',
+      manageUrl: 'URL to manage messages',
+      personOptOutUrl: 'URL to unsubscribe from this person',
+      allOptOutUrl: 'URL to unsubscribe from all emails'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
     name: 'comment_submission',
     subject: 'Your support message for {{personName}} has been received',
     htmlContent: `

@@ -12,9 +12,10 @@ interface PersonPageClientProps {
   personSlug: string;
   adminLinkDelay: number;
   spinnerDelay: number;
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay, spinnerDelay }: PersonPageClientProps) {
+export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay, spinnerDelay, searchParams }: PersonPageClientProps) {
   const [data, setData] = useState<PersonPageData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDataReady, setIsDataReady] = useState(false);
@@ -161,6 +162,7 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
           isPersonAdmin={permissions?.isPersonAdmin || false}
           isTownAdmin={permissions?.isTownAdmin || false}
           supportMapMetadata={data.supportMapMetadata}
+          searchParams={searchParams}
         />
       </main>
 

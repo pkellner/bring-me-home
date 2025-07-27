@@ -8,6 +8,7 @@ import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
+import PersonHistoryVisibilityToggle from './PersonHistoryVisibilityToggle';
 
 interface PersonHistoryGridProps {
   personId: string;
@@ -99,7 +100,6 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
     formData.append('description', editingState.description);
     formData.append('date', editingState.date);
     formData.append('visible', editingState.visible.toString());
-    formData.append('sendNotifications', editingState.sendNotifications.toString());
 
     startTransition(async () => {
       try {
@@ -205,6 +205,23 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
 
   const columns: GridColumn<SanitizedPersonHistory>[] = [
     {
+      key: 'email',
+      label: 'Actions',
+      width: '140px',
+      render: (_, record) => {
+        if (!isSiteAdmin) return null;
+        return (
+          <a
+            href={`/admin/email/send/${record.id}`}
+            className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors"
+            title="Email followers about this update"
+          >
+            Email Followers
+          </a>
+        );
+      },
+    },
+    {
       key: 'date',
       label: 'Date',
       width: '150px',
@@ -254,15 +271,6 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
               >
                 View Comments
               </a>
-              {isSiteAdmin && (
-                <a
-                  href={`/admin/email/send/${record.id}`}
-                  className="text-sm text-green-600 hover:text-green-800 whitespace-nowrap"
-                  title="Email followers about this update"
-                >
-                  Email Followers
-                </a>
-              )}
             </div>
           </div>
         );
@@ -281,8 +289,8 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
     },
     {
       key: 'visible',
-      label: 'Visible',
-      width: '80px',
+      label: 'Visible to Public',
+      width: '140px',
       render: (_, record) => {
         if (editingState.id === record.id) {
           return (
@@ -294,27 +302,15 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
             />
           );
         }
-        return record.visible ? '✓' : '✗';
-      },
-    },
-    {
-      key: 'sendNotifications',
-      label: 'Notifications',
-      width: '120px',
-      render: (_, record) => {
-        if (editingState.id === record.id) {
-          return (
-            <input
-              type="checkbox"
-              checked={editingState.sendNotifications}
-              onChange={(e) => setEditingState({ ...editingState, sendNotifications: e.target.checked })}
-              disabled={!isSiteAdmin}
-              className={`h-4 w-4 ${!isSiteAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={!isSiteAdmin ? 'Only site admins can change this setting' : ''}
-            />
-          );
-        }
-        return record.sendNotifications ? '✓' : '✗';
+        return (
+          <PersonHistoryVisibilityToggle
+            historyId={record.id}
+            initialVisible={record.visible}
+            onUpdate={(id, visible) => {
+              setHistory(prev => prev.map(h => h.id === id ? { ...h, visible } : h));
+            }}
+          />
+        );
       },
     },
     {
@@ -402,20 +398,7 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
                     onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
                     className="h-4 w-4 mr-2"
                   />
-                  <span className="text-sm">Visible</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={editingState.sendNotifications}
-                    onChange={(e) => setEditingState({ ...editingState, sendNotifications: e.target.checked })}
-                    disabled={!isSiteAdmin}
-                    className={`h-4 w-4 mr-2 ${!isSiteAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  />
-                  <span className={`text-sm ${!isSiteAdmin ? 'text-gray-500' : ''}`}>
-                    Send Notifications
-                    {!isSiteAdmin && ' (Site Admin only)'}
-                  </span>
+                  <span className="text-sm text-black">Visible to Public</span>
                 </label>
               </div>
             </div>

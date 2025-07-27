@@ -116,7 +116,14 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
     const loadTemplates = async () => {
       try {
         const result = await getEmailTemplates();
-        setTemplates(result.filter(t => t.isActive));
+        const activeTemplates = result.filter(t => t.isActive);
+        setTemplates(activeTemplates);
+        
+        // Set person_history_update as default template if available
+        const updateTemplate = activeTemplates.find(t => t.name === 'person_history_update');
+        if (updateTemplate) {
+          setSelectedTemplateId(updateTemplate.id);
+        }
       } catch (error) {
         console.error('Failed to load templates:', error);
       }
@@ -132,9 +139,14 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
     personFirstName: update.person.firstName,
     personLastName: update.person.lastName,
     townName: update.person.town.name,
-    updateDescription: update.description,
+    updateDescription: update.description.substring(0, 50) + (update.description.length > 50 ? '...' : ''),
+    updateText: update.description,
     updateDate: format(new Date(update.date), 'MMMM d, yyyy'),
+    updateId: update.id,
+    commentLink: '{{commentLink}}',
     profileUrl,
+    hideUrl: '{{hideUrl}}',
+    manageUrl: '{{manageUrl}}',
     personOptOutUrl: '{{personOptOutUrl}}',
     allOptOutUrl: '{{allOptOutUrl}}',
     currentDate: format(new Date(), 'MMMM d, yyyy'),

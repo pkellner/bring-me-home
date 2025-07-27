@@ -21,6 +21,8 @@ interface PersonHistoryItemProps {
   onExpandedChange?: (expanded: boolean) => void;
   townSlug?: string;
   personSlug?: string;
+  shouldTriggerAddComment?: boolean;
+  magicToken?: string | null;
 }
 
 export default function PersonHistoryItem({
@@ -34,6 +36,8 @@ export default function PersonHistoryItem({
   onExpandedChange,
   townSlug,
   personSlug,
+  shouldTriggerAddComment = false,
+  magicToken = null,
 }: PersonHistoryItemProps) {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(commentCount);
@@ -50,6 +54,13 @@ export default function PersonHistoryItem({
   useEffect(() => {
     setLocalCommentCount(commentCount);
   }, [commentCount]);
+
+  // Auto-trigger comment form when URL parameters indicate it
+  useEffect(() => {
+    if (shouldTriggerAddComment && isExpanded) {
+      setShowCommentForm(true);
+    }
+  }, [shouldTriggerAddComment, isExpanded]);
 
   // Load unapproved comment count if user can moderate
   useEffect(() => {
@@ -80,6 +91,7 @@ export default function PersonHistoryItem({
 
   return (
     <div
+      id={`update-${historyItem.id}`}
       className={`transition-all duration-700 ease-out ${
         showAnimation 
           ? 'opacity-0 translate-y-4' 
@@ -192,6 +204,7 @@ export default function PersonHistoryItem({
                   updateDescription={historyItem.description}
                   onSuccess={handleCommentAdded}
                   onCancel={() => setShowCommentForm(false)}
+                  magicToken={magicToken}
                 />
               </div>
             )}

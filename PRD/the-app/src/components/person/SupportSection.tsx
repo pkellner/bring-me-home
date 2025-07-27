@@ -39,6 +39,9 @@ interface SupportSectionProps {
   };
   localSupportIncrement?: number;
   onLocalSupportIncrement?: () => void;
+  updateId?: string | null;
+  shouldAddComment?: boolean;
+  magicUid?: string | null;
 }
 
 export default function SupportSection({
@@ -51,8 +54,11 @@ export default function SupportSection({
   supportMapMetadata,
   localSupportIncrement = 0,
   onLocalSupportIncrement,
+  updateId,
+  shouldAddComment,
+  magicUid,
 }: SupportSectionProps) {
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(shouldAddComment || false);
   const [hasQuickSupported, setHasQuickSupported] = useState(false);
   const [quickSupportState, setQuickSupportState] = useState<'ready' | 'sending' | 'thanking'>('ready');
   const [hasSubmittedMessage, setHasSubmittedMessage] = useState(false);
@@ -66,11 +72,36 @@ export default function SupportSection({
   const [mapSupportCount, setMapSupportCount] = useState(supportMapMetadata?.supportLocationCount || 0);
   const [mapEnabled, setMapEnabled] = useState<boolean | null>(null);
   const [hasLocationData, setHasLocationData] = useState<boolean | null>(supportMapMetadata?.hasIpAddresses ?? null);
+  const [magicLinkData, setMagicLinkData] = useState<{
+    user: { email: string };
+    previousComment?: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      occupation?: string | null;
+      birthdate?: Date | null;
+      city?: string | null;
+      state?: string | null;
+    };
+  } | null>(null);
 
   // Check if map feature is enabled
   useEffect(() => {
     isSupportMapEnabled(isAdmin).then(setMapEnabled);
   }, [isAdmin]);
+  
+  // Verify magic link and fetch previous comment data
+  useEffect(() => {
+    if (magicUid && shouldAddComment) {
+      import('@/app/actions/magic-links').then(({ verifyMagicLink }) => {
+        verifyMagicLink(magicUid).then(result => {
+          if (result.success && result.data) {
+            setMagicLinkData(result.data);
+          }
+        });
+      });
+    }
+  }, [magicUid, shouldAddComment]);
   
   // Only fetch support map metadata if not provided from cache
   useEffect(() => {
@@ -529,10 +560,12 @@ export default function SupportSection({
           <div className="border-t pt-6">
             <AnonymousCommentFormWithRecaptcha
               personId={personId}
+              personHistoryId={updateId || undefined}
               onSubmit={onSubmit}
               isPending={isPending}
               state={state}
               onCancel={() => setShowForm(false)}
+              magicLinkData={magicLinkData || undefined}
             />
           </div>
         </div>

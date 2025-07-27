@@ -34,6 +34,7 @@ interface CommentSectionProps {
     messageLocationCount: number;
     supportLocationCount: number;
   };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 interface CommentFormState {
@@ -60,6 +61,7 @@ export default function CommentSection({
   isAdmin = false,
   isSiteAdmin = false,
   supportMapMetadata,
+  searchParams,
 }: CommentSectionProps) {
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
@@ -72,6 +74,11 @@ export default function CommentSection({
   const [showAllComments, setShowAllComments] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showButton, setShowButton] = useState(true);
+  
+  // Check for magic link parameters - only use them if there's no updateId
+  const updateId = searchParams?.update ? String(searchParams.update) : null;
+  const shouldAddComment = searchParams?.addComment === 'true' && !updateId;
+  const magicUid = searchParams?.uid ? String(searchParams.uid) : null;
   
   // Get initial show count from environment variable or default to 5
   const parsedCount = process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT 
@@ -201,6 +208,9 @@ export default function CommentSection({
           supportMapMetadata={supportMapMetadata}
           localSupportIncrement={localSupportIncrement}
           onLocalSupportIncrement={() => setLocalSupportIncrement(prev => prev + 1)}
+          updateId={updateId}
+          shouldAddComment={shouldAddComment}
+          magicUid={magicUid}
         />
         
         {/* ADMIN DEBUG PANEL - Only show for admins when cookie is set */}

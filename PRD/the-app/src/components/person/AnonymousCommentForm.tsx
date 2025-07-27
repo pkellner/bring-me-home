@@ -20,6 +20,21 @@ export interface AnonymousCommentFormProps {
   onCancel?: () => void;
   title?: string;
   submitButtonText?: string;
+  magicLinkData?: {
+    user: {
+      email: string;
+    };
+    previousComment?: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      occupation?: string | null;
+      birthdate?: Date | null;
+      city?: string | null;
+      state?: string | null;
+    };
+  };
+  magicToken?: string | null;
 }
 
 export default function AnonymousCommentForm({
@@ -31,6 +46,8 @@ export default function AnonymousCommentForm({
   onCancel,
   title = "Add Your Support",
   submitButtonText = "Submit Support",
+  magicLinkData,
+  magicToken,
 }: AnonymousCommentFormProps) {
   // Removed showForm state as we always show the form directly
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -48,12 +65,34 @@ export default function AnonymousCommentForm({
   const [showBirthdate, setShowBirthdate] = useState(true);
   const [showComment, setShowComment] = useState(true);
   const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(null);
+  const [fetchedMagicLinkData, setFetchedMagicLinkData] = useState<typeof magicLinkData | null>(null);
+  const [isLoadingMagicLink, setIsLoadingMagicLink] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha, isReady } = useSafeRecaptcha();
 
   if (debugCaptcha) {
     console.log('[AnonymousCommentForm] Component mounted, reCAPTCHA ready:', isReady);
   }
+
+  // Fetch magic link data if token is provided
+  useEffect(() => {
+    if (magicToken) {
+      setIsLoadingMagicLink(true);
+      import('@/app/actions/magic-links').then(({ verifyMagicLink }) => {
+        verifyMagicLink(magicToken).then(result => {
+          if (result.success && result.data) {
+            setFetchedMagicLinkData(result.data);
+          }
+          setIsLoadingMagicLink(false);
+        }).catch(() => {
+          setIsLoadingMagicLink(false);
+        });
+      });
+    }
+  }, [magicToken]);
+
+  // Use fetched data if available, otherwise use provided data
+  const effectiveMagicLinkData = fetchedMagicLinkData || magicLinkData;
 
   // Track form changes
   const handleFormChange = useCallback(() => {
@@ -130,6 +169,17 @@ export default function AnonymousCommentForm({
     }
   }, [state?.success]);
 
+
+  if (isLoadingMagicLink) {
+    return (
+      <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading your information...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -264,6 +314,7 @@ export default function AnonymousCommentForm({
               id="firstName"
               name="firstName"
               required
+              defaultValue={effectiveMagicLinkData?.previousComment?.firstName || ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
             {state?.errors?.firstName && (
@@ -285,6 +336,7 @@ export default function AnonymousCommentForm({
               id="lastName"
               name="lastName"
               required
+              defaultValue={effectiveMagicLinkData?.previousComment?.lastName || ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
             {state?.errors?.lastName && (
@@ -308,6 +360,7 @@ export default function AnonymousCommentForm({
               type="email"
               id="email"
               name="email"
+              defaultValue={effectiveMagicLinkData?.previousComment?.email || effectiveMagicLinkData?.user?.email || ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               placeholder="your@email.com"
             />
@@ -353,6 +406,7 @@ export default function AnonymousCommentForm({
               type="text"
               id="occupation"
               name="occupation"
+              defaultValue={effectiveMagicLinkData?.previousComment?.occupation || ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               placeholder="e.g., Teacher, Engineer, Retired"
             />
@@ -374,6 +428,7 @@ export default function AnonymousCommentForm({
               type="date"
               id="birthdate"
               name="birthdate"
+              defaultValue={effectiveMagicLinkData?.previousComment?.birthdate ? new Date(effectiveMagicLinkData.previousComment.birthdate).toISOString().split('T')[0] : ''}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
             {state?.errors?.birthdate && (
@@ -422,6 +477,7 @@ export default function AnonymousCommentForm({
                 type="text"
                 id="city"
                 name="city"
+                defaultValue={effectiveMagicLinkData?.previousComment?.city || ''}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="San Diego"
               />
@@ -439,6 +495,7 @@ export default function AnonymousCommentForm({
                 id="state"
                 name="state"
                 maxLength={2}
+                defaultValue={effectiveMagicLinkData?.previousComment?.state || ''}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="CA"
               />

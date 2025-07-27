@@ -23,6 +23,7 @@ interface CommentVerificationClientProps {
   hasAccount?: boolean;
   allowAnonymousComments?: boolean;
   userName?: string;
+  username?: string;
 }
 
 export default function CommentVerificationClient({
@@ -35,6 +36,7 @@ export default function CommentVerificationClient({
   hasAccount,
   allowAnonymousComments,
   userName,
+  username,
 }: CommentVerificationClientProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -73,7 +75,7 @@ export default function CommentVerificationClient({
             <div className="space-y-6 mb-8">
               {hasAccount && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h2 className="font-semibold text-lg mb-2 flex items-center">
+                  <h2 className="font-semibold text-lg mb-2 flex items-center" style={{ color: '#111827' }}>
                     <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
@@ -115,7 +117,7 @@ export default function CommentVerificationClient({
               )}
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                <h2 className="font-semibold text-lg mb-2">Security Notice</h2>
+                <h2 className="font-semibold text-lg mb-2" style={{ color: '#111827' }}>Security Notice</h2>
                 <p className="text-gray-700">
                   If you did not write these comments, you can hide them all with one click. 
                   Hidden comments will not be visible on the public website.
@@ -124,7 +126,7 @@ export default function CommentVerificationClient({
 
               {visibleCount > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">Hide All Comments</h3>
+                  <h3 className="font-semibold text-lg mb-2" style={{ color: '#111827' }}>Hide All Comments</h3>
                   <p className="text-gray-600 mb-4">
                     This will hide all {visibleCount} visible comment{visibleCount !== 1 ? 's' : ''} from public view.
                   </p>
@@ -140,7 +142,7 @@ export default function CommentVerificationClient({
 
               {hiddenCount > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">Show All Comments</h3>
+                  <h3 className="font-semibold text-lg mb-2" style={{ color: '#111827' }}>Show All Comments</h3>
                   <p className="text-gray-600 mb-4">
                     This will make all {hiddenCount} hidden comment{hiddenCount !== 1 ? 's' : ''} visible again.
                   </p>
@@ -156,7 +158,7 @@ export default function CommentVerificationClient({
             </div>
 
             <div className="border-t pt-6">
-              <h3 className="font-semibold text-lg mb-4">Your Comments</h3>
+              <h3 className="font-semibold text-lg mb-4" style={{ color: '#111827' }}>Your Comments</h3>
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div
@@ -233,6 +235,58 @@ export default function CommentVerificationClient({
                   >
                     Go to Profile
                   </Link>
+                  
+                  {username && username !== email && (
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 text-left max-w-2xl mx-auto">
+                      <h4 className="font-semibold mb-3" style={{ color: '#111827' }}>About Your Profile Access</h4>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>
+                          To modify more information about your account at bring-me-home.com, you&apos;ll need to log in with your username and password.
+                        </p>
+                        <p>
+                          <strong>Important:</strong> Your username is: <strong>{username}</strong> (not your email address).
+                        </p>
+                        <p>
+                          If you don&apos;t remember your password, you&apos;ll need to use the &quot;Forgot Password&quot; option on the login page. This will send a password reset email to {email}, allowing you to set a new password that you know.
+                        </p>
+                        <p>
+                          <strong>Note:</strong> You don&apos;t need to log in to comment on detained people and provide encouragement. Account access is only needed if you want more control over your profile settings, such as:
+                        </p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Managing individual comments</li>
+                          <li>Controlling how anonymous comments are handled</li>
+                          <li>Updating your email preferences</li>
+                          <li>Changing your account information</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {username && username === email && (
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 text-left max-w-2xl mx-auto">
+                      <h4 className="font-semibold mb-3" style={{ color: '#111827' }}>About Your Profile Access</h4>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <p>
+                          To modify more information about your account at bring-me-home.com, you&apos;ll need to log in with your username and password.
+                        </p>
+                        <p>
+                          <strong>Important:</strong> Your username is your email address ({email}).
+                        </p>
+                        <p>
+                          If you don&apos;t remember your password, you&apos;ll need to use the &quot;Forgot Password&quot; option on the login page. This will send a password reset email to {email}, allowing you to set a new password that you know.
+                        </p>
+                        <p>
+                          <strong>Note:</strong> You don&apos;t need to log in to comment on detained people and provide encouragement. Account access is only needed if you want more control over your profile settings, such as:
+                        </p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Managing individual comments</li>
+                          <li>Controlling how anonymous comments are handled</li>
+                          <li>Updating your email preferences</li>
+                          <li>Changing your account information</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -16,9 +16,10 @@ interface HistoryProps {
   isPersonAdmin?: boolean;
   isTownAdmin?: boolean;
   isSiteAdmin?: boolean;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmin }: HistoryProps) {
+export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmin, searchParams }: HistoryProps) {
   const personName = `${person.firstName} ${person.lastName}`;
   const hasHistory = person.personHistory && person.personHistory.length > 0;
   const canManageHistory = isPersonAdmin || isTownAdmin || isSiteAdmin;
@@ -61,6 +62,7 @@ export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmi
       isPersonAdmin={isPersonAdmin}
       isTownAdmin={isTownAdmin}
       isSiteAdmin={isSiteAdmin}
+      searchParams={searchParams}
     />
   );
 }

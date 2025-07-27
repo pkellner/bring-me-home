@@ -129,6 +129,7 @@ interface LayoutRendererProps {
     messageLocationCount: number;
     supportLocationCount: number;
   };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 export default function LayoutRenderer({
@@ -139,7 +140,11 @@ export default function LayoutRenderer({
   isPersonAdmin = false,
   isTownAdmin = false,
   supportMapMetadata,
+  searchParams,
 }: LayoutRendererProps) {
+  // Check for update parameter to scroll to specific update
+  const targetUpdateId = searchParams?.update ? String(searchParams.update) : null;
+  const shouldAddComment = searchParams?.addComment === 'true';
   // State for support stats and comment counts
   const [supportStats, setSupportStats] = useState<{ anonymousSupport: { total: number }, messages: { total: number } } | null>(null);
   const [historyCommentCounts, setHistoryCommentCounts] = useState<Map<string, number>>(new Map());
@@ -178,6 +183,34 @@ export default function LayoutRenderer({
 
     fetchCommentCounts();
   }, [person.personHistory]);
+  
+  // Handle scrolling to specific update and comment section
+  useEffect(() => {
+    if (targetUpdateId) {
+      // First scroll to the specific update
+      setTimeout(() => {
+        const updateElement = document.getElementById(`update-${targetUpdateId}`);
+        if (updateElement) {
+          updateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight the update briefly
+          updateElement.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+          setTimeout(() => {
+            updateElement.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+          }, 3000);
+        }
+        
+        // If we should also show the comment form, scroll to it after a delay
+        if (shouldAddComment) {
+          setTimeout(() => {
+            const commentsElement = document.getElementById('comments');
+            if (commentsElement) {
+              commentsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 1000);
+        }
+      }, 500);
+    }
+  }, [targetUpdateId, shouldAddComment]);
 
   const getRecentHistoryNote = () => {
     if (!person.personHistory || person.personHistory.length === 0) return null;
@@ -208,9 +241,9 @@ export default function LayoutRenderer({
   const components = {
     'image': () => <sections.PersonImage person={person} />,
     'info': () => <sections.PersonInfo person={person} isAdmin={isAdmin} />,
-    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} />,
+    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} searchParams={searchParams} />,
     'gallery-grid': () => <sections.GalleryGrid person={person} />,
-    'history': () => <sections.History person={person} isPersonAdmin={isPersonAdmin} isTownAdmin={isTownAdmin} isSiteAdmin={isSiteAdmin} />,
+    'history': () => <sections.History person={person} isPersonAdmin={isPersonAdmin} isTownAdmin={isTownAdmin} isSiteAdmin={isSiteAdmin} searchParams={searchParams} />,
   };
 
   return (

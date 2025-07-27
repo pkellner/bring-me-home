@@ -151,6 +151,8 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
     where: { email: verificationToken.email },
     select: { 
       id: true,
+      username: true,
+      email: true,
       allowAnonymousComments: true,
       firstName: true,
       lastName: true
@@ -190,6 +192,7 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
     hasAccount={!!user}
     allowAnonymousComments={user?.allowAnonymousComments}
     userName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
+    username={user?.username}
     comments={comments.map(c => ({
       id: c.id,
       content: c.content,

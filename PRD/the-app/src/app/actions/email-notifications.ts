@@ -7,6 +7,7 @@ import { isSiteAdmin } from '@/lib/permissions';
 import bcrypt from 'bcryptjs';
 import { EmailStatus } from '@prisma/client';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
+import crypto from 'crypto';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -298,33 +299,90 @@ export async function sendUpdateEmail(
         const personOptOutToken = await generateOptOutToken(follower.id, update.personId);
         const allOptOutToken = await generateOptOutToken(follower.id);
 
-        // Replace variables in custom content if provided
-        let finalSubject = customContent?.subject || `Update on ${update.person.firstName} ${update.person.lastName}`;
-        let finalHtmlContent = customContent?.htmlContent || generateUpdateEmailHtml(update, personOptOutToken, allOptOutToken);
-        let finalTextContent = customContent?.textContent || generateUpdateEmailText(update, personOptOutToken, allOptOutToken);
+        // Generate a magic link token for this follower
+        const magicToken = await generateMagicLinkToken(follower.id, update.personId, update.id);
+        
+        // Generate the comment link with magic token
+        const commentLink = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}?update=${update.id}&addComment=true&uid=${magicToken}`;
+        
+        // Get template or use custom content
+        let finalSubject: string;
+        let finalHtmlContent: string;
+        let finalTextContent: string | null = null;
+        let templateId: string | undefined;
+
+        if (customContent?.templateId) {
+          // Use template from database
+          const template = await prisma.emailTemplate.findUnique({
+            where: { id: customContent.templateId }
+          });
+          
+          if (template) {
+            finalSubject = template.subject;
+            finalHtmlContent = template.htmlContent;
+            finalTextContent = template.textContent;
+            templateId = template.id;
+          } else {
+            // Fallback if template not found
+            finalSubject = customContent?.subject || `Update on ${update.person.firstName} ${update.person.lastName}`;
+            finalHtmlContent = customContent?.htmlContent || '';
+            finalTextContent = customContent?.textContent || null;
+          }
+        } else if (customContent?.subject || customContent?.htmlContent) {
+          // Use custom content
+          finalSubject = customContent.subject || `Update on ${update.person.firstName} ${update.person.lastName}`;
+          finalHtmlContent = customContent.htmlContent || '';
+          finalTextContent = customContent.textContent || null;
+        } else {
+          // Use default template
+          const defaultTemplate = await prisma.emailTemplate.findFirst({
+            where: { name: 'person_history_update', isActive: true }
+          });
+          
+          if (defaultTemplate) {
+            finalSubject = defaultTemplate.subject;
+            finalHtmlContent = defaultTemplate.htmlContent;
+            finalTextContent = defaultTemplate.textContent;
+            templateId = defaultTemplate.id;
+          } else {
+            throw new Error('No email template found for person history updates');
+          }
+        }
         
         // Replace recipient-specific variables
         const recipientVars = {
           recipientName: `${follower.firstName || ''} ${follower.lastName || ''}`.trim() || 'Supporter',
           recipientEmail: follower.email || '',
+          personName: `${update.person.firstName} ${update.person.lastName}`,
+          personFirstName: update.person.firstName,
+          personLastName: update.person.lastName,
+          townName: update.person.town.name,
+          updateDescription: update.description.substring(0, 100) + (update.description.length > 100 ? '...' : ''),
+          updateText: update.description,
+          updateDate: new Date(update.date).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          updateId: update.id,
+          commentLink,
+          profileUrl: `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`,
+          hideUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?action=hide&email=${encodeURIComponent(follower.email || '')}`,
+          manageUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?email=${encodeURIComponent(follower.email || '')}`,
           personOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`,
           allOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`,
         };
         
-        finalSubject = finalSubject.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
-        finalSubject = finalSubject.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
-        
-        finalHtmlContent = finalHtmlContent.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
-        finalHtmlContent = finalHtmlContent.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
-        finalHtmlContent = finalHtmlContent.replace(/\{\{personOptOutUrl\}\}/g, recipientVars.personOptOutUrl);
-        finalHtmlContent = finalHtmlContent.replace(/\{\{allOptOutUrl\}\}/g, recipientVars.allOptOutUrl);
-        
-        if (finalTextContent) {
-          finalTextContent = finalTextContent.replace(/\{\{recipientName\}\}/g, recipientVars.recipientName);
-          finalTextContent = finalTextContent.replace(/\{\{recipientEmail\}\}/g, recipientVars.recipientEmail);
-          finalTextContent = finalTextContent.replace(/\{\{personOptOutUrl\}\}/g, recipientVars.personOptOutUrl);
-          finalTextContent = finalTextContent.replace(/\{\{allOptOutUrl\}\}/g, recipientVars.allOptOutUrl);
-        }
+        // Replace all variables in subject and content
+        Object.entries(recipientVars).forEach(([key, value]) => {
+          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+          finalSubject = finalSubject.replace(regex, value);
+          finalHtmlContent = finalHtmlContent.replace(regex, value);
+          if (finalTextContent) {
+            finalTextContent = finalTextContent.replace(regex, value);
+          }
+        });
 
         return {
           userId: follower.id,
@@ -334,7 +392,7 @@ export async function sendUpdateEmail(
           htmlContent: finalHtmlContent,
           textContent: finalTextContent,
           status: EmailStatus.QUEUED,
-          templateId: customContent?.templateId,
+          templateId: templateId || customContent?.templateId,
         };
       })
     );
@@ -354,145 +412,25 @@ export async function sendUpdateEmail(
   }
 }
 
-// Generate HTML email content
-function generateUpdateEmailHtml(
-  update: {
-    person: {
-      firstName: string;
-      lastName: string;
-      town: {
-        slug: string;
-      };
-      slug: string;
-    };
-    description: string;
-    date: Date;
-  },
-  personOptOutToken: string,
-  allOptOutToken: string
-): string {
-  const personName = `${update.person.firstName} ${update.person.lastName}`;
-  const profileUrl = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`;
-  const personUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`;
-  const allUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`;
+
+// Generate a magic link token for pre-filling comment forms
+async function generateMagicLinkToken(userId: string, personId: string, personHistoryId: string): Promise<string> {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
   
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #1a202c;">Update on ${personName}</h2>
-      
-      <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p style="font-size: 16px; color: #2d3748; margin: 0;">
-          ${update.description}
-        </p>
-        <p style="font-size: 14px; color: #718096; margin-top: 10px;">
-          Posted on ${new Date(update.date).toLocaleDateString()}
-        </p>
-      </div>
-      
-      <div style="margin: 30px 0;">
-        <a href="${profileUrl}" style="background-color: #4299e1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          View Profile
-        </a>
-      </div>
-      
-      <!-- Professional Email Footer -->
-      <table style="width: 100%; margin-top: 40px;">
-        <tr>
-          <td>
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 0 0 30px 0;">
-          </td>
-        </tr>
-      </table>
-      
-      <div style="text-align: center; padding: 0 20px;">
-        <p style="font-size: 13px; color: #718096; margin-bottom: 20px; line-height: 1.6;">
-          You're receiving this email because you've shown support for ${personName} on Bring Me Home.
-        </p>
-        
-        <div style="margin: 20px 0;">
-          <a href="${personUnsubscribeUrl}" style="
-            color: #718096;
-            font-size: 12px;
-            text-decoration: underline;
-            display: inline-block;
-            margin: 0 10px;
-          ">
-            Unsubscribe from emails about ${personName}
-          </a>
-          <span style="color: #cbd5e0; margin: 0 5px;">|</span>
-          <a href="${allUnsubscribeUrl}" style="
-            color: #718096;
-            font-size: 12px;
-            text-decoration: underline;
-            display: inline-block;
-            margin: 0 10px;
-          ">
-            Unsubscribe from all Bring Me Home emails
-          </a>
-        </div>
-        
-        <p style="font-size: 11px; color: #a0aec0; margin-top: 20px; line-height: 1.5;">
-          These are one-click unsubscribe links that expire after 14 days.<br>
-          To manage your email preferences or resubscribe, please log in at 
-          <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #a0aec0; text-decoration: underline;">bring-me-home.com</a>
-        </p>
-        
-        <p style="font-size: 11px; color: #cbd5e0; margin-top: 15px;">
-          © ${new Date().getFullYear()} Bring Me Home. All rights reserved.
-        </p>
-      </div>
-    </div>
-  `;
-}
-
-// Generate plain text email content
-function generateUpdateEmailText(
-  update: {
-    person: {
-      firstName: string;
-      lastName: string;
-      town: {
-        slug: string;
-      };
-      slug: string;
-    };
-    description: string;
-    date: Date;
-  },
-  personOptOutToken: string,
-  allOptOutToken: string
-): string {
-  const personName = `${update.person.firstName} ${update.person.lastName}`;
-  const profileUrl = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`;
-  const personUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`;
-  const allUnsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`;
+  // Store the token in database for verification
+  await prisma.magicLinkToken.create({
+    data: {
+      token,
+      userId,
+      personId,
+      personHistoryId,
+      expiresAt,
+    },
+  });
   
-  return `
-Update on ${personName}
-
-${update.description}
-
-Posted on ${new Date(update.date).toLocaleDateString()}
-
-View Profile: ${profileUrl}
-
-========================================
-
-You're receiving this email because you've shown support for ${personName} on Bring Me Home.
-
-MANAGE EMAIL PREFERENCES:
-
-Unsubscribe from emails about ${personName}:
-${personUnsubscribeUrl}
-
-Unsubscribe from all Bring Me Home emails:
-${allUnsubscribeUrl}
-
-These are one-click unsubscribe links that expire after 14 days.
-To manage your email preferences or resubscribe, please log in at bring-me-home.com/profile
-
-© ${new Date().getFullYear()} Bring Me Home. All rights reserved.
-  `;
+  return token;
 }
 
 // Get email notification statistics

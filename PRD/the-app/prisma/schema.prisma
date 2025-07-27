@@ -34,6 +34,7 @@ model User {
   sentEmails          EmailNotification[]  @relation("sentTo")
   comments            Comment[]
   emailOptOutTokens   EmailOptOutToken[]
+  magicLinkTokens     MagicLinkToken[]
 
   @@map("users")
 }
@@ -153,6 +154,7 @@ model Person {
   emailOptOuts         EmailOptOut[]
   emailNotifications   EmailNotification[]
   emailOptOutTokens    EmailOptOutToken[]
+  magicLinkTokens      MagicLinkToken[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -522,6 +524,7 @@ model PersonHistory {
   createdBy         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
   comments          Comment[]
   emailNotifications EmailNotification[]
+  magicLinkTokens   MagicLinkToken[]
 
   @@index([personId])
   @@index([visible])
@@ -640,6 +643,26 @@ model CommentVerificationToken {
   @@index([tokenHash])
   @@index([isActive])
   @@map("comment_verification_tokens")
+}
+
+model MagicLinkToken {
+  id              String    @id @default(cuid())
+  token           String    @unique
+  userId          String
+  personId        String
+  personHistoryId String
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person          Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personHistory   PersonHistory @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("magic_link_tokens")
 }
 
 enum EmailStatus {
