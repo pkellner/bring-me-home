@@ -200,7 +200,8 @@ export default function LayoutRenderer({
         }
         
         // If we should also show the comment form, scroll to it after a delay
-        if (shouldAddComment) {
+        // BUT only if we're not already scrolling to a specific update
+        if (shouldAddComment && !targetUpdateId) {
           setTimeout(() => {
             const commentsElement = document.getElementById('comments');
             if (commentsElement) {

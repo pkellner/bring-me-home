@@ -26,30 +26,72 @@ export async function verifyMagicLink(token: string) {
       return { success: false, error: 'Token has already been used' };
     }
 
-    // Get the user's most recent comment to pre-fill form
-    const recentComment = await prisma.comment.findFirst({
-      where: {
-        email: magicToken.user.email,
-        isApproved: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        firstName: true,
-        lastName: true,
-        email: true,
-        occupation: true,
-        city: true,
-        state: true,
-        birthdate: true,
-        displayNameOnly: true,
-        showOccupation: true,
-        showBirthdate: true,
-        showCityState: true,
-        showComment: true,
-      },
-    });
+    // Get the user's most recent comment from EITHER regular comments OR person history comments
+    // Fetch both types and determine which is most recent
+    const [regularComment, historyComment] = await Promise.all([
+      // Regular support message (personHistoryId is null)
+      prisma.comment.findFirst({
+        where: {
+          email: magicToken.user.email,
+          isApproved: true,
+          personHistoryId: null,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          occupation: true,
+          city: true,
+          state: true,
+          birthdate: true,
+          displayNameOnly: true,
+          showOccupation: true,
+          showBirthdate: true,
+          showCityState: true,
+          showComment: true,
+          createdAt: true,
+        },
+      }),
+      // Person history update comment (personHistoryId is NOT null)
+      prisma.comment.findFirst({
+        where: {
+          email: magicToken.user.email,
+          isApproved: true,
+          personHistoryId: { not: null },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          occupation: true,
+          city: true,
+          state: true,
+          birthdate: true,
+          displayNameOnly: true,
+          showOccupation: true,
+          showBirthdate: true,
+          showCityState: true,
+          showComment: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    // Determine which comment is most recent
+    let recentComment = null;
+    if (regularComment && historyComment) {
+      // Both exist, pick the most recent one
+      recentComment = regularComment.createdAt > historyComment.createdAt ? regularComment : historyComment;
+    } else {
+      // Only one exists (or neither)
+      recentComment = regularComment || historyComment;
+    }
 
     // Mark token as used
     await prisma.magicLinkToken.update({
