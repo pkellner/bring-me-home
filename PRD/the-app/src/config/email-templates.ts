@@ -1,0 +1,573 @@
+export interface EmailTemplate {
+  name: string;
+  subject: string;
+  htmlContent: string;
+  textContent: string;
+  variables: Record<string, string>;
+  isActive?: boolean;
+  trackingEnabled?: boolean;
+  webhookUrl?: string | null;
+  webhookHeaders?: Record<string, string> | null;
+}
+
+export const emailTemplates: EmailTemplate[] = [
+  {
+    name: 'comment_submission',
+    subject: 'Your support message for {{personName}} has been received',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Thank you for your support message</h2>
+        <p>Hi {{firstName}},</p>
+        <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+        
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>What happens next?</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Your message is awaiting approval from the family</li>
+            <li>Once approved, you'll receive another email notification</li>
+            <li>Your message will then be visible on the public page</li>
+          </ul>
+        </div>
+        <div style="margin: 30px 0;">
+          <p><strong>Email Verification (Recommended)</strong></p>
+          <p>While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.</p>
+          <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Your Email</a>
+        </div>
+        <div style="margin: 30px 0;">
+          <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+        </div>
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E;"><strong>Someone may have used your email address by mistake. Take action now:</strong></p>
+          <ul style="margin: 10px 0; color: #92400E;">
+            <li><a href="{{hideUrl}}" style="color: #92400E;">Hide all my messages from public view</a></li>
+            <li><a href="{{manageUrl}}" style="color: #92400E;">Manage all my messages</a></li>
+          </ul>
+        </div>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
+      </div>
+    `,
+    textContent: `Thank you for your support message
+Hi {{firstName}},
+We've received your message of support for {{personName}} in {{townName}}.
+What happens next?
+- Your message is awaiting approval from the family
+- Once approved, you'll receive another email notification
+- Your message will then be visible on the public page
+Email Verification (Recommended)
+While not required, verifying your email helps families know that messages are genuine. This is especially helpful when approving your messages.
+Verify Your Email: {{verificationUrl}}
+View {{personName}}'s page: {{personUrl}}
+Someone may have used your email address by mistake. Take action now:
+- Hide all my messages from public view: {{hideUrl}}
+- Manage all my messages: {{manageUrl}}
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails from this site? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+    variables: {
+      firstName: 'Commenter first name',
+      personName: 'Person being supported',
+      townName: 'Town name',
+      personUrl: 'Person profile URL',
+      verificationUrl: 'Email verification URL',
+      hideUrl: 'URL to hide all messages',
+      manageUrl: 'URL to manage messages',
+      personUnsubscribeUrl: 'URL to unsubscribe from this person',
+      allUnsubscribeUrl: 'URL to unsubscribe from all emails'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'email_verification',
+    subject: 'Verify your email address',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Verify Your Email Address</h2>
+        <p>Hi {{firstName}},</p>
+        <p>Please verify your email address to help us ensure secure communication.</p>
+        
+        <div style="margin: 30px 0;">
+          <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+        </div>
+        
+        <p style="color: #666;">Or copy and paste this link into your browser:</p>
+        <p style="color: #4F46E5; word-break: break-all;">{{verificationUrl}}</p>
+        
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E;"><strong>Why verify your email?</strong></p>
+          <p style="margin: 10px 0 0 0; color: #92400E;">Verifying your email helps families know that messages of support are genuine and from real people who care about their loved ones.</p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          If you didn't create an account, you can safely ignore this email.<br>
+          <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a>
+        </p>
+      </div>
+    `,
+    textContent: `Verify Your Email Address
+
+Hi {{firstName}},
+
+Please verify your email address to help us ensure secure communication.
+
+Verify your email: {{verificationUrl}}
+
+Why verify your email?
+Verifying your email helps families know that messages of support are genuine and from real people who care about their loved ones.
+
+---
+If you didn't create an account, you can safely ignore this email.
+Manage preferences: {{profileUrl}}`,
+    variables: {
+      firstName: 'User first name',
+      verificationUrl: 'Email verification URL',
+      profileUrl: 'Profile URL'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'welcome_registration',
+    subject: 'Welcome to Bring Me Home',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome to Bring Me Home</h2>
+        <p>Hi {{firstName}},</p>
+        <p>Thank you for creating an account. Your support means a lot to families with loved ones in detention.</p>
+        
+        <div style="background-color: #F3F4F6; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">What you can do now:</h3>
+          <ul style="margin: 0; padding-left: 20px;">
+            <li>Show support for detained community members</li>
+            <li>Receive updates about people you're following</li>
+            <li>Help amplify their stories and needs</li>
+          </ul>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <p><strong>Verify Your Email (Recommended)</strong></p>
+          <p>While not required, verifying your email helps build trust with families and ensures you receive important updates.</p>
+          <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Verify Email Address</a>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Manage Your Profile</a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a> | 
+          <a href="{{unsubscribeUrl}}" style="color: #666;">Unsubscribe from all emails</a>
+        </p>
+      </div>
+    `,
+    textContent: `Welcome to Bring Me Home
+
+Hi {{firstName}},
+
+Thank you for creating an account. Your support means a lot to families with loved ones in detention.
+
+What you can do now:
+- Show support for detained community members
+- Receive updates about people you're following
+- Help amplify their stories and needs
+
+Verify Your Email (Recommended)
+While not required, verifying your email helps build trust with families and ensures you receive important updates.
+Verify your email: {{verificationUrl}}
+
+Manage your profile: {{profileUrl}}
+
+---
+Manage preferences: {{profileUrl}}
+Unsubscribe: {{unsubscribeUrl}}`,
+    variables: {
+      firstName: 'User first name',
+      verificationUrl: 'Email verification URL',
+      profileUrl: 'Profile URL',
+      unsubscribeUrl: 'Unsubscribe URL'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'password_reset',
+    subject: 'Password Reset Request',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Reset Request</h2>
+        <p>Hi {{firstName}},</p>
+        <p>We received a request to reset the password for your account.</p>
+        
+        <div style="margin: 30px 0;">
+          <a href="{{resetUrl}}" style="display: inline-block; background-color: #DC2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+        </div>
+        
+        <p style="color: #666;">Or copy and paste this link into your browser:</p>
+        <p style="color: #4F46E5; word-break: break-all;">{{resetUrl}}</p>
+        
+        <div style="background-color: #FEE2E2; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #991B1B;"><strong>Important:</strong></p>
+          <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #991B1B;">
+            <li>This link will expire in 1 hour</li>
+            <li>If you didn't request this reset, please ignore this email</li>
+            <li>Your password won't change until you create a new one</li>
+          </ul>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          If you didn't request a password reset, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+    textContent: `Password Reset Request
+
+Hi {{firstName}},
+
+We received a request to reset the password for your account.
+
+Reset your password: {{resetUrl}}
+
+Important:
+- This link will expire in 1 hour
+- If you didn't request this reset, please ignore this email
+- Your password won't change until you create a new one
+
+---
+If you didn't request a password reset, you can safely ignore this email.`,
+    variables: {
+      firstName: 'User first name or "there"',
+      resetUrl: 'Password reset URL'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'comment_verification',
+    subject: 'Verify your support for {{personName}}',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Your message of support has been approved!</h2>
+        <p>Hi {{commenterName}},</p>
+        <p>Great news! The family has approved your message of support for <strong>{{personName}}</strong>.</p>
+        
+        <div style="background-color: #F0FDF4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #166534;"><strong>Your message is now visible</strong></p>
+          <p style="margin: 10px 0 0 0; color: #166534;">Your support is now publicly displayed on {{personName}}'s page, where it can provide hope and encouragement.</p>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <p><strong>Verify this message (Optional but helpful)</strong></p>
+          <p>Help the family and community know this message is genuine by verifying it was you:</p>
+          <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Yes, I wrote this message</a>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+        </div>
+        
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 30px 0;">
+          <p style="margin: 0; font-weight: bold; color: #92400E;">If this wasn't you:</p>
+          <p style="margin: 10px 0; color: #92400E;">If you didn't write this message, someone may have used your email address by mistake. You can hide all messages associated with your email:</p>
+          <a href="{{hideUrl}}" style="display: inline-block; background-color: #DC2626; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 10px 0;">Hide My Messages</a>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <p><strong>Manage Your Messages</strong></p>
+          <p>You can view and manage all messages associated with your email address:</p>
+          <a href="{{manageUrl}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px;">Manage All My Messages</a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <div style="font-size: 12px; color: #666; text-align: center;">
+          <p style="margin: 5px 0;">Email preferences:</p>
+          <p style="margin: 5px 0;">
+            <a href="{{manageUrl}}" style="color: #666;">Manage all email settings</a>
+          </p>
+        </div>
+      </div>
+    `,
+    textContent: `Your message of support has been approved!
+
+Hi {{commenterName}},
+
+Great news! The family has approved your message of support for {{personName}}.
+
+Your message is now visible
+Your support is now publicly displayed on {{personName}}'s page, where it can provide hope and encouragement.
+
+Verify this message (Optional but helpful)
+Help the family and community know this message is genuine by verifying it was you:
+{{verificationUrl}}
+
+View {{personName}}'s page: {{personUrl}}
+
+---
+If this wasn't you:
+If you didn't write this message, someone may have used your email address by mistake.
+Hide all your messages: {{hideUrl}}
+
+Manage all your messages: {{manageUrl}}
+
+To manage email preferences, visit: {{manageUrl}}`,
+    variables: {
+      commenterName: 'Commenter name',
+      personName: 'Person being supported',
+      verificationUrl: 'Comment verification URL',
+      personUrl: 'Person profile URL',
+      hideUrl: 'URL to hide all messages from this email',
+      manageUrl: 'URL to manage all messages'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'anonymous_verification',
+    subject: 'Action needed: Verify your support message for {{personName}}',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Your message has been submitted</h2>
+        <p>Hi {{firstName}},</p>
+        <p>We received a message of support for <strong>{{personName}}</strong> using your email address.</p>
+        
+        <div style="background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #075985;"><strong>What happens next:</strong></p>
+          <ol style="margin: 10px 0 0 20px; padding-left: 10px; color: #075985;">
+            <li>Your message is currently pending family approval</li>
+            <li>To help prevent spam, please verify your email below</li>
+            <li>Once approved by the family, your message will be visible on the public page</li>
+          </ol>
+        </div>
+
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="{{verificationUrl}}" style="display: inline-block; background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify My Email</a>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This confirms you're a real person, not spam</p>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <p style="font-size: 14px; color: #666;"><strong>Note:</strong> You do not need to create an account. We only need to verify your email to prevent spam and ensure families receive genuine messages of support.</p>
+        </div>
+
+        <div style="background-color: #FEE2E2; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; font-weight: bold; color: #991B1B;">⚠️ If this wasn't you:</p>
+          <p style="margin: 10px 0; color: #991B1B;">Someone may have used your email address by mistake. Take action now:</p>
+          <ul style="margin: 15px 0;">
+            <li><a href="{{hideUrl}}" style="color: #991B1B;">Hide all my messages from public view</a></li>
+            <li><a href="{{manageUrl}}" style="color: #991B1B;">Manage all my messages</a></li>
+          </ul>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #991B1B;">This will immediately hide any messages using your email and prevent future ones.</p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666; text-align: center;">
+          To manage your messages or update preferences, use the links above.
+        </p>
+      </div>
+    `,
+    textContent: `Your message has been submitted
+
+Hi {{firstName}},
+
+We received a message of support for {{personName}} using your email address.
+
+What happens next:
+1. Your message is currently pending family approval
+2. To help prevent spam, please verify your email below
+3. Once approved by the family, your message will be visible on the public page
+
+Verify your email: {{verificationUrl}}
+
+Note: You do not need to create an account. We only need to verify your email to prevent spam and ensure families receive genuine messages of support.
+
+⚠️ If this wasn't you:
+Someone may have used your email address by mistake. Take action now:
+
+Hide all my messages: {{hideUrl}}
+Manage my privacy: {{manageUrl}}
+
+This will immediately hide any messages using your email and prevent future ones.
+
+---
+To manage your messages or update preferences, use the links above.`,
+    variables: {
+      firstName: 'Sender first name',
+      personName: 'Person being supported',
+      verificationUrl: 'Email verification URL',
+      hideUrl: 'URL to hide all messages from this email',
+      manageUrl: 'URL to manage all messages'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'comment_submission_verified',
+    subject: 'Your support message for {{personName}} has been received',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Thank you for your support message</h2>
+        <p>Hi {{firstName}},</p>
+        <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+        
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>What happens next?</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Your message is awaiting approval from the family</li>
+            <li>Once approved, you'll receive another email notification</li>
+            <li>Your message will then be visible on the public page</li>
+          </ul>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="{{personUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View {{personName}}'s Page</a>
+        </div>
+
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E;"><strong>Someone may have used your email address by mistake. Take action now:</strong></p>
+          <ul style="margin: 10px 0; color: #92400E;">
+            <li><a href="{{hideUrl}}" style="color: #92400E;">Hide all my messages from public view</a></li>
+            <li><a href="{{manageUrl}}" style="color: #92400E;">Manage all my messages</a></li>
+          </ul>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
+      </div>
+    `,
+    textContent: `Thank you for your support message
+
+Hi {{firstName}},
+
+We've received your message of support for {{personName}} in {{townName}}.
+
+What happens next?
+- Your message is awaiting approval from the family
+- Once approved, you'll receive another email notification  
+- Your message will then be visible on the public page
+
+View {{personName}}'s page: {{personUrl}}
+
+Someone may have used your email address by mistake. Take action now:
+- Hide all my messages: {{hideUrl}}
+- Manage all my messages: {{manageUrl}}
+
+---
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+    variables: {
+      firstName: 'Sender first name',
+      personName: 'Person being supported',
+      townName: 'Town name',
+      personUrl: 'Person profile URL',
+      hideUrl: 'URL to hide all messages',
+      manageUrl: 'URL to manage messages',
+      personUnsubscribeUrl: 'URL to unsubscribe from this person',
+      allUnsubscribeUrl: 'URL to unsubscribe from all emails'
+    },
+    isActive: true,
+    trackingEnabled: false
+  },
+  {
+    name: 'comment_submission_blocked',
+    subject: 'Your support message for {{personName}} requires account access',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Your message has been received</h2>
+        <p>Hi {{firstName}},</p>
+        <p>We've received your message of support for <strong>{{personName}}</strong> in {{townName}}.</p>
+        
+        <div style="background-color: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400E;"><strong>Important: Account Settings Required</strong></p>
+          <p style="margin: 10px 0 0 0; color: #92400E;">Your account is currently set to not allow comments to be posted publicly, even after family approval.</p>
+          <p style="margin: 10px 0 0 0; color: #92400E;">To change this setting:</p>
+          <ol style="margin: 10px 0 0 20px; padding-left: 10px; color: #92400E;">
+            <li>Log in to your account at <a href="{{profileUrl}}" style="color: #92400E;">{{profileUrl}}</a></li>
+            <li>Go to your profile settings</li>
+            <li>Enable "Allow my comments to be shown publicly"</li>
+          </ol>
+          <p style="margin: 10px 0 0 0; color: #92400E;">If you don't remember your password, use the "Forgot Password" link on the login page.</p>
+        </div>
+
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>About your message:</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Your message has been saved and is awaiting family approval</li>
+            <li>However, it will remain private unless you update your account settings</li>
+            <li>The family will still see your message for approval</li>
+          </ul>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="{{profileUrl}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In to Update Settings</a>
+        </div>
+
+        <div style="background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #075985;"><strong>Not sure if this was you?</strong></p>
+          <ul style="margin: 10px 0; color: #075985;">
+            <li><a href="{{hideUrl}}" style="color: #075985;">Hide all messages from this email</a></li>
+            <li><a href="{{manageUrl}}" style="color: #075985;">Manage message privacy</a></li>
+          </ul>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
+      </div>
+    `,
+    textContent: `Your message requires account access
+
+Hi {{firstName}},
+
+We've received your message of support for {{personName}} in {{townName}}.
+
+IMPORTANT: Account Settings Required
+Your account is currently set to not allow comments to be posted publicly, even after family approval.
+
+To change this setting:
+1. Log in to your account at {{profileUrl}}
+2. Go to your profile settings
+3. Enable "Allow my comments to be shown publicly"
+
+If you don't remember your password, use the "Forgot Password" link on the login page.
+
+About your message:
+- Your message has been saved and is awaiting family approval
+- However, it will remain private unless you update your account settings
+- The family will still see your message for approval
+
+Not sure if this was you?
+- Hide all messages: {{hideUrl}}
+- Manage privacy: {{manageUrl}}
+
+---
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+    variables: {
+      firstName: 'Sender first name',
+      personName: 'Person being supported',
+      townName: 'Town name',
+      profileUrl: 'Profile URL',
+      hideUrl: 'URL to hide all messages',
+      manageUrl: 'URL to manage messages',
+      personUnsubscribeUrl: 'URL to unsubscribe from this person',
+      allUnsubscribeUrl: 'URL to unsubscribe from all emails'
+    },
+    isActive: true,
+    trackingEnabled: false
+  }
+];

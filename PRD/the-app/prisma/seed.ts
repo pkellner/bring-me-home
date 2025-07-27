@@ -5,6 +5,7 @@ import { join } from 'path';
 import { ImageStorageService } from '../src/lib/image-storage';
 import { createTownSlug, createPersonSlug } from '../src/lib/slug-utils';
 import { generateSecurePassword } from '../src/lib/password-generator';
+import { emailTemplates } from '../src/config/email-templates';
 
 const { Decimal } = Prisma;
 
@@ -2535,6 +2536,9 @@ async function main() {
 
   // Create email templates
   console.log('Creating email templates...');
+  // Email templates are now imported from src/config/email-templates.ts
+  // Skip the old hardcoded templates array - moving directly to processing
+  /*
   const emailTemplates = [
     {
       name: 'comment_submission',
@@ -3100,12 +3104,23 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
       isActive: true,
     }
   ];
+  */
 
+  // Process imported email templates
   for (const template of emailTemplates) {
+    // Convert variables object to JSON string for database storage
+    const templateData: any = {
+      ...template,
+      variables: JSON.stringify(template.variables),
+      trackingEnabled: template.trackingEnabled ?? false,
+      webhookUrl: template.webhookUrl ?? null,
+      webhookHeaders: template.webhookHeaders ? JSON.stringify(template.webhookHeaders) : Prisma.JsonNull
+    };
+    
     await prisma.emailTemplate.upsert({
       where: { name: template.name },
-      update: template,
-      create: template,
+      update: templateData,
+      create: templateData,
     });
   }
   console.log(`Created ${emailTemplates.length} email templates.`);

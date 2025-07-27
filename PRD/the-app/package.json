@@ -17,6 +17,8 @@
     "db:deploy:staging": "tsx scripts/deploy-db.ts staging",
     "db:deploy:local": "tsx scripts/deploy-db.ts local",
     "db:status:prod": "npx prisma migrate status",
+    "email:seed": "tsx scripts/seed-email-templates.ts",
+    "email:verify": "tsx scripts/verify-email-templates.ts",
     "debug:no-images": "tsx scripts/find-persons-without-images.ts",
     "debug:analyze-images": "tsx scripts/analyze-person-images.ts",
     "debug:check-rendering": "tsx scripts/check-image-rendering.ts",
