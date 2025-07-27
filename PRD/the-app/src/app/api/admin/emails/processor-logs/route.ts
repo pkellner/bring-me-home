@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isSiteAdmin } from '@/lib/permissions';
 
-const DEFAULT_LOG_LIMIT = parseInt(process.env.EMAIL_PROCESSOR_LOG_LIMIT || '1000', 10);
+const DEFAULT_LOG_LIMIT = parseInt(process.env.EMAIL_PROCESSOR_LOG_LIMIT || '500', 10);
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);

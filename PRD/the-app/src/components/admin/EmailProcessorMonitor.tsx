@@ -43,6 +43,7 @@ interface Props {
 export default function EmailProcessorMonitor({ initialLogs = [], initialControl }: Props) {
   const [isPending, startTransition] = useTransition();
   const [logs, setLogs] = useState<ProcessorLog[]>(initialLogs);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [control, setControl] = useState<ProcessorControl | null>(initialControl || null);
   const [isRunning, setIsRunning] = useState(false);
   const [filters, setFilters] = useState({
@@ -74,6 +75,7 @@ export default function EmailProcessorMonitor({ initialLogs = [], initialControl
         
         if (response.ok) {
           setLogs(data.logs);
+          setTotalCount(data.total || 0);
           setAvailableFilters(data.filters);
         }
       } catch (error) {
@@ -476,6 +478,14 @@ export default function EmailProcessorMonitor({ initialLogs = [], initialControl
             </div>
           )}
         </div>
+        
+        {/* Record count display */}
+        {logs.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600 text-center">
+            Showing {logs.length} logs
+            {totalCount > 500 && ` (${totalCount.toLocaleString()} total in database)`}
+          </div>
+        )}
       </div>
     </div>
   );

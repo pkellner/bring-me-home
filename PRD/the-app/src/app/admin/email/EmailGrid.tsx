@@ -43,6 +43,7 @@ interface EmailNotification {
 
 interface EmailGridProps {
   emails: EmailNotification[];
+  totalCount: number;
   persons: Array<{ id: string; firstName: string; lastName: string }>;
   onSendSelected: (emailIds: string[]) => Promise<void>;
   onRetrySelected: (emailIds: string[]) => Promise<void>;
@@ -59,7 +60,7 @@ const statusColors: Record<EmailStatus, string> = {
   OPENED: 'bg-purple-100 text-purple-800',
 };
 
-export default function EmailGrid({ emails, persons, onSendSelected, onRetrySelected, onDeleteSelected }: EmailGridProps) {
+export default function EmailGrid({ emails, totalCount, persons, onSendSelected, onRetrySelected, onDeleteSelected }: EmailGridProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
@@ -411,6 +412,14 @@ export default function EmailGrid({ emails, persons, onSendSelected, onRetrySele
           </tbody>
         </table>
       </div>
+
+      {/* Record count display */}
+      {filteredEmails.length > 0 && (
+        <div className="mt-2 text-sm text-gray-600 text-center">
+          Showing {filteredEmails.length} of {emails.length} emails
+          {totalCount > 500 && ` (${totalCount.toLocaleString()} total in database)`}
+        </div>
+      )}
 
       {/* No results */}
       {filteredEmails.length === 0 && (

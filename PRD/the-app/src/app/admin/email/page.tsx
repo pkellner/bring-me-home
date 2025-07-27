@@ -21,11 +21,13 @@ export default async function EmailAdminPage() {
     redirect('/admin');
   }
   
-  const [stats, emails, persons] = await Promise.all([
+  const [stats, emailData, persons] = await Promise.all([
     getEmailStats(),
     getEmailNotifications(),
     getPersonsWithEmails(),
   ]);
+  
+  const { emails, totalCount } = emailData;
   
   // Serialize dates for client component
   const serializedEmails = emails.map(email => ({
@@ -60,6 +62,7 @@ export default async function EmailAdminPage() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Email Queue & History</h2>
         <EmailGrid 
           emails={serializedEmails}
+          totalCount={totalCount}
           persons={persons}
           onSendSelected={async (emailIds) => {
             'use server';

@@ -54,6 +54,7 @@ export default async function NewUserPage() {
         roles={roles}
         towns={towns}
         persons={serializedPersons}
+        canManageTokens={false}
       />
     </div>
   );

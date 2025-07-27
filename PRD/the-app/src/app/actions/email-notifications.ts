@@ -517,6 +517,9 @@ export async function getEmailNotifications(filters?: {
     where.userId = filters.userId;
   }
 
+  // Get total count
+  const totalCount = await prisma.emailNotification.count({ where });
+
   const emails = await prisma.emailNotification.findMany({
     where,
     include: {
@@ -548,7 +551,10 @@ export async function getEmailNotifications(filters?: {
     take: 500, // Limit to recent 500 emails
   });
 
-  return emails;
+  return {
+    emails,
+    totalCount,
+  };
 }
 
 // Send queued emails (mark as ready to send and trigger sending)

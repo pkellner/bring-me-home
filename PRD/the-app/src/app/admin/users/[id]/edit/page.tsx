@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, isSiteAdmin, isTownAdmin } from '@/lib/permissions';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import UserForm from '../../UserForm';
@@ -22,6 +22,9 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
   if (!hasPermission(session, 'users', 'update')) {
     redirect('/admin/users');
   }
+  
+  // Check if current user is system or town admin
+  const canManageTokens = isSiteAdmin(session) || isTownAdmin(session);
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -71,6 +74,19 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
     ...person,
     bondAmount: person.bondAmount ? person.bondAmount.toString() : null,
   }));
+  
+  // Get comment verification tokens if user has email and current user can manage tokens
+  let hasCommentToken = false;
+  if (user.email && canManageTokens) {
+    const tokens = await prisma.commentVerificationToken.findMany({
+      where: { 
+        email: user.email,
+        isActive: true,
+      },
+      take: 1,
+    });
+    hasCommentToken = tokens.length > 0;
+  }
 
   // Also serialize bondAmount in user's personAccess
   const serializedUser = {
@@ -99,6 +115,8 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         roles={roles}
         towns={towns}
         persons={serializedPersons}
+        canManageTokens={canManageTokens}
+        hasCommentToken={hasCommentToken}
       />
     </div>
   );

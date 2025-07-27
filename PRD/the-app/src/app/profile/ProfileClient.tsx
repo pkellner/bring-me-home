@@ -20,7 +20,8 @@ import {
   BellSlashIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  BellIcon
 } from '@heroicons/react/24/outline';
 import Link from '@/components/OptimizedLink';
 import { performSignOut } from '@/lib/signout';
@@ -38,6 +39,8 @@ interface ProfileUser {
   lastLogin: string | null;
   optOutOfAllEmail: boolean;
   allowAnonymousComments: boolean;
+  notifyOnNewComments: boolean;
+  notifyFrequency: string;
   roles: Array<{
     id: string;
     name: string;
@@ -412,6 +415,16 @@ export default function ProfileClient({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // Admin notification settings
+  const [notifyOnNewComments, setNotifyOnNewComments] = useState(user.notifyOnNewComments);
+  const [notifyFrequency, setNotifyFrequency] = useState(user.notifyFrequency);
+  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
+  
+  // Check if user has any admin role or person access
+  const canReceiveNotifications = user.roles.some(role => 
+    ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
+  ) || user.personAccess.length > 0;
+  
   const handleEmailUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError('');
@@ -512,6 +525,33 @@ export default function ProfileClient({
       setPasswordError('Failed to update password. Please try again.');
     } finally {
       setIsUpdatingPassword(false);
+    }
+  };
+  
+  const handleNotificationUpdate = async () => {
+    setIsUpdatingNotifications(true);
+    
+    try {
+      const response = await fetch('/api/profile/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          notifyOnNewComments,
+          notifyFrequency,
+          userId: isViewingOwnProfile ? undefined : user.id // Include userId when admin is editing another user
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update notification settings');
+      }
+      
+      // Update was successful
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update notification settings:', error);
+    } finally {
+      setIsUpdatingNotifications(false);
     }
   };
   
@@ -918,6 +958,126 @@ export default function ProfileClient({
                 emailSubscriptions={user.emailSubscriptions}
               />
             </div>
+
+            {/* Admin Notifications Section - Show for users who can manage content */}
+            {canReceiveNotifications && (
+              <div className="px-6 py-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <BellIcon className="h-5 w-5 mr-2 text-gray-500" />
+                  Admin Notifications
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      id="notify-new-comments"
+                      checked={notifyOnNewComments}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setNotifyOnNewComments(checked);
+                        // If unchecking, reset frequency to immediate
+                        if (!checked) {
+                          setNotifyFrequency('immediate');
+                        }
+                        if (isViewingOwnProfile || isAdmin) {
+                          handleNotificationUpdate();
+                        }
+                      }}
+                      disabled={isUpdatingNotifications || (!isViewingOwnProfile && !isAdmin)}
+                      className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mt-1"
+                    />
+                    <label htmlFor="notify-new-comments" className="ml-3">
+                      <div className="text-sm font-medium text-gray-900">
+                        Notify me when new comments or updates need approval
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {user.roles.some(role => ['site-admin', 'town-admin'].includes(role.name)) 
+                          ? 'Receive notifications for all comments in your jurisdiction'
+                          : 'Receive notifications for comments on persons you manage'
+                        }
+                      </div>
+                    </label>
+                  </div>
+                  
+                  {/* Frequency options - only show when notifications are enabled */}
+                  {notifyOnNewComments && (
+                    <div className="ml-7 space-y-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Notification frequency:</p>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="notify-frequency"
+                          value="immediate"
+                          checked={notifyFrequency === 'immediate'}
+                          onChange={(e) => {
+                            setNotifyFrequency(e.target.value);
+                            if (isViewingOwnProfile || isAdmin) {
+                              handleNotificationUpdate();
+                            }
+                          }}
+                          disabled={isUpdatingNotifications || (!isViewingOwnProfile && !isAdmin)}
+                          className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Notify immediately</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="notify-frequency"
+                          value="hourly"
+                          checked={notifyFrequency === 'hourly'}
+                          onChange={(e) => {
+                            setNotifyFrequency(e.target.value);
+                            if (isViewingOwnProfile || isAdmin) {
+                              handleNotificationUpdate();
+                            }
+                          }}
+                          disabled={isUpdatingNotifications || (!isViewingOwnProfile && !isAdmin)}
+                          className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Notify no more than once an hour</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="notify-frequency"
+                          value="daily"
+                          checked={notifyFrequency === 'daily'}
+                          onChange={(e) => {
+                            setNotifyFrequency(e.target.value);
+                            if (isViewingOwnProfile || isAdmin) {
+                              handleNotificationUpdate();
+                            }
+                          }}
+                          disabled={isUpdatingNotifications || (!isViewingOwnProfile && !isAdmin)}
+                          className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Notify no more than once a day</span>
+                      </label>
+                    </div>
+                  )}
+                  
+                  {isUpdatingNotifications && (
+                    <div className="text-sm text-gray-600 italic">
+                      Updating notification settings...
+                    </div>
+                  )}
+                  
+                  {!isViewingOwnProfile && (
+                    <div className="text-sm text-gray-500 italic mt-2">
+                      {isAdmin 
+                        ? `You are editing ${user.firstName || user.username}'s notification settings`
+                        : `You are viewing ${user.firstName || user.username}'s notification settings (read-only)`
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Comments Management Section */}
             {comments.length > 0 && (

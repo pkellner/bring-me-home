@@ -140,6 +140,8 @@ export default async function ProfilePage({
     lastLogin: user.lastLogin?.toISOString() || null,
     optOutOfAllEmail: user.optOutOfAllEmail,
     allowAnonymousComments: user.allowAnonymousComments,
+    notifyOnNewComments: user.notifyOnNewComments,
+    notifyFrequency: user.notifyFrequency,
     roles: user.userRoles.map(ur => ({
       id: ur.role.id,
       name: ur.role.name,
