@@ -14,21 +14,21 @@ interface CallToActionProps {
   className?: string;
 }
 
-export default function CallToAction({ 
-  config, 
+export default function CallToAction({
+  config,
   variant = 'town',
   className = ''
 }: CallToActionProps) {
   const isTown = variant === 'town';
-  
-  const title = isTown 
+
+  const title = isTown
     ? (config.town_info_title || 'Want to Help?')
     : (config.homepage_cta_title || 'How You Can Help');
-    
+
   const text = isTown
     ? (config.town_info_text || 'If you know someone who has been detained or want to show support for those already in the system, please add your voice. Community support can make a real difference in immigration proceedings.')
     : (config.homepage_cta_text || 'Every voice matters. By showing your support for detained individuals, you help demonstrate to authorities the community ties and support system waiting for their return.');
-    
+
   const buttonText = isTown
     ? (config.town_info_button || 'Add Your Support')
     : (config.homepage_cta_button || 'Show Your Support');
@@ -44,9 +44,9 @@ export default function CallToAction({
       <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
         {isTown ? (
           <>
-            <button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">
-              {buttonText}
-            </button>
+            {/*<button className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700">*/}
+            {/*  {buttonText}*/}
+            {/*</button>*/}
             <Link
               href="/"
               className="w-full sm:w-auto inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50"
