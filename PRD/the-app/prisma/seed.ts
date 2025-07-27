@@ -166,7 +166,6 @@ const createdIds = {
   persons: new Map<string, string>(),
   roles: new Map<string, string>(),
   themes: new Map<string, string>(),
-  layouts: new Map<string, string>(),
   users: new Map<string, string>(),
 };
 
@@ -1138,96 +1137,6 @@ const themes = [
   },
 ];
 
-// Seed data for layouts (10 layouts)
-const layouts = [
-  {
-    name: 'Standard Profile',
-    description: 'Traditional layout with image on left, info on right',
-    template: JSON.stringify({
-      type: 'grid',
-      columns: 2,
-      sections: ['image', 'info', 'story', 'comments'],
-    }),
-  },
-  {
-    name: 'Compact Card',
-    description: 'Compact layout suitable for mobile viewing',
-    template: JSON.stringify({
-      type: 'stack',
-      sections: ['image', 'info', 'story', 'comments'],
-    }),
-  },
-  {
-    name: 'Hero Image',
-    description: 'Large hero image at top',
-    template: JSON.stringify({
-      type: 'hero',
-      sections: ['hero-image', 'info', 'story', 'comments'],
-    }),
-  },
-  {
-    name: 'Sidebar Left',
-    description: 'Information sidebar on the left',
-    template: JSON.stringify({
-      type: 'sidebar-left',
-      sections: ['sidebar-info', 'main-content', 'comments'],
-    }),
-  },
-  {
-    name: 'Sidebar Right',
-    description: 'Information sidebar on the right',
-    template: JSON.stringify({
-      type: 'sidebar-right',
-      sections: ['main-content', 'sidebar-info', 'comments'],
-    }),
-  },
-  {
-
-    name: 'Timeline',
-    description: 'Timeline-based layout',
-    template: JSON.stringify({
-      type: 'timeline',
-      sections: ['header', 'timeline-events', 'story', 'comments'],
-    }),
-  },
-  {
-
-    name: 'Magazine',
-    description: 'Magazine-style layout',
-    template: JSON.stringify({
-      type: 'magazine',
-      columns: 3,
-      sections: ['featured-image', 'article-content', 'sidebar', 'comments'],
-    }),
-  },
-  {
-
-    name: 'Minimal',
-    description: 'Minimal clean layout',
-    template: JSON.stringify({
-      type: 'minimal',
-      sections: ['basic-info', 'story', 'comments'],
-    }),
-  },
-  {
-
-    name: 'Gallery Focus',
-    description: 'Emphasizes image gallery',
-    template: JSON.stringify({
-      type: 'gallery',
-      sections: ['gallery-grid', 'info', 'story', 'comments'],
-    }),
-  },
-  {
-
-    name: 'Full Width',
-    description: 'Full width modern layout',
-    template: JSON.stringify({
-      type: 'full-width',
-      sections: ['banner', 'content-blocks', 'comments'],
-    }),
-  },
-];
 
 async function cleanDatabase() {
   console.log('Cleaning database...');
@@ -1249,7 +1158,6 @@ async function cleanDatabase() {
     await prisma.user.deleteMany();
     await prisma.role.deleteMany();
     await prisma.theme.deleteMany();
-    await prisma.layout.deleteMany();
     await prisma.systemConfig.deleteMany();
     await prisma.imageStorage.deleteMany();
 
@@ -1601,12 +1509,6 @@ async function main() {
     createdIds.themes.set(theme.name, created.id);
   }
 
-  // Create layouts
-  console.log('Creating layouts...');
-  for (const layout of layouts) {
-    const created = await prisma.layout.create({ data: layout });
-    createdIds.layouts.set(layout.name, created.id);
-  }
 
   // Create detention centers with images
   console.log('Creating detention centers...');
@@ -1637,14 +1539,12 @@ async function main() {
 
   // Create towns
   console.log('Creating towns...');
-  const layoutNames = Array.from(createdIds.layouts.keys());
   const themeNames = Array.from(createdIds.themes.keys());
 
   // Get existing town slugs for uniqueness check
   const existingTownSlugs: string[] = [];
 
   for (const town of towns) {
-    const layoutName = layoutNames[town.name.charCodeAt(0) % layoutNames.length];
     const themeName = themeNames[town.name.charCodeAt(1) % themeNames.length];
 
     // Generate unique slug
@@ -1655,7 +1555,6 @@ async function main() {
       data: {
         ...town,
         slug,
-        defaultLayoutId: createdIds.layouts.get(layoutName),
         defaultThemeId: createdIds.themes.get(themeName),
       },
     });
@@ -3237,7 +3136,6 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
   console.log(`- ${detainedPersons.length} family privacy settings`);
   console.log(`- ${roles.length} roles`);
   console.log(`- ${themes.length} themes`);
-  console.log(`- ${layouts.length} layouts`);
   console.log(`- ${detentionCenters.length} detention centers`);
   console.log(`- ${demoUsers.length + towns.length + 1} users`);
 

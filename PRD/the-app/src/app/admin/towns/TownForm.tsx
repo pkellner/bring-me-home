@@ -4,15 +4,14 @@ import Link from '@/components/OptimizedLink';
 import { createTown, updateTown } from '@/app/actions/towns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { SanitizedTown, SanitizedLayout, SanitizedTheme } from '@/types/sanitized';
+import type { SanitizedTown, SanitizedTheme } from '@/types/sanitized';
 
 interface TownFormProps {
   town?: SanitizedTown;
-  layouts: SanitizedLayout[];
   themes: SanitizedTheme[];
 }
 
-export default function TownForm({ town, layouts, themes }: TownFormProps) {
+export default function TownForm({ town, themes }: TownFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -160,28 +159,6 @@ export default function TownForm({ town, layouts, themes }: TownFormProps) {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             placeholder="e.g., -122.4194"
           />
-        </div>
-
-        <div>
-          <label
-            htmlFor="defaultLayoutId"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Default Layout
-          </label>
-          <select
-            id="defaultLayoutId"
-            name="defaultLayoutId"
-            defaultValue={town?.defaultLayoutId || ''}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="">None (use system default)</option>
-            {layouts.map(layout => (
-              <option key={layout.id} value={layout.id}>
-                {layout.name}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>

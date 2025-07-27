@@ -14,12 +14,6 @@ function generateCacheKey(townSlug: string): string {
 
 type TownWithRelations = Prisma.TownGetPayload<{
   include: {
-    layout: {
-      select: {
-        id: true;
-        name: true;
-      };
-    };
     theme: {
       select: {
         id: true;
@@ -89,12 +83,6 @@ async function getTownDataFromDatabase(townSlug: string): Promise<TownWithRelati
       isActive: true,
     },
     include: {
-      layout: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
       theme: {
         select: {
           id: true,
@@ -187,10 +175,6 @@ export interface TownPageData {
   name: string;
   slug: string;
   state: string;
-  layout: {
-    id: string;
-    name: string;
-  } | null;
   theme: {
     id: string;
     name: string;
@@ -239,7 +223,6 @@ async function serializeTownData(town: TownWithRelations, townSlug: string): Pro
     name: town.name,
     slug: town.slug,
     state: town.state,
-    layout: town.layout,
     theme: town.theme,
     persons: personsWithImageUrls,
   };

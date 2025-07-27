@@ -12,7 +12,6 @@ import {
   CogIcon,
   HomeIcon,
   ShieldCheckIcon,
-  Squares2X2Icon,
   SwatchIcon,
   UserIcon,
   UsersIcon,
@@ -27,7 +26,6 @@ const iconMap = {
   chat: ChatBubbleLeftRightIcon,
   cog: CogIcon,
   shield: ShieldCheckIcon,
-  layouts: Squares2X2Icon,
   themes: SwatchIcon,
   detentionCenters: BuildingLibraryIcon,
   email: EnvelopeIcon,
@@ -103,13 +101,6 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       href: '/admin/email',
       icon: 'email' as keyof typeof iconMap,
       show: isSiteAdminUser, // Only site admins can manage email notifications
-      disabled: false,
-    },
-    {
-      name: 'Layouts',
-      href: '/admin/layouts',
-      icon: 'layouts' as keyof typeof iconMap,
-      show: isSiteAdminUser, // Only site admins should manage layouts
       disabled: false,
     },
     {

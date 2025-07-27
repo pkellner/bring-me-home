@@ -29,8 +29,7 @@ export async function getEnvironmentConfig() {
     environment: process.env.NODE_ENV || 'development',
     debugMode: process.env.DEBUG_FLAG === 'true',
 
-    // Layout and Theme defaults (with system config override)
-    systemDefaultLayout: systemOverrides.layout,
+    // Theme defaults (with system config override)
     systemDefaultTheme: systemOverrides.theme,
 
     // Feature flags (add more as needed)

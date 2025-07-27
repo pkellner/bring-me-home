@@ -22,7 +22,6 @@ const personSchema = z.object({
   lastKnownAddress: z.string().min(1, 'Last known address is required'),
   status: z.string().default('detained'),
   stories: z.string().nullable().optional(), // JSON string of stories array
-  layoutId: z.string().nullable().optional(),
   themeId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
   detentionCenterId: z.string().nullable().optional(),
@@ -65,7 +64,6 @@ export async function createPerson(formData: FormData) {
     lastKnownAddress: formData.get('lastKnownAddress'),
     status: formData.get('status') || 'detained',
     stories: formData.get('stories') || null,
-    layoutId: formData.get('layoutId') || null,
     themeId: formData.get('themeId') || null,
     isActive: formData.get('isActive') === 'on',
     detentionCenterId: formData.get('detentionCenterId') || null,
@@ -263,8 +261,7 @@ export async function updatePerson(id: string, formData: FormData) {
       lastKnownAddress: formData.get('lastKnownAddress'),
       status: formData.get('status') || 'detained',
       stories: formData.get('stories') || null,
-      layoutId: formData.get('layoutId') || null,
-      themeId: formData.get('themeId') || null,
+        themeId: formData.get('themeId') || null,
       isActive: formData.get('isActive') === 'on',
       detentionCenterId: formData.get('detentionCenterId') || null,
       detentionDate: formData.get('detentionDate') || null,
@@ -309,7 +306,6 @@ export async function updatePerson(id: string, formData: FormData) {
       dateOfBirth: Date | null;
       lastKnownAddress: string;
       status: string;
-      layoutId?: string | null;
       themeId?: string | null;
       isActive?: boolean;
       detentionCenterId?: string | null;
@@ -833,8 +829,6 @@ interface ImportPersonData {
   id?: string;
   townId?: string;
   town?: unknown;
-  layoutId?: string;
-  layout?: unknown;
   themeId?: string;
   theme?: unknown;
   detentionCenterId?: string;
@@ -891,10 +885,6 @@ export async function importPersonData(personId: string, importData: ImportPerso
       exportedAt: _exportedAt,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       exportVersion: _exportVersion,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      layoutId: _layoutId,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      layout: _layout,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       themeId: _themeId,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

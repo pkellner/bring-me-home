@@ -115,17 +115,7 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
   const { person, systemDefaults, permissions } = data;
   const serializedPerson = person as SerializedPerson;
   
-  // Determine which layout and theme to use
-  const layout = serializedPerson.layout ||
-    serializedPerson.town.layout || {
-      id: 'default',
-      name: 'Standard Profile',
-      template: JSON.stringify({
-        type: 'custom-person',
-        sections: ['top-row', 'story', 'history', 'comments'],
-      }),
-    };
-
+  // Determine which theme to use
   const theme = serializedPerson.theme ||
     serializedPerson.town.theme || {
       id: 'default',
@@ -165,7 +155,6 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
         <LayoutRenderer
           person={serializedPerson}
-          layout={layout}
           theme={theme}
           isAdmin={permissions?.isAdmin || false}
           isSiteAdmin={permissions?.isSiteAdmin || false}
@@ -177,10 +166,8 @@ export default function PersonPageClient({ townSlug, personSlug, adminLinkDelay,
 
       {/* Footer */}
       <Footer
-        townLayout={serializedPerson.town.layout?.name}
         townTheme={serializedPerson.town.theme?.name}
         townName={serializedPerson.town.name}
-        personLayout={serializedPerson.layout?.name}
         personTheme={serializedPerson.theme?.name}
       />
 

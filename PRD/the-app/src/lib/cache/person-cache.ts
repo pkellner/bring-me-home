@@ -20,11 +20,9 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
   include: {
     town: {
       include: {
-        layout: true;
         theme: true;
       };
     };
-    layout: true;
     theme: true;
     detentionCenter: {
       include: {
@@ -183,7 +181,6 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
       courtLocation: true,
       internationalAddress: true,
       countryOfOrigin: true,
-      layoutId: true,
       themeId: true,
       townId: true,
       slug: true,
@@ -195,11 +192,9 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
       updatedAt: true,
       town: {
         include: {
-          layout: true,
           theme: true,
         },
       },
-      layout: true,
       theme: true,
       detentionCenter: {
         include: {
@@ -368,7 +363,6 @@ interface SerializedPersonData {
   courtLocation: string | null;
   internationalAddress: string | null;
   countryOfOrigin: string | null;
-  layoutId: string | null;
   themeId: string | null;
   townId: string;
   slug: string;
@@ -379,7 +373,6 @@ interface SerializedPersonData {
   createdAt: string;
   updatedAt: string;
   town: Record<string, unknown>;
-  layout: Record<string, unknown> | null;
   theme: Record<string, unknown> | null;
   detentionCenter: Record<string, unknown> | null;
   stories: Array<{

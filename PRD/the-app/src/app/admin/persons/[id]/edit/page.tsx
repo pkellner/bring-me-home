@@ -59,11 +59,10 @@ export default async function EditPersonPage({
     isActive: town.isActive,
     latitude: town.latitude,
     longitude: town.longitude,
-    defaultLayoutId: town.defaultLayoutId,
     defaultThemeId: town.defaultThemeId,
     createdAt: town.createdAt,
     updatedAt: town.updatedAt,
-    // Excluded: persons, townAccess, layout, theme relations
+    // Excluded: persons, townAccess, theme relations
   }));
 
   // Get slugs for navigation
@@ -112,7 +111,6 @@ export default async function EditPersonPage({
     isActive: person.isActive,
     isFound: person.isFound,
     status: person.status,
-    layoutId: person.layoutId,
     themeId: person.themeId,
     townId: person.townId,
     createdAt: person.createdAt,
@@ -170,11 +168,10 @@ export default async function EditPersonPage({
       isActive: person.town.isActive,
       latitude: person.town.latitude,
       longitude: person.town.longitude,
-      defaultLayoutId: person.town.defaultLayoutId,
       defaultThemeId: person.town.defaultThemeId,
       createdAt: person.town.createdAt,
       updatedAt: person.town.updatedAt,
-      // Explicitly exclude: persons, townAccess, layout, theme relations
+      // Explicitly exclude: persons, townAccess, theme relations
     },
     // Sanitize detentionCenter to remove potential circular reference
     detentionCenter: person.detentionCenter ? {

@@ -17,7 +17,6 @@ const townSchema = z.object({
   description: z.string().max(1000).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
-  defaultLayoutId: z.string().optional(),
   defaultThemeId: z.string().optional(),
   isActive: z.boolean().optional(),
 });
@@ -41,7 +40,6 @@ export async function createTown(formData: FormData) {
     longitude: formData.get('longitude')
       ? parseFloat(formData.get('longitude') as string)
       : undefined,
-    defaultLayoutId: formData.get('defaultLayoutId') || undefined,
     defaultThemeId: formData.get('defaultThemeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });
@@ -98,7 +96,6 @@ export async function updateTown(id: string, formData: FormData) {
     longitude: formData.get('longitude')
       ? parseFloat(formData.get('longitude') as string)
       : undefined,
-    defaultLayoutId: formData.get('defaultLayoutId') || undefined,
     defaultThemeId: formData.get('defaultThemeId') || undefined,
     isActive: formData.get('isActive') === 'on',
   });

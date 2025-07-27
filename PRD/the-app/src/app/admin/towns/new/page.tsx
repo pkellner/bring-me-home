@@ -12,22 +12,16 @@ export default async function NewTownPage() {
     redirect('/admin');
   }
 
-  const [layouts, themes] = await Promise.all([
-    prisma.layout.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.theme.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-    }),
-  ]);
+  const themes = await prisma.theme.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Create New Town</h1>
       <div className="bg-white shadow rounded-lg p-6">
-        <TownForm layouts={layouts} themes={themes} />
+        <TownForm themes={themes} />
       </div>
     </div>
   );

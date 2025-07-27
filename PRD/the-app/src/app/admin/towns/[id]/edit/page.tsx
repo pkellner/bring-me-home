@@ -26,17 +26,11 @@ export default async function EditTownPage({
     redirect('/admin/towns');
   }
 
-  // Get layouts and themes for the form
-  const [layouts, themes] = await Promise.all([
-    prisma.layout.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.theme.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-    }),
-  ]);
+  // Get themes for the form
+  const themes = await prisma.theme.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
 
   return (
     <div className="space-y-6">
@@ -51,7 +45,7 @@ export default async function EditTownPage({
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <TownForm town={town} layouts={layouts} themes={themes} />
+        <TownForm town={town} themes={themes} />
       </div>
     </div>
   );

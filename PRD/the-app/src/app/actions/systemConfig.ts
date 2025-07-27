@@ -10,7 +10,7 @@ import { generateRedisKey, RedisNamespaces } from '@/lib/redis/redis-keys';
 // Request deduplication for preventing concurrent identical queries
 // Using separate maps for different return types to maintain type safety
 const configRequests = new Map<string, Promise<string | null>>();
-const layoutThemeRequests = new Map<string, Promise<{ layout: string; theme: string }>>();
+const themeRequests = new Map<string, Promise<string>>();
 
 // Cached version of getSystemConfig
 async function getCachedSystemConfig(key: string): Promise<string | null> {
@@ -68,22 +68,19 @@ export async function getSystemConfig(key: string) {
   return getCachedSystemConfig(key);
 }
 
-// Cached version of getSystemLayoutTheme
-async function getCachedSystemLayoutTheme(): Promise<{ layout: string; theme: string }> {
+// Cached version of getSystemTheme
+async function getCachedSystemTheme(): Promise<string> {
   // Skip database queries during build phase
   if (process.env.NEXT_PHASE === 'phase-production-build') {
-    return {
-      layout: process.env.SYSTEM_DEFAULT_LAYOUT || 'grid',
-      theme: process.env.SYSTEM_DEFAULT_THEME || 'default',
-    };
+    return process.env.SYSTEM_DEFAULT_THEME || 'default';
   }
 
-  const cacheKey = generateRedisKey(RedisNamespaces.CACHE, 'system-layout-theme');
+  const cacheKey = generateRedisKey(RedisNamespaces.CACHE, 'system-theme');
   const TTL_SECONDS = parseInt(process.env.CACHE_SYSTEM_CONFIG_TTL || '120');
   
   // Check if there's already a pending request for this data
-  if (layoutThemeRequests.has(cacheKey)) {
-    return layoutThemeRequests.get(cacheKey)!;
+  if (themeRequests.has(cacheKey)) {
+    return themeRequests.get(cacheKey)!;
   }
   
   // Create the promise for this request
@@ -91,34 +88,24 @@ async function getCachedSystemLayoutTheme(): Promise<{ layout: string; theme: st
     try {
       // Try caches
       const memoryCache = await getMemoryCache();
-      let cached = await memoryCache.get<{ layout: string; theme: string }>(cacheKey);
+      let cached = await memoryCache.get<string>(cacheKey);
       if (cached) return cached;
       
       const redisCache = await getRedisCache();
       if (redisCache) {
-        cached = await redisCache.get<{ layout: string; theme: string }>(cacheKey);
+        cached = await redisCache.get<string>(cacheKey);
         if (cached) {
           await memoryCache.set(cacheKey, cached, TTL_SECONDS * 1000);
           return cached;
         }
       }
       
-      // Query database - use findMany to get both configs in one query
-      const configs = await prisma.systemConfig.findMany({
-        where: {
-          key: {
-            in: ['SYSTEM_DEFAULT_LAYOUT', 'SYSTEM_DEFAULT_THEME']
-          }
-        }
+      // Query database for theme config
+      const themeConfig = await prisma.systemConfig.findUnique({
+        where: { key: 'SYSTEM_DEFAULT_THEME' }
       });
       
-      const layoutConfig = configs.find(c => c.key === 'SYSTEM_DEFAULT_LAYOUT');
-      const themeConfig = configs.find(c => c.key === 'SYSTEM_DEFAULT_THEME');
-      
-      const result = {
-        layout: layoutConfig?.value || process.env.SYSTEM_DEFAULT_LAYOUT || 'grid',
-        theme: themeConfig?.value || process.env.SYSTEM_DEFAULT_THEME || 'default',
-      };
+      const result = themeConfig?.value || process.env.SYSTEM_DEFAULT_THEME || 'default';
       
       // Cache result
       await memoryCache.set(cacheKey, result, TTL_SECONDS * 1000);
@@ -129,21 +116,28 @@ async function getCachedSystemLayoutTheme(): Promise<{ layout: string; theme: st
       return result;
     } finally {
       // Clean up the pending request
-      layoutThemeRequests.delete(cacheKey);
+      themeRequests.delete(cacheKey);
     }
   })();
   
   // Store the pending request
-  layoutThemeRequests.set(cacheKey, requestPromise);
+  themeRequests.set(cacheKey, requestPromise);
   
   return requestPromise;
 }
 
+export async function getSystemTheme() {
+  return getCachedSystemTheme();
+}
+
+// For backward compatibility - returns object with theme only
 export async function getSystemLayoutTheme() {
-  return getCachedSystemLayoutTheme();
+  const theme = await getCachedSystemTheme();
+  return { layout: 'grid', theme }; // Always return 'grid' for layout
 }
 
 export async function updateSystemDefaults(layout: string, theme: string) {
+  // Note: layout parameter is ignored now, kept for backward compatibility
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -167,19 +161,7 @@ export async function updateSystemDefaults(layout: string, theme: string) {
   }
 
   try {
-    // Update or create layout config
-    await prisma.systemConfig.upsert({
-      where: { key: 'SYSTEM_DEFAULT_LAYOUT' },
-      update: { value: layout },
-      create: {
-        key: 'SYSTEM_DEFAULT_LAYOUT',
-        value: layout,
-        description: 'System default layout override',
-        dataType: 'string',
-      },
-    });
-
-    // Update or create theme config
+    // Update or create theme config only
     await prisma.systemConfig.upsert({
       where: { key: 'SYSTEM_DEFAULT_THEME' },
       update: { value: theme },
@@ -195,20 +177,17 @@ export async function updateSystemDefaults(layout: string, theme: string) {
     const memoryCache = await getMemoryCache();
     const redisCache = await getRedisCache();
     
-    // Clear individual config caches
-    const layoutKey = generateRedisKey(RedisNamespaces.CACHE, 'system-config', 'SYSTEM_DEFAULT_LAYOUT');
+    // Clear cache
     const themeKey = generateRedisKey(RedisNamespaces.CACHE, 'system-config', 'SYSTEM_DEFAULT_THEME');
-    const combinedKey = generateRedisKey(RedisNamespaces.CACHE, 'system-layout-theme');
+    const cacheKey = generateRedisKey(RedisNamespaces.CACHE, 'system-theme');
     
     // Use existing del method from cache infrastructure
-    await memoryCache.del(layoutKey);
     await memoryCache.del(themeKey);
-    await memoryCache.del(combinedKey);
+    await memoryCache.del(cacheKey);
     
     if (redisCache) {
-      await redisCache.del(layoutKey);
       await redisCache.del(themeKey);
-      await redisCache.del(combinedKey);
+      await redisCache.del(cacheKey);
     }
 
     // Revalidate all pages to reflect the changes

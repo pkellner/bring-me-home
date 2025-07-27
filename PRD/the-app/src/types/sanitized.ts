@@ -40,11 +40,10 @@ export type SanitizedTown = {
   isActive: boolean;
   latitude: number | null;
   longitude: number | null;
-  defaultLayoutId: string | null;
   defaultThemeId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  // Excluded: persons, townAccess, layout, theme relations
+  // Excluded: persons, townAccess, theme relations
 };
 
 export type SanitizedDetentionCenter = {
@@ -133,7 +132,6 @@ export type SerializedPerson = {
   isActive: boolean;
   isFound: boolean;
   status: string;
-  layoutId: string | null;
   themeId: string | null;
   townId: string;
   createdAt: Date;
@@ -171,17 +169,6 @@ export type SerializedPerson = {
   images?: ImageData[];
 };
 
-export type SanitizedLayout = {
-  id: string;
-  name: string;
-  description: string | null;
-  cssClasses: string | null;
-  template: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  // Excluded: persons, towns relations
-};
 
 export type SanitizedTheme = {
   id: string;

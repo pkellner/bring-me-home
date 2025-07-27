@@ -75,16 +75,13 @@ model Town {
   isActive        Boolean      @default(true)
   latitude        Float?
   longitude       Float?
-  defaultLayoutId String?
   defaultThemeId  String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   persons         Person[]
   townAccess      TownAccess[]
-  layout          Layout?      @relation(fields: [defaultLayoutId], references: [id])
   theme           Theme?       @relation(fields: [defaultThemeId], references: [id])
 
-  @@index([defaultLayoutId], map: "towns_defaultLayoutId_fkey")
   @@index([defaultThemeId], map: "towns_defaultThemeId_fkey")
   @@map("towns")
 }
@@ -112,7 +109,6 @@ model Person {
   isActive             Boolean                @default(true)
   isFound              Boolean                @default(false)
   status               String                 @default("missing")
-  layoutId             String?
   themeId              String?
   townId               String
   createdAt            DateTime               @default(now())
@@ -149,7 +145,6 @@ model Person {
   personAccess         PersonAccess[]
   personImages         PersonImage[]
   detentionCenter      DetentionCenter?       @relation(fields: [detentionCenterId], references: [id])
-  layout               Layout?                @relation(fields: [layoutId], references: [id])
   theme                Theme?                 @relation(fields: [themeId], references: [id])
   town                 Town                   @relation(fields: [townId], references: [id], onDelete: Cascade)
   stories              Story[]
@@ -164,7 +159,6 @@ model Person {
   @@index([slug])
   @@index([status])
   @@index([detentionCenterId])
-  @@index([layoutId], map: "persons_layoutId_fkey")
   @@index([themeId], map: "persons_themeId_fkey")
   @@map("persons")
 }
@@ -329,20 +323,6 @@ model PersonAccess {
   @@map("person_access")
 }
 
-model Layout {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  cssClasses  String?  @db.Text
-  template    String   @db.Text
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  persons     Person[]
-  towns       Town[]
-
-  @@map("layouts")
-}
 
 model Theme {
   id          String   @id @default(cuid())

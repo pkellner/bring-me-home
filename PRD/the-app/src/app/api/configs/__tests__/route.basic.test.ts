@@ -24,11 +24,11 @@ describe('Configs API Route', () => {
   });
   
   it('should validate config keys', () => {
-    const validKeys = ['theme', 'layout', 'language'];
+    const validKeys = ['theme', 'language'];
     const isValidKey = (key: string) => validKeys.includes(key);
     
     expect(isValidKey('theme')).toBe(true);
-    expect(isValidKey('layout')).toBe(true);
+    expect(isValidKey('language')).toBe(true);
     expect(isValidKey('invalid')).toBe(false);
   });
 });

@@ -7,31 +7,25 @@ import { useSession } from 'next-auth/react';
 import { updateSystemDefaults } from '@/app/actions/systemConfig';
 
 interface FooterProps {
-  townLayout?: string | null;
   townTheme?: string | null;
   townName?: string | null;
-  personLayout?: string | null;
   personTheme?: string | null;
   copyrightText?: string;
 }
 
 export default function Footer({
-  townLayout,
   townTheme,
   townName,
-  personLayout,
   personTheme,
   copyrightText,
 }: FooterProps) {
   const { env } = useEnvironment();
   const { data: session } = useSession();
   const [isEditing, setIsEditing] = useState(false);
-  const [systemLayout, setSystemLayout] = useState<string>('');
   const [systemTheme, setSystemTheme] = useState<string>('');
 
   useEffect(() => {
     if (env) {
-      setSystemLayout(env.systemDefaultLayout);
       setSystemTheme(env.systemDefaultTheme);
     }
   }, [env]);
@@ -48,7 +42,7 @@ export default function Footer({
   });
 
   const handleSaveDefaults = async () => {
-    const result = await updateSystemDefaults(systemLayout, systemTheme);
+    const result = await updateSystemDefaults('grid', systemTheme); // 'grid' is ignored now
     if (result.success) {
       setIsEditing(false);
       // Refresh the page to show the new defaults
@@ -58,37 +52,17 @@ export default function Footer({
     }
   };
 
-  const currentLayout = personLayout || townLayout || systemLayout || 'grid';
   const currentTheme = personTheme || townTheme || systemTheme || 'default';
 
   return (
     <footer className="bg-gray-800 text-white">
       <div className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-4">
-          {/* Layout/Theme Info */}
+          {/* Theme Info */}
           <div className="text-center">
             <div className="text-sm text-gray-400 space-x-4">
               {isEditing && isAdmin ? (
                 <div className="inline-flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <span>Layout:</span>
-                    <select
-                      value={systemLayout}
-                      onChange={e => setSystemLayout(e.target.value)}
-                      className="text-gray-900 px-2 py-1 rounded text-xs"
-                    >
-                      <option value="grid">Grid</option>
-                      <option value="stack">Stack</option>
-                      <option value="hero">Hero</option>
-                      <option value="sidebar-left">Sidebar Left</option>
-                      <option value="sidebar-right">Sidebar Right</option>
-                      <option value="magazine">Magazine</option>
-                      <option value="card">Card</option>
-                      <option value="minimal">Minimal</option>
-                      <option value="gallery">Gallery</option>
-                      <option value="full-width">Full Width</option>
-                    </select>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <span>Theme:</span>
                     <select
@@ -122,12 +96,6 @@ export default function Footer({
                 </div>
               ) : (
                 <>
-                  <span>
-                    Layout: <span className="font-mono">{currentLayout}</span>
-                    {personLayout && ' (person)'}
-                    {!personLayout && townLayout && ' (town)'}
-                  </span>
-                  <span className="text-gray-600">|</span>
                   <span>
                     Theme: <span className="font-mono">{currentTheme}</span>
                     {personTheme && ' (person)'}
@@ -195,13 +163,6 @@ export default function Footer({
               </Link>
               {isAdmin && (
                 <>
-                  <span className="text-gray-600">|</span>
-                  <Link
-                    href="/admin/layouts"
-                    className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
-                  >
-                    Manage Layouts
-                  </Link>
                   <span className="text-gray-600">|</span>
                   <Link
                     href="/admin/themes"

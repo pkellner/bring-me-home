@@ -169,7 +169,6 @@ export default function TownPageClient({ townSlug, spinnerDelay }: TownPageClien
       {/* Footer */}
       <FooterClient
         config={config}
-        townLayout={town.layout?.name}
         townTheme={town.theme?.name}
         townName={town.name}
       />
