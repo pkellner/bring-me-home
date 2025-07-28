@@ -553,21 +553,47 @@ export async function submitComment(
           if (admin.email) {
             console.log(`📤 Creating email notification for admin: ${admin.firstName} ${admin.lastName} (${admin.email})`);
             
-            // Format the comment date
-            const commentDate = new Date().toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'long',
+            // For emails, we'll calculate relative time when the email is sent
+            // Since emails are queued and might be sent later, we'll use the current time
+            const now = new Date();
+            
+            // Format as ISO string for email clients that support it
+            const commentDateISO = now.toISOString();
+            
+            // Also provide a readable format with multiple timezones
+            const commentDateEST = now.toLocaleString('en-US', {
+              month: 'short',
               day: 'numeric',
-              hour: '2-digit',
+              hour: 'numeric',
               minute: '2-digit',
-              timeZoneName: 'short'
-            });
+              hour12: true,
+              timeZone: 'America/New_York'
+            }) + ' EST';
+            
+            const commentDatePST = now.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            }) + ' PST';
+            
+            const commentDateUTC = now.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'UTC'
+            }) + ' UTC';
             
             const adminTemplateData = {
               personName: `${personData.firstName} ${personData.lastName}`,
               commenterName: `${data.firstName} ${data.lastName}`,
               commenterEmail: data.email || 'Anonymous',
-              commentDate,
+              commentDate: `${commentDateEST} / ${commentDatePST} / ${commentDateUTC}`,
+              commentDateISO: commentDateISO,
               commentLink,
               manageCommentsLink: `${baseUrl}/admin/comments/${personData.town.slug}/${personData.slug}`,
               profileLink: `${baseUrl}/profile`,
