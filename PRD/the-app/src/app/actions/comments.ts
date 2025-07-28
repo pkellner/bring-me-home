@@ -458,11 +458,19 @@ export async function submitComment(
               manageUrl,
               personUnsubscribeUrl,
               allUnsubscribeUrl,
+              // Additional fields needed for unsubscribe processing
+              personOptOutUrl: personUnsubscribeUrl,
+              allOptOutUrl: allUnsubscribeUrl,
             };
 
             const subject = replaceTemplateVariables(template.subject, templateData);
-            const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
-            const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
+            const processedContent = replaceTemplateVariablesWithUnsubscribe(
+              template.htmlContent,
+              template.textContent || null,
+              templateData
+            );
+            const htmlContent = processedContent.html;
+            const textContent = processedContent.text;
 
             // Queue the email
             await prisma.emailNotification.create({
@@ -1112,6 +1120,9 @@ export async function approveBulkComments(commentIds: string[]) {
               manageUrl: urls.manageUrl,
               personUnsubscribeUrl,
               allUnsubscribeUrl,
+              // Additional fields needed for unsubscribe processing
+              personOptOutUrl: personUnsubscribeUrl,
+              allOptOutUrl: allUnsubscribeUrl,
               // Additional data the template might use
               recipientName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
               recipientEmail: comment.email,
@@ -1125,8 +1136,13 @@ export async function approveBulkComments(commentIds: string[]) {
             };
 
             const subject = replaceTemplateVariables(template.subject, templateData);
-            const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
-            const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : undefined;
+            const processedContent = replaceTemplateVariablesWithUnsubscribe(
+              template.htmlContent,
+              template.textContent || null,
+              templateData
+            );
+            const htmlContent = processedContent.html;
+            const textContent = processedContent.text;
 
             console.log(`[EMAIL VERIFICATION] Creating email notification for ${comment.email}`);
             console.log(`[EMAIL VERIFICATION] PersonId: ${personData.id}, PersonHistoryId: ${comment.personHistoryId || 'none'}`);
