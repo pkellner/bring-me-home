@@ -13,7 +13,7 @@ export interface EmailTemplate {
 export const emailTemplates: EmailTemplate[] = [
   {
     name: 'person_history_update',
-    subject: 'Update about {{personName}}: {{updateDescription}}',
+    subject: 'Update about {{personName}}: {{updateTitle}}',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Update about {{personName}}</h2>
@@ -21,8 +21,9 @@ export const emailTemplates: EmailTemplate[] = [
         <p>The family of <strong>{{personName}}</strong> has posted a new update.</p>
         
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #333;">Update from {{updateDate}}:</h3>
-          <p style="white-space: pre-wrap; margin: 0;">{{updateText}}</p>
+          <h3 style="margin-top: 0; color: #333;">{{updateTitle}}</h3>
+          <p style="margin: 10px 0 5px 0; font-size: 14px; color: #666;">{{updateDate}}</p>
+          <div style="margin-top: 15px; color: #333;">{{updateDescription}}</div>
         </div>
 
         <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -52,8 +53,10 @@ Hi {{recipientName}},
 
 The family of {{personName}} has posted a new update.
 
-Update from {{updateDate}}:
-{{updateText}}
+{{updateTitle}}
+{{updateDate}}
+
+{{updateDescription}}
 
 Show Your Support
 Your messages of support mean a lot to {{personName}}'s family during this difficult time. Would you like to send them a message of encouragement?
@@ -74,8 +77,8 @@ Someone may have used your email address by mistake. Take action now:
       personFirstName: 'Person first name',
       personLastName: 'Person last name',
       townName: 'Town name',
-      updateDescription: 'Brief update description for subject',
-      updateText: 'Full update text',
+      updateTitle: 'Update title',
+      updateDescription: 'Full update description (HTML)',
       updateDate: 'Update date formatted',
       updateId: 'Update ID for deep linking',
       commentLink: 'Magic link to pre-filled comment form',

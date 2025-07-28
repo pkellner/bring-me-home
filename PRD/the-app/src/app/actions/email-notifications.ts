@@ -378,8 +378,8 @@ export async function sendUpdateEmail(
           personFirstName: update.person.firstName,
           personLastName: update.person.lastName,
           townName: update.person.town.name,
-          updateDescription: update.title,
-          updateText: update.description,
+          updateTitle: update.title,
+          updateDescription: update.description,
           updateDate: new Date(update.date).toLocaleDateString('en-US', { 
             weekday: 'long', 
             year: 'numeric', 

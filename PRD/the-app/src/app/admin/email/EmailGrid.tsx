@@ -72,7 +72,13 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
   const [statusFilters, setStatusFilters] = useState<Set<EmailStatus>>(new Set());
   const [personFilter, setPersonFilter] = useState<string>('ALL');
   const [showPreview, setShowPreview] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   
+  // Ensure client-side hydration for time-sensitive content
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Calculate status counts
   const statusCounts = Object.values(EmailStatus).reduce((acc, status) => {
     acc[status] = emails.filter(email => email.status === status).length;
@@ -199,6 +205,7 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
 
   const formatDate = (date: string | null) => {
     if (!date) return '-';
+    if (!isHydrated) return date;
     return new Date(date).toLocaleString();
   };
 
@@ -419,11 +426,11 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                     {email.status === 'OPENED' && email.openedAt ? (
                       <div className="relative group">
                         <div className="text-xs text-green-600 truncate max-w-[150px] cursor-help font-medium">
-                          Email opened {formatTimeAgo(email.openedAt)}
+                          {isHydrated ? `Email opened ${formatTimeAgo(email.openedAt)}` : 'Email opened'}
                         </div>
                         <div className="absolute z-50 invisible group-hover:visible bg-gray-900 text-white text-xs rounded-lg p-3 mt-1 w-max max-w-md whitespace-normal break-words shadow-lg left-0">
                           <div className="font-medium mb-2 text-green-400">Email Opened</div>
-                          <div className="mb-1">Opened at: {formatDateTime(email.openedAt)}</div>
+                          <div className="mb-1">Opened at: {isHydrated ? formatDateTime(email.openedAt) : email.openedAt}</div>
                           {email.lastMailServerMessage && (
                             <>
                               <div className="border-t border-gray-700 mt-2 pt-2">
@@ -434,7 +441,7 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                           )}
                           {email.sentAt && (
                             <div className="text-gray-300 mt-1">
-                              Sent at: {formatDateTime(email.sentAt)}
+                              Sent at: {isHydrated ? formatDateTime(email.sentAt) : email.sentAt}
                             </div>
                           )}
                         </div>

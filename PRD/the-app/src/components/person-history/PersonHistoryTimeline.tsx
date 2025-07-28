@@ -80,9 +80,22 @@ export default function PersonHistoryTimeline({
     if (targetUpdateId && !isLoadingCounts) {
       // Small delay to ensure DOM is ready
       const scrollTimer = setTimeout(() => {
-        const element = document.getElementById(`history-item-${targetUpdateId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // First try to scroll to the history section header
+        const historySection = document.getElementById('history-section');
+        if (historySection) {
+          historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          
+          // Then highlight the specific update after a brief delay
+          setTimeout(() => {
+            const element = document.getElementById(`history-item-${targetUpdateId}`);
+            if (element) {
+              // Add a highlight effect
+              element.classList.add('highlight-update');
+              setTimeout(() => {
+                element.classList.remove('highlight-update');
+              }, 2000);
+            }
+          }, 800);
         }
       }, 100);
       

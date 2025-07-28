@@ -1,21 +1,41 @@
 /**
- * Strip HTML tags from a string to get plain text
+ * Strip HTML tags and decode HTML entities from a string to get plain text
  */
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
+  const stripped = html
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+    .replace(/&amp;/g, '&') // Replace ampersand entities
+    .replace(/&lt;/g, '<') // Replace less-than entities
+    .replace(/&gt;/g, '>') // Replace greater-than entities
+    .replace(/&quot;/g, '"') // Replace quote entities
+    .replace(/&#39;/g, "'") // Replace apostrophe entities
+    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(Number(dec))) // Replace decimal entities
+    .replace(/&#x([a-fA-F0-9]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16))) // Replace hex entities
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim(); // Remove leading/trailing whitespace
+
+  return stripped;
 }
 
 /**
- * Truncate HTML content safely
- * This strips tags first to avoid breaking HTML structure
+ * Truncate text to a maximum length, adding ellipsis if needed
+ */
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return text.substring(0, maxLength).trim() + '...';
+}
+
+/**
+ * Truncate HTML content safely by stripping tags first
+ * This avoids breaking HTML structure
  */
 export function truncateHtml(html: string, maxLength: number): string {
-  const textContent = stripHtmlTags(html);
-  if (textContent.length <= maxLength) return html;
-  
-  // For now, return plain text truncated
-  // A more sophisticated approach would preserve some HTML formatting
-  return textContent.substring(0, maxLength).trim() + '...';
+  const plainText = stripHtmlTags(html);
+  return truncateText(plainText, maxLength);
 }
 
 /**
@@ -23,7 +43,6 @@ export function truncateHtml(html: string, maxLength: number): string {
  * Useful for email subjects, previews, etc.
  */
 export function getTextPreview(html: string, maxLength: number = 100): string {
-  const text = stripHtmlTags(html);
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + '...';
+  const plainText = stripHtmlTags(html);
+  return truncateText(plainText, maxLength);
 }

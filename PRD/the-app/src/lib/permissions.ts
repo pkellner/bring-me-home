@@ -13,6 +13,11 @@ export function hasPermission(
   if (!session?.user?.roles) return false;
 
   return session.user.roles.some(role => {
+    // Special handling for wildcard permissions (system override)
+    if (role.permissions === '*') {
+      return true;
+    }
+    
     try {
       const permissions = JSON.parse(role.permissions);
       const resourcePermissions = permissions[resource];

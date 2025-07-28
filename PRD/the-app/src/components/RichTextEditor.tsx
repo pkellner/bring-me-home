@@ -195,7 +195,7 @@ export default function RichTextEditor({
           value={htmlSource}
           onChange={handleSourceChange}
           onKeyDown={handleKeyDown}
-          className="w-full p-4 font-mono text-sm bg-gray-900 text-white placeholder:text-gray-400 focus:outline-none resize-none"
+          className="w-full p-4 font-mono text-sm bg-gray-50 text-gray-900 placeholder:text-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 resize-none"
           style={{ minHeight: height }}
           placeholder="Enter HTML code here..."
         />

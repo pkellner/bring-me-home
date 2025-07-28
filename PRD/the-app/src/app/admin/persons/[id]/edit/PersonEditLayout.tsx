@@ -16,7 +16,7 @@ interface PersonEditLayoutProps {
 
 export function PersonEditLayout({
   personId,
-  personName,
+  personName: _personName, // eslint-disable-line @typescript-eslint/no-unused-vars
   hasChanges = false,
   onSave,
   isSaving = false,
@@ -65,7 +65,6 @@ export function PersonEditLayout({
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Edit Person</h1>
-          <p className="mt-1 text-sm text-gray-600">{personName}</p>
         </div>
 
         <div className="bg-white shadow rounded-lg">

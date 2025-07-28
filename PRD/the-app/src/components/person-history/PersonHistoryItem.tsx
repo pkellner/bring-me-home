@@ -123,10 +123,15 @@ export default function PersonHistoryItem({
               )}
             </div>
           </div>
-          <div 
-            className="text-gray-800 leading-relaxed mb-4 prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: historyItem.description }}
-          />
+          {/* Update title */}
+          <h3 className="text-lg font-bold text-gray-900 mb-3">{historyItem.title}</h3>
+          {/* Update description with light border */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
+            <div 
+              className="text-gray-800 leading-relaxed prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: historyItem.description }}
+            />
+          </div>
 
           {/* Comment actions */}
           <div className="flex items-center gap-4 text-sm">
@@ -248,6 +253,29 @@ export default function PersonHistoryItem({
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+      `}</style>
+      <style jsx global>{`
+        .highlight-update {
+          animation: highlightPulse 2s ease-in-out;
+        }
+        
+        @keyframes highlightPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+          }
+          25% {
+            box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.2);
+          }
+          50% {
+            box-shadow: 0 0 0 20px rgba(79, 70, 229, 0.1);
+          }
+          75% {
+            box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.05);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
           }
         }
       `}</style>

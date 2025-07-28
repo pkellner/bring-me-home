@@ -6,7 +6,7 @@ import { createPersonHistory, updatePersonHistory, deletePersonHistory, deleteAl
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
 import { Pencil, Trash2, Plus, Save, X, MessageSquare } from 'lucide-react';
-import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
+import { formatDateTimeForInput } from '@/lib/date-utils';
 import PersonHistoryVisibilityToggle from './PersonHistoryVisibilityToggle';
 import EmailFollowersModal from './EmailFollowersModal';
 import EmailStatusDrawer, { EmailStatusDrawerContent } from './EmailStatusDrawer';
@@ -42,7 +42,7 @@ export default function PersonHistoryGrid({
   personId, 
   initialHistory, 
   isSiteAdmin, 
-  isTownAdmin, 
+  isTownAdmin: _isTownAdmin, // eslint-disable-line @typescript-eslint/no-unused-vars
   townSlug, 
   personSlug, 
   personName = '', 
@@ -50,7 +50,6 @@ export default function PersonHistoryGrid({
 }: PersonHistoryGridProps) {
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
-  const [isAdding, setIsAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingState, setEditingState] = useState<EditingState>({
     id: null,
@@ -100,47 +99,33 @@ export default function PersonHistoryGrid({
       }
       setEmailStats(stats);
     };
-    
+
     fetchAllEmailStats();
   }, [history]);
 
-  // Clear animation class after animation completes
-  useEffect(() => {
-    if (newItemIds.size > 0) {
-      const timer = setTimeout(() => {
-        setNewItemIds(new Set());
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [newItemIds]);
-
-  const toggleRowExpansion = (id: string) => {
+  const toggleRowExpansion = useCallback((historyId: string) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(historyId)) {
+        newSet.delete(historyId);
       } else {
-        newSet.add(id);
+        newSet.add(historyId);
       }
       return newSet;
     });
-  };
+  }, []);
 
   const handleEdit = useCallback((record: SanitizedPersonHistory) => {
-    const canEditDateTime = isSiteAdmin || isTownAdmin;
-    const dateStr = canEditDateTime 
-      ? formatDateTimeForInput(record.date)
-      : formatDateForInput(record.date);
-    
     setEditingState({
       id: record.id,
       title: record.title,
       description: record.description,
-      date: dateStr,
+      date: formatDateTimeForInput(record.date),
       visible: record.visible,
       sendNotifications: record.sendNotifications,
     });
-  }, [isSiteAdmin, isTownAdmin]);
+    setError(null);
+  }, []);
 
   const handleCancelEdit = useCallback(() => {
     setEditingState({
@@ -152,38 +137,57 @@ export default function PersonHistoryGrid({
       sendNotifications: false,
     });
     setShowAddForm(false);
-    setTimeout(() => setIsAdding(false), 300);
     setError(null);
   }, []);
 
   const handleAddClick = useCallback(() => {
-    setIsAdding(true);
-    setTimeout(() => setShowAddForm(true), 10);
+    setShowAddForm(true);
+    setEditingState({
+      id: null,
+      title: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      visible: true,
+      sendNotifications: false,
+    });
   }, []);
 
+  // Remove animation class after a delay
+  useEffect(() => {
+    if (newItemIds.size > 0) {
+      const timer = setTimeout(() => {
+        setNewItemIds(new Set());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [newItemIds]);
+
   const handleSave = useCallback(async () => {
-    const formData = new FormData();
-    formData.append('title', editingState.title);
-    formData.append('description', editingState.description);
-    formData.append('date', editingState.date);
-    formData.append('visible', editingState.visible.toString());
+    const dateValue = editingState.date.includes('T') 
+      ? new Date(editingState.date)
+      : new Date(editingState.date + 'T12:00:00');
+  
+    if (isNaN(dateValue.getTime())) {
+      setError('Invalid date format');
+      return;
+    }
 
     startTransition(async () => {
       try {
-        let result;
         if (editingState.id) {
-          result = await updatePersonHistory(editingState.id, formData);
-        } else {
-          result = await createPersonHistory(personId, formData);
-        }
-        
-        if (result.errors) {
-          const errorMessages = Object.values(result.errors).flat().join(', ');
-          setError(errorMessages);
-        } else if (result.error) {
-          setError(result.error);
-        } else if (result.success && result.data) {
-          if (editingState.id) {
+          // Update existing
+          const formData = new FormData();
+          formData.set('title', editingState.title.trim());
+          formData.set('description', editingState.description.trim());
+          formData.set('date', dateValue.toISOString());
+          formData.set('visible', editingState.visible.toString());
+          formData.set('sendNotifications', editingState.sendNotifications.toString());
+          
+          const result = await updatePersonHistory(editingState.id, formData);
+          
+          if (result.error || !result.data) {
+            setError(result.error || 'Failed to update history note');
+          } else {
             setHistory(prev => prev.map(item => 
               item.id === editingState.id 
                 ? {
@@ -193,10 +197,23 @@ export default function PersonHistoryGrid({
                     date: result.data.date.toString(),
                     visible: result.data.visible,
                     sendNotifications: result.data.sendNotifications,
-                    updatedAt: result.data.updatedAt.toString(),
                   }
                 : item
             ));
+          }
+        } else {
+          // Create new
+          const formData = new FormData();
+          formData.set('title', editingState.title.trim());
+          formData.set('description', editingState.description.trim());
+          formData.set('date', dateValue.toISOString());
+          formData.set('visible', editingState.visible.toString());
+          formData.set('sendNotifications', editingState.sendNotifications.toString());
+          
+          const result = await createPersonHistory(personId, formData);
+
+          if (result.error || !result.data) {
+            setError(result.error || 'Failed to create history note');
           } else {
             const newItem: SanitizedPersonHistory = {
               id: result.data.id,
@@ -212,11 +229,9 @@ export default function PersonHistoryGrid({
             setHistory(prev => [newItem, ...prev]);
             setNewItemIds(prev => new Set(prev).add(newItem.id));
           }
-          handleCancelEdit();
-          router.refresh();
-        } else {
-          setError('Failed to save history note');
         }
+        handleCancelEdit();
+        router.refresh();
       } catch {
         setError('An unexpected error occurred');
       }
@@ -266,15 +281,15 @@ export default function PersonHistoryGrid({
   };
 
   return (
-    <div>
+    <div className="mt-6">
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
         </div>
       )}
 
-      <div className="mb-4 flex items-center justify-between">
-        {!isAdding ? (
+      <div className="mb-6">
+        {!showAddForm && (
           <div className="flex items-center gap-4">
             <button
               onClick={handleAddClick}
@@ -295,103 +310,120 @@ export default function PersonHistoryGrid({
               </button>
             )}
           </div>
-        ) : (
-          <div 
-            className={`bg-gray-50 p-4 rounded border transition-all duration-300 ease-in-out ${
-              showAddForm ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{
-              maxHeight: showAddForm ? '500px' : '0',
-              overflow: showAddForm ? 'visible' : 'hidden'
-            }}
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={editingState.visible}
-                    onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
-                    className="h-4 w-4 mr-2"
-                  />
-                  <span className="text-sm text-black">Visible to Public</span>
-                </label>
-              </div>
+        )}
+      </div>
+
+      {/* Add Form - Now outside the table for better layout */}
+      {showAddForm && (
+        <div className="mb-6 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Update</h3>
+          
+          <div className="space-y-4">
+            {/* Visibility checkbox */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="add-visible"
+                checked={editingState.visible}
+                onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="add-visible" className="ml-2 text-sm text-gray-700">
+                Visible to Public
+              </label>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+
+            {/* Title field */}
+            <div>
+              <label htmlFor="add-title" className="block text-sm font-medium text-gray-700 mb-1">
                 Update Title
               </label>
               <input
                 type="text"
+                id="add-title"
                 value={editingState.title}
                 onChange={(e) => setEditingState({ ...editingState, title: e.target.value })}
-                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter a brief title for this update..."
                 maxLength={255}
               />
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 mt-1">
                 {editingState.title.length}/255 characters
               </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+
+            {/* Date field */}
+            <div>
+              <label htmlFor="add-date" className="block text-sm font-medium text-gray-700 mb-1">
+                Update Date
+              </label>
+              <input
+                type="date"
+                id="add-date"
+                value={editingState.date}
+                onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Description field */}
+            <div>
+              <label htmlFor="add-description" className="block text-sm font-medium text-gray-700 mb-2">
                 Update Description
               </label>
-              <div className="space-y-3">
-                <RichTextEditor
-                  value={editingState.description}
-                  onChange={(value) => {
-                    // Strip HTML tags to check character count
-                    const textContent = value.replace(/<[^>]*>/g, '');
-                    if (textContent.length <= 2048) {
-                      setEditingState({ ...editingState, description: value });
-                    }
-                  }}
-                  placeholder="Enter update details here..."
-                  height={300}
-                />
-                <div className="space-y-2">
-                  <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-300 ${
-                        editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.9 
-                          ? 'bg-red-500' 
-                          : editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.7 
-                            ? 'bg-yellow-500' 
-                            : 'bg-green-500'
-                      }`}
-                      style={{ width: `${(editingState.description.replace(/<[^>]*>/g, '').length / 2048) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>{editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters (text only)</span>
-                    <span className="text-xs text-gray-500">HTML formatting preserved</span>
-                  </div>
+              <RichTextEditor
+                value={editingState.description}
+                onChange={(value) => {
+                  const textContent = value.replace(/<[^>]*>/g, '');
+                  if (textContent.length <= 2048) {
+                    setEditingState({ ...editingState, description: value });
+                  }
+                }}
+                placeholder="Enter update details here..."
+                height={300}
+              />
+              <div className="mt-3 space-y-2">
+                <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-300 ${
+                      editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.9 
+                        ? 'bg-red-500' 
+                        : editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.7 
+                          ? 'bg-yellow-500' 
+                          : 'bg-green-500'
+                    }`}
+                    style={{ width: `${(editingState.description.replace(/<[^>]*>/g, '').length / 2048) * 100}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>{editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters (text only)</span>
+                  <span className="text-xs text-gray-500">HTML formatting preserved</span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-4">
               <button
                 onClick={handleSave}
                 disabled={!editingState.title.trim() || !editingState.description.trim() || isPending}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isPending ? 'Saving...' : 'Save'}
+                {isPending ? 'Saving...' : 'Save Update'}
               </button>
               <button
                 onClick={handleCancelEdit}
                 disabled={isPending}
-                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancel
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Main grid */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -446,123 +478,160 @@ export default function PersonHistoryGrid({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {editingState.id === record.id && (isSiteAdmin || isTownAdmin) ? (
-                      <input
-                        type="datetime-local"
-                        value={editingState.date}
-                        onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      <div className="leading-tight">
-                        <div>{format(new Date(record.date), 'MMM dd, yyyy')}</div>
-                        <div className="text-xs text-gray-500">{format(new Date(record.date), 'h:mm a')}</div>
-                      </div>
-                    )}
+                    <div className="leading-tight">
+                      <div>{format(new Date(record.date), 'MMM dd, yyyy')}</div>
+                      <div className="text-xs text-gray-500">{format(new Date(record.date), 'h:mm a')}</div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {editingState.id === record.id ? (
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={editingState.title}
-                          onChange={(e) => setEditingState({ ...editingState, title: e.target.value })}
-                          className="w-full px-2 py-1 border rounded"
-                          placeholder="Update title..."
-                          maxLength={255}
-                        />
-                        <RichTextEditor
-                          value={editingState.description}
-                          onChange={(value) => {
-                            const textContent = value.replace(/<[^>]*>/g, '');
-                            if (textContent.length <= 2048) {
-                              setEditingState({ ...editingState, description: value });
-                            }
-                          }}
-                          placeholder="Enter update description..."
-                          height={150}
-                        />
-                        <div className="text-xs text-gray-500">
-                          Title: {editingState.title.length}/255 | Description: {editingState.description.replace(/<[^>]*>/g, '').length}/2048
-                        </div>
+                    <div className="max-w-md">
+                      <div className="font-medium">{truncateText(record.title, 100)}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {getTextPreview(record.description, 80)}
                       </div>
-                    ) : (
-                      <div className="max-w-md">
-                        <div className="font-medium">{truncateText(record.title, 100)}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {getTextPreview(record.description, 80)}
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {record.createdByUsername}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {editingState.id === record.id ? (
-                      <input
-                        type="checkbox"
-                        checked={editingState.visible}
-                        onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
-                        className="h-4 w-4"
-                      />
-                    ) : (
-                      <PersonHistoryVisibilityToggle
-                        historyId={record.id}
-                        initialVisible={record.visible}
-                        onUpdate={(id, visible) => {
-                          setHistory(prev => prev.map(h => h.id === id ? { ...h, visible } : h));
-                        }}
-                      />
-                    )}
+                    <PersonHistoryVisibilityToggle
+                      historyId={record.id}
+                      initialVisible={record.visible}
+                      onUpdate={(id, visible) => {
+                        setHistory(prev => prev.map(h => h.id === id ? { ...h, visible } : h));
+                      }}
+                    />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
-                      {editingState.id === record.id ? (
-                        <>
-                          <button
-                            onClick={handleSave}
-                            className="text-green-600 hover:text-green-900"
-                            title="Save"
-                          >
-                            <Save className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="text-gray-600 hover:text-gray-900"
-                            title="Cancel"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEdit(record)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Edit"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <a
-                            href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="View comments for this update"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </a>
-                          <button
-                            onClick={() => handleDelete(record.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => handleEdit(record)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <a
+                        href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View comments for this update"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </a>
+                      <button
+                        onClick={() => handleDelete(record.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
+                {/* Edit form as separate row */}
+                {editingState.id === record.id && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 bg-gray-50">
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-gray-900">Edit Update</h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Left column */}
+                          <div className="space-y-4">
+                            {/* Visibility checkbox */}
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={`edit-visible-${record.id}`}
+                                checked={editingState.visible}
+                                onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor={`edit-visible-${record.id}`} className="ml-2 text-sm text-gray-700">
+                                Visible to Public
+                              </label>
+                            </div>
+
+                            {/* Date field */}
+                            <div>
+                              <label htmlFor={`edit-date-${record.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+                                Update Date
+                              </label>
+                              <input
+                                type="datetime-local"
+                                id={`edit-date-${record.id}`}
+                                value={editingState.date}
+                                onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+
+                            {/* Title field */}
+                            <div>
+                              <label htmlFor={`edit-title-${record.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+                                Update Title
+                              </label>
+                              <input
+                                type="text"
+                                id={`edit-title-${record.id}`}
+                                value={editingState.title}
+                                onChange={(e) => setEditingState({ ...editingState, title: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Update title..."
+                                maxLength={255}
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                {editingState.title.length}/255 characters
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right column - Description */}
+                          <div>
+                            <label htmlFor={`edit-description-${record.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                              Update Description
+                            </label>
+                            <RichTextEditor
+                              value={editingState.description}
+                              onChange={(value) => {
+                                const textContent = value.replace(/<[^>]*>/g, '');
+                                if (textContent.length <= 2048) {
+                                  setEditingState({ ...editingState, description: value });
+                                }
+                              }}
+                              placeholder="Enter update description..."
+                              height={200}
+                            />
+                            <div className="text-xs text-gray-500 mt-2">
+                              {editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-3 pt-2 border-t border-gray-200">
+                          <button
+                            onClick={handleSave}
+                            disabled={!editingState.title.trim() || !editingState.description.trim() || isPending}
+                            className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {isPending ? 'Saving...' : 'Save Changes'}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={isPending}
+                            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 disabled:opacity-50"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 <EmailStatusDrawerContent
                   personHistoryId={record.id}
                   expanded={expandedRows.has(record.id)}

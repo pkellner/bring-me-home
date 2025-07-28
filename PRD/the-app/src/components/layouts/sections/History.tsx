@@ -27,7 +27,7 @@ export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmi
   // If no history exists but user can manage, show button-only section
   if (!hasHistory && canManageHistory) {
     return (
-      <div className="space-y-6">
+      <div id="history-section" className="space-y-6">
         <div className="flex items-center justify-between border-b border-gray-200 pb-3">
           <h2 className="text-2xl font-light tracking-wide text-gray-800">
             Updates on {personName}
@@ -53,7 +53,8 @@ export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmi
 
   // Show normal timeline with history
   return (
-    <PersonHistoryTimeline 
+    <div id="history-section">
+      <PersonHistoryTimeline 
       history={person.personHistory!}
       personId={person.id}
       personName={personName}
@@ -64,5 +65,6 @@ export default function History({ person, isPersonAdmin, isTownAdmin, isSiteAdmi
       isSiteAdmin={isSiteAdmin}
       searchParams={searchParams}
     />
+    </div>
   );
 }
