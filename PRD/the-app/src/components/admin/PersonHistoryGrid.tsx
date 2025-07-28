@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useCallback, useTransition, useEffect } from 'react';
+import { useState, useCallback, useTransition, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
-import AdminDataGrid, { GridColumn, GridAction } from './AdminDataGrid';
 import { createPersonHistory, updatePersonHistory, deletePersonHistory, deleteAllPersonHistory } from '@/app/actions/person-history';
 import { SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
-import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, MessageSquare } from 'lucide-react';
 import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
 import PersonHistoryVisibilityToggle from './PersonHistoryVisibilityToggle';
-import EmailStatusDisplay from './EmailStatusDisplay';
 import EmailFollowersModal from './EmailFollowersModal';
+import EmailStatusDrawer, { EmailStatusDrawerContent } from './EmailStatusDrawer';
 
 interface PersonHistoryGridProps {
   personId: string;
@@ -31,7 +30,21 @@ interface EditingState {
   sendNotifications: boolean;
 }
 
-export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, isTownAdmin, townSlug, personSlug, personName = '', townName = '' }: PersonHistoryGridProps) {
+interface EmailStats {
+  sent: number;
+  opened: number;
+}
+
+export default function PersonHistoryGrid({ 
+  personId, 
+  initialHistory, 
+  isSiteAdmin, 
+  isTownAdmin, 
+  townSlug, 
+  personSlug, 
+  personName = '', 
+  townName = '' 
+}: PersonHistoryGridProps) {
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
   const [isAdding, setIsAdding] = useState(false);
@@ -51,6 +64,8 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
     updateDescription: string;
     updateDate: string;
   }>({ isOpen: false, personHistoryId: '', updateDescription: '', updateDate: '' });
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [emailStats, setEmailStats] = useState<Record<string, EmailStats>>({});
 
   // Sort history by date descending
   const sortedHistory = [...history].sort((a, b) => 
@@ -59,6 +74,30 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
 
   // Track newly added items for animation
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+
+  // Fetch email stats for all history items
+  useEffect(() => {
+    const fetchAllEmailStats = async () => {
+      const stats: Record<string, EmailStats> = {};
+      for (const item of history) {
+        try {
+          const response = await fetch(`/api/admin/person-history/${item.id}/email-status`);
+          if (response.ok) {
+            const data = await response.json();
+            stats[item.id] = {
+              sent: data.stats.sent || 0,
+              opened: data.stats.opened || 0,
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch email stats for ${item.id}:`, error);
+        }
+      }
+      setEmailStats(stats);
+    };
+    
+    fetchAllEmailStats();
+  }, [history]);
 
   // Clear animation class after animation completes
   useEffect(() => {
@@ -70,8 +109,19 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
     }
   }, [newItemIds]);
 
+  const toggleRowExpansion = (id: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   const handleEdit = useCallback((record: SanitizedPersonHistory) => {
-    // Use datetime format for town/system admins, date only for person admin
     const canEditDateTime = isSiteAdmin || isTownAdmin;
     const dateStr = canEditDateTime 
       ? formatDateTimeForInput(record.date)
@@ -95,13 +145,12 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       sendNotifications: false,
     });
     setShowAddForm(false);
-    setTimeout(() => setIsAdding(false), 300); // Wait for animation
+    setTimeout(() => setIsAdding(false), 300);
     setError(null);
   }, []);
 
   const handleAddClick = useCallback(() => {
     setIsAdding(true);
-    // Use setTimeout to trigger animation after render
     setTimeout(() => setShowAddForm(true), 10);
   }, []);
 
@@ -120,17 +169,13 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
           result = await createPersonHistory(personId, formData);
         }
         
-
         if (result.errors) {
-          // Handle validation errors
           const errorMessages = Object.values(result.errors).flat().join(', ');
           setError(errorMessages);
         } else if (result.error) {
           setError(result.error);
         } else if (result.success && result.data) {
-          // Update local state immediately
           if (editingState.id) {
-            // Update existing item
             setHistory(prev => prev.map(item => 
               item.id === editingState.id 
                 ? {
@@ -144,7 +189,6 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
                 : item
             ));
           } else {
-            // Add new item
             const newItem: SanitizedPersonHistory = {
               id: result.data.id,
               description: result.data.description,
@@ -156,11 +200,9 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
               updatedAt: result.data.updatedAt.toString(),
             };
             setHistory(prev => [newItem, ...prev]);
-            // Add to animation set
             setNewItemIds(prev => new Set(prev).add(newItem.id));
           }
           handleCancelEdit();
-          // Refresh in background to sync with server
           router.refresh();
         } else {
           setError('Failed to save history note');
@@ -181,9 +223,7 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       if (result.error) {
         setError(result.error);
       } else {
-        // Update local state immediately
         setHistory(prev => prev.filter(item => item.id !== id));
-        // Refresh in background to sync with server
         router.refresh();
       }
     });
@@ -195,7 +235,6 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       return;
     }
 
-    // Double confirmation for destructive action
     if (!confirm(`This will permanently delete ALL history notes for this person. Are you absolutely sure?`)) {
       return;
     }
@@ -205,176 +244,16 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
       if (result.error) {
         setError(result.error);
       } else {
-        // Clear local state immediately
         setHistory([]);
-        // Refresh in background to sync with server
         router.refresh();
       }
     });
   }, [history.length, personId, router]);
 
-  const columns: GridColumn<SanitizedPersonHistory>[] = [
-    {
-      key: 'emailActions',
-      label: 'Email Actions',
-      width: '140px',
-      render: (_, record) => {
-        return (
-          <button
-            onClick={() => setEmailModalState({
-              isOpen: true,
-              personHistoryId: record.id,
-              updateDescription: record.description,
-              updateDate: record.date,
-            })}
-            className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors"
-            title="Email followers about this update"
-          >
-            Email Followers
-          </button>
-        );
-      },
-    },
-    {
-      key: 'emailStatus',
-      label: 'Email Status',
-      width: '150px',
-      render: (_, record) => {
-        return (
-          <EmailStatusDisplay 
-            personHistoryId={record.id}
-            onRefresh={() => router.refresh()}
-          />
-        );
-      },
-    },
-    {
-      key: 'date',
-      label: 'Date',
-      width: '150px',
-      render: (_, record) => {
-        if (editingState.id === record.id) {
-          // Only site admin and town admin can edit date/time
-          const canEditDateTime = isSiteAdmin || isTownAdmin;
-          if (canEditDateTime) {
-            return (
-              <input
-                type="datetime-local"
-                value={editingState.date}
-                onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
-                className="w-full px-2 py-1 border rounded"
-              />
-            );
-          } else {
-            // Person admin can't edit date/time
-            return <span className="text-gray-600">{format(new Date(record.date), 'MMM dd, yyyy HH:mm')}</span>;
-          }
-        }
-        return format(new Date(record.date), 'MMM dd, yyyy HH:mm');
-      },
-    },
-    {
-      key: 'description',
-      label: 'Description',
-      render: (_, record) => {
-        if (editingState.id === record.id) {
-          return (
-            <textarea
-              value={editingState.description}
-              onChange={(e) => setEditingState({ ...editingState, description: e.target.value })}
-              className="w-full px-2 py-1 border rounded min-h-[60px] resize-y"
-              maxLength={2048}
-            />
-          );
-        }
-        return (
-          <div className="flex items-start justify-between gap-4">
-            <div className="whitespace-pre-wrap flex-1">{record.description}</div>
-            <div className="flex gap-3 flex-shrink-0">
-              <a
-                href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
-                className="text-sm text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                title="View comments for this update"
-              >
-                View Comments
-              </a>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'createdByUsername',
-      label: 'Created By',
-      width: '150px',
-    },
-    {
-      key: 'createdAt',
-      label: 'Created',
-      width: '150px',
-      render: (_, record) => format(new Date(record.createdAt), 'MMM dd, yyyy HH:mm'),
-    },
-    {
-      key: 'visible',
-      label: 'Visible to Public',
-      width: '140px',
-      render: (_, record) => {
-        if (editingState.id === record.id) {
-          return (
-            <input
-              type="checkbox"
-              checked={editingState.visible}
-              onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
-              className="h-4 w-4"
-            />
-          );
-        }
-        return (
-          <PersonHistoryVisibilityToggle
-            historyId={record.id}
-            initialVisible={record.visible}
-            onUpdate={(id, visible) => {
-              setHistory(prev => prev.map(h => h.id === id ? { ...h, visible } : h));
-            }}
-          />
-        );
-      },
-    },
-    {
-      key: 'updatedAt',
-      label: 'Updated',
-      width: '150px',
-      render: (_, record) => format(new Date(record.updatedAt), 'MMM dd, yyyy HH:mm'),
-    },
-  ];
-
-  const actions: GridAction<SanitizedPersonHistory>[] = [
-    {
-      type: 'custom',
-      label: (record: SanitizedPersonHistory) => editingState.id === record.id ? 'Save' : 'Edit',
-      icon: (record: SanitizedPersonHistory) => editingState.id === record.id ? Save : Pencil,
-      onClick: (record: SanitizedPersonHistory) => {
-        if (editingState.id === record.id) {
-          handleSave();
-        } else {
-          handleEdit(record);
-        }
-      },
-    },
-    {
-      type: 'custom',
-      label: (record: SanitizedPersonHistory) => editingState.id === record.id ? 'Cancel' : 'Delete',
-      icon: (record: SanitizedPersonHistory) => editingState.id === record.id ? X : Trash2,
-      onClick: (record: SanitizedPersonHistory) => {
-        if (editingState.id === record.id) {
-          handleCancelEdit();
-        } else {
-          handleDelete(record.id);
-        }
-      },
-      className: (record: SanitizedPersonHistory) => editingState.id === record.id ? 'text-gray-600' : 'text-red-600',
-    },
-  ];
+  const truncateDescription = (description: string, maxLength = 80) => {
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength) + '...';
+  };
 
   return (
     <div>
@@ -466,14 +345,162 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
         )}
       </div>
 
-      <div className="transition-opacity duration-300">
-        <AdminDataGrid
-          data={sortedHistory}
-          columns={columns}
-          actions={actions}
-          title="Person Updates History"
-          showCreate={false}
-        />
+      {/* Main grid */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email Actions
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '400px' }}>
+                Description
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created By
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Visible
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {sortedHistory.map((record) => (
+              <Fragment key={record.id}>
+                <tr className={`hover:bg-gray-50 ${newItemIds.has(record.id) ? 'animate-pulse bg-green-50' : ''}`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setEmailModalState({
+                          isOpen: true,
+                          personHistoryId: record.id,
+                          updateDescription: record.description,
+                          updateDate: record.date,
+                        })}
+                        className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors"
+                        title="Email followers about this update"
+                      >
+                        Email Followers
+                      </button>
+                      <EmailStatusDrawer
+                        sentCount={emailStats[record.id]?.sent || 0}
+                        openedCount={emailStats[record.id]?.opened || 0}
+                        expanded={expandedRows.has(record.id)}
+                        onToggle={() => toggleRowExpansion(record.id)}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {editingState.id === record.id && (isSiteAdmin || isTownAdmin) ? (
+                      <input
+                        type="datetime-local"
+                        value={editingState.date}
+                        onChange={(e) => setEditingState({ ...editingState, date: e.target.value })}
+                        className="w-full px-2 py-1 border rounded"
+                      />
+                    ) : (
+                      <div className="leading-tight">
+                        <div>{format(new Date(record.date), 'MMM dd, yyyy')}</div>
+                        <div className="text-xs text-gray-500">{format(new Date(record.date), 'h:mm a')}</div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {editingState.id === record.id ? (
+                      <textarea
+                        value={editingState.description}
+                        onChange={(e) => setEditingState({ ...editingState, description: e.target.value })}
+                        className="w-full px-2 py-1 border rounded min-h-[60px] resize-y"
+                        maxLength={2048}
+                      />
+                    ) : (
+                      <div title={record.description} className="flex-1">
+                        {truncateDescription(record.description)}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {record.createdByUsername}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {editingState.id === record.id ? (
+                      <input
+                        type="checkbox"
+                        checked={editingState.visible}
+                        onChange={(e) => setEditingState({ ...editingState, visible: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                    ) : (
+                      <PersonHistoryVisibilityToggle
+                        historyId={record.id}
+                        initialVisible={record.visible}
+                        onUpdate={(id, visible) => {
+                          setHistory(prev => prev.map(h => h.id === id ? { ...h, visible } : h));
+                        }}
+                      />
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-2">
+                      {editingState.id === record.id ? (
+                        <>
+                          <button
+                            onClick={handleSave}
+                            className="text-green-600 hover:text-green-900"
+                            title="Save"
+                          >
+                            <Save className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="text-gray-600 hover:text-gray-900"
+                            title="Cancel"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleEdit(record)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <a
+                            href={`/admin/comments/${townSlug}/${personSlug}#${record.id}`}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View comments for this update"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleDelete(record.id)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                <EmailStatusDrawerContent
+                  personHistoryId={record.id}
+                  expanded={expandedRows.has(record.id)}
+                />
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {emailModalState.isOpen && (

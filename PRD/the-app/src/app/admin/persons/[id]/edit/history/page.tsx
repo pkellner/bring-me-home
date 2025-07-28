@@ -76,6 +76,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
       <PersonViewLinks 
         townSlug={townSlug}
         personSlug={personSlug}
+        personId={id}
       />
       <HistoryClient
         personId={id}

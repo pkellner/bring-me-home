@@ -48,7 +48,7 @@ export default async function PersonImagePage({
 
   return (
     <>
-      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} />
+      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} personId={id} />
       
       <PersonImageClient 
         personId={id}

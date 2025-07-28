@@ -48,7 +48,7 @@ export default async function GalleryImagesPage({
 
   return (
     <>
-      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} />
+      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} personId={id} />
       
       <GalleryImagesClient 
         personId={id}

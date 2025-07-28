@@ -206,7 +206,7 @@ export default async function EditPersonPage({
 
   return (
     <>
-      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} />
+      <PersonViewLinks townSlug={townSlug} personSlug={personSlug} personId={id} />
 
       <PersonEditClient
         person={serializedPerson}

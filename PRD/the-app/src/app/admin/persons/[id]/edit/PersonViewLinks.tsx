@@ -1,14 +1,15 @@
 'use client';
 
 import Link from '@/components/OptimizedLink';
-import { GlobeAltIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { GlobeAltIcon, ChatBubbleLeftRightIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 interface PersonViewLinksProps {
   townSlug: string;
   personSlug: string;
+  personId?: string;
 }
 
-export function PersonViewLinks({ townSlug, personSlug }: PersonViewLinksProps) {
+export function PersonViewLinks({ townSlug, personSlug, personId }: PersonViewLinksProps) {
   return (
     <div className="flex gap-2 mb-6">
       <Link
@@ -20,6 +21,15 @@ export function PersonViewLinks({ townSlug, personSlug }: PersonViewLinksProps) 
         <GlobeAltIcon className="h-4 w-4 mr-2" />
         View Profile
       </Link>
+      {personId && (
+        <Link
+          href={`/admin/persons/${personId}/edit/history`}
+          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          <ClockIcon className="h-4 w-4 mr-2" />
+          Person Updates
+        </Link>
+      )}
       <Link
         href={`/admin/comments/${townSlug}/${personSlug}`}
         target="_blank"

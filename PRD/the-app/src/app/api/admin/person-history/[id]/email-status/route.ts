@@ -56,21 +56,41 @@ export async function GET(
           }
         },
         sentTo: true,
+        createdAt: true,
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // Calculate stats
+    // Group by email address and get the most recent notification for each
+    const emailMap = new Map<string, typeof emailNotifications[0]>();
+    
+    for (const notification of emailNotifications) {
+      const email = notification.sentTo || notification.user?.email || 'Unknown';
+      const existing = emailMap.get(email);
+      
+      // Keep the most recent notification for each email
+      if (!existing || notification.createdAt > existing.createdAt) {
+        emailMap.set(email, notification);
+      }
+    }
+
+    // Convert map to array for unique recipients
+    const uniqueNotifications = Array.from(emailMap.values());
+
+    // Calculate stats based on unique recipients
+    const uniqueSentCount = uniqueNotifications.filter(e => ['SENT', 'DELIVERED', 'OPENED'].includes(e.status)).length;
+    const uniqueOpenedCount = uniqueNotifications.filter(e => e.status === 'OPENED').length;
+    
     const stats = {
-      total: emailNotifications.length,
-      sent: emailNotifications.filter(e => ['SENT', 'DELIVERED', 'OPENED'].includes(e.status)).length,
-      opened: emailNotifications.filter(e => e.status === 'OPENED').length,
+      total: uniqueNotifications.length,
+      sent: uniqueSentCount,
+      opened: uniqueOpenedCount,
     };
 
-    // Format recipients
-    const recipients = emailNotifications.map(notification => ({
+    // Format unique recipients
+    const recipients = uniqueNotifications.map(notification => ({
       id: notification.id,
       firstName: notification.user?.firstName || null,
       lastName: notification.user?.lastName || null,
