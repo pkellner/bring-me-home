@@ -25,6 +25,7 @@ async function main() {
         personHistory: {
           select: {
             id: true,
+            title: true,
             description: true,
             person: {
               select: {
@@ -56,7 +57,7 @@ async function main() {
       console.log(`   Person: ${email.person ? `${email.person.firstName} ${email.person.lastName}` : 'None'}`);
       
       if (email.personHistory) {
-        console.log(`   Person History: ${email.personHistory.description.substring(0, 50)}...`);
+        console.log(`   Person History: ${email.personHistory.title}`);
         console.log(`   History Person: ${email.personHistory.person.firstName} ${email.personHistory.person.lastName}`);
       }
       

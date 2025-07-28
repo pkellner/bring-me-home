@@ -53,6 +53,7 @@ interface Comment extends Record<string, unknown> {
   personHistoryId?: string | null;
   personHistory?: {
     id: string;
+    title: string;
     description: string;
     date: Date | string;
   } | null;
@@ -490,10 +491,7 @@ function CommentsGrid({
       render: (value, record) => {
         if (record.personHistoryId && record.personHistory) {
           const updateNumber = personHistoryNumberMap[record.personHistoryId] || '?';
-          const description = record.personHistory.description;
-          const truncatedDescription = description.length > 120 
-            ? description.substring(0, 120) + '...' 
-            : description;
+          const title = record.personHistory.title;
           
           return (
             <div 
@@ -530,7 +528,7 @@ function CommentsGrid({
                   })}:
                 </div>
                 <div className="text-sm text-gray-700">
-                  &ldquo;{truncatedDescription}&rdquo;
+                  &ldquo;{title}&rdquo;
                 </div>
               </div>
             </div>
@@ -692,7 +690,7 @@ function CommentsGrid({
               day: 'numeric',
               year: 'numeric'
             });
-            groupKey = `Update from ${formattedDate}: "${comment.personHistory.description.substring(0, 60)}..."`;
+            groupKey = `Update from ${formattedDate}: "${comment.personHistory.title}"`;
           } else {
             groupKey = 'General Comments';
           }

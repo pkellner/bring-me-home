@@ -230,11 +230,6 @@ export default function LayoutRenderer({
   const recentNote = getRecentHistoryNote();
 
 
-  // Function to truncate text with ellipsis
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + '...';
-  };
 
   // Apply theme CSS variables if provided
   const themeStyles = theme?.cssVars ? (
@@ -338,7 +333,7 @@ export default function LayoutRenderer({
                             Recent Update
                           </h4>
                           <p className="text-sm text-gray-700 truncate md:whitespace-normal md:line-clamp-2">
-                            &ldquo;{truncateText(recentNote.description, 80)}&rdquo;
+                            &ldquo;{recentNote.title}&rdquo;
                           </p>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-xs text-gray-500">

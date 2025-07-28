@@ -10,6 +10,8 @@ import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
 import PersonHistoryVisibilityToggle from './PersonHistoryVisibilityToggle';
 import EmailFollowersModal from './EmailFollowersModal';
 import EmailStatusDrawer, { EmailStatusDrawerContent } from './EmailStatusDrawer';
+import RichTextEditor from '@/components/RichTextEditor';
+import { getTextPreview } from '@/lib/html-utils';
 
 interface PersonHistoryGridProps {
   personId: string;
@@ -24,6 +26,7 @@ interface PersonHistoryGridProps {
 
 interface EditingState {
   id: string | null;
+  title: string;
   description: string;
   date: string;
   visible: boolean;
@@ -51,6 +54,7 @@ export default function PersonHistoryGrid({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingState, setEditingState] = useState<EditingState>({
     id: null,
+    title: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
     visible: true,
@@ -61,9 +65,10 @@ export default function PersonHistoryGrid({
   const [emailModalState, setEmailModalState] = useState<{
     isOpen: boolean;
     personHistoryId: string;
+    updateTitle: string;
     updateDescription: string;
     updateDate: string;
-  }>({ isOpen: false, personHistoryId: '', updateDescription: '', updateDate: '' });
+  }>({ isOpen: false, personHistoryId: '', updateTitle: '', updateDescription: '', updateDate: '' });
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [emailStats, setEmailStats] = useState<Record<string, EmailStats>>({});
 
@@ -129,6 +134,7 @@ export default function PersonHistoryGrid({
     
     setEditingState({
       id: record.id,
+      title: record.title,
       description: record.description,
       date: dateStr,
       visible: record.visible,
@@ -139,6 +145,7 @@ export default function PersonHistoryGrid({
   const handleCancelEdit = useCallback(() => {
     setEditingState({
       id: null,
+      title: '',
       description: '',
       date: new Date().toISOString().split('T')[0],
       visible: true,
@@ -156,6 +163,7 @@ export default function PersonHistoryGrid({
 
   const handleSave = useCallback(async () => {
     const formData = new FormData();
+    formData.append('title', editingState.title);
     formData.append('description', editingState.description);
     formData.append('date', editingState.date);
     formData.append('visible', editingState.visible.toString());
@@ -180,6 +188,7 @@ export default function PersonHistoryGrid({
               item.id === editingState.id 
                 ? {
                     ...item,
+                    title: result.data.title,
                     description: result.data.description,
                     date: result.data.date.toString(),
                     visible: result.data.visible,
@@ -191,6 +200,7 @@ export default function PersonHistoryGrid({
           } else {
             const newItem: SanitizedPersonHistory = {
               id: result.data.id,
+              title: result.data.title,
               description: result.data.description,
               date: result.data.date.toString(),
               visible: result.data.visible,
@@ -250,9 +260,9 @@ export default function PersonHistoryGrid({
     });
   }, [history.length, personId, router]);
 
-  const truncateDescription = (description: string, maxLength = 80) => {
-    if (description.length <= maxLength) return description;
-    return description.substring(0, maxLength) + '...';
+  const truncateText = (text: string, maxLength = 80) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   };
 
   return (
@@ -310,23 +320,61 @@ export default function PersonHistoryGrid({
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (max 2048 characters)
+                Update Title
               </label>
-              <textarea
-                value={editingState.description}
-                onChange={(e) => setEditingState({ ...editingState, description: e.target.value })}
-                className="w-full px-3 py-2 border rounded min-h-[100px] resize-y"
-                maxLength={2048}
-                placeholder="Enter history note..."
+              <input
+                type="text"
+                value={editingState.title}
+                onChange={(e) => setEditingState({ ...editingState, title: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                placeholder="Enter a brief title for this update..."
+                maxLength={255}
               />
               <div className="text-sm text-gray-500 mt-1">
-                {editingState.description.length}/2048 characters
+                {editingState.title.length}/255 characters
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Update Description
+              </label>
+              <div className="space-y-3">
+                <RichTextEditor
+                  value={editingState.description}
+                  onChange={(value) => {
+                    // Strip HTML tags to check character count
+                    const textContent = value.replace(/<[^>]*>/g, '');
+                    if (textContent.length <= 2048) {
+                      setEditingState({ ...editingState, description: value });
+                    }
+                  }}
+                  placeholder="Enter update details here..."
+                  height={300}
+                />
+                <div className="space-y-2">
+                  <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${
+                        editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.9 
+                          ? 'bg-red-500' 
+                          : editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.7 
+                            ? 'bg-yellow-500' 
+                            : 'bg-green-500'
+                      }`}
+                      style={{ width: `${(editingState.description.replace(/<[^>]*>/g, '').length / 2048) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>{editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters (text only)</span>
+                    <span className="text-xs text-gray-500">HTML formatting preserved</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                disabled={!editingState.description.trim() || isPending}
+                disabled={!editingState.title.trim() || !editingState.description.trim() || isPending}
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
@@ -356,8 +404,8 @@ export default function PersonHistoryGrid({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '400px' }}>
-                Description
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Title
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created By
@@ -380,6 +428,7 @@ export default function PersonHistoryGrid({
                         onClick={() => setEmailModalState({
                           isOpen: true,
                           personHistoryId: record.id,
+                          updateTitle: record.title,
                           updateDescription: record.description,
                           updateDate: record.date,
                         })}
@@ -413,15 +462,36 @@ export default function PersonHistoryGrid({
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {editingState.id === record.id ? (
-                      <textarea
-                        value={editingState.description}
-                        onChange={(e) => setEditingState({ ...editingState, description: e.target.value })}
-                        className="w-full px-2 py-1 border rounded min-h-[60px] resize-y"
-                        maxLength={2048}
-                      />
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editingState.title}
+                          onChange={(e) => setEditingState({ ...editingState, title: e.target.value })}
+                          className="w-full px-2 py-1 border rounded"
+                          placeholder="Update title..."
+                          maxLength={255}
+                        />
+                        <RichTextEditor
+                          value={editingState.description}
+                          onChange={(value) => {
+                            const textContent = value.replace(/<[^>]*>/g, '');
+                            if (textContent.length <= 2048) {
+                              setEditingState({ ...editingState, description: value });
+                            }
+                          }}
+                          placeholder="Enter update description..."
+                          height={150}
+                        />
+                        <div className="text-xs text-gray-500">
+                          Title: {editingState.title.length}/255 | Description: {editingState.description.replace(/<[^>]*>/g, '').length}/2048
+                        </div>
+                      </div>
                     ) : (
-                      <div title={record.description} className="flex-1">
-                        {truncateDescription(record.description)}
+                      <div className="max-w-md">
+                        <div className="font-medium">{truncateText(record.title, 100)}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {getTextPreview(record.description, 80)}
+                        </div>
                       </div>
                     )}
                   </td>
@@ -509,6 +579,7 @@ export default function PersonHistoryGrid({
           onClose={() => setEmailModalState({ ...emailModalState, isOpen: false })}
           personHistoryId={emailModalState.personHistoryId}
           personName={personName}
+          updateTitle={emailModalState.updateTitle}
           updateDescription={emailModalState.updateDescription}
           updateDate={emailModalState.updateDate}
           townName={townName}

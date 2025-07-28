@@ -32,6 +32,7 @@ interface EmailNotification {
   } | null;
   personHistory?: {
     id: string;
+    title: string;
     description: string;
   } | null;
   scheduledFor: string;
@@ -386,7 +387,7 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                   <div className="text-sm text-gray-900">{email.subject}</div>
                   {email.personHistory && (
                     <div className="text-xs text-gray-500 mt-1">
-                      Update: {email.personHistory.description.substring(0, 50)}...
+                      Update: {email.personHistory.title}
                     </div>
                   )}
                 </td>

@@ -251,7 +251,7 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
         personSlug: person?.slug || '',
         townSlug: person?.town?.slug || '',
         isUpdateComment: !!c.personHistoryId,
-        updateDescription: c.personHistory?.description || null,
+        updateDescription: c.personHistory?.title || null,
       };
     })}
   />;

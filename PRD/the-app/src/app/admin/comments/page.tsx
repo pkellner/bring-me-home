@@ -61,6 +61,7 @@ export default async function CommentsPage({ searchParams }: CommentsPageProps) 
       personHistory: {
         select: {
           id: true,
+          title: true,
           description: true,
           date: true,
         },

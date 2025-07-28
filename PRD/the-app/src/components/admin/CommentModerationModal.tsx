@@ -40,6 +40,7 @@ interface Comment extends Record<string, unknown> {
   personHistoryId?: string | null;
   personHistory?: {
     id: string;
+    title: string;
     description: string;
     date: Date | string;
   } | null;
@@ -320,7 +321,7 @@ export default function CommentModerationModal({
                     })}:
                   </p>
                   <p className="text-sm text-gray-800 italic">
-                    &ldquo;{comment.personHistory.description}&rdquo;
+                    &ldquo;{comment.personHistory.title}&rdquo;
                   </p>
                 </div>
               )}

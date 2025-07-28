@@ -2135,18 +2135,21 @@ async function main() {
   console.log('Adding PersonHistory records for Joe Plumber...');
   const personHistoryRecords = [
     {
+      title: 'Immigration Hearing Scheduled',
       description: 'Immigration hearing scheduled for March 15, 2024 at Otay Mesa Immigration Court. Family attorney will be present.',
       date: new Date('2024-03-01T10:00:00Z'),
       visible: true,
       sendNotifications: false,
     },
     {
+      title: 'Transfer to Otay Mesa Detention Center',
       description: 'Joe was transferred from San Diego Processing Center to Otay Mesa Detention Center. Visitation rules have changed - now limited to weekends only.',
       date: new Date('2024-02-15T14:30:00Z'),
       visible: true,
       sendNotifications: true,
     },
     {
+      title: 'Community Fundraiser Success',
       description: 'Community fundraiser raised $5,000 for Joe\'s legal defense fund! Thank you to everyone who contributed. The Borrego Springs Rotary Club matched donations.',
       date: new Date('2024-02-01T09:00:00Z'),
       visible: true,
@@ -2159,6 +2162,7 @@ async function main() {
     const history = await prisma.personHistory.create({
       data: {
         personId: joePlumberId,
+        title: historyData.title,
         description: historyData.description,
         date: historyData.date,
         visible: historyData.visible,

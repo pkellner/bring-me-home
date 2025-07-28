@@ -123,9 +123,10 @@ export default function PersonHistoryItem({
               )}
             </div>
           </div>
-          <div className="text-gray-800 leading-relaxed whitespace-pre-wrap mb-4">
-            {historyItem.description}
-          </div>
+          <div 
+            className="text-gray-800 leading-relaxed mb-4 prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: historyItem.description }}
+          />
 
           {/* Comment actions */}
           <div className="flex items-center gap-4 text-sm">
@@ -201,7 +202,7 @@ export default function PersonHistoryItem({
                 <PersonHistoryCommentForm
                   personId={personId}
                   personHistoryId={historyItem.id}
-                  updateDescription={historyItem.description}
+                  updateTitle={historyItem.title}
                   onSuccess={handleCommentAdded}
                   onCancel={() => setShowCommentForm(false)}
                   magicToken={magicToken}

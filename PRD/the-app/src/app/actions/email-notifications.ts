@@ -378,7 +378,7 @@ export async function sendUpdateEmail(
           personFirstName: update.person.firstName,
           personLastName: update.person.lastName,
           townName: update.person.town.name,
-          updateDescription: update.description.substring(0, 100) + (update.description.length > 100 ? '...' : ''),
+          updateDescription: update.title,
           updateText: update.description,
           updateDate: new Date(update.date).toLocaleDateString('en-US', { 
             weekday: 'long', 
@@ -568,6 +568,7 @@ export async function getEmailNotifications(filters?: {
       personHistory: {
         select: {
           id: true,
+          title: true,
           description: true,
         },
       },

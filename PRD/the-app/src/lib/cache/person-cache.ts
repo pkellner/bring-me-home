@@ -115,6 +115,7 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
       };
       select: {
         id: true;
+        title: true;
         description: true;
         date: true;
         visible: true;
@@ -304,6 +305,7 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
         },
         select: {
           id: true,
+          title: true,
           description: true,
           date: true,
           visible: true,
@@ -420,6 +422,7 @@ interface SerializedPersonData {
   }>;
   personHistory: Array<{
     id: string;
+    title: string;
     description: string;
     date: string;
     visible: boolean;
@@ -465,6 +468,7 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
   
   const serializedHistory = (person.personHistory || []).map((history) => ({
     id: history.id,
+    title: history.title,
     description: history.description,
     date: history.date.toISOString(),
     visible: history.visible,

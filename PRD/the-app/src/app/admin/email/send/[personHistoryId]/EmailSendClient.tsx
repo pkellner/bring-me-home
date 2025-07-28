@@ -35,6 +35,7 @@ interface Person {
 interface Update {
   id: string;
   personId: string;
+  title: string;
   description: string;
   date: string;
   person: Person;
@@ -139,7 +140,7 @@ export default function EmailSendClient({ update, followers }: EmailSendClientPr
     personFirstName: update.person.firstName,
     personLastName: update.person.lastName,
     townName: update.person.town.name,
-    updateDescription: update.description.substring(0, 50) + (update.description.length > 50 ? '...' : ''),
+    updateDescription: update.title,
     updateText: update.description,
     updateDate: format(new Date(update.date), 'MMMM d, yyyy'),
     updateId: update.id,

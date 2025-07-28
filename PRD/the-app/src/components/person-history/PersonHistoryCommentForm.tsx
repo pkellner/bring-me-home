@@ -7,7 +7,7 @@ import AnonymousCommentFormWithRecaptcha from '@/components/person/AnonymousComm
 interface PersonHistoryCommentFormProps {
   personId: string;
   personHistoryId: string;
-  updateDescription: string;
+  updateTitle: string;
   onSuccess: () => void;
   onCancel: () => void;
   magicToken?: string | null;
@@ -16,7 +16,7 @@ interface PersonHistoryCommentFormProps {
 export default function PersonHistoryCommentForm({
   personId,
   personHistoryId,
-  updateDescription,
+  updateTitle,
   onSuccess,
   onCancel,
   magicToken,
@@ -82,7 +82,7 @@ export default function PersonHistoryCommentForm({
     <div>
       <div className="mb-4">
         <p className="text-sm text-gray-600">
-          Commenting on update: <span className="font-medium">&ldquo;{updateDescription.substring(0, 50)}...&rdquo;</span>
+          Commenting on update: <span className="font-medium">&ldquo;{updateTitle}&rdquo;</span>
         </p>
       </div>
       <AnonymousCommentFormWithRecaptcha

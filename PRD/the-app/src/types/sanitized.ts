@@ -256,6 +256,7 @@ export type SanitizedPersonImage = {
 
 export type SanitizedPersonHistory = {
   id: string;
+  title: string;
   description: string;
   date: string; // ISO string for SSR
   visible: boolean;

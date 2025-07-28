@@ -55,6 +55,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
   // Sanitize history data to prevent circular references
   const sanitizedHistory: SanitizedPersonHistory[] = person.personHistory.map(history => ({
     id: history.id,
+    title: history.title,
     description: history.description,
     date: history.date.toISOString(),
     visible: history.visible,

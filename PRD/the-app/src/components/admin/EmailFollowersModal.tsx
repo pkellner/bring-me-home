@@ -27,6 +27,7 @@ interface EmailFollowersModalProps {
   onClose: () => void;
   personHistoryId: string;
   personName: string;
+  updateTitle: string;
   updateDescription: string;
   updateDate: string;
   townName: string;
@@ -39,6 +40,7 @@ export default function EmailFollowersModal({
   onClose,
   personHistoryId,
   personName,
+  updateTitle,
   updateDescription,
   updateDate,
   townName,
@@ -155,11 +157,12 @@ export default function EmailFollowersModal({
   const emailPreviewHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #1a202c;">Update on ${personName}</h2>
+      <h3 style="color: #2d3748; margin-top: 10px;">${updateTitle}</h3>
       
       <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p style="font-size: 16px; color: #2d3748; margin: 0;">
+        <div style="font-size: 16px; color: #2d3748; margin: 0;">
           ${updateDescription}
-        </p>
+        </div>
         <p style="font-size: 14px; color: #718096; margin-top: 10px;">
           Posted on ${format(new Date(updateDate), 'MMMM d, yyyy')}
         </p>
@@ -241,8 +244,8 @@ export default function EmailFollowersModal({
                           <span className="ml-2 text-gray-900">{townName}</span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-500">Update:</span>
-                          <p className="mt-1 text-gray-900">{updateDescription.substring(0, 150)}...</p>
+                          <span className="font-medium text-gray-500">Update Title:</span>
+                          <p className="mt-1 text-gray-900 font-medium">{updateTitle}</p>
                         </div>
                       </div>
                     </div>

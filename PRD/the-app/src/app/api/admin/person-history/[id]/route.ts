@@ -59,7 +59,7 @@ export async function GET(
       townName: personHistory.person.town.name,
       townSlug: personHistory.person.town.slug,
       personSlug: personHistory.person.slug,
-      updateDescription: personHistory.description,
+      updateDescription: personHistory.title,
       updateDate: personHistory.date.toISOString(),
     });
   } catch (error) {

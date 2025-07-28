@@ -51,6 +51,7 @@ export default async function EmailSendPage({
         update={{
           id: update.id,
           personId: update.personId,
+          title: update.title,
           description: update.description,
           date: update.date.toISOString(),
           person: {

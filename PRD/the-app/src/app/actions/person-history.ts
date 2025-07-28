@@ -8,6 +8,7 @@ import { hasPersonAccess, isSiteAdmin, isTownAdmin, isPersonAdmin } from '@/lib/
 import { z } from 'zod';
 
 const personHistorySchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters'),
   description: z.string().min(1, 'Description is required').max(2048, 'Description must be less than 2048 characters'),
   date: z.string().optional().refine((val) => {
     if (!val) return true; // Optional field
@@ -34,6 +35,7 @@ export async function createPersonHistory(personId: string, formData: FormData) 
   }
 
   const validatedFields = personHistorySchema.safeParse({
+    title: formData.get('title'),
     description: formData.get('description'),
     date: formData.get('date'), // Optional - will use current time if not provided
     visible: formData.get('visible') === 'true',
@@ -47,7 +49,7 @@ export async function createPersonHistory(personId: string, formData: FormData) 
   }
 
   try {
-    const { description, visible, sendNotifications } = validatedFields.data;
+    const { title, description, visible, sendNotifications } = validatedFields.data;
 
     // Only site admins can set sendNotifications
     const finalSendNotifications = isSiteAdmin(session) ? sendNotifications : false;
@@ -58,6 +60,7 @@ export async function createPersonHistory(personId: string, formData: FormData) 
     const history = await prisma.personHistory.create({
       data: {
         personId,
+        title,
         description,
         date: dateObj,
         visible: visible ?? true,
@@ -106,6 +109,7 @@ export async function updatePersonHistory(historyId: string, formData: FormData)
   }
 
   const validatedFields = personHistorySchema.safeParse({
+    title: formData.get('title'),
     description: formData.get('description'),
     date: formData.get('date'), // Let validation handle optional field
     visible: formData.get('visible') === 'true',
@@ -119,7 +123,7 @@ export async function updatePersonHistory(historyId: string, formData: FormData)
   }
 
   try {
-    const { description, date, visible, sendNotifications } = validatedFields.data;
+    const { title, description, date, visible, sendNotifications } = validatedFields.data;
 
     // Only site admins can change sendNotifications
     const finalSendNotifications = isSiteAdmin(session) 
@@ -139,6 +143,7 @@ export async function updatePersonHistory(historyId: string, formData: FormData)
     const updatedHistory = await prisma.personHistory.update({
       where: { id: historyId },
       data: {
+        title,
         description,
         date: dateObj,
         visible: visible ?? true,

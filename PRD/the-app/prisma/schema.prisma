@@ -514,6 +514,7 @@ model PasswordResetToken {
 model PersonHistory {
   id                String   @id @default(cuid())
   personId          String
+  title             String   @db.VarChar(255)
   description       String   @db.Text
   date              DateTime
   visible           Boolean  @default(true)
