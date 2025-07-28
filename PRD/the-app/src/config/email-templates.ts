@@ -190,7 +190,8 @@ Don't want to receive any emails from this site? Unsubscribe from all: {{allUnsu
         
         <p style="font-size: 12px; color: #666;">
           If you didn't create an account, you can safely ignore this email.<br>
-          <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a>
+          <a href="{{profileUrl}}" style="color: #666;">Manage email preferences</a><br>
+          Don't want to receive any emails from this site? <a href="{{unsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
         </p>
       </div>
     `,
@@ -207,11 +208,13 @@ Verifying your email helps families know that messages of support are genuine an
 
 ---
 If you didn't create an account, you can safely ignore this email.
-Manage preferences: {{profileUrl}}`,
+Manage preferences: {{profileUrl}}
+Don't want to receive any emails? Unsubscribe: {{unsubscribeUrl}}`,
     variables: {
       firstName: 'User first name',
       verificationUrl: 'Email verification URL',
-      profileUrl: 'Profile URL'
+      profileUrl: 'Profile URL',
+      unsubscribeUrl: 'Unsubscribe URL'
     },
     isActive: true,
     trackingEnabled: false
@@ -309,7 +312,8 @@ Unsubscribe: {{unsubscribeUrl}}`,
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
         <p style="font-size: 12px; color: #666;">
-          If you didn't request a password reset, you can safely ignore this email.
+          If you didn't request a password reset, you can safely ignore this email.<br>
+          Don't want to receive any emails from this site? <a href="{{unsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
         </p>
       </div>
     `,
@@ -327,10 +331,12 @@ Important:
 - Your password won't change until you create a new one
 
 ---
-If you didn't request a password reset, you can safely ignore this email.`,
+If you didn't request a password reset, you can safely ignore this email.
+Don't want to receive any emails? Unsubscribe: {{unsubscribeUrl}}`,
     variables: {
       firstName: 'User first name or "there"',
-      resetUrl: 'Password reset URL'
+      resetUrl: 'Password reset URL',
+      unsubscribeUrl: 'Unsubscribe URL'
     },
     isActive: true,
     trackingEnabled: false
@@ -373,9 +379,10 @@ If you didn't request a password reset, you can safely ignore this email.`,
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
-        <div style="font-size: 12px; color: #666; text-align: center;">
-          <p style="margin: 5px 0;">Privacy settings: <a href="{{manageUrl}}" style="color: #666;">Manage your message visibility</a></p>
-        </div>
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive notifications about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
       </div>
     `,
     textContent: `Your message of support has been approved!
@@ -400,14 +407,18 @@ Hide all your messages: {{hideUrl}}
 
 Manage all your messages: {{manageUrl}}
 
-To manage email preferences, visit: {{manageUrl}}`,
+---
+Don't want to receive notifications about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
     variables: {
       commenterName: 'Commenter name',
       personName: 'Person being supported',
       verificationUrl: 'Comment verification URL',
       personUrl: 'Person profile URL',
       hideUrl: 'URL to hide all messages from this email',
-      manageUrl: 'URL to manage all messages'
+      manageUrl: 'URL to manage all messages',
+      personUnsubscribeUrl: 'URL to unsubscribe from this person',
+      allUnsubscribeUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
     trackingEnabled: false
@@ -451,8 +462,9 @@ To manage email preferences, visit: {{manageUrl}}`,
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
-        <p style="font-size: 12px; color: #666; text-align: center;">
-          To manage your messages or update preferences, use the links above.
+        <p style="font-size: 12px; color: #666;">
+          Don't want to receive notifications about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
         </p>
       </div>
     `,
@@ -480,13 +492,16 @@ Manage my privacy: {{manageUrl}}
 This will immediately hide any messages using your email and prevent future ones.
 
 ---
-To manage your messages or update preferences, use the links above.`,
+Don't want to receive notifications about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
     variables: {
       firstName: 'Sender first name',
       personName: 'Person being supported',
       verificationUrl: 'Email verification URL',
       hideUrl: 'URL to hide all messages from this email',
-      manageUrl: 'URL to manage all messages'
+      manageUrl: 'URL to manage all messages',
+      personUnsubscribeUrl: 'URL to unsubscribe from this person',
+      allUnsubscribeUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
     trackingEnabled: false
@@ -661,6 +676,11 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
           You are receiving this notification because you have comment notifications enabled for this person.
           To manage your notification settings, <a href="{{profileLink}}" style="color: #4F46E5;">visit your profile</a>.
         </p>
+        
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+          Don't want to receive notifications about {{personName}}? <a href="{{personOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+        </p>
       </div>
     `,
     textContent: `New comment notification
@@ -673,7 +693,10 @@ Manage Comments: {{manageCommentsLink}}
 
 ---
 You are receiving this notification because you have comment notifications enabled for this person.
-To manage your notification settings, visit: {{profileLink}}`,
+To manage your notification settings, visit: {{profileLink}}
+
+Don't want to receive notifications about {{personName}}? Unsubscribe: {{personOptOutUrl}}
+Don't want to receive any emails from this site? Unsubscribe from all: {{allOptOutUrl}}`,
     variables: {
       personName: 'Full name of the person',
       commenterName: 'Name of the person who posted the comment',
@@ -684,7 +707,9 @@ To manage your notification settings, visit: {{profileLink}}`,
       commentDateISO: 'ISO 8601 format for email client timezone detection',
       commentLink: 'Direct link to view the comment',
       manageCommentsLink: 'Link to manage comments',
-      profileLink: 'Link to user profile for notification settings'
+      profileLink: 'Link to user profile for notification settings',
+      personOptOutUrl: 'URL to unsubscribe from this person',
+      allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
     trackingEnabled: false

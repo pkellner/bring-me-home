@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { obfuscateEmail } from '@/lib/email-utils';
 
 interface UnsubscribeData {
   valid: boolean;
@@ -150,16 +151,43 @@ export default function UnsubscribePage() {
             </div>
             <h2 className="mt-4 text-2xl font-bold text-gray-900">You&apos;ve Been Unsubscribed</h2>
             <div className="mt-4 space-y-4">
-              <p className="text-gray-700 font-medium">
-                {action === 'all'
-                  ? 'You have been unsubscribed from all emails.'
-                  : `You have been unsubscribed from following ${data.personName}.`}
-              </p>
+              {/* Main unsubscribe message */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-gray-700 font-medium mb-2">
+                  {action === 'all'
+                    ? 'You have been successfully unsubscribed from all Bring Me Home email updates.'
+                    : `You have been successfully unsubscribed from updates about ${data.personName}.`}
+                </p>
+                {data.email && (
+                  <p className="text-sm text-gray-600">
+                    Email address: <span className="font-mono">{obfuscateEmail(data.email)}</span>
+                  </p>
+                )}
+              </div>
+              
+              {/* Transactional email notice */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-700">
+                  <strong>Important:</strong> You may still receive transactional emails such as password reset requests 
+                  or important account notifications, as required by law. These are essential for maintaining 
+                  the security and functionality of your account.
+                </p>
+              </div>
+              
+              {/* Resubscribe information */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-gray-700">
+                  <strong>Want to receive updates again?</strong> Simply post another comment or send a message 
+                  of support to any family, and check the &ldquo;Keep me updated&rdquo; box. Your email preferences will 
+                  be automatically restored.
+                </p>
+              </div>
               
               {action === 'person' && unsubscribeResult?.isGloballyOptedOut && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-sm text-amber-800">
-                    Note: You are currently opted out from all emails from the site.
+                    <strong>Note:</strong> You are currently opted out from all emails from Bring Me Home. 
+                    To receive any updates, you&apos;ll need to re-enable emails when posting a new comment or message of support.
                   </p>
                 </div>
               )}

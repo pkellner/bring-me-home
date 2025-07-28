@@ -172,9 +172,12 @@ export default function ResetPasswordPage() {
                 )}
               </div>
             )}
-            <p className="text-xs text-gray-500">
-              Redirecting to sign in page...
-            </p>
+            <Link
+              href="/auth/signin"
+              className="inline-flex justify-center py-3 px-6 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              Go to Sign In Page
+            </Link>
           </div>
         </div>
       </div>

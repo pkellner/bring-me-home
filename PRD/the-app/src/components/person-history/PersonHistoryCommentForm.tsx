@@ -26,6 +26,16 @@ export default function PersonHistoryCommentForm({
     success?: boolean;
     error?: string;
     errors?: Record<string, string[]>;
+    warning?: string;
+    recaptchaScore?: number;
+    recaptchaDetails?: {
+      success: boolean;
+      score: number;
+      action: string;
+      hostname: string;
+      challenge_ts: string;
+      'error-codes'?: string[];
+    };
   }>({});
 
   const handleSubmit = (formData: FormData) => {

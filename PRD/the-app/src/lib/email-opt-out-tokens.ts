@@ -9,7 +9,7 @@ interface OptOutTokenData {
 export async function generateOptOutToken(userId: string, personId?: string): Promise<string> {
   const token = nanoid(32);
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 14); // 14 days expiration
+  expiresAt.setMonth(expiresAt.getMonth() + 6); // 6 months expiration
 
   await prisma.emailOptOutToken.create({
     data: {
@@ -31,6 +31,7 @@ export async function validateOptOutToken(token: string): Promise<OptOutTokenDat
       personId: true,
       expiresAt: true,
       used: true,
+      useCount: true,
     },
   });
 
@@ -38,7 +39,8 @@ export async function validateOptOutToken(token: string): Promise<OptOutTokenDat
     return null;
   }
 
-  if (tokenRecord.used) {
+  // Token is invalidated after 3 uses
+  if (tokenRecord.useCount >= 3) {
     return null;
   }
 
@@ -59,10 +61,13 @@ export async function consumeOptOutToken(token: string): Promise<OptOutTokenData
     return null;
   }
 
-  // Mark token as used
+  // Increment use count and mark as used if first time
   await prisma.emailOptOutToken.update({
     where: { token },
-    data: { used: true },
+    data: { 
+      used: true,
+      useCount: { increment: 1 }
+    },
   });
 
   // Process the opt-out

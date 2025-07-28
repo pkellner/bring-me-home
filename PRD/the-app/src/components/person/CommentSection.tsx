@@ -42,6 +42,15 @@ interface CommentFormState {
   error?: string;
   errors?: Record<string, string[]>;
   warning?: string;
+  recaptchaScore?: number;
+  recaptchaDetails?: {
+    success: boolean;
+    score: number;
+    action: string;
+    hostname: string;
+    challenge_ts: string;
+    'error-codes'?: string[];
+  };
 }
 
 interface Stats {

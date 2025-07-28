@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
   const tokenData = await validateOptOutToken(token);
 
   if (!tokenData) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Invalid or expired token',
-      message: 'This opt-out link has expired or is invalid. Opt-out links expire after 2 weeks. Please log into your account at bring-me-home.com to manage your email preferences, or use the opt-out link from a more recent email.'
+      message: 'This opt-out link has expired or is invalid. Please log into your account at bring-me-home.com to manage your email preferences, or use the opt-out link from a more recent email.'
     }, { status: 400 });
   }
 
@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
   const result = await consumeOptOutToken(token);
 
   if (!result) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Invalid or expired token',
-      message: 'This opt-out link has expired or is invalid. Opt-out links expire after 2 weeks. Please log into your account at bring-me-home.com to manage your email preferences, or use the opt-out link from a more recent email.'
+      message: 'This opt-out link has expired or is invalid. Please log into your account at bring-me-home.com to manage your email preferences, or use the opt-out link from a more recent email.'
     }, { status: 400 });
   }
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    message: result.personId 
+    message: result.personId
       ? 'You have been unsubscribed from following this person.'
       : 'You have been unsubscribed from all emails.',
     isGloballyOptedOut: user?.optOutOfAllEmail || false,

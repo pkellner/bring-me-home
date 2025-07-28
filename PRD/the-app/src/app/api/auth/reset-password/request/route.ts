@@ -93,13 +93,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true }); // Still return success to prevent enumeration
       }
 
+      // Generate opt-out token for unsubscribe link
+      const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+      const optOutToken = await generateOptOutToken(user.id);
+      
       // Prepare template variables
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
       const resetUrl = `${baseUrl}/auth/reset-password?token=${tokenToSend}`;
+      const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${optOutToken}`;
       
       const templateData = {
         firstName: user.firstName || 'there',
         resetUrl,
+        unsubscribeUrl,
       };
 
       const subject = replaceTemplateVariables(template.subject, templateData);

@@ -2,7 +2,7 @@
 
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 
-const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
+const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 interface RecaptchaProviderProps {
   children: React.ReactNode;

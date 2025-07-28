@@ -97,7 +97,7 @@ function EmailPreferences({
   const [isLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
-  const [showActiveSubscriptions, setShowActiveSubscriptions] = useState(false);
+  const [showActiveSubscriptions, setShowActiveSubscriptions] = useState(true);
   const router = useRouter();
 
 

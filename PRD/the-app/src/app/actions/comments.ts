@@ -13,7 +13,7 @@ import { generateVerificationToken, hashToken, generateVerificationUrls } from '
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables } from '@/lib/email-template-variables';
 
-const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.DEBUG_CAPTCHA === 'true';
+const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
@@ -41,7 +41,16 @@ const commentSchema = z.object({
   keepMeUpdated: z.boolean().default(true),
 });
 
-async function verifyRecaptcha(token: string): Promise<boolean> {
+interface RecaptchaDetails {
+  success: boolean;
+  score: number;
+  action: string;
+  hostname: string;
+  challenge_ts: string;
+  'error-codes'?: string[];
+}
+
+async function verifyRecaptcha(token: string): Promise<{ isValid: boolean; score?: number; details?: RecaptchaDetails }> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
   if (debugCaptcha) {
@@ -55,7 +64,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
 
   if (!secretKey) {
     console.error('RECAPTCHA_SECRET_KEY not configured');
-    return false;
+    return { isValid: false };
   }
 
   try {
@@ -92,7 +101,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
         action: data.action,
         hostname: data.hostname,
         challenge_ts: data.challenge_ts,
-        error_codes: data['error-codes'],
+        'error-codes': data['error-codes'],
       });
     }
 
@@ -107,7 +116,18 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
       }
     }
 
-    return isValid;
+    return { 
+      isValid, 
+      score: data.score,
+      details: debugCaptcha ? {
+        success: data.success,
+        score: data.score,
+        action: data.action,
+        hostname: data.hostname,
+        challenge_ts: data.challenge_ts,
+        'error-codes': data['error-codes']
+      } : undefined
+    };
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
     if (debugCaptcha) {
@@ -117,7 +137,7 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
         stack: error instanceof Error ? error.stack : undefined,
       });
     }
-    return false;
+    return { isValid: false };
   }
 }
 
@@ -126,6 +146,9 @@ export async function submitComment(
     success?: boolean;
     error?: string;
     errors?: Record<string, string[]>;
+    warning?: string;
+    recaptchaScore?: number;
+    recaptchaDetails?: RecaptchaDetails;
   },
   formData: FormData
 ) {
@@ -153,14 +176,16 @@ export async function submitComment(
       };
     }
 
-    const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
-    if (!isValidRecaptcha) {
+    const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+    if (!recaptchaResult.isValid) {
       if (debugCaptcha) {
         console.error('[submitComment] reCAPTCHA verification failed');
       }
       return {
         success: false,
         error: 'Security verification failed. Please try again.',
+        recaptchaScore: recaptchaResult.score,
+        recaptchaDetails: recaptchaResult.details
       };
     }
 
@@ -230,12 +255,12 @@ export async function submitComment(
     let autoHideComment = false;
     let warningMessage: string | undefined;
     let userCreated = false;
-    let existingUser: { id: string; allowAnonymousComments: boolean; emailVerified: Date | null } | null = null;
+    let existingUser: { id: string; allowAnonymousComments: boolean; emailVerified: Date | null; optOutOfAllEmail: boolean } | null = null;
     
     if (data.email) {
       existingUser = await prisma.user.findUnique({
         where: { email: data.email },
-        select: { id: true, allowAnonymousComments: true, emailVerified: true },
+        select: { id: true, allowAnonymousComments: true, emailVerified: true, optOutOfAllEmail: true },
       });
 
       if (existingUser) {
@@ -246,11 +271,26 @@ export async function submitComment(
           warningMessage = 'Comments from this email are hidden by default. The user must log in and enable anonymous comments in their profile settings to make them visible.';
         }
         
-        // Update their email opt-out preference if they unchecked "Keep me updated"
+        // Update their email opt-out preference based on "Keep me updated" checkbox
         if (!data.keepMeUpdated) {
+          // User unchecked the box - opt them out
           await prisma.user.update({
             where: { id: existingUser.id },
             data: { optOutOfAllEmail: true },
+          });
+        } else if (data.keepMeUpdated && existingUser.optOutOfAllEmail) {
+          // User checked the box and was previously opted out - re-enable emails
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { optOutOfAllEmail: false },
+          });
+          
+          // Also remove any person-specific opt-out for this person
+          await prisma.emailOptOut.deleteMany({
+            where: {
+              userId: existingUser.id,
+              personId: data.personId,
+            },
           });
         }
       } else {
@@ -600,6 +640,11 @@ export async function submitComment(
               timeZone: 'UTC'
             }) + ' UTC';
             
+            // Generate opt-out tokens for this admin
+            const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+            const personOptOutToken = await generateOptOutToken(admin.id, data.personId);
+            const allOptOutToken = await generateOptOutToken(admin.id);
+            
             const adminTemplateData = {
               personName: `${personData.firstName} ${personData.lastName}`,
               commenterName: `${data.firstName} ${data.lastName}`,
@@ -611,6 +656,8 @@ export async function submitComment(
               commentLink,
               manageCommentsLink: `${baseUrl}/admin/comments/${personData.town.slug}/${personData.slug}`,
               profileLink: `${baseUrl}/profile`,
+              personOptOutUrl: `${baseUrl}/unsubscribe?token=${personOptOutToken}&action=person`,
+              allOptOutUrl: `${baseUrl}/unsubscribe?token=${allOptOutToken}&action=all`,
             };
 
             const adminSubject = replaceTemplateVariables(adminTemplate.subject, adminTemplateData);
@@ -646,6 +693,8 @@ export async function submitComment(
     return {
       success: true,
       warning: warningMessage,
+      recaptchaScore: recaptchaResult.score,
+      recaptchaDetails: recaptchaResult.details
     };
   } catch (error) {
     console.error('Error submitting comment:', error);
@@ -1032,6 +1081,24 @@ export async function approveBulkComments(commentIds: string[]) {
               hideUrl: urls.hideUrl,
             });
 
+            // Find if there's a user with this email to generate opt-out tokens
+            const emailUser = await prisma.user.findUnique({
+              where: { email: comment.email },
+              select: { id: true },
+            });
+            
+            // Generate opt-out tokens if user exists
+            let personUnsubscribeUrl = urls.manageUrl; // Default to manage URL
+            let allUnsubscribeUrl = urls.manageUrl; // Default to manage URL
+            
+            if (emailUser) {
+              const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+              const personOptOutToken = await generateOptOutToken(emailUser.id, personData.id);
+              const allOptOutToken = await generateOptOutToken(emailUser.id);
+              personUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${personOptOutToken}`;
+              allUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${allOptOutToken}`;
+            }
+            
             const templateData = {
               // Template expects these specific variable names
               commenterName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
@@ -1040,6 +1107,8 @@ export async function approveBulkComments(commentIds: string[]) {
               personUrl: urls.verificationUrl, // Links to the person's page
               hideUrl: urls.hideUrl,
               manageUrl: urls.manageUrl,
+              personUnsubscribeUrl,
+              allUnsubscribeUrl,
               // Additional data the template might use
               recipientName: `${comment.firstName || ''} ${comment.lastName || ''}`.trim() || 'Supporter',
               recipientEmail: comment.email,
@@ -1055,12 +1124,6 @@ export async function approveBulkComments(commentIds: string[]) {
             const subject = replaceTemplateVariables(template.subject, templateData);
             const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
             const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : undefined;
-
-            // Find if there's a user with this email
-            const emailUser = await prisma.user.findUnique({
-              where: { email: comment.email },
-              select: { id: true },
-            });
 
             console.log(`[EMAIL VERIFICATION] Creating email notification for ${comment.email}`);
             console.log(`[EMAIL VERIFICATION] PersonId: ${personData.id}, PersonHistoryId: ${comment.personHistoryId || 'none'}`);

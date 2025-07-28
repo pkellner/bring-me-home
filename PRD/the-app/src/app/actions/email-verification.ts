@@ -37,10 +37,14 @@ export async function sendVerificationEmail(userId: string, isNewRegistration: b
       }
     });
 
+    // Generate opt-out token for unsubscribe link
+    const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+    const optOutToken = await generateOptOutToken(userId);
+    
     // Queue verification email
     const verificationUrl = `${process.env.NEXTAUTH_URL}/verify/email?token=${token}`;
     const profileUrl = `${process.env.NEXTAUTH_URL}/profile`;
-    const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${crypto.randomBytes(32).toString('base64url')}`;
+    const unsubscribeUrl = `${process.env.NEXTAUTH_URL}/unsubscribe?token=${optOutToken}`;
     
     // Get the appropriate template
     const templateName = isNewRegistration ? 'welcome_registration' : 'email_verification';
@@ -323,8 +327,23 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     const verificationUrl = `${baseUrl}/verify/anonymous?token=${token}`;
     const hideUrl = `${baseUrl}/verify/comments?token=${token}&action=hide`;
     const manageUrl = `${baseUrl}/verify/comments?token=${token}&action=manage`;
-    // For anonymous users, we can't use opt-out tokens yet, so we'll provide the manage URL
-    const unsubscribeUrl = manageUrl; // They can manage their privacy settings here
+    
+    // Check if user exists to generate proper opt-out tokens
+    let personUnsubscribeUrl = manageUrl; // Default to manage URL
+    let allUnsubscribeUrl = manageUrl; // Default to manage URL
+    
+    const emailUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    
+    if (emailUser) {
+      const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
+      const personOptOutToken = await generateOptOutToken(emailUser.id, comment.personId);
+      const allOptOutToken = await generateOptOutToken(emailUser.id);
+      personUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${personOptOutToken}`;
+      allUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${allOptOutToken}`;
+    }
     
     const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
     
@@ -334,7 +353,8 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
       verificationUrl,
       hideUrl,
       manageUrl,
-      unsubscribeUrl,
+      personUnsubscribeUrl,
+      allUnsubscribeUrl,
       personSlug: comment.person?.slug || '',
       townSlug: comment.person?.town?.slug || '',
     };

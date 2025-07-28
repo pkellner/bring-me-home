@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import * as sections from './sections';
 import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter, SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
@@ -142,6 +143,8 @@ export default function LayoutRenderer({
   supportMapMetadata,
   searchParams,
 }: LayoutRendererProps) {
+  const router = useRouter();
+  
   // Check for update parameter to scroll to specific update
   const targetUpdateId = searchParams?.update ? String(searchParams.update) : null;
   const shouldAddComment = searchParams?.addComment === 'true';
@@ -311,10 +314,21 @@ export default function LayoutRenderer({
                   <div className="mt-4 w-full">
                     <button
                       onClick={() => {
-                        const element = document.getElementById('history-section');
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
+                        // Navigate to the history section with the update expanded and comment form open
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('update', recentNote.id);
+                        currentUrl.searchParams.set('addComment', 'true');
+                        
+                        // Use router.push to navigate without full page reload
+                        router.push(currentUrl.pathname + currentUrl.search);
+                        
+                        // Scroll to the specific update after a short delay
+                        setTimeout(() => {
+                          const element = document.getElementById(`history-item-${recentNote.id}`);
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }
+                        }, 100);
                       }}
                       className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 text-left transition-all duration-300 hover:shadow-md hover:border-amber-300"
                     >
@@ -339,7 +353,7 @@ export default function LayoutRenderer({
                         </div>
                         <div className="flex-shrink-0 ml-4">
                           <div className="flex items-center gap-2 text-amber-600">
-                            <span className="text-sm font-medium whitespace-nowrap">See recent updates</span>
+                            <span className="text-sm font-medium">Write a comment about update</span>
                             <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>

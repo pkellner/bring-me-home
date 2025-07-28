@@ -552,6 +552,8 @@ dialogs, email templates and everything else, that you keep from saying things l
 When changing models, always first make a migration script and then run it. Don't just change the database directly, 
 and then try and create a migration script later. Only when you have issues with data loss should you go outside the prisma ecosystem.
 
+**Coding Guidelines Regarding Dyanmic Imports and await import**
+DO NOT USE dynamic imports with `await import()` in server components. Just import them normally. Dynamic imports are only for client components that need to load code conditionally or on demand and I don't want them in my app!!!
 
 **Email System**
 1. Multiple provider support: SMTP, SendGrid, AWS SES, Console (for dev)

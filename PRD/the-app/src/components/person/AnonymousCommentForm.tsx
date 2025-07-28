@@ -1,12 +1,16 @@
 'use client';
 
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useSafeRecaptcha } from '@/hooks/useRecaptcha';
 import CommentConfirmationModal from './CommentConfirmationModal';
 
-const debugCaptcha =
-  process.env.NODE_ENV === 'development' &&
-  process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
+const DEBUG_RECAPTCHA = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 export interface AnonymousCommentFormProps {
   personId: string;
@@ -18,6 +22,15 @@ export interface AnonymousCommentFormProps {
     error?: string;
     errors?: Record<string, string[]>;
     warning?: string;
+    recaptchaScore?: number;
+    recaptchaDetails?: {
+      success: boolean;
+      score: number;
+      action: string;
+      hostname: string;
+      challenge_ts: string;
+      'error-codes'?: string[];
+    };
   };
   onCancel?: () => void;
   title?: string;
@@ -46,21 +59,22 @@ export interface AnonymousCommentFormProps {
 }
 
 export default function AnonymousCommentForm({
-                                               personId,
-                                               personHistoryId,
-                                               onSubmit,
-                                               isPending,
-                                               state,
-                                               onCancel,
-                                               title = 'Add Your Support',
-                                               submitButtonText = 'Submit Support',
-                                               magicLinkData,
-                                               magicToken,
-                                             }: AnonymousCommentFormProps) {
+  personId,
+  personHistoryId,
+  onSubmit,
+  isPending,
+  state,
+  onCancel,
+  title = 'Add Your Support',
+  submitButtonText = 'Submit Support',
+  magicLinkData,
+  magicToken,
+}: AnonymousCommentFormProps) {
   // ---- Visual tokens (kept simple & consistent) -----------------------------
   const sectionCard =
     'rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900';
-  const labelClass = 'block text-sm font-medium text-slate-800 dark:text-slate-200';
+  const labelClass =
+    'block text-sm font-medium text-slate-800 dark:text-slate-200';
   const helpClass = 'mt-1 text-xs text-slate-500';
   const errorText = 'mt-1 text-sm text-red-600';
   // Single-source input style: ONLY the input gets focus styles
@@ -84,23 +98,29 @@ export default function AnonymousCommentForm({
   const [showCityState, setShowCityState] = useState(true);
   const [privacyRequired, setPrivacyRequired] = useState(false);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const [recaptchaSuccess, setRecaptchaSuccess] = useState<string | null>(null);
   const [isExecutingRecaptcha, setIsExecutingRecaptcha] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [savedFormData, setSavedFormData] = useState<Record<string, string>>({});
+  const [savedFormData, setSavedFormData] = useState<Record<string, string>>(
+    {}
+  );
   const [showOccupation, setShowOccupation] = useState(true);
   const [showBirthdate, setShowBirthdate] = useState(true);
   const [showComment, setShowComment] = useState(true);
   const [wantsToHelpMore, setWantsToHelpMore] = useState(false);
-  const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(null);
-  const [fetchedMagicLinkData, setFetchedMagicLinkData] =
-    useState<typeof magicLinkData | null>(null);
+  const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(
+    null
+  );
+  const [fetchedMagicLinkData, setFetchedMagicLinkData] = useState<
+    typeof magicLinkData | null
+  >(null);
   const [isLoadingMagicLink, setIsLoadingMagicLink] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha, isReady } = useSafeRecaptcha();
 
   const getFieldError = useCallback(
     (name: string) => state?.errors?.[name]?.[0],
-    [state?.errors],
+    [state?.errors]
   );
 
   // ---- Magic link fetch (unchanged) -----------------------------------------
@@ -110,11 +130,12 @@ export default function AnonymousCommentForm({
       import('@/app/actions/magic-links')
         .then(({ verifyMagicLink }) =>
           verifyMagicLink(magicToken)
-            .then((result) => {
-              if (result.success && result.data) setFetchedMagicLinkData(result.data);
+            .then(result => {
+              if (result.success && result.data)
+                setFetchedMagicLinkData(result.data);
               setIsLoadingMagicLink(false);
             })
-            .catch(() => setIsLoadingMagicLink(false)),
+            .catch(() => setIsLoadingMagicLink(false))
         )
         .catch(() => setIsLoadingMagicLink(false));
     }
@@ -144,7 +165,7 @@ export default function AnonymousCommentForm({
     for (const [key, val] of currentFormData.entries()) {
       if (typeof val === 'string') formValues[key] = val;
     }
-    const hasChanges = Object.keys(formValues).some((key) => {
+    const hasChanges = Object.keys(formValues).some(key => {
       if (key === 'personId' || key === 'recaptchaToken') return false;
       return formValues[key] !== (savedFormData[key] || '');
     });
@@ -194,7 +215,9 @@ export default function AnonymousCommentForm({
       <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-900/40">
         <div className="flex items-center justify-center py-6">
           <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" />
-          <span className="ml-3 text-slate-600 dark:text-slate-300">Loading your information…</span>
+          <span className="ml-3 text-slate-600 dark:text-slate-300">
+            Loading your information…
+          </span>
         </div>
       </div>
     );
@@ -208,7 +231,9 @@ export default function AnonymousCommentForm({
   return (
     <div className="mb-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          {title}
+        </h3>
         <div className="flex items-center gap-2">
           {isDirty && (
             <button
@@ -217,7 +242,11 @@ export default function AnonymousCommentForm({
               disabled={isPending || isExecutingRecaptcha}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isExecutingRecaptcha ? 'Verifying…' : isPending ? 'Submitting…' : submitButtonText}
+              {isExecutingRecaptcha
+                ? 'Verifying…'
+                : isPending
+                ? 'Submitting…'
+                : submitButtonText}
             </button>
           )}
           {onCancel && (
@@ -241,7 +270,10 @@ export default function AnonymousCommentForm({
               .slice(0, 4)
               .map(([field, messages]) => (
                 <li key={field}>
-                  <a href={`#${field}`} className="underline decoration-red-400 underline-offset-2">
+                  <a
+                    href={`#${field}`}
+                    className="underline decoration-red-400 underline-offset-2"
+                  >
                     {messages?.[0] ?? 'Invalid value'}
                   </a>
                 </li>
@@ -254,29 +286,41 @@ export default function AnonymousCommentForm({
         ref={formRef}
         id="support-form"
         onChange={handleFormChange}
-        action={async (formData) => {
+        action={async formData => {
           setRecaptchaError(null);
+          setRecaptchaSuccess(null);
           if (!isReady) {
-            setRecaptchaError('reCAPTCHA not loaded. Please refresh the page and try again.');
+            setRecaptchaError(
+              'reCAPTCHA not loaded. Please refresh the page and try again.'
+            );
             return;
           }
           setIsExecutingRecaptcha(true);
           try {
             const token = await executeRecaptcha('submit_comment');
-            if (token) formData.append('recaptchaToken', token);
-            else throw new Error('Failed to get reCAPTCHA token');
+            if (token) {
+              formData.append('recaptchaToken', token);
+              if (DEBUG_RECAPTCHA) {
+                setRecaptchaSuccess(
+                  `reCAPTCHA success! Token: ${token.substring(0, 20)}...`
+                );
+              }
+            } else {
+              throw new Error('Failed to get reCAPTCHA token');
+            }
 
             const emailValue = formData.get('email') as string;
             if (emailValue) {
               try {
                 const response = await fetch(
-                  '/api/profile/anonymous-comments?' + new URLSearchParams({ email: emailValue }),
+                  '/api/profile/anonymous-comments?' +
+                    new URLSearchParams({ email: emailValue })
                 );
                 if (response.ok) {
                   const data = await response.json();
                   if (!data.allowAnonymousComments) {
                     setEmailBlockWarning(
-                      'This comment from this email will be hidden. The owner of this email address has disabled new comments associated with email. That owner must check their email for a link to manage their comments in order for this comment to be shown.',
+                      'This comment from this email will be hidden. The owner of this email address has disabled new comments associated with email. That owner must check their email for a link to manage their comments in order for this comment to be shown.'
                     );
                   } else {
                     setEmailBlockWarning(null);
@@ -291,7 +335,9 @@ export default function AnonymousCommentForm({
             setShowConfirmModal(true);
           } catch (err) {
             const message =
-              err instanceof Error ? err.message : 'reCAPTCHA verification failed. Please try again.';
+              err instanceof Error
+                ? err.message
+                : 'reCAPTCHA verification failed. Please try again.';
             setRecaptchaError(message);
           } finally {
             setIsExecutingRecaptcha(false);
@@ -300,12 +346,17 @@ export default function AnonymousCommentForm({
         className="space-y-6"
       >
         <input type="hidden" name="personId" value={personId} />
-        {personHistoryId && <input type="hidden" name="personHistoryId" value={personHistoryId} />}
+        {personHistoryId && (
+          <input type="hidden" name="personHistoryId" value={personHistoryId} />
+        )}
         <input type="hidden" name="requiresFamilyApproval" value="true" />
 
         {/* Your Info */}
         <section className={sectionCard} aria-labelledby="your-info">
-          <h4 id="your-info" className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h4
+            id="your-info"
+            className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100"
+          >
             Your Information
           </h4>
 
@@ -319,10 +370,14 @@ export default function AnonymousCommentForm({
                 name="firstName"
                 required
                 autoComplete="given-name"
-                defaultValue={effectiveMagicLinkData?.previousComment?.firstName || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.firstName || ''
+                }
                 className={cls('firstName')}
                 aria-invalid={Boolean(getFieldError('firstName'))}
-                aria-describedby={getFieldError('firstName') ? 'firstName-error' : undefined}
+                aria-describedby={
+                  getFieldError('firstName') ? 'firstName-error' : undefined
+                }
                 type="text"
               />
               {getFieldError('firstName') && (
@@ -341,10 +396,14 @@ export default function AnonymousCommentForm({
                 name="lastName"
                 required
                 autoComplete="family-name"
-                defaultValue={effectiveMagicLinkData?.previousComment?.lastName || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.lastName || ''
+                }
                 className={cls('lastName')}
                 aria-invalid={Boolean(getFieldError('lastName'))}
-                aria-describedby={getFieldError('lastName') ? 'lastName-error' : undefined}
+                aria-describedby={
+                  getFieldError('lastName') ? 'lastName-error' : undefined
+                }
                 type="text"
               />
               {getFieldError('lastName') && (
@@ -389,7 +448,9 @@ export default function AnonymousCommentForm({
                   className={checkboxBase}
                   type="checkbox"
                 />
-                <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">Keep me updated</span>
+                <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
+                  Keep me updated
+                </span>
               </label>
             </div>
           </div>
@@ -403,7 +464,9 @@ export default function AnonymousCommentForm({
                 id="phone"
                 name="phone"
                 autoComplete="tel"
-                defaultValue={effectiveMagicLinkData?.previousComment?.phone || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.phone || ''
+                }
                 className={cls('phone')}
                 placeholder="(555) 123-4567"
                 type="tel"
@@ -425,7 +488,9 @@ export default function AnonymousCommentForm({
               <input
                 id="occupation"
                 name="occupation"
-                defaultValue={effectiveMagicLinkData?.previousComment?.occupation || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.occupation || ''
+                }
                 className={cls('occupation')}
                 placeholder="e.g., Teacher, Engineer, Retired"
                 type="text"
@@ -447,8 +512,8 @@ export default function AnonymousCommentForm({
                 defaultValue={
                   effectiveMagicLinkData?.previousComment?.birthdate
                     ? new Date(effectiveMagicLinkData.previousComment.birthdate)
-                      .toISOString()
-                      .split('T')[0]
+                        .toISOString()
+                        .split('T')[0]
                     : ''
                 }
                 className={cls('birthdate')}
@@ -465,12 +530,15 @@ export default function AnonymousCommentForm({
 
         {/* Address */}
         <section className={sectionCard} aria-labelledby="address">
-          <h4 id="address" className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h4
+            id="address"
+            className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100"
+          >
             Your Address (Optional)
           </h4>
           <p className={helpClass}>
-            <strong>Privacy Note:</strong> Your full address will never be shown publicly. Only city and
-            state can be displayed if you choose.
+            <strong>Privacy Note:</strong> Your full address will never be shown
+            publicly. Only city and state can be displayed if you choose.
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -496,7 +564,9 @@ export default function AnonymousCommentForm({
                 id="city"
                 name="city"
                 autoComplete="address-level2"
-                defaultValue={effectiveMagicLinkData?.previousComment?.city || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.city || ''
+                }
                 className={inputBase}
                 placeholder="San Diego"
                 type="text"
@@ -512,7 +582,9 @@ export default function AnonymousCommentForm({
                 name="state"
                 maxLength={2}
                 autoComplete="address-level1"
-                defaultValue={effectiveMagicLinkData?.previousComment?.state || ''}
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.state || ''
+                }
                 className={inputBase + ' uppercase'}
                 placeholder="CA"
                 type="text"
@@ -538,10 +610,15 @@ export default function AnonymousCommentForm({
 
         {/* Message */}
         <section className={sectionCard} aria-labelledby="message">
-          <h4 id="message" className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h4
+            id="message"
+            className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100"
+          >
             Your Message of Support (Optional)
           </h4>
-          <p className={helpClass}>This may be shown publicly on the site if you choose below.</p>
+          <p className={helpClass}>
+            This may be shown publicly on the site if you choose below.
+          </p>
 
           <div className="mt-4">
             <label htmlFor="content" className={labelClass}>
@@ -552,11 +629,13 @@ export default function AnonymousCommentForm({
               name="content"
               rows={4}
               maxLength={500}
-              onChange={(e) => setCommentLength(e.target.value.length)}
+              onChange={e => setCommentLength(e.target.value.length)}
               className={inputBase + ' min-h-[120px]'}
               placeholder="Share why you support this person, your relationship to them, or any message of encouragement…"
               aria-invalid={Boolean(getFieldError('content'))}
-              aria-describedby={getFieldError('content') ? 'content-error' : undefined}
+              aria-describedby={
+                getFieldError('content') ? 'content-error' : undefined
+              }
             />
             <div className="mt-1 flex items-center justify-between">
               <div>
@@ -586,12 +665,14 @@ export default function AnonymousCommentForm({
               name="privateNoteToFamily"
               rows={3}
               maxLength={1500}
-              onChange={(e) => setPrivateNoteLength(e.target.value.length)}
+              onChange={e => setPrivateNoteLength(e.target.value.length)}
               className={inputBase + ' min-h-[100px]'}
               placeholder="Share a private message with the family that will not be shown publicly…"
               aria-invalid={Boolean(getFieldError('privateNoteToFamily'))}
               aria-describedby={
-                getFieldError('privateNoteToFamily') ? 'privateNoteToFamily-error' : undefined
+                getFieldError('privateNoteToFamily')
+                  ? 'privateNoteToFamily-error'
+                  : undefined
               }
             />
             <div className="mt-1 flex items-center justify-between">
@@ -601,7 +682,9 @@ export default function AnonymousCommentForm({
                     {getFieldError('privateNoteToFamily')}
                   </p>
                 )}
-                <p className={helpClass}>This message will only be visible to the family members.</p>
+                <p className={helpClass}>
+                  This message will only be visible to the family members.
+                </p>
               </div>
               <p
                 className={`text-xs tabular-nums ${
@@ -617,7 +700,10 @@ export default function AnonymousCommentForm({
 
         {/* Preferences */}
         <section className={sectionCard} aria-labelledby="preferences">
-          <h4 id="preferences" className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h4
+            id="preferences"
+            className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100"
+          >
             How would you like to show your support?
           </h4>
 
@@ -627,13 +713,13 @@ export default function AnonymousCommentForm({
                 name="wantsToHelpMore"
                 value="true"
                 checked={wantsToHelpMore}
-                onChange={(e) => setWantsToHelpMore(e.target.checked)}
+                onChange={e => setWantsToHelpMore(e.target.checked)}
                 className={checkboxBase + ' mt-1'}
                 type="checkbox"
               />
               <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
-                I want to help more. Please contact me and I will provide a letter of support along with my
-                identification.
+                I want to help more. Please contact me and I will provide a
+                letter of support along with my identification.
               </span>
             </label>
 
@@ -642,7 +728,7 @@ export default function AnonymousCommentForm({
                 name="displayNameOnly"
                 value="true"
                 checked={displayNameOnly}
-                onChange={(e) => {
+                onChange={e => {
                   const isChecked = e.target.checked;
                   setDisplayNameOnly(isChecked);
                   if (isChecked) {
@@ -656,7 +742,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
               />
               <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
-                Display just my name as supporting (hide occupation, age, and location)
+                Display just my name as supporting (hide occupation, age, and
+                location)
               </span>
             </label>
 
@@ -665,7 +752,7 @@ export default function AnonymousCommentForm({
                 name="showComment"
                 value="true"
                 checked={showComment}
-                onChange={(e) => setShowComment(e.target.checked)}
+                onChange={e => setShowComment(e.target.checked)}
                 disabled={privacyRequired}
                 className={checkboxBase + ' mt-1 disabled:opacity-50'}
                 type="checkbox"
@@ -680,7 +767,7 @@ export default function AnonymousCommentForm({
                 name="privacyRequiredDoNotShowPublicly"
                 value="true"
                 checked={privacyRequired}
-                onChange={(e) => {
+                onChange={e => {
                   const isChecked = e.target.checked;
                   setPrivacyRequired(isChecked);
                   if (isChecked) {
@@ -695,7 +782,8 @@ export default function AnonymousCommentForm({
                 type="checkbox"
               />
               <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
-                Please do not publicly show my name, just let the family know I support them
+                Please do not publicly show my name, just let the family know I
+                support them
               </span>
             </label>
           </div>
@@ -710,7 +798,7 @@ export default function AnonymousCommentForm({
                 name="showOccupation"
                 value="true"
                 checked={showOccupation}
-                onChange={(e) => setShowOccupation(e.target.checked)}
+                onChange={e => setShowOccupation(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className={checkboxBase + ' mt-1 disabled:opacity-50'}
                 type="checkbox"
@@ -725,7 +813,7 @@ export default function AnonymousCommentForm({
                 name="showBirthdate"
                 value="true"
                 checked={showBirthdate}
-                onChange={(e) => setShowBirthdate(e.target.checked)}
+                onChange={e => setShowBirthdate(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className={checkboxBase + ' mt-1 disabled:opacity-50'}
                 type="checkbox"
@@ -740,7 +828,7 @@ export default function AnonymousCommentForm({
                 name="showCityState"
                 value="true"
                 checked={showCityState}
-                onChange={(e) => setShowCityState(e.target.checked)}
+                onChange={e => setShowCityState(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
                 className={checkboxBase + ' mt-1 disabled:opacity-50'}
                 type="checkbox"
@@ -755,8 +843,9 @@ export default function AnonymousCommentForm({
         {/* Privacy notice */}
         <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-100">
           <p className="text-sm">
-            <strong>Privacy Notice:</strong> Your information will be kept confidential and only shared as
-            you indicate above. Contact information will only be used if you volunteer to provide additional
+            <strong>Privacy Notice:</strong> Your information will be kept
+            confidential and only shared as you indicate above. Contact
+            information will only be used if you volunteer to provide additional
             support.
           </p>
         </div>
@@ -770,6 +859,24 @@ export default function AnonymousCommentForm({
         {recaptchaError && (
           <div className="rounded-md bg-red-50 p-3 text-red-700 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-200 dark:ring-red-900/40">
             <div className="text-sm">{recaptchaError}</div>
+          </div>
+        )}
+        {DEBUG_RECAPTCHA && recaptchaSuccess && (
+          <div className="rounded-md bg-green-50 p-3 text-green-700 ring-1 ring-green-200 dark:bg-green-950/30 dark:text-green-200 dark:ring-green-900/40">
+            <div className="text-sm font-mono">{recaptchaSuccess}</div>
+          </div>
+        )}
+        {DEBUG_RECAPTCHA && state?.recaptchaScore !== undefined && (
+          <div className="rounded-md bg-blue-50 p-3 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:ring-blue-900/40">
+            <div className="text-sm">
+              <strong>reCAPTCHA Score:</strong> {state.recaptchaScore} (Spam likelihood: {state.recaptchaScore < 0.3 ? 'High' : state.recaptchaScore < 0.5 ? 'Medium' : 'Low'})
+            </div>
+            {state.recaptchaDetails && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs">Debug Details</summary>
+                <pre className="mt-1 text-xs overflow-auto">{JSON.stringify(state.recaptchaDetails, null, 2)}</pre>
+              </details>
+            )}
           </div>
         )}
 
@@ -789,17 +896,49 @@ export default function AnonymousCommentForm({
           >
             {isExecutingRecaptcha ? (
               <span className="inline-flex items-center gap-2">
-                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 <span>Verifying…</span>
               </span>
             ) : isPending ? (
               <span className="inline-flex items-center gap-2">
-                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 <span>Submitting…</span>
               </span>
@@ -814,13 +953,19 @@ export default function AnonymousCommentForm({
       <CommentConfirmationModal
         isOpen={showConfirmModal}
         isSubmitting={isPending}
-        title={personHistoryId ? 'Review Your Comment' : 'Review Your Support Message'}
+        title={
+          personHistoryId
+            ? 'Review Your Comment'
+            : 'Review Your Support Message'
+        }
         description={
           personHistoryId
             ? 'Your comment is being reviewed by the family to make sure it is OK with them.'
             : 'Your message is being reviewed by the family to make sure it is OK with them.'
         }
-        confirmButtonText={personHistoryId ? 'OK, Post My Comment' : 'OK, Post My Support'}
+        confirmButtonText={
+          personHistoryId ? 'OK, Post My Comment' : 'OK, Post My Support'
+        }
         warningMessage={emailBlockWarning}
         onConfirm={() => {
           if (pendingFormData) {
@@ -844,9 +989,11 @@ export default function AnonymousCommentForm({
           email: (pendingFormData?.get('email') as string) || undefined,
           phone: (pendingFormData?.get('phone') as string) || undefined,
           content: (pendingFormData?.get('content') as string) || undefined,
-          occupation: (pendingFormData?.get('occupation') as string) || undefined,
+          occupation:
+            (pendingFormData?.get('occupation') as string) || undefined,
           birthdate: (pendingFormData?.get('birthdate') as string) || undefined,
-          streetAddress: (pendingFormData?.get('streetAddress') as string) || undefined,
+          streetAddress:
+            (pendingFormData?.get('streetAddress') as string) || undefined,
           city: (pendingFormData?.get('city') as string) || undefined,
           state: (pendingFormData?.get('state') as string) || undefined,
           zipCode: (pendingFormData?.get('zipCode') as string) || undefined,
@@ -858,7 +1005,8 @@ export default function AnonymousCommentForm({
           showCityState: pendingFormData?.get('showCityState') === 'true',
           showComment: pendingFormData?.get('showComment') === 'true',
           privateNoteToFamily:
-            (pendingFormData?.get('privateNoteToFamily') as string) || undefined,
+            (pendingFormData?.get('privateNoteToFamily') as string) ||
+            undefined,
         }}
       />
     </div>
