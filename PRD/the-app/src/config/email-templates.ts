@@ -642,15 +642,12 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
   },
   {
     name: 'admin_new_comment_notification',
-    subject: 'New comment on {{personName}}',
+    subject: 'New comment on {{personName}} by {{commenterFirstName}} {{commenterLastName}}',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">New comment notification</h2>
         <p>Hello,</p>
         <p>A new comment has been posted by <strong>{{commenterName}}</strong> at <strong>{{commenterEmail}}</strong>.</p>
-        <p style="color: #666; font-size: 14px;">
-          Posted on: <time datetime="{{commentDateISO}}" style="font-weight: bold;">{{commentDate}}</time>
-        </p>
         <p>This comment was posted for <strong>{{personName}}</strong>.</p>
         
         <div style="margin: 30px 0; text-align: center;">
@@ -669,7 +666,6 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
     textContent: `New comment notification
 
 A new comment has been posted by {{commenterName}} at {{commenterEmail}}.
-Posted on: {{commentDate}}
 This comment was posted for {{personName}}.
 
 View Comment: {{commentLink}}
@@ -682,6 +678,8 @@ To manage your notification settings, visit: {{profileLink}}`,
       personName: 'Full name of the person',
       commenterName: 'Name of the person who posted the comment',
       commenterEmail: 'Email of the commenter',
+      commenterFirstName: 'First name of the commenter',
+      commenterLastName: 'Last name of the commenter',
       commentDate: 'Date and time in multiple timezones (EST/PST/UTC)',
       commentDateISO: 'ISO 8601 format for email client timezone detection',
       commentLink: 'Direct link to view the comment',

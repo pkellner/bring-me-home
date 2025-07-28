@@ -4,7 +4,9 @@ import { startTransition, useCallback, useEffect, useRef, useState } from 'react
 import { useSafeRecaptcha } from '@/hooks/useRecaptcha';
 import CommentConfirmationModal from './CommentConfirmationModal';
 
-const debugCaptcha = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
+const debugCaptcha =
+  process.env.NODE_ENV === 'development' &&
+  process.env.NEXT_PUBLIC_DEBUG_CAPTCHA === 'true';
 
 export interface AnonymousCommentFormProps {
   personId: string;
@@ -21,9 +23,7 @@ export interface AnonymousCommentFormProps {
   title?: string;
   submitButtonText?: string;
   magicLinkData?: {
-    user: {
-      email: string;
-    };
+    user: { email: string };
     previousComment?: {
       email: string;
       firstName: string;
@@ -46,18 +46,36 @@ export interface AnonymousCommentFormProps {
 }
 
 export default function AnonymousCommentForm({
-  personId,
-  personHistoryId,
-  onSubmit,
-  isPending,
-  state,
-  onCancel,
-  title = "Add Your Support",
-  submitButtonText = "Submit Support",
-  magicLinkData,
-  magicToken,
-}: AnonymousCommentFormProps) {
-  // Removed showForm state as we always show the form directly
+                                               personId,
+                                               personHistoryId,
+                                               onSubmit,
+                                               isPending,
+                                               state,
+                                               onCancel,
+                                               title = 'Add Your Support',
+                                               submitButtonText = 'Submit Support',
+                                               magicLinkData,
+                                               magicToken,
+                                             }: AnonymousCommentFormProps) {
+  // ---- Visual tokens (kept simple & consistent) -----------------------------
+  const sectionCard =
+    'rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900';
+  const labelClass = 'block text-sm font-medium text-slate-800 dark:text-slate-200';
+  const helpClass = 'mt-1 text-xs text-slate-500';
+  const errorText = 'mt-1 text-sm text-red-600';
+  // Single-source input style: ONLY the input gets focus styles
+  const inputBase =
+    'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ' +
+    'placeholder:text-slate-400 ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-blue-600 ' +
+    'dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500';
+  const inputInvalid =
+    'border-red-300 focus-visible:ring-red-600 focus-visible:border-red-600 dark:border-red-800';
+
+  const checkboxBase =
+    'h-4 w-4 rounded border-slate-300 text-blue-600 focus-visible:ring-blue-600 dark:border-slate-700 accent-blue-600';
+
+  // ---- State (unchanged behavior) -------------------------------------------
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [commentLength, setCommentLength] = useState(0);
@@ -74,36 +92,37 @@ export default function AnonymousCommentForm({
   const [showComment, setShowComment] = useState(true);
   const [wantsToHelpMore, setWantsToHelpMore] = useState(false);
   const [emailBlockWarning, setEmailBlockWarning] = useState<string | null>(null);
-  const [fetchedMagicLinkData, setFetchedMagicLinkData] = useState<typeof magicLinkData | null>(null);
+  const [fetchedMagicLinkData, setFetchedMagicLinkData] =
+    useState<typeof magicLinkData | null>(null);
   const [isLoadingMagicLink, setIsLoadingMagicLink] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { executeRecaptcha, isReady } = useSafeRecaptcha();
 
-  if (debugCaptcha) {
-    console.log('[AnonymousCommentForm] Component mounted, reCAPTCHA ready:', isReady);
-  }
+  const getFieldError = useCallback(
+    (name: string) => state?.errors?.[name]?.[0],
+    [state?.errors],
+  );
 
-  // Fetch magic link data if token is provided
+  // ---- Magic link fetch (unchanged) -----------------------------------------
   useEffect(() => {
     if (magicToken) {
       setIsLoadingMagicLink(true);
-      import('@/app/actions/magic-links').then(({ verifyMagicLink }) => {
-        verifyMagicLink(magicToken).then(result => {
-          if (result.success && result.data) {
-            setFetchedMagicLinkData(result.data);
-          }
-          setIsLoadingMagicLink(false);
-        }).catch(() => {
-          setIsLoadingMagicLink(false);
-        });
-      });
+      import('@/app/actions/magic-links')
+        .then(({ verifyMagicLink }) =>
+          verifyMagicLink(magicToken)
+            .then((result) => {
+              if (result.success && result.data) setFetchedMagicLinkData(result.data);
+              setIsLoadingMagicLink(false);
+            })
+            .catch(() => setIsLoadingMagicLink(false)),
+        )
+        .catch(() => setIsLoadingMagicLink(false));
     }
   }, [magicToken]);
 
-  // Use fetched data if available, otherwise use provided data
   const effectiveMagicLinkData = fetchedMagicLinkData || magicLinkData;
 
-  // Initialize form states when magic link data is available
+  // ---- Initialize from previous comment (unchanged) -------------------------
   useEffect(() => {
     if (effectiveMagicLinkData?.previousComment) {
       const pc = effectiveMagicLinkData.previousComment;
@@ -117,33 +136,22 @@ export default function AnonymousCommentForm({
     }
   }, [effectiveMagicLinkData]);
 
-  // Track form changes
+  // ---- Dirtiness tracking (unchanged) ---------------------------------------
   const handleFormChange = useCallback(() => {
     if (!formRef.current) return;
-
     const currentFormData = new FormData(formRef.current);
     const formValues: Record<string, string> = {};
-
-    // Get all form values
     for (const [key, val] of currentFormData.entries()) {
-      if (typeof val === 'string') {
-        formValues[key] = val;
-      }
+      if (typeof val === 'string') formValues[key] = val;
     }
-
-    // Check if form is dirty by comparing with saved data
-    const hasChanges = Object.keys(formValues).some(key => {
+    const hasChanges = Object.keys(formValues).some((key) => {
       if (key === 'personId' || key === 'recaptchaToken') return false;
       return formValues[key] !== (savedFormData[key] || '');
     });
-
     setIsDirty(hasChanges);
   }, [savedFormData]);
 
-
-  // Handle cancel
   const handleCancel = useCallback(() => {
-    // Reset form state
     setCommentLength(0);
     setPrivateNoteLength(0);
     setDisplayNameOnly(false);
@@ -155,115 +163,121 @@ export default function AnonymousCommentForm({
     setWantsToHelpMore(false);
     setIsDirty(false);
     setSavedFormData({});
-    if (formRef.current) {
-      formRef.current.reset();
-    }
-    if (onCancel) {
-      onCancel();
-    }
+    formRef.current?.reset();
+    onCancel?.();
   }, [onCancel]);
 
-  // Scroll to first error
+  // ---- Error auto-scroll (unchanged) ----------------------------------------
   const scrollToError = useCallback(() => {
     if (!state?.errors) return;
-
-    // Find first field with error
     const errorFields = Object.keys(state.errors);
     if (errorFields.length > 0) {
-      const firstErrorField = document.getElementById(errorFields[0]);
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstErrorField.focus();
+      const first = document.getElementById(errorFields[0]);
+      if (first) {
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (first as HTMLElement).focus?.();
       }
     }
   }, [state?.errors]);
 
-  // Scroll to error when errors occur
   useEffect(() => {
-    if (state?.errors) {
-      scrollToError();
-    }
+    if (state?.errors) scrollToError();
   }, [state?.errors, scrollToError]);
 
-  // Don't reset form on success - user needs to refresh for new submission
   useEffect(() => {
-    if (state?.success) {
-      // Just mark as no longer dirty since submission was successful
-      setIsDirty(false);
-    }
+    if (state?.success) setIsDirty(false);
   }, [state?.success]);
 
-
+  // ---- Loading state (unchanged) --------------------------------------------
   if (isLoadingMagicLink) {
     return (
-      <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading your information...</span>
+      <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-900/40">
+        <div className="flex items-center justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" />
+          <span className="ml-3 text-slate-600 dark:text-slate-300">Loading your information…</span>
         </div>
       </div>
     );
   }
 
+  // ---- Helpers --------------------------------------------------------------
+  const cls = (name: string) =>
+    `${inputBase} ${getFieldError(name) ? inputInvalid : ''}`;
+
+  // ---- View -----------------------------------------------------------------
   return (
-    <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
+    <div className="mb-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+        <div className="flex items-center gap-2">
+          {isDirty && (
+            <button
+              type="submit"
+              form="support-form"
+              disabled={isPending || isExecutingRecaptcha}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExecutingRecaptcha ? 'Verifying…' : isPending ? 'Submitting…' : submitButtonText}
+            </button>
+          )}
+          {onCancel && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-md px-3 py-1.5 text-sm text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Error summary */}
+      {state?.errors && Object.keys(state.errors).length > 0 && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
+          <p className="text-sm font-medium">Please fix the following:</p>
+          <ul className="mt-1 list-inside list-disc text-sm">
+            {Object.entries(state.errors)
+              .slice(0, 4)
+              .map(([field, messages]) => (
+                <li key={field}>
+                  <a href={`#${field}`} className="underline decoration-red-400 underline-offset-2">
+                    {messages?.[0] ?? 'Invalid value'}
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
       <form
         ref={formRef}
         id="support-form"
         onChange={handleFormChange}
-        action={async formData => {
+        action={async (formData) => {
           setRecaptchaError(null);
-
-          if (debugCaptcha) {
-            console.log('[AnonymousCommentForm] Form submitted, checking reCAPTCHA...');
-            console.log('[AnonymousCommentForm] reCAPTCHA ready:', isReady);
-          }
-
-          // Execute reCAPTCHA
           if (!isReady) {
-            const errorMsg = 'reCAPTCHA not loaded. Please refresh the page and try again.';
-            if (debugCaptcha) {
-              console.error('[AnonymousCommentForm] Error:', errorMsg);
-            }
-            setRecaptchaError(errorMsg);
+            setRecaptchaError('reCAPTCHA not loaded. Please refresh the page and try again.');
             return;
           }
-
           setIsExecutingRecaptcha(true);
-
           try {
-            if (debugCaptcha) {
-              console.log('[AnonymousCommentForm] Executing reCAPTCHA with action: submit_comment');
-            }
-
             const token = await executeRecaptcha('submit_comment');
+            if (token) formData.append('recaptchaToken', token);
+            else throw new Error('Failed to get reCAPTCHA token');
 
-            if (debugCaptcha) {
-              console.log('[AnonymousCommentForm] reCAPTCHA token received:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-              console.log('[AnonymousCommentForm] Token length:', token?.length);
-              console.log('[AnonymousCommentForm] Token type:', typeof token);
-              console.log('[AnonymousCommentForm] Full token (first 100 chars):', token ? token.substring(0, 100) : 'NO TOKEN');
-            }
-
-            // Add the token to the form data
-            if (token) {
-              formData.append('recaptchaToken', token);
-            } else {
-              throw new Error('Failed to get reCAPTCHA token');
-            }
-
-            // Check if email has anonymous comments blocked
             const emailValue = formData.get('email') as string;
             if (emailValue) {
               try {
-                const response = await fetch('/api/profile/anonymous-comments?' + new URLSearchParams({ email: emailValue }));
+                const response = await fetch(
+                  '/api/profile/anonymous-comments?' + new URLSearchParams({ email: emailValue }),
+                );
                 if (response.ok) {
                   const data = await response.json();
                   if (!data.allowAnonymousComments) {
-                    setEmailBlockWarning('This comment from this email will be hidden. The ' +
-                      'owner of this email address has disabled new comments associated with email. That ' +
-                      'owner must check their email for a link to manage their comments' +
-                      'in order for this comment to be shown.');
+                    setEmailBlockWarning(
+                      'This comment from this email will be hidden. The owner of this email address has disabled new comments associated with email. That owner must check their email for a link to manage their comments in order for this comment to be shown.',
+                    );
                   } else {
                     setEmailBlockWarning(null);
                   }
@@ -273,380 +287,358 @@ export default function AnonymousCommentForm({
               }
             }
 
-            // Capture form data and show confirmation modal
             setPendingFormData(formData);
             setShowConfirmModal(true);
-          } catch (error) {
-            if (debugCaptcha) {
-              console.error('[AnonymousCommentForm] reCAPTCHA execution error:', error);
-              console.error('[AnonymousCommentForm] Error type:', error instanceof Error ? error.constructor.name : typeof error);
-              console.error('[AnonymousCommentForm] Error message:', error instanceof Error ? error.message : String(error));
-            }
-
-            // Use the error message from our safe hook if available
-            const errorMessage = error instanceof Error ? error.message : 'reCAPTCHA verification failed. Please try again.';
-            setRecaptchaError(errorMessage);
+          } catch (err) {
+            const message =
+              err instanceof Error ? err.message : 'reCAPTCHA verification failed. Please try again.';
+            setRecaptchaError(message);
           } finally {
             setIsExecutingRecaptcha(false);
           }
         }}
-        className="space-y-4"
+        className="space-y-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">
-            {title}
-          </h3>
-          <div className="flex items-center gap-2">
-            {isDirty && (
-              <button
-                type="submit"
-                disabled={isPending || isExecutingRecaptcha}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isExecutingRecaptcha ? 'Verifying...' : isPending ? 'Submitting...' : submitButtonText}
-              </button>
-            )}
-            {onCancel && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>
-
         <input type="hidden" name="personId" value={personId} />
-        {personHistoryId && (
-          <input type="hidden" name="personHistoryId" value={personHistoryId} />
-        )}
+        {personHistoryId && <input type="hidden" name="personHistoryId" value={personHistoryId} />}
         <input type="hidden" name="requiresFamilyApproval" value="true" />
 
-        {/* Name fields */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="firstName"
-              className="block text-sm font-medium text-gray-700"
-            >
-              First Name *
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              name="firstName"
-              required
-              defaultValue={effectiveMagicLinkData?.previousComment?.firstName || ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {state?.errors?.firstName && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.firstName[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="lastName"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Last Name *
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              required
-              defaultValue={effectiveMagicLinkData?.previousComment?.lastName || ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {state?.errors?.lastName && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.lastName[0]}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Contact fields */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email (Optional)
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              defaultValue={effectiveMagicLinkData?.previousComment?.email || effectiveMagicLinkData?.user?.email || ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="your@email.com"
-            />
-            {state?.errors?.email && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.email[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="phone"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Phone (Optional)
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              defaultValue={effectiveMagicLinkData?.previousComment?.phone || ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="(555) 123-4567"
-            />
-            {state?.errors?.phone && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.phone[0]}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Additional fields */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="occupation"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Occupation (Optional)
-            </label>
-            <input
-              type="text"
-              id="occupation"
-              name="occupation"
-              defaultValue={effectiveMagicLinkData?.previousComment?.occupation || ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="e.g., Teacher, Engineer, Retired"
-            />
-            {state?.errors?.occupation && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.occupation[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="birthdate"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Birth Date (Optional)
-            </label>
-            <input
-              type="date"
-              id="birthdate"
-              name="birthdate"
-              defaultValue={effectiveMagicLinkData?.previousComment?.birthdate ? new Date(effectiveMagicLinkData.previousComment.birthdate).toISOString().split('T')[0] : ''}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {state?.errors?.birthdate && (
-              <p className="mt-1 text-sm text-red-600">
-                {state.errors.birthdate[0]}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Address Section */}
-        <div className="space-y-4 border-t pt-4">
-          <h4 className="text-sm font-medium text-gray-900">
-            Your Address (Optional)
+        {/* Your Info */}
+        <section className={sectionCard} aria-labelledby="your-info">
+          <h4 id="your-info" className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Your Information
           </h4>
-          <p className="text-xs text-gray-600">
-            <strong>Privacy Note:</strong> Your full address will NEVER be shown
-            publicly. Only city and state can be displayed if you choose.
-          </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="firstName" className={labelClass}>
+                First Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                required
+                autoComplete="given-name"
+                defaultValue={effectiveMagicLinkData?.previousComment?.firstName || ''}
+                className={cls('firstName')}
+                aria-invalid={Boolean(getFieldError('firstName'))}
+                aria-describedby={getFieldError('firstName') ? 'firstName-error' : undefined}
+                type="text"
+              />
+              {getFieldError('firstName') && (
+                <p id="firstName-error" className={errorText}>
+                  {getFieldError('firstName')}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className={labelClass}>
+                Last Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="lastName"
+                name="lastName"
+                required
+                autoComplete="family-name"
+                defaultValue={effectiveMagicLinkData?.previousComment?.lastName || ''}
+                className={cls('lastName')}
+                aria-invalid={Boolean(getFieldError('lastName'))}
+                aria-describedby={getFieldError('lastName') ? 'lastName-error' : undefined}
+                type="text"
+              />
+              {getFieldError('lastName') && (
+                <p id="lastName-error" className={errorText}>
+                  {getFieldError('lastName')}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="email" className={labelClass}>
+                Email (Optional)
+              </label>
+              <input
+                id="email"
+                name="email"
+                autoComplete="email"
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.email ||
+                  effectiveMagicLinkData?.user?.email ||
+                  ''
+                }
+                className={cls('email')}
+                placeholder="you@example.com"
+                type="email"
+              />
+              {getFieldError('email') && (
+                <p id="email-error" className={errorText}>
+                  {getFieldError('email')}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-end">
+              <label className="inline-flex items-center">
+                <input
+                  id="keepMeUpdated"
+                  name="keepMeUpdated"
+                  defaultChecked={true}
+                  className={checkboxBase}
+                  type="checkbox"
+                />
+                <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">Keep me updated</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="phone" className={labelClass}>
+                Phone (Optional)
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                autoComplete="tel"
+                defaultValue={effectiveMagicLinkData?.previousComment?.phone || ''}
+                className={cls('phone')}
+                placeholder="(555) 123-4567"
+                type="tel"
+              />
+              {getFieldError('phone') && (
+                <p id="phone-error" className={errorText}>
+                  {getFieldError('phone')}
+                </p>
+              )}
+            </div>
+            <div aria-hidden />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="occupation" className={labelClass}>
+                Occupation (Optional)
+              </label>
+              <input
+                id="occupation"
+                name="occupation"
+                defaultValue={effectiveMagicLinkData?.previousComment?.occupation || ''}
+                className={cls('occupation')}
+                placeholder="e.g., Teacher, Engineer, Retired"
+                type="text"
+              />
+              {getFieldError('occupation') && (
+                <p id="occupation-error" className={errorText}>
+                  {getFieldError('occupation')}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="birthdate" className={labelClass}>
+                Birth Date (Optional)
+              </label>
+              <input
+                id="birthdate"
+                name="birthdate"
+                defaultValue={
+                  effectiveMagicLinkData?.previousComment?.birthdate
+                    ? new Date(effectiveMagicLinkData.previousComment.birthdate)
+                      .toISOString()
+                      .split('T')[0]
+                    : ''
+                }
+                className={cls('birthdate')}
+                type="date"
+              />
+              {getFieldError('birthdate') && (
+                <p id="birthdate-error" className={errorText}>
+                  {getFieldError('birthdate')}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Address */}
+        <section className={sectionCard} aria-labelledby="address">
+          <h4 id="address" className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Your Address (Optional)
+          </h4>
+          <p className={helpClass}>
+            <strong>Privacy Note:</strong> Your full address will never be shown publicly. Only city and
+            state can be displayed if you choose.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label
-                htmlFor="streetAddress"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="streetAddress" className={labelClass}>
                 Street Address
               </label>
               <input
-                type="text"
                 id="streetAddress"
                 name="streetAddress"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                autoComplete="street-address"
+                className={inputBase}
                 placeholder="123 Main Street"
+                type="text"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="city"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="city" className={labelClass}>
                 City
               </label>
               <input
-                type="text"
                 id="city"
                 name="city"
+                autoComplete="address-level2"
                 defaultValue={effectiveMagicLinkData?.previousComment?.city || ''}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                className={inputBase}
                 placeholder="San Diego"
+                type="text"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="state"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="state" className={labelClass}>
                 State
               </label>
               <input
-                type="text"
                 id="state"
                 name="state"
                 maxLength={2}
+                autoComplete="address-level1"
                 defaultValue={effectiveMagicLinkData?.previousComment?.state || ''}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                className={inputBase + ' uppercase'}
                 placeholder="CA"
+                type="text"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label
-                htmlFor="zipCode"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="zipCode" className={labelClass}>
                 ZIP Code
               </label>
               <input
-                type="text"
                 id="zipCode"
                 name="zipCode"
                 maxLength={10}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                autoComplete="postal-code"
+                className={inputBase}
                 placeholder="92101"
+                type="text"
               />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Comment */}
-        <div>
-          <label
-            htmlFor="content"
-            className="block text-sm font-medium text-gray-700"
-          >
+        {/* Message */}
+        <section className={sectionCard} aria-labelledby="message">
+          <h4 id="message" className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
             Your Message of Support (Optional)
-            <span className="text-xs font-normal text-gray-500 ml-1">- May be shown publicly on the site</span>
-          </label>
-          <textarea
-            id="content"
-            name="content"
-            rows={4}
-            maxLength={500}
-            onChange={e => setCommentLength(e.target.value.length)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="Share why you support this person, your relationship to them, or any message of encouragement..."
-          />
-          <div className="mt-1 flex justify-between">
-            <div>
-              {state?.errors?.content && (
-                <p className="text-sm text-red-600">
-                  {state.errors.content[0]}
-                </p>
-              )}
-            </div>
-            <p
-              className={`text-sm ${
-                commentLength >= 500 ? 'text-red-600' : 'text-gray-500'
-              }`}
-            >
-              {commentLength}/500 characters
-            </p>
-          </div>
-        </div>
+          </h4>
+          <p className={helpClass}>This may be shown publicly on the site if you choose below.</p>
 
-        {/* Private Note to Family */}
-        <div>
-          <label
-            htmlFor="privateNoteToFamily"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Private Note to Family (Optional)
-          </label>
-          <textarea
-            id="privateNoteToFamily"
-            name="privateNoteToFamily"
-            rows={3}
-            maxLength={1500}
-            onChange={e => setPrivateNoteLength(e.target.value.length)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="Share a private message with the family that won't be shown publicly..."
-          />
-          <div className="mt-1 flex justify-between">
-            <div>
-              {state?.errors?.privateNoteToFamily && (
-                <p className="text-sm text-red-600">
-                  {state.errors.privateNoteToFamily[0]}
-                </p>
-              )}
-              <p className="text-sm text-gray-500">
-                This message will only be visible to the family members, not publicly displayed.
+          <div className="mt-4">
+            <label htmlFor="content" className={labelClass}>
+              Message
+            </label>
+            <textarea
+              id="content"
+              name="content"
+              rows={4}
+              maxLength={500}
+              onChange={(e) => setCommentLength(e.target.value.length)}
+              className={inputBase + ' min-h-[120px]'}
+              placeholder="Share why you support this person, your relationship to them, or any message of encouragement…"
+              aria-invalid={Boolean(getFieldError('content'))}
+              aria-describedby={getFieldError('content') ? 'content-error' : undefined}
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <div>
+                {getFieldError('content') && (
+                  <p id="content-error" className={errorText}>
+                    {getFieldError('content')}
+                  </p>
+                )}
+              </div>
+              <p
+                className={`text-xs tabular-nums ${
+                  commentLength >= 500 ? 'text-red-600' : 'text-slate-500'
+                }`}
+                aria-live="polite"
+              >
+                {commentLength}/500
               </p>
             </div>
-            <p
-              className={`text-sm ${
-                privateNoteLength >= 1500 ? 'text-red-600' : 'text-gray-500'
-              }`}
-            >
-              {privateNoteLength}/1500
-            </p>
           </div>
-        </div>
 
-        {/* Options */}
-        <div className="space-y-3 border-t pt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-4">
+            <label htmlFor="privateNoteToFamily" className={labelClass}>
+              Private Note to Family (Optional)
+            </label>
+            <textarea
+              id="privateNoteToFamily"
+              name="privateNoteToFamily"
+              rows={3}
+              maxLength={1500}
+              onChange={(e) => setPrivateNoteLength(e.target.value.length)}
+              className={inputBase + ' min-h-[100px]'}
+              placeholder="Share a private message with the family that will not be shown publicly…"
+              aria-invalid={Boolean(getFieldError('privateNoteToFamily'))}
+              aria-describedby={
+                getFieldError('privateNoteToFamily') ? 'privateNoteToFamily-error' : undefined
+              }
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <div>
+                {getFieldError('privateNoteToFamily') && (
+                  <p id="privateNoteToFamily-error" className={errorText}>
+                    {getFieldError('privateNoteToFamily')}
+                  </p>
+                )}
+                <p className={helpClass}>This message will only be visible to the family members.</p>
+              </div>
+              <p
+                className={`text-xs tabular-nums ${
+                  privateNoteLength >= 1500 ? 'text-red-600' : 'text-slate-500'
+                }`}
+                aria-live="polite"
+              >
+                {privateNoteLength}/1500
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Preferences */}
+        <section className={sectionCard} aria-labelledby="preferences">
+          <h4 id="preferences" className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
             How would you like to show your support?
-          </label>
+          </h4>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="wantsToHelpMore"
                 value="true"
                 checked={wantsToHelpMore}
                 onChange={(e) => setWantsToHelpMore(e.target.checked)}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className={checkboxBase + ' mt-1'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
-                I want to help more. Please contact me and I will provide a
-                letter of support along with my identification.
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
+                I want to help more. Please contact me and I will provide a letter of support along with my
+                identification.
               </span>
             </label>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="displayNameOnly"
                 value="true"
                 checked={displayNameOnly}
@@ -654,38 +646,37 @@ export default function AnonymousCommentForm({
                   const isChecked = e.target.checked;
                   setDisplayNameOnly(isChecked);
                   if (isChecked) {
-                    // When display name only is selected, disable display preferences
                     setShowOccupation(false);
                     setShowBirthdate(false);
                     setShowCityState(false);
                   }
                 }}
                 disabled={privacyRequired}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                className={checkboxBase + ' mt-1 disabled:opacity-50'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
                 Display just my name as supporting (hide occupation, age, and location)
               </span>
             </label>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="showComment"
                 value="true"
                 checked={showComment}
                 onChange={(e) => setShowComment(e.target.checked)}
                 disabled={privacyRequired}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                className={checkboxBase + ' mt-1 disabled:opacity-50'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
                 Display my comment text (requires family approval)
               </span>
             </label>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="privacyRequiredDoNotShowPublicly"
                 value="true"
                 checked={privacyRequired}
@@ -693,7 +684,6 @@ export default function AnonymousCommentForm({
                   const isChecked = e.target.checked;
                   setPrivacyRequired(isChecked);
                   if (isChecked) {
-                    // Disable and uncheck all display-related checkboxes
                     setDisplayNameOnly(false);
                     setShowOccupation(false);
                     setShowBirthdate(false);
@@ -701,111 +691,117 @@ export default function AnonymousCommentForm({
                     setShowComment(false);
                   }
                 }}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className={checkboxBase + ' mt-1'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
-                Please don&apos;t publicly show my name, just let the family know I support them
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
+                Please do not publicly show my name, just let the family know I support them
               </span>
             </label>
           </div>
 
-          <div className="space-y-2 mt-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
               Display preferences for optional information:
-            </label>
+            </p>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="showOccupation"
                 value="true"
                 checked={showOccupation}
                 onChange={(e) => setShowOccupation(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                className={checkboxBase + ' mt-1 disabled:opacity-50'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
                 Show my occupation publicly (if provided)
               </span>
             </label>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="showBirthdate"
                 value="true"
                 checked={showBirthdate}
                 onChange={(e) => setShowBirthdate(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                className={checkboxBase + ' mt-1 disabled:opacity-50'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
                 Show my age publicly (if birthdate provided)
               </span>
             </label>
 
             <label className="flex items-start">
               <input
-                type="checkbox"
                 name="showCityState"
                 value="true"
                 checked={showCityState}
                 onChange={(e) => setShowCityState(e.target.checked)}
                 disabled={displayNameOnly || privacyRequired}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                className={checkboxBase + ' mt-1 disabled:opacity-50'}
+                type="checkbox"
               />
-              <span className="ml-2 text-sm text-gray-700">
+              <span className="ml-2 text-sm text-slate-800 dark:text-slate-200">
                 Show my city and state publicly (if provided)
               </span>
             </label>
           </div>
-        </div>
+        </section>
 
         {/* Privacy notice */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-          <p className="text-sm text-yellow-800">
-            <strong>Privacy Notice:</strong> Your information will be kept
-            confidential and only shared as you indicate above. Contact
-            information will only be used if you volunteer to provide additional
+        <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-100">
+          <p className="text-sm">
+            <strong>Privacy Notice:</strong> Your information will be kept confidential and only shared as
+            you indicate above. Contact information will only be used if you volunteer to provide additional
             support.
           </p>
         </div>
 
+        {/* State & reCAPTCHA errors */}
         {state?.error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{state.error}</div>
+          <div className="rounded-md bg-red-50 p-3 text-red-700 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-200 dark:ring-red-900/40">
+            <div className="text-sm">{state.error}</div>
           </div>
         )}
-
         {recaptchaError && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{recaptchaError}</div>
+          <div className="rounded-md bg-red-50 p-3 text-red-700 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-200 dark:ring-red-900/40">
+            <div className="text-sm">{recaptchaError}</div>
           </div>
         )}
 
-        {/* Success message is now handled by hiding the form */}
-
-        <div className="flex justify-end">
+        {/* Footer actions */}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={!isDirty || isPending || isExecutingRecaptcha}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExecutingRecaptcha ? (
-              <span className="flex items-center justify-center space-x-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <span className="inline-flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                 </svg>
-                <span>Verifying...</span>
+                <span>Verifying…</span>
               </span>
             ) : isPending ? (
-              <span className="flex items-center justify-center space-x-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <span className="inline-flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                 </svg>
-                <span>Submitting...</span>
+                <span>Submitting…</span>
               </span>
             ) : (
               submitButtonText
@@ -814,16 +810,17 @@ export default function AnonymousCommentForm({
         </div>
       </form>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal (unchanged) */}
       <CommentConfirmationModal
         isOpen={showConfirmModal}
         isSubmitting={isPending}
-        title={personHistoryId ? "Review Your Comment" : "Review Your Support Message"}
-        description={personHistoryId
-          ? "Your comment is being reviewed by the family to make sure it is OK with them."
-          : "Your message is being reviewed by the family to make sure it is OK with them."
+        title={personHistoryId ? 'Review Your Comment' : 'Review Your Support Message'}
+        description={
+          personHistoryId
+            ? 'Your comment is being reviewed by the family to make sure it is OK with them.'
+            : 'Your message is being reviewed by the family to make sure it is OK with them.'
         }
-        confirmButtonText={personHistoryId ? "OK, Post My Comment" : "OK, Post My Support"}
+        confirmButtonText={personHistoryId ? 'OK, Post My Comment' : 'OK, Post My Support'}
         warningMessage={emailBlockWarning}
         onConfirm={() => {
           if (pendingFormData) {
@@ -839,10 +836,7 @@ export default function AnonymousCommentForm({
           setShowConfirmModal(false);
           setPendingFormData(null);
           setEmailBlockWarning(null);
-          // Reset the form
-          if (formRef.current) {
-            formRef.current.reset();
-          }
+          formRef.current?.reset();
         }}
         commentData={{
           firstName: (pendingFormData?.get('firstName') as string) || '',
@@ -850,11 +844,9 @@ export default function AnonymousCommentForm({
           email: (pendingFormData?.get('email') as string) || undefined,
           phone: (pendingFormData?.get('phone') as string) || undefined,
           content: (pendingFormData?.get('content') as string) || undefined,
-          occupation:
-            (pendingFormData?.get('occupation') as string) || undefined,
+          occupation: (pendingFormData?.get('occupation') as string) || undefined,
           birthdate: (pendingFormData?.get('birthdate') as string) || undefined,
-          streetAddress:
-            (pendingFormData?.get('streetAddress') as string) || undefined,
+          streetAddress: (pendingFormData?.get('streetAddress') as string) || undefined,
           city: (pendingFormData?.get('city') as string) || undefined,
           state: (pendingFormData?.get('state') as string) || undefined,
           zipCode: (pendingFormData?.get('zipCode') as string) || undefined,

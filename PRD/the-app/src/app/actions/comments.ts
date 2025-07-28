@@ -38,6 +38,7 @@ const commentSchema = z.object({
   showComment: z.boolean().default(true),
   showCityState: z.boolean().default(true),
   privacyRequiredDoNotShowPublicly: z.boolean().default(false),
+  keepMeUpdated: z.boolean().default(true),
 });
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
@@ -189,6 +190,7 @@ export async function submitComment(
       showBirthdate: formData.get('showBirthdate') === 'true',
       showCityState: formData.get('showCityState') === 'true',
       privacyRequiredDoNotShowPublicly: formData.get('privacyRequiredDoNotShowPublicly') === 'true',
+      keepMeUpdated: formData.get('keepMeUpdated') === 'on', // checkboxes send 'on' when checked
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -243,6 +245,14 @@ export async function submitComment(
           autoHideComment = true;
           warningMessage = 'Comments from this email are hidden by default. The user must log in and enable anonymous comments in their profile settings to make them visible.';
         }
+        
+        // Update their email opt-out preference if they unchecked "Keep me updated"
+        if (!data.keepMeUpdated) {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { optOutOfAllEmail: true },
+          });
+        }
       } else {
         // Create a new user with the email as username
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
@@ -255,6 +265,7 @@ export async function submitComment(
             lastName: data.lastName,
             isActive: true,
             allowAnonymousComments: true, // New users can post anonymously by default
+            optOutOfAllEmail: !data.keepMeUpdated, // If they unchecked "Keep me updated", opt them out
           },
         });
         userId = newUser.id;
@@ -285,6 +296,7 @@ export async function submitComment(
         requiresFamilyApproval: data.requiresFamilyApproval,
         showOccupation: data.showOccupation,
         showBirthdate: data.showBirthdate,
+        showComment: data.showComment,
         showCityState: data.showCityState,
         privacyRequiredDoNotShowPublicly: data.privacyRequiredDoNotShowPublicly,
         type: 'support',
@@ -591,6 +603,8 @@ export async function submitComment(
             const adminTemplateData = {
               personName: `${personData.firstName} ${personData.lastName}`,
               commenterName: `${data.firstName} ${data.lastName}`,
+              commenterFirstName: data.firstName,
+              commenterLastName: data.lastName,
               commenterEmail: data.email || 'Anonymous',
               commentDate: `${commentDateEST} / ${commentDatePST} / ${commentDateUTC}`,
               commentDateISO: commentDateISO,
