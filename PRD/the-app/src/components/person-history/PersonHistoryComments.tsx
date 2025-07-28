@@ -37,7 +37,11 @@ export default function PersonHistoryComments({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showButton, setShowButton] = useState(true);
   
-  const initialShowCount = 3;
+  // Get initial show count from environment variable or default to 7
+  const parsedCount = process.env.NEXT_PUBLIC_HISTORY_COMMENTS_INITIAL_SHOW_COUNT 
+    ? parseInt(process.env.NEXT_PUBLIC_HISTORY_COMMENTS_INITIAL_SHOW_COUNT, 10) 
+    : NaN;
+  const initialShowCount = isNaN(parsedCount) ? 7 : parsedCount;
 
   useEffect(() => {
     const loadComments = async () => {
