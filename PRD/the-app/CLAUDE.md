@@ -548,6 +548,11 @@ Most users of this app will not even know that there is an authentication system
 However, some features (like commenting) require authentication. This is why we create a magic link for users to verify their email and manage their comments. make sure when creating
 dialogs, email templates and everything else, that you keep from saying things like talking about a profile or account, since most users will never know they have one.
 
+**Notes About Working with Prisma**
+When changing models, always first make a migration script and then run it. Don't just change the database directly, 
+and then try and create a migration script later. Only when you have issues with data loss should you go outside the prisma ecosystem.
+
+
 **Email System**
 1. Multiple provider support: SMTP, SendGrid, AWS SES, Console (for dev)
 2. Provider selection via `EMAIL_PROVIDER` environment variable

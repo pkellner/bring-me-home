@@ -139,65 +139,6 @@ export default async function ProfilePage({
     managedPersonIds = [...new Set(managedPersonIds)];
   }
   
-  // Get notification preferences for managed persons
-  const notificationPreferences = managedPersonIds.length > 0 ? await prisma.personNotificationPreference.findMany({
-    where: {
-      userId: targetUserId,
-      personId: { in: managedPersonIds }
-    },
-    include: {
-      person: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          slug: true,
-          town: {
-            select: {
-              name: true,
-              state: true
-            }
-          }
-        }
-      }
-    }
-  }) : [];
-  
-  // Create preferences for persons without existing preferences
-  const existingPersonIds = new Set(notificationPreferences.map(pref => pref.personId));
-  const missingPersonIds = managedPersonIds.filter(id => !existingPersonIds.has(id));
-  
-  if (missingPersonIds.length > 0) {
-    const missingPersons = await prisma.person.findMany({
-      where: { id: { in: missingPersonIds } },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        slug: true,
-        town: {
-          select: {
-            name: true,
-            state: true
-          }
-        }
-      }
-    });
-    
-    // Add missing persons with default preferences (not saved to DB)
-    missingPersons.forEach(person => {
-      notificationPreferences.push({
-        id: '',
-        userId: targetUserId,
-        personId: person.id,
-        notifyOnNewComments: false,
-        notifyFrequency: 'immediate',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        person
-      });
-    });
-  }
   
   // Get user's comments
   const { comments, groupedByPerson } = await getUserComments(user.id);
@@ -235,6 +176,7 @@ export default async function ProfilePage({
     townAccess: user.townAccess.map(ta => ({
       id: ta.id,
       accessLevel: ta.accessLevel,
+      notifyOnComment: ta.notifyOnComment,
       town: {
         id: ta.town.id,
         name: ta.town.name,
@@ -245,6 +187,7 @@ export default async function ProfilePage({
     personAccess: user.personAccess.map(pa => ({
       id: pa.id,
       accessLevel: pa.accessLevel,
+      notifyOnComment: pa.notifyOnComment,
       person: {
         id: pa.person.id,
         firstName: pa.person.firstName,
@@ -263,14 +206,6 @@ export default async function ProfilePage({
       townName: person.town.name,
       townSlug: person.town.slug,
       isOptedOut: user.emailOptOuts.some(opt => opt.personId === person.id),
-    })),
-    notificationPreferences: notificationPreferences.map(pref => ({
-      personId: pref.personId,
-      personName: `${pref.person.firstName} ${pref.person.lastName}`,
-      personSlug: pref.person.slug,
-      townName: `${pref.person.town.name}, ${pref.person.town.state}`,
-      notifyOnNewComments: pref.notifyOnNewComments,
-      notifyFrequency: pref.notifyFrequency,
     })),
   };
   

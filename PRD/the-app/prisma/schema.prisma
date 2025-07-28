@@ -35,7 +35,6 @@ model User {
   comments            Comment[]
   emailOptOutTokens   EmailOptOutToken[]
   magicLinkTokens     MagicLinkToken[]
-  notificationPreferences PersonNotificationPreference[]
 
   @@map("users")
 }
@@ -156,7 +155,6 @@ model Person {
   emailNotifications   EmailNotification[]
   emailOptOutTokens    EmailOptOutToken[]
   magicLinkTokens      MagicLinkToken[]
-  notificationPreferences PersonNotificationPreference[]
 
   @@index([townId])
   @@index([firstName, lastName])
@@ -298,14 +296,15 @@ model AnonymousSupport {
 }
 
 model TownAccess {
-  id          String   @id @default(cuid())
-  userId      String
-  townId      String
-  accessLevel String   @default("read")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  town        Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String
+  townId          String
+  accessLevel     String   @default("read")
+  notifyOnComment Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  town            Town     @relation(fields: [townId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, townId])
   @@index([townId], map: "town_access_townId_fkey")
@@ -313,14 +312,15 @@ model TownAccess {
 }
 
 model PersonAccess {
-  id          String   @id @default(cuid())
-  userId      String
-  personId    String
-  accessLevel String   @default("read")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String
+  personId        String
+  accessLevel     String   @default("read")
+  notifyOnComment Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, personId])
   @@index([personId], map: "person_access_personId_fkey")
@@ -668,23 +668,6 @@ model MagicLinkToken {
   @@map("magic_link_tokens")
 }
 
-model PersonNotificationPreference {
-  id                  String   @id @default(cuid())
-  userId              String
-  personId            String
-  notifyOnNewComments Boolean  @default(false)
-  notifyFrequency     String   @default("immediate")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  person              Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, personId])
-  @@index([userId])
-  @@index([personId])
-  @@map("person_notification_preferences")
-}
 
 enum EmailStatus {
   QUEUED

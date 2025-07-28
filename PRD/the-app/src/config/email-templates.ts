@@ -639,5 +639,51 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
     },
     isActive: true,
     trackingEnabled: false
+  },
+  {
+    name: 'admin_new_comment_notification',
+    subject: 'New comment on {{personName}}',
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">New comment notification</h2>
+        <p>Hello,</p>
+        <p>A new comment has been posted by <strong>{{commenterName}}</strong> at <strong>{{commenterEmail}}</strong> on <strong>{{commentDate}}</strong>.</p>
+        <p>This comment was posted for <strong>{{personName}}</strong>.</p>
+        
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="{{commentLink}}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 0 10px;">View Comment</a>
+          <a href="{{manageCommentsLink}}" style="display: inline-block; background-color: #6B7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 0 10px;">Manage Comments</a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #666;">
+          You are receiving this notification because you have comment notifications enabled for this person.
+          To manage your notification settings, <a href="{{profileLink}}" style="color: #4F46E5;">visit your profile</a>.
+        </p>
+      </div>
+    `,
+    textContent: `New comment notification
+
+A new comment has been posted by {{commenterName}} at {{commenterEmail}} on {{commentDate}}.
+This comment was posted for {{personName}}.
+
+View Comment: {{commentLink}}
+Manage Comments: {{manageCommentsLink}}
+
+---
+You are receiving this notification because you have comment notifications enabled for this person.
+To manage your notification settings, visit: {{profileLink}}`,
+    variables: {
+      personName: 'Full name of the person',
+      commenterName: 'Name of the person who posted the comment',
+      commenterEmail: 'Email of the commenter',
+      commentDate: 'Date and time when comment was posted',
+      commentLink: 'Direct link to view the comment',
+      manageCommentsLink: 'Link to manage comments',
+      profileLink: 'Link to user profile for notification settings'
+    },
+    isActive: true,
+    trackingEnabled: false
   }
 ];

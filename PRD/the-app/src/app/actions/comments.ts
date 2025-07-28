@@ -434,6 +434,175 @@ export async function submitComment(
       }
     }
 
+    // Send notifications to person admins
+    try {
+      console.log('🔔 Starting admin notification process for comment on person:', data.personId);
+      
+      // Get the admin notification template
+      const adminTemplate = await prisma.emailTemplate.findUnique({
+        where: { name: 'admin_new_comment_notification' },
+      });
+
+      console.log('📧 Admin template found:', adminTemplate ? 'Yes' : 'No', 'Active:', adminTemplate?.isActive);
+
+      if (adminTemplate && adminTemplate.isActive) {
+        // Get person data for admin notifications
+        const personData = await prisma.person.findUnique({
+          where: { id: data.personId },
+          include: {
+            town: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+              }
+            }
+          }
+        });
+
+        console.log('👤 Person data:', personData ? `${personData.firstName} ${personData.lastName}` : 'Not found');
+
+        if (personData) {
+        // First, let's see ALL person admins for debugging
+        const allPersonAdmins = await prisma.personAccess.findMany({
+          where: {
+            personId: data.personId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        });
+
+        console.log('👥 ALL person admins for this person:', allPersonAdmins.length);
+        allPersonAdmins.forEach(pa => {
+          console.log(`  - ${pa.user.firstName} ${pa.user.lastName} (${pa.user.email}) - notifyOnComment: ${pa.notifyOnComment} - userId: ${pa.userId}`);
+        });
+
+        // Get person admins with notifications enabled
+        const personAdmins = await prisma.personAccess.findMany({
+          where: {
+            personId: data.personId,
+            notifyOnComment: true,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        });
+
+        console.log('👥 Person admins with notifications ENABLED:', personAdmins.length);
+        personAdmins.forEach(pa => {
+          console.log(`  - ${pa.user.firstName} ${pa.user.lastName} (${pa.user.email}) - notifyOnComment: ${pa.notifyOnComment}`);
+        });
+
+        // Get town admins with notifications enabled
+        const townAdmins = await prisma.townAccess.findMany({
+          where: {
+            townId: personData.townId,
+            notifyOnComment: true,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        });
+
+        console.log('🏘️ Town admins with notifications enabled:', townAdmins.length);
+        townAdmins.forEach(ta => {
+          console.log(`  - ${ta.user.firstName} ${ta.user.lastName} (${ta.user.email}) - notifyOnComment: ${ta.notifyOnComment}`);
+        });
+
+        // Combine and deduplicate admins
+        const allAdmins = [...personAdmins, ...townAdmins];
+        const uniqueAdmins = Array.from(
+          new Map(allAdmins.map(a => [a.user.email, a.user])).values()
+        );
+
+        console.log('📬 Total unique admins to notify:', uniqueAdmins.length);
+        uniqueAdmins.forEach(admin => {
+          console.log(`  - ${admin.firstName} ${admin.lastName} (${admin.email})`);
+        });
+
+        // Generate comment link
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const commentLink = data.personHistoryId 
+          ? `${baseUrl}/${personData.town.slug}/${personData.slug}?update=${data.personHistoryId}#comments`
+          : `${baseUrl}/${personData.town.slug}/${personData.slug}#comments`;
+
+        // Send notification to each admin
+        for (const admin of uniqueAdmins) {
+          if (admin.email) {
+            console.log(`📤 Creating email notification for admin: ${admin.firstName} ${admin.lastName} (${admin.email})`);
+            
+            // Format the comment date
+            const commentDate = new Date().toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short'
+            });
+            
+            const adminTemplateData = {
+              personName: `${personData.firstName} ${personData.lastName}`,
+              commenterName: `${data.firstName} ${data.lastName}`,
+              commenterEmail: data.email || 'Anonymous',
+              commentDate,
+              commentLink,
+              manageCommentsLink: `${baseUrl}/admin/comments/${personData.town.slug}/${personData.slug}`,
+              profileLink: `${baseUrl}/profile`,
+            };
+
+            const adminSubject = replaceTemplateVariables(adminTemplate.subject, adminTemplateData);
+            const adminHtmlContent = replaceTemplateVariables(adminTemplate.htmlContent, adminTemplateData);
+            const adminTextContent = adminTemplate.textContent 
+              ? replaceTemplateVariables(adminTemplate.textContent, adminTemplateData) 
+              : null;
+
+            const emailNotification = await prisma.emailNotification.create({
+              data: {
+                userId: admin.id,
+                personId: data.personId,
+                templateId: adminTemplate.id,
+                subject: adminSubject,
+                htmlContent: adminHtmlContent,
+                textContent: adminTextContent,
+                status: EmailStatus.QUEUED,
+                sentTo: admin.email,
+                customizations: adminTemplateData,
+              },
+            });
+            
+            console.log(`✅ Email notification created with ID: ${emailNotification.id}, Status: ${emailNotification.status}`);
+          }
+        }
+        }
+      }
+    } catch (adminEmailError) {
+      console.error('Failed to send admin notifications:', adminEmailError);
+      // Don't fail the comment submission if admin notifications fail
+    }
+
     return {
       success: true,
       warning: warningMessage,

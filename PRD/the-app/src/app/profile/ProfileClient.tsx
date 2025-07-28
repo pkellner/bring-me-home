@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { 
@@ -25,7 +25,6 @@ import {
 import Link from '@/components/OptimizedLink';
 import { performSignOut } from '@/lib/signout';
 import CommentManagement from '@/components/profile/CommentManagement';
-import PersonNotificationSettings from '@/components/profile/PersonNotificationSettings';
 import { resendVerificationEmail } from '@/app/actions/email-verification';
 
 interface ProfileUser {
@@ -47,6 +46,7 @@ interface ProfileUser {
   townAccess: Array<{
     id: string;
     accessLevel: string;
+    notifyOnComment: boolean;
     town: {
       id: string;
       name: string;
@@ -57,6 +57,7 @@ interface ProfileUser {
   personAccess: Array<{
     id: string;
     accessLevel: string;
+    notifyOnComment: boolean;
     person: {
       id: string;
       firstName: string;
@@ -75,14 +76,6 @@ interface ProfileUser {
     townName: string;
     townSlug: string;
     isOptedOut: boolean;
-  }>;
-  notificationPreferences: Array<{
-    personId: string;
-    personName: string;
-    personSlug: string;
-    townName: string;
-    notifyOnNewComments: boolean;
-    notifyFrequency: string;
   }>;
 }
 
@@ -387,6 +380,148 @@ interface CommentToken {
   createdAt: string;
 }
 
+// Town Notification Toggle Component
+function TownNotificationToggle({ 
+  townAccessId, 
+  enabled 
+}: { 
+  townAccessId: string; 
+  enabled: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isEnabled, setIsEnabled] = useState(enabled);
+
+  const handleToggle = async () => {
+    const newValue = !isEnabled;
+    setIsEnabled(newValue);
+    
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/profile/town-access-notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            townAccessId,
+            notifyOnComment: newValue,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update notification settings');
+        }
+
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to update notification settings:', error);
+        // Revert on error
+        setIsEnabled(!newValue);
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <label htmlFor={`notify-${townAccessId}`} className="text-sm font-medium text-gray-700">
+        Send Notifications on new Comments
+      </label>
+      <button
+        type="button"
+        id={`notify-${townAccessId}`}
+        disabled={isPending}
+        onClick={handleToggle}
+        className={`
+          ${isEnabled ? 'bg-indigo-600' : 'bg-gray-200'}
+          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+          ${isPending ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
+        role="switch"
+        aria-checked={isEnabled}
+      >
+        <span
+          aria-hidden="true"
+          className={`
+            ${isEnabled ? 'translate-x-5' : 'translate-x-0'}
+            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+          `}
+        />
+      </button>
+    </div>
+  );
+}
+
+// Notification Toggle Component
+function NotificationToggle({ 
+  personAccessId, 
+  enabled 
+}: { 
+  personAccessId: string; 
+  enabled: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isEnabled, setIsEnabled] = useState(enabled);
+
+  const handleToggle = async () => {
+    const newValue = !isEnabled;
+    setIsEnabled(newValue);
+    
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/profile/person-access-notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personAccessId,
+            notifyOnComment: newValue,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update notification settings');
+        }
+
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to update notification settings:', error);
+        // Revert on error
+        setIsEnabled(!newValue);
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <label htmlFor={`notify-${personAccessId}`} className="text-sm font-medium text-gray-700">
+        Send Notifications on new Comments
+      </label>
+      <button
+        type="button"
+        id={`notify-${personAccessId}`}
+        disabled={isPending}
+        onClick={handleToggle}
+        className={`
+          ${isEnabled ? 'bg-indigo-600' : 'bg-gray-200'}
+          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+          ${isPending ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
+        role="switch"
+        aria-checked={isEnabled}
+      >
+        <span
+          aria-hidden="true"
+          className={`
+            ${isEnabled ? 'translate-x-5' : 'translate-x-0'}
+            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+          `}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function ProfileClient({ 
   user, 
   comments,
@@ -421,11 +556,6 @@ export default function ProfileClient({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Check if user has any admin role or person access
-  const canReceiveNotifications = user.roles.some(role => 
-    ['site-admin', 'town-admin', 'person-admin'].includes(role.name)
-  ) || user.personAccess.length > 0 || user.townAccess.length > 0;
-  
   const handleEmailUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError('');
@@ -449,7 +579,11 @@ export default function ProfileClient({
       const response = await fetch('/api/profile/email', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ 
+          email,
+          // Include userId when admin is editing another user
+          ...(isAdmin && !isViewingOwnProfile ? { userId: user.id } : {})
+        }),
       });
       
       const data = await response.json();
@@ -787,7 +921,8 @@ export default function ProfileClient({
               )}
             </div>
             
-            {/* Password Section */}
+            {/* Password Section - Only show for own profile */}
+            {isViewingOwnProfile && (
             <div className="px-6 py-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <KeyIcon className="h-5 w-5 mr-2 text-gray-500" />
@@ -920,6 +1055,7 @@ export default function ProfileClient({
                 </form>
               )}
             </div>
+            )}
             
             {/* Email Preferences Section */}
             <div className="px-6 py-6">
@@ -934,15 +1070,6 @@ export default function ProfileClient({
               />
             </div>
 
-            {/* Person Notification Settings */}
-            {canReceiveNotifications && user.notificationPreferences.length > 0 && (
-              <PersonNotificationSettings
-                userId={user.id}
-                preferences={user.notificationPreferences}
-                isViewingOwnProfile={isViewingOwnProfile}
-                isAdmin={isAdmin}
-              />
-            )}
 
             {/* Comments Management Section */}
             {comments.length > 0 && (
@@ -986,26 +1113,47 @@ export default function ProfileClient({
                   <BuildingOfficeIcon className="h-5 w-5 mr-2 text-gray-500" />
                   Town Access
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {user.townAccess.map((access) => (
-                    <Link
+                    <div
                       key={access.id}
-                      href={`/${access.town.slug}`}
-                      className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-indigo-50 transition-all duration-200 block border border-gray-200 hover:border-indigo-300"
+                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                     >
-                      <div>
-                        <p className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-900">
                           {access.town.name}, {access.town.state}
                         </p>
                         <p className="text-sm text-gray-600">Access Level: {access.accessLevel}</p>
                       </div>
-                      <div className="flex items-center text-gray-400 group-hover:text-indigo-600">
-                        <span className="text-xs mr-2">View Town</span>
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <Link
+                          href={`/${access.town.slug}`}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                        >
+                          View Town
+                        </Link>
+                        {(access.accessLevel === 'write' || access.accessLevel === 'admin') && (
+                          <Link
+                            href={`/admin/towns/${access.town.id}/edit`}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                          >
+                            Edit Town
+                          </Link>
+                        )}
+                        <Link
+                          href={`/admin/comments/${access.town.slug}`}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                        >
+                          Edit Town Comments
+                        </Link>
                       </div>
-                    </Link>
+                      <div className="border-t border-gray-200 pt-3">
+                        <TownNotificationToggle
+                          townAccessId={access.id}
+                          enabled={access.notifyOnComment}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1018,28 +1166,49 @@ export default function ProfileClient({
                   <UsersIcon className="h-5 w-5 mr-2 text-gray-500" />
                   Person Access
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {user.personAccess.map((access) => (
-                    <Link
+                    <div
                       key={access.id}
-                      href={`/${access.person.townSlug}/${access.person.slug}`}
-                      className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-indigo-50 transition-all duration-200 block border border-gray-200 hover:border-indigo-300"
+                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                     >
-                      <div>
-                        <p className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-900">
                           {access.person.firstName} {access.person.lastName}
                         </p>
                         <p className="text-sm text-gray-600">
                           {access.person.townName}, {access.person.townState} • Access Level: {access.accessLevel}
                         </p>
                       </div>
-                      <div className="flex items-center text-gray-400 group-hover:text-indigo-600">
-                        <span className="text-xs mr-2">View Profile</span>
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <Link
+                          href={`/${access.person.townSlug}/${access.person.slug}`}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                        >
+                          View Person
+                        </Link>
+                        {(access.accessLevel === 'write' || access.accessLevel === 'admin') && (
+                          <Link
+                            href={`/admin/persons/${access.person.id}/edit`}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                          >
+                            Edit Person
+                          </Link>
+                        )}
+                        <Link
+                          href={`/admin/comments/${access.person.townSlug}/${access.person.slug}`}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-white border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                        >
+                          Edit Person Comments
+                        </Link>
                       </div>
-                    </Link>
+                      <div className="border-t border-gray-200 pt-3">
+                        <NotificationToggle
+                          personAccessId={access.id}
+                          enabled={access.notifyOnComment}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
