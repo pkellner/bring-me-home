@@ -84,11 +84,40 @@ export default function SupportSection({
       state?: string | null;
     };
   } | null>(null);
+  const [currentUserData, setCurrentUserData] = useState<{
+    email: string;
+    firstName: string;
+    lastName: string;
+  } | null>(null);
 
   // Check if map feature is enabled
   useEffect(() => {
     isSupportMapEnabled(isAdmin).then(setMapEnabled);
   }, [isAdmin]);
+  
+  // Fetch current user data
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/user/current');
+        const data = await response.json();
+        if (data.user && data.user.email && data.user.firstName && data.user.lastName) {
+          setCurrentUserData({
+            email: data.user.email,
+            firstName: data.user.firstName,
+            lastName: data.user.lastName,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      }
+    };
+    
+    // Only fetch if not using magic link
+    if (!magicUid) {
+      fetchCurrentUser();
+    }
+  }, [magicUid]);
   
   // Verify magic link and fetch previous comment data
   useEffect(() => {
@@ -565,7 +594,14 @@ export default function SupportSection({
               isPending={isPending}
               state={state}
               onCancel={() => setShowForm(false)}
-              magicLinkData={magicLinkData || undefined}
+              magicLinkData={magicLinkData || (currentUserData ? {
+                user: { email: currentUserData.email },
+                previousComment: {
+                  email: currentUserData.email,
+                  firstName: currentUserData.firstName,
+                  lastName: currentUserData.lastName,
+                }
+              } : undefined)}
             />
           </div>
         </div>
