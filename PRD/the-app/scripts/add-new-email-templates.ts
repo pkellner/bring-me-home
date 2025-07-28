@@ -39,7 +39,7 @@ async function main() {
             isActive: template.isActive ?? true,
             trackingEnabled: template.trackingEnabled ?? false,
             webhookUrl: template.webhookUrl || null,
-            webhookHeaders: template.webhookHeaders || null,
+            webhookHeaders: template.webhookHeaders || undefined,
           }
         });
         
