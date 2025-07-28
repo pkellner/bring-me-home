@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { replaceTemplateVariables } from '@/lib/email-template-variables';
+import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import { 
   EnvelopeIcon, 
   UserIcon, 
@@ -37,8 +37,9 @@ export default function EmailPreview({
   
   // Process the template with sample data
   const processedSubject = replaceTemplateVariables(subject, sampleData);
-  const processedHtml = replaceTemplateVariables(htmlContent, sampleData);
-  const processedText = textContent ? replaceTemplateVariables(textContent, sampleData) : null;
+  const processedContent = replaceTemplateVariablesWithUnsubscribe(htmlContent, textContent || null, sampleData);
+  const processedHtml = processedContent.html;
+  const processedText = processedContent.text;
   
   if (!isOpen) return null;
 

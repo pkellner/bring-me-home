@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import { EmailStatus } from '@prisma/client';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 import crypto from 'crypto';
+import { replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -374,15 +375,20 @@ export async function sendUpdateEmail(
           allOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`,
         };
         
-        // Replace all variables in subject and content
+        // Replace all variables in subject first
         Object.entries(recipientVars).forEach(([key, value]) => {
           const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
           finalSubject = finalSubject.replace(regex, value);
-          finalHtmlContent = finalHtmlContent.replace(regex, value);
-          if (finalTextContent) {
-            finalTextContent = finalTextContent.replace(regex, value);
-          }
         });
+        
+        // Use enhanced function for HTML and text content to handle unsubscribe keywords
+        const processedContent = replaceTemplateVariablesWithUnsubscribe(
+          finalHtmlContent,
+          finalTextContent,
+          recipientVars
+        );
+        finalHtmlContent = processedContent.html;
+        finalTextContent = processedContent.text;
 
         return {
           userId: follower.id,

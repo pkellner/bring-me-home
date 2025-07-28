@@ -6,7 +6,7 @@ import {
   createEmailTemplate, 
   updateEmailTemplate,
 } from '@/app/actions/email-templates';
-import { getTemplateVariables, replaceTemplateVariables } from '@/lib/email-template-variables';
+import { getTemplateVariables, replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import EmailPreview from '@/components/admin/EmailPreview';
 import { 
   InformationCircleIcon,
@@ -413,14 +413,7 @@ function getDefaultHtmlTemplate() {
   
   <div class="footer">
     <p>You're receiving this email because you've shown support for {{personName}}.</p>
-    <p>
-      <strong>Email Preferences:</strong><br>
-      To stop receiving updates about {{personName}}, <a href="{{personOptOutUrl}}">click here</a>.<br>
-      To stop receiving all emails from Bring Me Home, <a href="{{allOptOutUrl}}">click here</a>.
-    </p>
-    <p style="margin-top: 20px; font-size: 11px; color: #a0aec0;">
-      These unsubscribe links expire after 2 weeks. If the links have expired, you can manage your preferences by logging into your account at bring-me-home.com or using the links in a more recent email.
-    </p>
+    {{UNSUBSCRIBE_FULL}}
   </div>
 </body>
 </html>`;
@@ -429,7 +422,8 @@ function getDefaultHtmlTemplate() {
 // Helper function to wrap email content for live preview
 function wrapEmailForPreview(subject: string, htmlContent: string, sampleData: Record<string, unknown>) {
   const processedSubject = replaceTemplateVariables(subject, sampleData);
-  const processedHtml = replaceTemplateVariables(htmlContent, sampleData);
+  const processedContent = replaceTemplateVariablesWithUnsubscribe(htmlContent, null, sampleData);
+  const processedHtml = processedContent.html;
   
   return `
     <!DOCTYPE html>

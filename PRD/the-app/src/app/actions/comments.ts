@@ -11,7 +11,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { generateVerificationToken, hashToken, generateVerificationUrls } from '@/lib/comment-verification';
 import { EmailStatus } from '@prisma/client';
-import { replaceTemplateVariables } from '@/lib/email-template-variables';
+import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 
 const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
@@ -661,10 +661,13 @@ export async function submitComment(
             };
 
             const adminSubject = replaceTemplateVariables(adminTemplate.subject, adminTemplateData);
-            const adminHtmlContent = replaceTemplateVariables(adminTemplate.htmlContent, adminTemplateData);
-            const adminTextContent = adminTemplate.textContent 
-              ? replaceTemplateVariables(adminTemplate.textContent, adminTemplateData) 
-              : null;
+            const processedContent = replaceTemplateVariablesWithUnsubscribe(
+              adminTemplate.htmlContent, 
+              adminTemplate.textContent || null,
+              adminTemplateData
+            );
+            const adminHtmlContent = processedContent.html;
+            const adminTextContent = processedContent.text;
 
             const emailNotification = await prisma.emailNotification.create({
               data: {

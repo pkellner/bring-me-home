@@ -54,18 +54,23 @@ export async function sendVerificationEmail(userId: string, isNewRegistration: b
 
     if (template && template.isActive) {
       // Use template
-      const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
+      const { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } = await import('@/lib/email-template-variables');
       
       const templateData = {
         firstName: user.firstName || user.username || 'there',
         verificationUrl,
         profileUrl,
-        unsubscribeUrl,
+        allOptOutUrl: unsubscribeUrl,
       };
 
       const subject = replaceTemplateVariables(template.subject, templateData);
-      const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
-      const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
+      const processedContent = replaceTemplateVariablesWithUnsubscribe(
+        template.htmlContent,
+        template.textContent || null,
+        templateData
+      );
+      const htmlContent = processedContent.html;
+      const textContent = processedContent.text;
       // Create email notification in queue
       await prisma.emailNotification.create({
         data: {
@@ -345,7 +350,7 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
       allUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${allOptOutToken}`;
     }
     
-    const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
+    const { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } = await import('@/lib/email-template-variables');
     
     const templateData = {
       firstName: firstName || 'there',
@@ -353,15 +358,20 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
       verificationUrl,
       hideUrl,
       manageUrl,
-      personUnsubscribeUrl,
-      allUnsubscribeUrl,
+      personOptOutUrl: personUnsubscribeUrl,
+      allOptOutUrl: allUnsubscribeUrl,
       personSlug: comment.person?.slug || '',
       townSlug: comment.person?.town?.slug || '',
     };
 
     const subject = replaceTemplateVariables(template.subject, templateData);
-    const htmlContent = replaceTemplateVariables(template.htmlContent, templateData);
-    const textContent = template.textContent ? replaceTemplateVariables(template.textContent, templateData) : null;
+    const processedContent = replaceTemplateVariablesWithUnsubscribe(
+      template.htmlContent,
+      template.textContent || null,
+      templateData
+    );
+    const htmlContent = processedContent.html;
+    const textContent = processedContent.text;
 
     // Create email notification in queue
     await prisma.emailNotification.create({
