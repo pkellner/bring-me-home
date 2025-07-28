@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { isSiteAdmin } from '@/lib/permissions';
+import { isSiteAdmin, isTownAdmin } from '@/lib/permissions';
 
 interface PersonGroup {
   person: {
@@ -156,7 +156,7 @@ export async function deleteUserComment(commentId: string, userId: string) {
   }
   
   // Allow users to delete their own comments or admins to delete any user's comments
-  if (session.user.id !== userId && !isSiteAdmin(session)) {
+  if (session.user.id !== userId && !isSiteAdmin(session) && !isTownAdmin(session)) {
     throw new Error('Unauthorized');
   }
 
@@ -209,7 +209,7 @@ export async function bulkUpdateComments(
   }
   
   // Allow users to bulk update their own comments or admins to bulk update any user's comments
-  if (session.user.id !== userId && !isSiteAdmin(session)) {
+  if (session.user.id !== userId && !isSiteAdmin(session) && !isTownAdmin(session)) {
     throw new Error('Unauthorized');
   }
 
