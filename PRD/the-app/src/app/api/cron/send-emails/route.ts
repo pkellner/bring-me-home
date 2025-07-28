@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { EmailStatus } from '@prisma/client';
+import { addTrackingPixel } from '@/lib/email-tracking';
 
 // This can be called by Vercel Cron or external cron services
 export async function GET(request: NextRequest) {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
 
       // Determine the recipient email address
       const recipientEmail = emailNotification.sentTo || emailNotification.user?.email;
-      
+
       if (!recipientEmail) {
         await prisma.emailNotification.update({
           where: { id: emailNotification.id },
@@ -70,12 +71,24 @@ export async function GET(request: NextRequest) {
 
       try {
         console.log(`[Email Cron] Sending email to ${recipientEmail} (ID: ${emailNotification.id})`);
-        
+
+        // Add tracking pixel if tracking is enabled
+        let htmlContent = emailNotification.htmlContent;
+        const isTrackingEnabled = emailNotification.trackingEnabled || emailNotification.template?.trackingEnabled;
+
+        console.log("/src/app/api/cron/send-emails/route.ts: Tracking enabled:", isTrackingEnabled);
+
+        if (isTrackingEnabled) {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          htmlContent = addTrackingPixel(htmlContent, emailNotification.id, baseUrl);
+          console.log(`[Email Cron] Added tracking pixel for email ${emailNotification.id}`);
+        }
+
         // Send the email
         const result = await sendEmail({
           to: recipientEmail,
           subject: emailNotification.subject,
-          html: emailNotification.htmlContent,
+          html: htmlContent,
           text: emailNotification.textContent || undefined,
         });
 
@@ -96,7 +109,7 @@ export async function GET(request: NextRequest) {
         // Check if the email failed but fell back to console
         if (result.error) {
           console.log(`[Email Cron] Email failed for ${emailNotification.id}, marking as FAILED with error: ${result.error}`);
-          
+
           // Email failed but was logged to console
           await prisma.emailNotification.update({
             where: { id: emailNotification.id },
@@ -125,7 +138,7 @@ export async function GET(request: NextRequest) {
         // If tracking is enabled, prepare for webhook events
         const trackingEnabled = emailNotification.trackingEnabled || emailNotification.template?.trackingEnabled;
         const webhookUrl = emailNotification.webhookUrl || emailNotification.template?.webhookUrl;
-        
+
         if (trackingEnabled && webhookUrl) {
           updateData.webhookEvents = {
             sent: {

@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import EmailPreviewModal from './EmailPreviewModal';
 import { updateEmailStatus } from '@/app/actions/email-notifications';
+import { formatTimeAgo, formatDateTime } from '@/lib/time-utils';
 
 interface EmailNotification {
   id: string;
@@ -35,6 +36,7 @@ interface EmailNotification {
   } | null;
   scheduledFor: string;
   sentAt: string | null;
+  openedAt: string | null;
   lastMailServerMessage: string | null;
   lastMailServerMessageDate: string | null;
   retryCount: number;
@@ -66,17 +68,23 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [filteredEmails, setFilteredEmails] = useState(emails);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<EmailStatus | 'ALL'>('ALL');
+  const [statusFilters, setStatusFilters] = useState<Set<EmailStatus>>(new Set());
   const [personFilter, setPersonFilter] = useState<string>('ALL');
   const [showPreview, setShowPreview] = useState<string | null>(null);
+  
+  // Calculate status counts
+  const statusCounts = Object.values(EmailStatus).reduce((acc, status) => {
+    acc[status] = emails.filter(email => email.status === status).length;
+    return acc;
+  }, {} as Record<EmailStatus, number>);
 
   // Apply filters
   useEffect(() => {
     let filtered = emails;
 
-    // Status filter
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter((email) => email.status === statusFilter);
+    // Status filter - now handles multiple statuses
+    if (statusFilters.size > 0) {
+      filtered = filtered.filter((email) => statusFilters.has(email.status));
     }
 
     // Person filter
@@ -105,7 +113,7 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
     }
 
     setFilteredEmails(filtered);
-  }, [emails, searchTerm, statusFilter, personFilter]);
+  }, [emails, searchTerm, statusFilters, personFilter]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -123,6 +131,16 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
       newSelected.delete(emailId);
     }
     setSelectedEmails(newSelected);
+  };
+  
+  const handleStatusFilterToggle = (status: EmailStatus) => {
+    const newFilters = new Set(statusFilters);
+    if (newFilters.has(status)) {
+      newFilters.delete(status);
+    } else {
+      newFilters.add(status);
+    }
+    setStatusFilters(newFilters);
   };
 
   const handleSendSelected = async () => {
@@ -213,19 +231,21 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
             </div>
           </div>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as EmailStatus | 'ALL')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="ALL">All Statuses</option>
-            {Object.values(EmailStatus).map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          {/* Show All/None buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStatusFilters(new Set())}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Show All
+            </button>
+            <button
+              onClick={() => setStatusFilters(new Set(Object.values(EmailStatus)))}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Select All
+            </button>
+          </div>
 
           {/* Person Filter */}
           <select
@@ -240,6 +260,26 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
               </option>
             ))}
           </select>
+        </div>
+        
+        {/* Status Filter Checkboxes */}
+        <div className="mt-4 mb-4">
+          <div className="text-sm font-medium text-gray-700 mb-2">Filter by Status:</div>
+          <div className="flex flex-wrap gap-3">
+            {Object.values(EmailStatus).map((status) => (
+              <label key={status} className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={statusFilters.has(status)}
+                  onChange={() => handleStatusFilterToggle(status)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className={`ml-2 px-2 py-1 rounded-full text-sm font-medium ${statusColors[status]}`}>
+                  {status} ({statusCounts[status]})
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Actions */}
@@ -268,6 +308,19 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
             <TrashIcon className="h-4 w-4 mr-2" />
             Delete Selected ({selectedEmails.size})
           </button>
+        </div>
+      </div>
+
+      {/* Results count */}
+      <div className="px-6 py-2 bg-gray-50 border-t border-gray-200">
+        <div className="text-sm text-gray-700">
+          Showing <span className="font-medium">{filteredEmails.length}</span> of{' '}
+          <span className="font-medium">{emails.length}</span> emails
+          {statusFilters.size > 0 && (
+            <span className="ml-2 text-gray-500">
+              (Filtered by: {Array.from(statusFilters).join(', ')})
+            </span>
+          )}
         </div>
       </div>
 
@@ -362,7 +415,30 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                         </option>
                       ))}
                     </select>
-                    {email.lastMailServerMessage && (
+                    {email.status === 'OPENED' && email.openedAt ? (
+                      <div className="relative group">
+                        <div className="text-xs text-green-600 truncate max-w-[150px] cursor-help font-medium">
+                          Email opened {formatTimeAgo(email.openedAt)}
+                        </div>
+                        <div className="absolute z-50 invisible group-hover:visible bg-gray-900 text-white text-xs rounded-lg p-3 mt-1 w-max max-w-md whitespace-normal break-words shadow-lg left-0">
+                          <div className="font-medium mb-2 text-green-400">Email Opened</div>
+                          <div className="mb-1">Opened at: {formatDateTime(email.openedAt)}</div>
+                          {email.lastMailServerMessage && (
+                            <>
+                              <div className="border-t border-gray-700 mt-2 pt-2">
+                                <div className="font-medium mb-1">Original Send Status:</div>
+                                {email.lastMailServerMessage}
+                              </div>
+                            </>
+                          )}
+                          {email.sentAt && (
+                            <div className="text-gray-300 mt-1">
+                              Sent at: {formatDateTime(email.sentAt)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : email.lastMailServerMessage ? (
                       <div className="relative group">
                         <div className="text-xs text-gray-600 truncate max-w-[150px] cursor-help">
                           {email.lastMailServerMessage}
@@ -377,7 +453,7 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                           )}
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

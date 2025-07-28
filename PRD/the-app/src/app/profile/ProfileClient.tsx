@@ -1078,6 +1078,7 @@ export default function ProfileClient({
                   userId={user.id}
                   comments={comments}
                   groupedByPerson={groupedByPerson}
+                  isAdmin={user.roles.some(role => ['site-admin', 'town-admin'].includes(role.name))}
                 />
               </div>
             )}

@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email';
 import { EmailStatus } from '@prisma/client';
 import type { SendEmailOptions } from '@/lib/email';
 import { randomUUID } from 'crypto';
+import { addTrackingPixel } from '@/lib/email-tracking';
 
 /**
  * Continuous email processor with logging and control support
@@ -144,6 +145,12 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
             lastName: true,
           },
         },
+        template: {
+          select: {
+            trackingEnabled: true,
+            webhookUrl: true,
+          },
+        },
       },
       take: EMAIL_MAX_PER_RUN,
       orderBy: {
@@ -225,10 +232,21 @@ async function processEmailBatch(): Promise<{ sent: number; failed: number; stop
         // Prepare email options
         const emailOptions: SendEmailOptions[] = batch.map(email => {
           const recipientEmail = email.sentTo || email.user?.email || '';
+          
+          // Add tracking pixel if tracking is enabled
+          let htmlContent = email.htmlContent;
+          const isTrackingEnabled = email.trackingEnabled || email.template?.trackingEnabled;
+          
+          if (isTrackingEnabled) {
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            htmlContent = addTrackingPixel(htmlContent, email.id, baseUrl);
+            console.log(`[Email Processor] Added tracking pixel for email ${email.id}`);
+          }
+          
           return {
             to: recipientEmail,
             subject: email.subject,
-            html: email.htmlContent,
+            html: htmlContent,
             text: email.textContent || undefined,
             emailId: email.id, // Track which database record this is
           };

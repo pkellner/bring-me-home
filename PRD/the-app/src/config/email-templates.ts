@@ -86,7 +86,7 @@ Someone may have used your email address by mistake. Take action now:
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'comment_submission',
@@ -150,7 +150,7 @@ Someone may have used your email address by mistake. Take action now:
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'email_verification',
@@ -202,7 +202,7 @@ If you didn't create an account, you can safely ignore this email.
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'welcome_registration',
@@ -260,7 +260,7 @@ Manage your profile: {{profileUrl}}
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'password_reset',
@@ -317,7 +317,7 @@ If you didn't request a password reset, you can safely ignore this email.
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'comment_verification',
@@ -393,7 +393,7 @@ Manage all your messages: {{manageUrl}}
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'anonymous_verification',
@@ -470,7 +470,7 @@ This will immediately hide any messages using your email and prevent future ones
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'comment_submission_verified',
@@ -540,7 +540,7 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'comment_submission_blocked',
@@ -619,7 +619,7 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   },
   {
     name: 'admin_new_comment_notification',
@@ -676,6 +676,6 @@ To manage your notification settings, visit: {{profileLink}}
       allOptOutUrl: 'URL to unsubscribe from all emails'
     },
     isActive: true,
-    trackingEnabled: false
+    trackingEnabled: true
   }
 ];

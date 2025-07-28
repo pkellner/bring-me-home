@@ -273,25 +273,31 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
           Email Statistics
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-base text-gray-700 font-medium">Total Emails</div>
+            <div className="text-base text-gray-700 font-medium">Total</div>
           </div>
           
-          {Object.entries(stats.byStatus).map(([status, count]) => {
+          {Object.entries(stats.byStatus)
+            .sort(([a], [b]) => {
+              // Sort by status order: QUEUED, SENDING, SENT, DELIVERED, OPENED, FAILED, BOUNCED
+              const order = ['QUEUED', 'SENDING', 'SENT', 'DELIVERED', 'OPENED', 'FAILED', 'BOUNCED'];
+              return order.indexOf(a) - order.indexOf(b);
+            })
+            .map(([status, count]) => {
             const Icon = statusIcons[status] || EnvelopeIcon;
             return (
               <div key={status} className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Icon className="h-5 w-5 text-gray-600" />
-                  <span className={`text-sm px-2 py-1 rounded-full font-medium ${statusColors[status]}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <Icon className="h-4 w-4 text-gray-600" />
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${statusColors[status]}`}>
                     {status}
                   </span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">{count}</div>
-                <div className="text-base text-gray-700">
-                  {((count / stats.total) * 100).toFixed(1)}% of total
+                <div className="text-sm text-gray-600">
+                  {stats.total > 0 ? `${((count / stats.total) * 100).toFixed(0)}%` : '0%'}
                 </div>
               </div>
             );

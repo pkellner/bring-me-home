@@ -41,12 +41,14 @@ interface CommentManagementProps {
     townSlug: string;
   }>;
   groupedByPerson: Record<string, PersonGroup>;
+  isAdmin?: boolean;
 }
 
 export default function CommentManagement({
   userId,
   comments,
   groupedByPerson,
+  isAdmin = false,
 }: CommentManagementProps) {
   const [expandedSection, setExpandedSection] = useState(false);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
@@ -185,13 +187,15 @@ export default function CommentManagement({
               >
                 {processingBulk === 'show' ? 'Processing...' : 'Show All Comments'}
               </button>
-              <button
-                onClick={() => handleBulkAction('delete')}
-                disabled={processingBulk !== null}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {processingBulk === 'delete' ? 'Processing...' : 'Delete All Comments'}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => handleBulkAction('delete')}
+                  disabled={processingBulk !== null}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {processingBulk === 'delete' ? 'Processing...' : 'Delete All Comments'}
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -288,13 +292,15 @@ export default function CommentManagement({
                                     ? 'Show'
                                     : 'Hide'}
                                 </button>
-                                <button
-                                  onClick={() => handleDelete(comment.id)}
-                                  disabled={processingComment === comment.id}
-                                  className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
-                                >
-                                  {processingComment === comment.id ? 'Deleting...' : 'Delete'}
-                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleDelete(comment.id)}
+                                    disabled={processingComment === comment.id}
+                                    className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                                  >
+                                    {processingComment === comment.id ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>

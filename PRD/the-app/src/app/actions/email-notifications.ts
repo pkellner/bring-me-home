@@ -397,6 +397,7 @@ export async function sendUpdateEmail(
           subject: finalSubject,
           htmlContent: finalHtmlContent,
           textContent: finalTextContent,
+          trackingEnabled: true,
           status: EmailStatus.QUEUED,
           templateId: templateId || customContent?.templateId,
         };
