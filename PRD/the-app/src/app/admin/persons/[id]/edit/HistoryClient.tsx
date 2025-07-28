@@ -7,6 +7,7 @@ import { SanitizedPersonHistory } from '@/types/sanitized';
 interface HistoryClientProps {
   personId: string;
   personName: string;
+  townName: string;
   initialHistory: SanitizedPersonHistory[];
   isSiteAdmin: boolean;
   isTownAdmin: boolean;
@@ -17,6 +18,7 @@ interface HistoryClientProps {
 export function HistoryClient({
   personId,
   personName,
+  townName,
   initialHistory,
   isSiteAdmin,
   isTownAdmin,
@@ -34,6 +36,8 @@ export function HistoryClient({
     >
       <PersonHistoryGrid 
         personId={personId}
+        personName={personName}
+        townName={townName}
         initialHistory={initialHistory}
         isSiteAdmin={isSiteAdmin}
         isTownAdmin={isTownAdmin}

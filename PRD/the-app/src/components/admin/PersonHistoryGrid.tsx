@@ -9,6 +9,8 @@ import { format } from 'date-fns';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import { formatDateForInput, formatDateTimeForInput } from '@/lib/date-utils';
 import PersonHistoryVisibilityToggle from './PersonHistoryVisibilityToggle';
+import EmailStatusDisplay from './EmailStatusDisplay';
+import EmailFollowersModal from './EmailFollowersModal';
 
 interface PersonHistoryGridProps {
   personId: string;
@@ -17,6 +19,8 @@ interface PersonHistoryGridProps {
   isTownAdmin: boolean;
   townSlug: string;
   personSlug: string;
+  personName?: string;
+  townName?: string;
 }
 
 interface EditingState {
@@ -27,7 +31,7 @@ interface EditingState {
   sendNotifications: boolean;
 }
 
-export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, isTownAdmin, townSlug, personSlug }: PersonHistoryGridProps) {
+export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmin, isTownAdmin, townSlug, personSlug, personName = '', townName = '' }: PersonHistoryGridProps) {
   const router = useRouter();
   const [history, setHistory] = useState(initialHistory);
   const [isAdding, setIsAdding] = useState(false);
@@ -41,6 +45,12 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
   });
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [emailModalState, setEmailModalState] = useState<{
+    isOpen: boolean;
+    personHistoryId: string;
+    updateDescription: string;
+    updateDate: string;
+  }>({ isOpen: false, personHistoryId: '', updateDescription: '', updateDate: '' });
 
   // Sort history by date descending
   const sortedHistory = [...history].sort((a, b) => 
@@ -205,19 +215,36 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
 
   const columns: GridColumn<SanitizedPersonHistory>[] = [
     {
-      key: 'email',
-      label: 'Actions',
+      key: 'emailActions',
+      label: 'Email Actions',
       width: '140px',
       render: (_, record) => {
-        if (!isSiteAdmin) return null;
         return (
-          <a
-            href={`/admin/email/send/${record.id}`}
+          <button
+            onClick={() => setEmailModalState({
+              isOpen: true,
+              personHistoryId: record.id,
+              updateDescription: record.description,
+              updateDate: record.date,
+            })}
             className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors"
             title="Email followers about this update"
           >
             Email Followers
-          </a>
+          </button>
+        );
+      },
+    },
+    {
+      key: 'emailStatus',
+      label: 'Email Status',
+      width: '150px',
+      render: (_, record) => {
+        return (
+          <EmailStatusDisplay 
+            personHistoryId={record.id}
+            onRefresh={() => router.refresh()}
+          />
         );
       },
     },
@@ -448,6 +475,20 @@ export default function PersonHistoryGrid({ personId, initialHistory, isSiteAdmi
           showCreate={false}
         />
       </div>
+
+      {emailModalState.isOpen && (
+        <EmailFollowersModal
+          isOpen={emailModalState.isOpen}
+          onClose={() => setEmailModalState({ ...emailModalState, isOpen: false })}
+          personHistoryId={emailModalState.personHistoryId}
+          personName={personName}
+          updateDescription={emailModalState.updateDescription}
+          updateDate={emailModalState.updateDate}
+          townName={townName}
+          personSlug={personSlug}
+          townSlug={townSlug}
+        />
+      )}
     </div>
   );
 }

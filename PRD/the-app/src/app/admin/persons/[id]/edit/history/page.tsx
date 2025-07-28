@@ -39,6 +39,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
       town: {
         select: {
           slug: true,
+          name: true,
         },
       },
       personHistory: {
@@ -67,6 +68,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
   const userIsTownAdmin = isTownAdmin(session);
   const personName = `${person.firstName} ${person.lastName}`;
   const townSlug = person.town.slug;
+  const townName = person.town.name;
   const personSlug = person.slug;
 
   return (
@@ -78,6 +80,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
       <HistoryClient
         personId={id}
         personName={personName}
+        townName={townName}
         initialHistory={sanitizedHistory}
         isSiteAdmin={userIsSiteAdmin}
         isTownAdmin={userIsTownAdmin}

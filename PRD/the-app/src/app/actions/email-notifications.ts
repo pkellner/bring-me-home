@@ -3,7 +3,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { isSiteAdmin } from '@/lib/permissions';
+import { isSiteAdmin, isTownAdmin, isPersonAdmin, hasPersonAccess } from '@/lib/permissions';
 import bcrypt from 'bcryptjs';
 import { EmailStatus } from '@prisma/client';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
@@ -173,7 +173,17 @@ export async function createUsersFromCommentEmails() {
 // Get followers for a person (users who have commented and not opted out)
 export async function getPersonFollowers(personId: string, includeHistoryComments = false) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !isSiteAdmin(session)) {
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized');
+  }
+
+  // Check if user has access to this person
+  const hasAccess = await hasPersonAccess(session, personId, 'read') || 
+                    isTownAdmin(session) || 
+                    isPersonAdmin(session) ||
+                    isSiteAdmin(session);
+  
+  if (!hasAccess) {
     throw new Error('Unauthorized');
   }
 
@@ -259,7 +269,7 @@ export async function sendUpdateEmail(
   selectedFollowerIds?: string[]
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !isSiteAdmin(session)) {
+  if (!session?.user?.id) {
     throw new Error('Unauthorized');
   }
 
@@ -283,6 +293,16 @@ export async function sendUpdateEmail(
 
     if (!update) {
       throw new Error('Update not found');
+    }
+
+    // Check if user has access to this person
+    const hasAccess = await hasPersonAccess(session, update.personId, 'write') || 
+                      isTownAdmin(session) || 
+                      isPersonAdmin(session) ||
+                      isSiteAdmin(session);
+    
+    if (!hasAccess) {
+      throw new Error('Unauthorized');
     }
 
     // Get followers
