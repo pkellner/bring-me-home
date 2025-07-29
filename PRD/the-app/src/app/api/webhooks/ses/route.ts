@@ -29,9 +29,17 @@ async function verifySNSSignature(message: SNSMessage): Promise<boolean> {
 
   try {
     // Build the string to sign
-    const fields = message.Type === 'Notification' 
-      ? ['Message', 'MessageId', 'Subject', 'Timestamp', 'TopicArn', 'Type']
-      : ['Message', 'MessageId', 'SubscribeURL', 'Timestamp', 'Token', 'TopicArn', 'Type'];
+    let fields: string[];
+    if (message.Type === 'Notification') {
+      fields = ['Message', 'MessageId', 'Subject', 'Timestamp', 'TopicArn', 'Type'];
+    } else {
+      // For subscription confirmations, only include Token if it exists
+      fields = ['Message', 'MessageId', 'SubscribeURL', 'Timestamp'];
+      if (message.Token) {
+        fields.push('Token');
+      }
+      fields.push('TopicArn', 'Type');
+    }
     
     let stringToSign = '';
     for (const field of fields) {
@@ -76,14 +84,23 @@ export async function POST(request: NextRequest) {
 
     // Handle subscription confirmation
     if (snsMessage.Type === 'SubscriptionConfirmation') {
+      console.log('📋 SNS Subscription Confirmation received');
+      console.log('Topic:', snsMessage.TopicArn);
+      console.log('Has Token:', !!snsMessage.Token);
+      console.log('Has SubscribeURL:', !!snsMessage.SubscribeURL);
+      
       if (snsMessage.SubscribeURL) {
         // Automatically confirm the subscription
+        console.log('🔗 Confirming subscription via URL:', snsMessage.SubscribeURL);
         const response = await fetch(snsMessage.SubscribeURL);
+        const responseText = await response.text();
+        
         if (response.ok) {
           console.log('✅ SNS subscription confirmed for topic:', snsMessage.TopicArn);
           return NextResponse.json({ message: 'Subscription confirmed' });
         } else {
-          console.error('Failed to confirm subscription:', response.statusText);
+          console.error('Failed to confirm subscription:', response.status, response.statusText);
+          console.error('Response:', responseText);
           return NextResponse.json({ error: 'Failed to confirm subscription' }, { status: 500 });
         }
       }
