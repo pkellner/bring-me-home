@@ -216,23 +216,27 @@ export default function LayoutRenderer({
     }
   }, [targetUpdateId, shouldAddComment]);
 
+  // Check if history section will be shown (either has history or user can manage)
+  const hasHistory = person.personHistory && person.personHistory.length > 0;
+  const canManageHistory = isPersonAdmin || isTownAdmin || isSiteAdmin;
+  const willShowHistorySection = hasHistory || canManageHistory;
+
   const getRecentHistoryNote = () => {
     if (!person.personHistory || person.personHistory.length === 0) return null;
 
-    // Sort by date descending and find the most recent visible note
-    const recentNotes = person.personHistory
-      .filter(note => note.visible)
+    // For admins, show all notes; for others, only visible ones
+    const notesToConsider = canManageHistory 
+      ? person.personHistory 
+      : person.personHistory.filter(note => note.visible);
+
+    // Sort by date descending and get the most recent
+    const recentNotes = notesToConsider
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return recentNotes.length > 0 ? recentNotes[0] : null;
   };
 
   const recentNote = getRecentHistoryNote();
-  
-  // Check if history section will be shown (either has history or user can manage)
-  const hasHistory = person.personHistory && person.personHistory.length > 0;
-  const canManageHistory = isPersonAdmin || isTownAdmin || isSiteAdmin;
-  const willShowHistorySection = hasHistory || canManageHistory;
 
 
 
@@ -335,7 +339,7 @@ export default function LayoutRenderer({
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0 pr-4">
                           <h4 className="text-base font-semibold text-gray-900 mb-1">
-                            Recent Update
+                            Recent Update{!recentNote.visible && canManageHistory && ' (Not Visible)'}
                           </h4>
                           <p className="text-sm text-gray-700 truncate md:whitespace-normal md:line-clamp-2">
                             &ldquo;{recentNote.title}&rdquo;
