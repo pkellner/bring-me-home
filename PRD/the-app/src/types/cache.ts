@@ -71,6 +71,16 @@ export interface PersonPageData {
     isTownAdmin: boolean;
     isPersonAdmin: boolean;
   };
+  supportStats?: {
+    anonymousSupport: { 
+      total: number;
+      last24Hours: number;
+    };
+    messages: { 
+      total: number;
+      last24Hours: number;
+    };
+  };
   supportMapMetadata?: {
     hasIpAddresses: boolean;
     messageLocationCount: number;

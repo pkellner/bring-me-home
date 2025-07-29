@@ -121,6 +121,7 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
         visible: true;
         sendNotifications: true;
         createdByUsername: true;
+        createdByUserId: true;
         createdAt: true;
         updatedAt: true;
       };
@@ -128,7 +129,13 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
   };
 }>;
 
-async function getPersonDataFromDatabase(townSlug: string, personSlug: string): Promise<PersonWithRelations | null> {
+async function getPersonDataFromDatabase(
+  townSlug: string,
+  personSlug: string,
+  options?: {
+    includeOnlyVisibleHistory?: boolean;
+  }
+): Promise<PersonWithRelations | null> {
   const person = await prisma.person.findFirst({
     where: {
       slug: personSlug,
@@ -297,9 +304,9 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
         ],
       },
       personHistory: {
-        where: {
-          visible: true,
-        },
+        where: options?.includeOnlyVisibleHistory
+          ? { visible: true } // Only visible history items
+          : {}, // Include all history items
         orderBy: {
           date: 'desc',
         },
@@ -311,6 +318,7 @@ async function getPersonDataFromDatabase(townSlug: string, personSlug: string): 
           visible: true,
           sendNotifications: true,
           createdByUsername: true,
+          createdByUserId: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -374,7 +382,12 @@ interface SerializedPersonData {
   showCommunitySupport: boolean;
   createdAt: string;
   updatedAt: string;
-  town: Record<string, unknown>;
+  town: {
+    id: string;
+    name: string;
+    slug: string;
+    [key: string]: unknown;
+  };
   theme: Record<string, unknown> | null;
   detentionCenter: Record<string, unknown> | null;
   stories: Array<{
@@ -444,6 +457,7 @@ interface SerializedPersonData {
     updatedAt: Date;
     imageUrl: string;
   }>;
+  [key: string]: unknown;
 }
 
 async function serializePersonData(person: PersonWithRelations, townSlug: string, personSlug: string): Promise<SerializedPersonData> {
@@ -465,7 +479,7 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
     createdAt: story.createdAt.toISOString(),
     updatedAt: story.updatedAt.toISOString(),
   }));
-  
+
   const serializedHistory = (person.personHistory || []).map((history) => ({
     id: history.id,
     title: history.title,
@@ -474,6 +488,7 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
     visible: history.visible,
     sendNotifications: history.sendNotifications,
     createdByUsername: history.createdByUsername,
+    createdByUserId: history.createdByUserId,
     createdAt: history.createdAt.toISOString(),
     updatedAt: history.updatedAt.toISOString(),
   }));
@@ -570,6 +585,8 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
     };
   }
 
+  // WE COULD HAVE A CACHE OF ALL USERS WITH PERMISSIONS FOR THIS PERSON, AND THEN BREAK THAT CACHE WHENEVER A NEW PERSON IS ADDED OR UPDATED TO THIS PERSON,
+  // OR THIS PERSON'S TOWN HAS A NEW PERSON ADDED OR UPDATED. THIS COULD GET TRICKY. MAYBE BETTER  JUST TO CACHE THIS USER WITHACCESS FOR THIS PARTICULAR PERSON AND TOWN.
   const userWithAccess = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
@@ -605,7 +622,7 @@ async function getUserPermissions(personId: string, townId: string): Promise<Use
     (userWithAccess?.townAccess?.length ?? 0) > 0;
 
   // Check for person-admin role OR person access
-  const isPersonAdmin = 
+  const isPersonAdmin =
     userWithAccess?.userRoles.some(ur => ur.role.name === 'person-admin') ||
     session.user.roles?.some(role => role.name === 'person-admin') ||
     (userWithAccess?.personAccess?.length ?? 0) > 0;
@@ -709,9 +726,104 @@ export async function getCachedPersonData(
     console.log(`  Force Refresh: ${options?.forceRefresh || false}`);
   }
 
+
+  // SEEMS TO ME THIS SHOULD BE CACHED AS IT HAPPENS ON EVERY REQUEST AND THE RELATIONSHIP FOR THE SLUGS TO THE PERSON AND TOWN ID IS ESTABLISHED
+  // FIX LATER PGK
+  // Get minimal person data to check permissions
+  const minimalPerson = await prisma.person.findFirst({
+    where: {
+      slug: personSlug,
+      town: {
+        slug: townSlug,
+        isActive: true,
+      },
+      isActive: true,
+    },
+    select: {
+      id: true,
+      townId: true,
+    },
+  });
+
+  if (!minimalPerson) {
+    return {
+      data: null,
+      source: 'database',
+      latency: Date.now() - startTime,
+    };
+  }
+
+  // Check if current user is an admin for this person/town
+  const permissions = await getUserPermissions(minimalPerson.id, minimalPerson.townId);
+
+  // If user is admin for this person/town, bypass cache entirely
+  if (permissions.isPersonAdmin || permissions.isTownAdmin || permissions.isSiteAdmin) {
+    if (process.env.CACHE_REQUEST_TRACKING === 'true') {
+      console.log(`[CACHE REQUEST - Person] Bypassing cache for admin user`);
+    }
+
+    const person = await getPersonDataFromDatabase(townSlug, personSlug, {
+      includeOnlyVisibleHistory: false,  // Admins see all history
+    });
+
+    if (!person) {
+      return {
+        data: null,
+        source: 'database',
+        latency: Date.now() - startTime,
+      };
+    }
+
+    // Process data without caching
+    const [supportStatsData, geolocationMetadata] = await Promise.all([
+      prisma.$transaction([
+        prisma.anonymousSupport.count({
+          where: { personId: person.id }
+        }),
+        prisma.comment.count({
+          where: {
+            personId: person.id,
+            isApproved: true,
+            isActive: true,
+            hideRequested: false
+          }
+        })
+      ]),
+      getSupportMapMetadata(person.id)
+    ]);
+
+    const supportStats = {
+      anonymousSupport: {
+        total: supportStatsData[0],
+        last24Hours: 0  // Not calculated for admin bypass
+      },
+      messages: {
+        total: supportStatsData[1],
+        last24Hours: 0  // Not calculated for admin bypass
+      }
+    };
+
+    const serializedPerson = await serializePersonData(person, townSlug, personSlug);
+    const serializedData: PersonPageData = {
+      person: serializedPerson,
+      permissions,
+      systemDefaults: await getSystemLayoutTheme(),
+      supportStats: supportStats,
+      supportMapMetadata: geolocationMetadata,
+    };
+
+    return {
+      data: serializedData,
+      source: 'database',
+      latency: Date.now() - startTime,
+    };
+  }
+
   // Skip cache if force refresh is requested
   if (options?.forceRefresh) {
-    const person = await getPersonDataFromDatabase(townSlug, personSlug);
+    const person = await getPersonDataFromDatabase(townSlug, personSlug, {
+      includeOnlyVisibleHistory: true,  // Regular users see only visible history
+    });
 
     if (!person) {
       return {
@@ -725,7 +837,7 @@ export async function getCachedPersonData(
       console.log(`[CACHE REQUEST - Person] Starting parallel operations for ${requestId}`);
     }
 
-    const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
+    const [systemDefaults, userPermissions, serializedPerson, supportMapMetadata] = await Promise.all([
       getSystemLayoutTheme(),
       getUserPermissions(person.id, person.townId),
       serializePersonData(person, townSlug, personSlug),
@@ -739,7 +851,7 @@ export async function getCachedPersonData(
     const data: PersonPageData = {
       person: serializedPerson as unknown as PersonPageData['person'],
       systemDefaults,
-      permissions,
+      permissions: userPermissions,
       supportMapMetadata,
     };
 
@@ -830,7 +942,9 @@ export async function getCachedPersonData(
   }
 
   // Fall back to database
-  const person = await getPersonDataFromDatabase(townSlug, personSlug);
+  const person = await getPersonDataFromDatabase(townSlug, personSlug, {
+    includeOnlyVisibleHistory: true,  // Regular users see only visible history
+  });
   cacheStats.recordDatabaseQuery(cacheKey);
 
   if (!person) {
@@ -845,7 +959,7 @@ export async function getCachedPersonData(
     console.log(`[CACHE REQUEST - Person] Starting parallel operations for ${requestId} (from DB)`);
   }
 
-  const [systemDefaults, permissions, serializedPerson, supportMapMetadata] = await Promise.all([
+  const [systemDefaults, userPermissions, serializedPerson, supportMapMetadata] = await Promise.all([
     getSystemLayoutTheme(),
     getUserPermissions(person.id, person.townId),
     serializePersonData(person, townSlug, personSlug),
@@ -859,7 +973,7 @@ export async function getCachedPersonData(
   const data: PersonPageData = {
     person: serializedPerson as unknown as PersonPageData['person'],
     systemDefaults,
-    permissions,
+    permissions: userPermissions,
     supportMapMetadata,
   };
 

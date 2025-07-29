@@ -124,10 +124,17 @@ export default function PersonHistoryItem({
             </div>
           </div>
           {/* Update title */}
-          <h3 className="text-lg font-bold text-gray-900 mb-3">{historyItem.title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-3">
+            {historyItem.title}
+            {!historyItem.visible && (
+              <span className="ml-2 font-extrabold  text-red-600">
+                (Not Visible to Public)
+              </span>
+            )}
+          </h3>
           {/* Update description with light border */}
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
-            <div 
+            <div
               className="text-gray-800 leading-relaxed prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: historyItem.description }}
             />
@@ -159,12 +166,12 @@ export default function PersonHistoryItem({
                 <span>{localCommentCount} {localCommentCount === 1 ? 'comment' : 'comments'}</span>
               )}
               {localCommentCount > 0 && (
-                <svg 
+                <svg
                   className={`w-3 h-3 ml-1 transition-transform duration-300 ${
                     isExpanded ? 'rotate-180' : ''
                   }`}
-                  fill="none" 
-                  stroke="currentColor" 
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -193,7 +200,7 @@ export default function PersonHistoryItem({
         </div>
 
         {/* Expandable comment section */}
-        <div 
+        <div
           className="overflow-hidden transition-all duration-500 ease-in-out"
           style={{
             maxHeight: (isExpanded || showCommentForm) ? '2000px' : '0px',

@@ -61,6 +61,7 @@ export default async function PersonHistoryPage({ params }: PersonHistoryPagePro
     visible: history.visible,
     sendNotifications: history.sendNotifications,
     createdByUsername: history.createdByUsername,
+    createdByUserId: history.createdByUserId,
     createdAt: history.createdAt.toISOString(),
     updatedAt: history.updatedAt.toISOString(),
   }));

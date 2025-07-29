@@ -262,6 +262,7 @@ export type SanitizedPersonHistory = {
   visible: boolean;
   sendNotifications: boolean;
   createdByUsername: string;
+  createdByUserId: string;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   // Excluded: person, createdBy relations

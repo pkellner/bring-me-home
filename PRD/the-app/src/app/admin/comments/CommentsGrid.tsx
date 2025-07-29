@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from '@/components/OptimizedLink';
 import AdminDataGrid, {
   GridAction,
   GridColumn,
@@ -131,6 +130,14 @@ function CommentsGrid({
   const [commenterFilter, setCommenterFilter] = useState('');
 
   const [isFilterTransitioning, setIsFilterTransitioning] = useState(false);
+
+  // Count unique PersonHistory updates
+  const uniquePersonHistoryIds = new Set(
+    comments
+      .filter(comment => comment.personHistoryId)
+      .map(comment => comment.personHistoryId)
+  );
+  const uniquePersonHistoryCount = uniquePersonHistoryIds.size;
 
   const filteredComments = comments.filter(comment => {
     // Apply town filter
@@ -359,7 +366,7 @@ function CommentsGrid({
       className: 'min-w-[80px] max-w-[120px] lg:min-w-[100px] lg:max-w-[300px]',
       sortable: true,
       render: (value, record) => (
-        <div className={`flex items-center ${record.personHistoryId ? 'border-l-4 border-blue-400 pl-2 -ml-2' : ''}`}>
+        <div className={`flex items-center ${!personId && record.personHistoryId ? 'border-l-4 border-blue-400 pl-2 -ml-2' : ''}`}>
           <UserIcon className="h-4 w-4 text-gray-500 mr-2 flex-shrink-0 hidden lg:block" />
           <div className="min-w-0">
             <div className="text-sm font-medium text-gray-900 truncate">
@@ -716,31 +723,10 @@ function CommentsGrid({
       )
     : { 'All Comments': sortedComments };
 
-  // Find the person being viewed if personId is provided
-  const viewedPerson = personId 
-    ? initialComments.find(c => c.person.id === personId)?.person 
-    : null;
+  // Group comments logic handled above
 
   return (
     <div className="space-y-6">
-      {/* Header for specific person */}
-      {viewedPerson && (
-        <div className="bg-white shadow-sm rounded-lg p-4 border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Comments for {viewedPerson.firstName} {viewedPerson.lastName}
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {viewedPerson.town.name}, {viewedPerson.town.state}
-          </p>
-          <Link
-            href={`/${viewedPerson.town.slug}/${viewedPerson.slug}`}
-            className="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-500"
-          >
-            View Profile →
-          </Link>
-        </div>
-      )}
-      
       {/* Search and Actions Bar */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div className="flex flex-col lg:flex-row gap-4">
@@ -969,47 +955,53 @@ function CommentsGrid({
               </div>
             </div>
 
-            {/* Vertical Separator */}
-            <div className="hidden lg:block w-px bg-gray-300"></div>
-            {/* Horizontal Separator for Mobile */}
-            <div className="block lg:hidden h-px bg-gray-300"></div>
+            {/* Grouping Options - Only show if there are multiple PersonHistory updates OR not viewing a specific person */}
+            {(uniquePersonHistoryCount > 1 || !personId) && (
+              <>
+                {/* Vertical Separator */}
+                <div className="hidden lg:block w-px bg-gray-300"></div>
+                {/* Horizontal Separator for Mobile */}
+                <div className="block lg:hidden h-px bg-gray-300"></div>
 
-            {/* Grouping Options */}
-            <div className="flex-1 space-y-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Group By</h3>
-              <div className="space-y-2">
-                <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={groupByUpdate}
-                    onChange={(e) => {
-                      setGroupByUpdate(e.target.checked);
-                      if (e.target.checked) {
-                        setGroupByPerson(false);
-                      }
-                    }}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                  <span className="ml-3 text-sm font-medium text-gray-700">Group by Update</span>
-                </label>
-                {!personId && (
-                  <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={groupByPerson}
-                      onChange={(e) => {
-                        setGroupByPerson(e.target.checked);
-                        if (e.target.checked) {
-                          setGroupByUpdate(false);
-                        }
-                      }}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                    />
-                    <span className="ml-3 text-sm font-medium text-gray-700">Group by Person</span>
-                  </label>
-                )}
-              </div>
-            </div>
+                <div className="flex-1 space-y-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Group By</h3>
+                  <div className="space-y-2">
+                    {uniquePersonHistoryCount > 1 && (
+                      <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={groupByUpdate}
+                          onChange={(e) => {
+                            setGroupByUpdate(e.target.checked);
+                            if (e.target.checked) {
+                              setGroupByPerson(false);
+                            }
+                          }}
+                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-700">Group by Update</span>
+                      </label>
+                    )}
+                    {!personId && (
+                      <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={groupByPerson}
+                          onChange={(e) => {
+                            setGroupByPerson(e.target.checked);
+                            if (e.target.checked) {
+                              setGroupByUpdate(false);
+                            }
+                          }}
+                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-700">Group by Person</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Vertical Separator */}
             <div className="hidden lg:block w-px bg-gray-300"></div>
@@ -1044,8 +1036,8 @@ function CommentsGrid({
         </div>
       </div>
 
-      {/* Note about PersonHistory comments */}
-      {sortedComments.some(c => c.personHistoryId) && (
+      {/* Note about PersonHistory comments - only show when not viewing a specific person */}
+      {!personId && sortedComments.some(c => c.personHistoryId) && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center gap-2">
           <div className="w-1 h-4 bg-blue-400 rounded" />
           <span className="text-sm text-blue-800">
@@ -1071,7 +1063,7 @@ function CommentsGrid({
                   key={groupName} 
                   id={historyId ? `history-${historyId}` : undefined}
                   className={`border rounded-lg p-4 transition-all duration-300 ${
-                    isHistoryGroup ? 'bg-blue-50 border-blue-200' : ''
+                    isHistoryGroup && !personId ? 'bg-blue-50 border-blue-200' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -1090,7 +1082,7 @@ function CommentsGrid({
                   title=""
                   loading={isPending}
                   error={error}
-                  onRefresh={handleRefresh}
+                  onRefresh={personId ? undefined : handleRefresh}
                   onSort={handleSort}
                   showCreate={false}
                   sortKey={String(sortKey)}
@@ -1106,10 +1098,10 @@ function CommentsGrid({
             data={sortedComments}
             columns={columns}
             actions={actions}
-            title="Comments"
+            title={personId ? "" : "Comments"}
             loading={isPending}
             error={error}
-            onRefresh={handleRefresh}
+            onRefresh={personId ? undefined : handleRefresh}
             onSort={handleSort}
             showCreate={false}
             sortKey={String(sortKey)}

@@ -4,8 +4,7 @@ import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CommentsGrid from '../../CommentsGrid';
-import Link from '@/components/OptimizedLink';
-import { ArrowLeftIcon, GlobeAltIcon, PencilIcon } from '@heroicons/react/24/outline';
+import PersonCommentsClient from './PersonCommentsClient';
 
 interface PageProps {
   params: Promise<{ townSlug: string; personSlug: string }>;
@@ -174,41 +173,21 @@ export default async function PersonCommentsPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Comments for {person.firstName} {person.lastName}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {person.town.name}, {person.town.state}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={`/${townSlug}/${personSlug}`}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <GlobeAltIcon className="h-4 w-4 mr-2" />
-              View Live Profile
-            </Link>
-            <Link
-              href={`/admin/persons/${person.id}/edit`}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <PencilIcon className="h-4 w-4 mr-2" />
-              Edit Person
-            </Link>
-            <Link
-              href={`/admin/comments/${townSlug}`}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              {person.town.name} Comments
-            </Link>
-          </div>
-        </div>
-      </div>
+      <PersonCommentsClient
+        person={{
+          id: person.id,
+          firstName: person.firstName,
+          lastName: person.lastName,
+          slug: person.slug,
+          town: {
+            name: person.town.name,
+            state: person.town.state,
+            slug: person.town.slug,
+          },
+        }}
+        townSlug={townSlug}
+        personSlug={personSlug}
+      />
       <CommentsGrid
         initialComments={comments}
         canApprove={canApprove}

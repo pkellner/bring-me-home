@@ -223,6 +223,7 @@ export default function PersonHistoryGrid({
               visible: result.data.visible,
               sendNotifications: result.data.sendNotifications,
               createdByUsername: result.data.createdByUsername,
+              createdByUserId: result.data.createdByUserId,
               createdAt: result.data.createdAt.toString(),
               updatedAt: result.data.updatedAt.toString(),
             };
