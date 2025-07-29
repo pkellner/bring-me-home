@@ -94,7 +94,11 @@ export async function consumeOptOutToken(token: string): Promise<OptOutTokenData
     // Global opt-out
     await prisma.user.update({
       where: { id: tokenData.userId },
-      data: { optOutOfAllEmail: true },
+      data: { 
+        optOutOfAllEmail: true,
+        optOutNotes: 'Opted out by unsubscribe link',
+        optOutDate: new Date(),
+      },
     });
   }
 

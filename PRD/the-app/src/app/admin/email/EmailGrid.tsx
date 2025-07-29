@@ -42,6 +42,11 @@ interface EmailNotification {
   lastMailServerMessageDate: string | null;
   retryCount: number;
   createdAt: string;
+  bounceType?: string | null;
+  bounceSubType?: string | null;
+  complaintFeedbackType?: string | null;
+  diagnosticCode?: string | null;
+  suppressionChecked?: boolean;
 }
 
 interface EmailGridProps {
@@ -423,6 +428,40 @@ export default function EmailGrid({ emails, totalCount, persons, onSendSelected,
                         </option>
                       ))}
                     </select>
+                    {/* Bounce/Complaint Details */}
+                    {email.status === 'BOUNCED' && email.bounceType && (
+                      <div className="text-xs">
+                        <span className="font-medium text-red-700">
+                          {email.bounceType}
+                          {email.bounceSubType && ` - ${email.bounceSubType}`}
+                        </span>
+                        {email.diagnosticCode && (
+                          <div className="relative group">
+                            <div className="text-gray-600 truncate max-w-[150px] cursor-help">
+                              {email.diagnosticCode}
+                            </div>
+                            <div className="absolute z-50 invisible group-hover:visible bg-gray-900 text-white text-xs rounded-lg p-3 mt-1 w-max max-w-md whitespace-normal break-words shadow-lg left-0">
+                              <div className="font-medium mb-1">Diagnostic Code:</div>
+                              {email.diagnosticCode}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {email.complaintFeedbackType && (
+                      <div className="text-xs">
+                        <span className="font-medium text-red-700">
+                          Spam: {email.complaintFeedbackType}
+                        </span>
+                      </div>
+                    )}
+                    {email.suppressionChecked && (
+                      <div className="text-xs">
+                        <span className="font-medium text-orange-700">
+                          ⚠️ Suppressed
+                        </span>
+                      </div>
+                    )}
                     {email.status === 'OPENED' && email.openedAt ? (
                       <div className="relative group">
                         <div className="text-xs text-green-600 truncate max-w-[150px] cursor-help font-medium">

@@ -135,7 +135,11 @@ export async function POST(request: NextRequest) {
                 // Global unsubscribe (no specific person)
                 await prisma.user.update({
                   where: { id: emailNotification.userId },
-                  data: { optOutOfAllEmail: true },
+                  data: { 
+                    optOutOfAllEmail: true,
+                    optOutNotes: 'Opted out by unsubscribe webhook',
+                    optOutDate: new Date(),
+                  },
                 });
               }
             }

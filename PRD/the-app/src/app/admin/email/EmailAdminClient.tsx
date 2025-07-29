@@ -333,6 +333,20 @@ export default function EmailAdminClient({ initialStats }: EmailAdminClientProps
         </Link>
       </div>
       
+      {/* Email Suppression Link */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Email Suppression List</h2>
+        <p className="text-base text-gray-700 mb-4">
+          Manage email addresses that are suppressed due to bounces, complaints, or manual action. Suppressed emails will not receive any communications.
+        </p>
+        <Link
+          href="/admin/email/suppression"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          Manage Suppression List
+        </Link>
+      </div>
+      
       {/* Future Enhancement Notice */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-base font-medium text-blue-900 mb-2">Coming Soon</h3>

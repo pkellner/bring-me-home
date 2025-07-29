@@ -19,6 +19,8 @@ model User {
   lastName            String?
   isActive            Boolean              @default(true)
   optOutOfAllEmail    Boolean              @default(false)
+  optOutNotes         String?              @db.Text
+  optOutDate          DateTime?
   allowAnonymousComments Boolean           @default(true)
   lastLogin           DateTime?
   createdAt           DateTime             @default(now())
@@ -570,6 +572,11 @@ model EmailNotification {
   lastMailServerMessage      String?               @db.Text
   lastMailServerMessageDate  DateTime?
   retryCount        Int                   @default(0)
+  bounceType        String?
+  bounceSubType     String?
+  complaintFeedbackType String?
+  diagnosticCode    String?               @db.Text
+  suppressionChecked Boolean              @default(false)
   maxRetries        Int                   @default(3)
   scheduledFor      DateTime              @default(now())
   createdAt         DateTime              @default(now())
@@ -716,4 +723,21 @@ model EmailProcessorControl {
   updatedAt   DateTime @updatedAt
   
   @@map("email_processor_control")
+}
+
+// Email suppression list
+model EmailSuppression {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  reason          String   // bounce_permanent, bounce_transient, spam_complaint, manual, unsubscribe_link
+  reasonDetails   String?  @db.Text // e.g., "550 5.1.1 user unknown"
+  source          String   // ses_webhook, admin_action, user_action, system
+  bounceType      String?  // Permanent/Transient/Undetermined
+  bounceSubType   String?  // General/NoEmail/Suppressed/etc
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([email])
+  @@index([reason])
+  @@map("email_suppressions")
 }

@@ -76,9 +76,26 @@ export async function toggleGlobalEmailOptOut(optOut: boolean) {
   }
 
   try {
+    const updateData: {
+      optOutOfAllEmail: boolean;
+      optOutNotes?: string | null;
+      optOutDate?: Date | null;
+    } = {
+      optOutOfAllEmail: optOut,
+    };
+    
+    if (optOut) {
+      updateData.optOutNotes = 'Opted out by menu choice';
+      updateData.optOutDate = new Date();
+    } else {
+      // Clear opt-out information when re-enabling
+      updateData.optOutNotes = null;
+      updateData.optOutDate = null;
+    }
+    
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { optOutOfAllEmail: optOut },
+      data: updateData,
     });
 
     return { success: true };

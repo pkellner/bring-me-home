@@ -88,9 +88,10 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
     hasCommentToken = tokens.length > 0;
   }
 
-  // Also serialize bondAmount in user's personAccess
+  // Also serialize bondAmount in user's personAccess and dates
   const serializedUser = {
     ...user,
+    optOutDate: user.optOutDate?.toISOString() || null,
     personAccess: user.personAccess.map(access => ({
       ...access,
       person: {

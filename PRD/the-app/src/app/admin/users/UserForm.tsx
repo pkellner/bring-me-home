@@ -35,6 +35,9 @@ interface User {
   lastName: string | null;
   isActive: boolean;
   allowAnonymousComments: boolean;
+  optOutOfAllEmail: boolean;
+  optOutNotes: string | null;
+  optOutDate: string | null;
   userRoles: Array<{
     role: { id: string; name: string };
   }>;
@@ -421,6 +424,47 @@ export default function UserForm({
                 </div>
               </div>
             </div>
+
+            {/* Email Opt-Out Information - Only visible in edit mode for users with email */}
+            {mode === 'edit' && user?.email && user.optOutOfAllEmail && (
+              <div className="pt-8">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Email Opt-Out Information
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    This user has opted out of all email communications.
+                  </p>
+                </div>
+
+                <div className="mt-6 bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Status:</span>
+                      <span className="ml-2 text-sm text-red-800">Opted out of all emails</span>
+                    </div>
+                    
+                    {user.optOutDate && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Opt-out Date:</span>
+                        <span className="ml-2 text-sm text-gray-900">
+                          {new Date(user.optOutDate).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {user.optOutNotes && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Reason:</span>
+                        <p className="mt-1 text-sm text-gray-900 bg-white rounded p-2 border border-red-200">
+                          {user.optOutNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Comment Token Management - Only for system/town admins in edit mode */}
             {mode === 'edit' && user?.email && canManageTokens && (

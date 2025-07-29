@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import sgMail, { MailDataRequired } from '@sendgrid/mail';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { getEmail, EMAIL_TYPES } from '@/config/emails';
+import { isEmailSuppressed } from '@/lib/email-suppression';
 
 // Email provider types
 export type EmailProvider = 'smtp' | 'sendgrid' | 'ses' | 'console';
@@ -97,6 +98,18 @@ async function sendSingleEmail(options: SendEmailOptions, provider: EmailProvide
   const { to, subject, html, text, from, emailId } = options;
   const fromAddress = from || `"Bring Me Home" <${getEmail(EMAIL_TYPES.SUPPORT)}>`;
   const textContent = text || htmlToText(html);
+  
+  // Check if email is suppressed
+  const isSuppressed = await isEmailSuppressed(to);
+  if (isSuppressed) {
+    console.log(`📧 Email to ${to} is suppressed - not sending`);
+    return {
+      provider,
+      error: 'Email address is suppressed',
+      errorDetails: { reason: 'suppressed', email: to },
+      emailId
+    };
+  }
   
   // Debug logging
   console.log(`\n🔧 Email Debug: Provider=${provider}, LOG_SMTP=${process.env.EMAIL_PROVIDER_LOG_SMTP}`);

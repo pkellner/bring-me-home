@@ -46,6 +46,11 @@ export default async function EmailAdminPage() {
     lastMailServerMessageDate: email.lastMailServerMessageDate?.toISOString() || null,
     retryCount: email.retryCount,
     createdAt: email.createdAt.toISOString(),
+    bounceType: email.bounceType,
+    bounceSubType: email.bounceSubType,
+    complaintFeedbackType: email.complaintFeedbackType,
+    diagnosticCode: email.diagnosticCode,
+    suppressionChecked: email.suppressionChecked,
   }));
   
   return (

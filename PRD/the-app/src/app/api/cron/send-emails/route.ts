@@ -110,6 +110,9 @@ export async function GET(request: NextRequest) {
         if (result.error) {
           console.log(`[Email Cron] Email failed for ${emailNotification.id}, marking as FAILED with error: ${result.error}`);
 
+          // Special handling for suppressed emails
+          const isSuppressed = result.error === 'Email address is suppressed';
+          
           // Email failed but was logged to console
           await prisma.emailNotification.update({
             where: { id: emailNotification.id },
@@ -119,6 +122,7 @@ export async function GET(request: NextRequest) {
               lastMailServerMessageDate: new Date(),
               retryCount: { increment: 1 },
               provider: result.provider,
+              suppressionChecked: isSuppressed,
             },
           });
           results.failed++;
@@ -170,7 +174,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-retry failed emails that haven't exceeded max retries
+    // Auto-retry failed emails that haven't exceeded max retries and aren't suppressed
     const failedEmailsToRetry = await prisma.emailNotification.updateMany({
       where: {
         status: EmailStatus.FAILED,
@@ -180,6 +184,7 @@ export async function GET(request: NextRequest) {
         updatedAt: {
           lt: new Date(Date.now() - 5 * 60 * 1000), // Wait 5 minutes between retries
         },
+        suppressionChecked: false, // Don't retry suppressed emails
       },
       data: {
         status: EmailStatus.SENDING,

@@ -743,15 +743,203 @@ To switch providers:
 
 The application will automatically use the new provider without code changes.
 
+## AWS SES Bounce and Complaint Handling
+
+The application includes comprehensive bounce and complaint handling through AWS SES webhooks, automatically managing email deliverability and compliance.
+
+### Overview
+
+When using AWS SES as your email provider, the system automatically:
+- Processes bounce notifications to identify invalid email addresses
+- Handles spam complaints by suppressing the complainant's email
+- Updates user opt-out status with detailed tracking
+- Maintains a suppression list to prevent sending to problematic addresses
+
+### Email Suppression System
+
+#### How It Works
+
+1. **Automatic Suppression**: Emails are automatically suppressed for:
+   - Permanent bounces (invalid email addresses)
+   - Spam complaints (recipient marked email as spam)
+   - Manual admin action
+   - User unsubscribe requests
+
+2. **Suppression Check**: Before sending any email, the system checks if the recipient is suppressed
+   - Suppressed emails are marked as FAILED with reason "Email address is suppressed"
+   - No retry attempts are made for suppressed addresses
+
+3. **Management Interface**: Admins can manage suppressions at `/admin/email/suppression`
+   - View all suppressed emails with reasons
+   - Manually add/remove suppressions
+   - Filter by reason or search by email
+
+### Setting Up AWS SES Webhooks
+
+#### Prerequisites
+- AWS SES configured and verified
+- Domain or email addresses verified in SES
+- Application deployed with a public URL
+
+#### Step 1: Create SNS Topic
+
+1. Go to AWS SNS Console
+2. Create a new topic:
+   ```
+   Name: ses-notifications
+   Type: Standard
+   ```
+3. Copy the Topic ARN for later use
+
+#### Step 2: Create SNS Subscription
+
+1. In the SNS topic, create a subscription:
+   ```
+   Protocol: HTTPS
+   Endpoint: https://yourdomain.com/api/webhooks/ses
+   ```
+2. SNS will send a confirmation request to your endpoint
+3. The webhook will automatically confirm the subscription
+
+#### Step 3: Configure SES Notifications
+
+1. Go to AWS SES Console
+2. Under Configuration → Configuration Sets, create or select a set
+3. Add event destinations:
+   - **Event types**: Bounce, Complaint, Delivery (optional)
+   - **Destination**: SNS
+   - **Topic**: Select your SNS topic
+
+4. Update your email sending configuration to use this configuration set
+
+#### Step 4: Environment Variables
+
+Add to your `.env`:
+```env
+# AWS SES Webhook Configuration (optional)
+EMAIL_WEBHOOK_SECRET=your-secret-for-verification
+AWS_SNS_TOPIC_ARN=arn:aws:sns:region:account:topic-name
+```
+
+### Bounce Types and Handling
+
+#### Permanent Bounces
+- **Action**: Automatically suppress email and opt-out user
+- **Reasons**: Invalid email, domain doesn't exist, mailbox doesn't exist
+- **User Impact**: 
+  - `optOutOfAllEmail = true`
+  - `optOutNotes = "Opted out by permanent bounce: [diagnostic]"`
+  - Email added to suppression list
+
+#### Transient Bounces
+- **Action**: Track but don't suppress (unless repeated)
+- **Reasons**: Mailbox full, temporary server issues
+- **User Impact**: Email marked as BOUNCED, can be retried
+
+#### Complaints (Spam)
+- **Action**: Always suppress and opt-out user
+- **Reasons**: User marked email as spam
+- **User Impact**:
+  - `optOutOfAllEmail = true`
+  - `optOutNotes = "Opted out by spam complaint via SES"`
+  - Email added to suppression list
+  - All future emails blocked
+
+### Opt-Out Tracking
+
+The system tracks how users were opted out:
+
+| Opt-Out Method | `optOutNotes` Value | Triggered By |
+|----------------|---------------------|--------------|
+| Profile Settings | "Opted out by menu choice" | User toggles setting |
+| Unsubscribe Link | "Opted out by unsubscribe link" | Click unsubscribe in email |
+| Spam Complaint | "Opted out by spam complaint via SES" | Mark as spam in email client |
+| Hard Bounce | "Opted out by permanent bounce: [details]" | Invalid email address |
+| Admin Action | "Opted out by admin action" | Manual suppression |
+
+### Webhook Security
+
+The SES webhook endpoint includes:
+- SNS signature verification (when EMAIL_WEBHOOK_SECRET is set)
+- Automatic subscription confirmation
+- Request validation
+- Comprehensive error logging
+
+### Testing SES Integration
+
+#### Using SES Simulator (Sandbox Mode)
+
+AWS SES provides simulator addresses for testing:
+```
+bounce@simulator.amazonses.com      # Generates hard bounce
+complaint@simulator.amazonses.com   # Generates complaint  
+success@simulator.amazonses.com     # Successful delivery
+```
+
+#### Testing Webhooks Locally
+
+1. Use ngrok or similar to expose local endpoint:
+   ```bash
+   ngrok http 3000
+   ```
+
+2. Update SNS subscription with ngrok URL:
+   ```
+   https://abc123.ngrok.io/api/webhooks/ses
+   ```
+
+3. Send test emails to simulator addresses
+
+### Monitoring and Troubleshooting
+
+#### Email Grid Indicators
+- **BOUNCED** status with bounce type/subtype
+- **Suppressed** indicator for blocked emails
+- **Spam: [type]** for complaint notifications
+- Diagnostic codes in hover tooltips
+
+#### Common Issues
+
+1. **"Email address is suppressed" errors**
+   - Check suppression list at `/admin/email/suppression`
+   - Verify if legitimate user needs to be unsuppressed
+
+2. **Webhooks not received**
+   - Verify SNS subscription is confirmed
+   - Check endpoint URL is publicly accessible
+   - Review AWS CloudWatch logs for SNS
+
+3. **High bounce rates**
+   - Review suppression reasons
+   - Check for data quality issues
+   - Consider email validation before sending
+
+### Best Practices
+
+1. **Regular Maintenance**
+   - Review suppression list monthly
+   - Remove old suppressions for re-engagement
+   - Monitor bounce/complaint rates
+
+2. **User Communication**
+   - Inform users why they were opted out (visible in profile)
+   - Provide clear re-subscription process
+   - Include easy unsubscribe in all emails
+
+3. **Compliance**
+   - Honor all unsubscribe requests immediately
+   - Never remove spam complaints from suppression
+   - Keep suppression records for audit
+
 ## Future Enhancements
 
 Planned email features:
 - Email templates with handlebars
 - ~~Email queue with retry logic~~ ✅ Implemented with batch processing
-- Bounce handling
+- ~~Bounce handling~~ ✅ Implemented with SES webhooks
 - Email analytics integration
 - Multi-language email support
-- Webhook support for delivery notifications
+- ~~Webhook support for delivery notifications~~ ✅ Implemented
 - Email preview in admin interface
 
 ## Support
