@@ -35,6 +35,8 @@ export interface AnonymousCommentFormProps {
   onCancel?: () => void;
   title?: string;
   submitButtonText?: string;
+  isMapExpanded?: boolean;
+  onContractMap?: () => void;
   magicLinkData?: {
     user: { email: string };
     previousComment?: {
@@ -67,6 +69,8 @@ export default function AnonymousCommentForm({
   onCancel,
   title = 'Add Your Support',
   submitButtonText = 'Submit Support',
+  isMapExpanded = false,
+  onContractMap,
   magicLinkData,
   magicToken,
 }: AnonymousCommentFormProps) {
@@ -329,6 +333,13 @@ export default function AnonymousCommentForm({
               } catch (error) {
                 console.error('Failed to check email status:', error);
               }
+            }
+
+            // Check if map is expanded and contract it before showing modal
+            if (isMapExpanded && onContractMap) {
+              onContractMap();
+              // Wait 2 seconds for the map animation to complete
+              await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
             setPendingFormData(formData);

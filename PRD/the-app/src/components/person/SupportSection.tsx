@@ -594,6 +594,8 @@ export default function SupportSection({
               isPending={isPending}
               state={state}
               onCancel={() => setShowForm(false)}
+              isMapExpanded={showMap}
+              onContractMap={() => setShowMap(false)}
               magicLinkData={magicLinkData || (currentUserData ? {
                 user: { email: currentUserData.email },
                 previousComment: {
