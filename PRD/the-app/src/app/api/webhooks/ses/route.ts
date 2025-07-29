@@ -100,6 +100,10 @@ async function verifySNSSignature(message: SNSMessage): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
+
+  console.log("/api/webhooks/ses called");
+
+
   try {
     const body = await request.text();
     let snsMessage: SNSMessage;
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
     }
+    console.log("/api/webhooks/ses received message:", {snsMessage});
 
     // Verify SNS signature
     const isValidSignature = await verifySNSSignature(snsMessage);
@@ -137,18 +142,18 @@ export async function POST(request: NextRequest) {
       if (snsMessage.SubscribeURL) {
         // Automatically confirm the subscription
         let confirmUrl = snsMessage.SubscribeURL;
-        
+
         // Some SNS configurations require the Token as a query parameter
         if (snsMessage.Token && !confirmUrl.includes('Token=')) {
           const separator = confirmUrl.includes('?') ? '&' : '?';
           confirmUrl = `${confirmUrl}${separator}Token=${encodeURIComponent(snsMessage.Token)}`;
         }
-        
+
         console.log('Confirming SNS subscription:', {
           hasToken: !!snsMessage.Token,
           subscribeUrl: confirmUrl.substring(0, 100) + '...'
         });
-        
+
         const response = await fetch(confirmUrl);
         const responseText = await response.text();
 
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest) {
             statusText: response.statusText,
             responseText: responseText.substring(0, 500)
           });
-          return NextResponse.json({ 
+          return NextResponse.json({
             error: 'Failed to confirm subscription',
             details: responseText.substring(0, 200)
           }, { status: 500 });
