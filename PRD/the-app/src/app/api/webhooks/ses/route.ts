@@ -126,16 +126,45 @@ export async function POST(request: NextRequest) {
 
     // Handle subscription confirmation
     if (snsMessage.Type === 'SubscriptionConfirmation') {
+      console.log('Received SNS subscription confirmation:', {
+        MessageId: snsMessage.MessageId,
+        TopicArn: snsMessage.TopicArn,
+        hasToken: !!snsMessage.Token,
+        hasSubscribeURL: !!snsMessage.SubscribeURL,
+        tokenLength: snsMessage.Token?.length
+      });
 
       if (snsMessage.SubscribeURL) {
         // Automatically confirm the subscription
-        const response = await fetch(snsMessage.SubscribeURL);
-        await response.text(); // Consume the response body
+        let confirmUrl = snsMessage.SubscribeURL;
+        
+        // Some SNS configurations require the Token as a query parameter
+        if (snsMessage.Token && !confirmUrl.includes('Token=')) {
+          const separator = confirmUrl.includes('?') ? '&' : '?';
+          confirmUrl = `${confirmUrl}${separator}Token=${encodeURIComponent(snsMessage.Token)}`;
+        }
+        
+        console.log('Confirming SNS subscription:', {
+          hasToken: !!snsMessage.Token,
+          subscribeUrl: confirmUrl.substring(0, 100) + '...'
+        });
+        
+        const response = await fetch(confirmUrl);
+        const responseText = await response.text();
 
         if (response.ok) {
+          console.log('SNS subscription confirmed successfully');
           return NextResponse.json({ message: 'Subscription confirmed' });
         } else {
-          return NextResponse.json({ error: 'Failed to confirm subscription' }, { status: 500 });
+          console.error('Failed to confirm SNS subscription:', {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: responseText.substring(0, 500)
+          });
+          return NextResponse.json({ 
+            error: 'Failed to confirm subscription',
+            details: responseText.substring(0, 200)
+          }, { status: 500 });
         }
       }
       return NextResponse.json({ error: 'No SubscribeURL provided' }, { status: 400 });
