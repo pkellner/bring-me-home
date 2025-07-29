@@ -26,6 +26,12 @@ async function verifySNSSignature(message: SNSMessage): Promise<boolean> {
     console.warn('⚠️ SNS signature verification skipped in development');
     return true;
   }
+  
+  // Temporary bypass for debugging - REMOVE IN PRODUCTION
+  if (process.env.SKIP_SNS_SIGNATURE_VERIFICATION === 'true') {
+    console.warn('⚠️ SNS signature verification bypassed - SECURITY RISK');
+    return true;
+  }
 
   try {
     // Build the string to sign
@@ -50,14 +56,29 @@ async function verifySNSSignature(message: SNSMessage): Promise<boolean> {
 
     // Fetch the certificate
     const certResponse = await fetch(message.SigningCertURL);
-    const cert = await certResponse.text();
+    let cert = await certResponse.text();
+    
+    // Ensure the certificate has proper PEM formatting
+    if (!cert.includes('-----BEGIN CERTIFICATE-----')) {
+      cert = `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----`;
+    }
+    
+    // Clean up any extra whitespace or formatting issues
+    cert = cert.trim();
 
-    // Verify the signature
+    // Verify the signature using SHA1 (AWS SNS uses SHA1)
     const verifier = crypto.createVerify('SHA1');
     verifier.update(stringToSign, 'utf8');
-    const isValid = verifier.verify(cert, message.Signature, 'base64');
     
-    return isValid;
+    try {
+      const isValid = verifier.verify(cert, message.Signature, 'base64');
+      return isValid;
+    } catch (verifyError) {
+      console.error('Signature verification error:', verifyError);
+      // If verification fails, try alternative signature verification
+      // AWS SNS signatures should work with standard verification
+      return false;
+    }
   } catch (error) {
     console.error('SNS signature verification failed:', error);
     return false;
@@ -75,10 +96,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
     }
 
+    // Log the message type for debugging
+    console.log('📨 SNS Message Type:', snsMessage.Type);
+    
     // Verify SNS signature
     const isValidSignature = await verifySNSSignature(snsMessage);
     if (!isValidSignature) {
       console.error('Invalid SNS signature');
+      console.error('Message details:', {
+        Type: snsMessage.Type,
+        MessageId: snsMessage.MessageId,
+        TopicArn: snsMessage.TopicArn,
+        HasSignature: !!snsMessage.Signature,
+        HasSigningCertURL: !!snsMessage.SigningCertURL
+      });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -124,6 +155,7 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`📧 SES ${sesNotification.notificationType} notification received for message: ${sesNotification.mail.messageId}`);
+      console.log('Email destination:', sesNotification.mail.destination);
 
       // Find the email notification by messageId
       const emailNotification = await prisma.emailNotification.findFirst({

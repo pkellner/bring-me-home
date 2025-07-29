@@ -819,6 +819,9 @@ Add to your `.env`:
 # AWS SES Webhook Configuration (optional)
 EMAIL_WEBHOOK_SECRET=your-secret-for-verification
 AWS_SNS_TOPIC_ARN=arn:aws:sns:region:account:topic-name
+
+# Temporary - Remove after testing
+# SKIP_SNS_SIGNATURE_VERIFICATION=true  # Only use during initial setup
 ```
 
 ### Bounce Types and Handling
@@ -886,6 +889,8 @@ success@simulator.amazonses.com     # Successful delivery
 2. Update SNS subscription with ngrok URL:
    ```
    https://abc123.ngrok.io/api/webhooks/ses
+   https://93632c708af0.ngrok-free.app/api/webhooks/ses
+   
    ```
 
 3. Send test emails to simulator addresses
