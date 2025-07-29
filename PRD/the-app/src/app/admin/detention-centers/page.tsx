@@ -173,6 +173,7 @@ export default async function DetentionCentersPage() {
                           width={120}
                           height={90}
                           className="rounded object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-[120px] h-[90px] bg-gray-200 rounded flex items-center justify-center">

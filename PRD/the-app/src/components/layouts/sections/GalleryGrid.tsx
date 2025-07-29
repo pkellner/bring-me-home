@@ -46,6 +46,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
                 fill
                 className="object-contain group-hover:scale-105 transition-transform duration-300"
                 sizes="200px"
+                unoptimized
               />
               {/* Caption overlay that appears on hover */}
               {image.caption && (
@@ -88,6 +89,7 @@ export default function GalleryGrid({ person }: GalleryGridProps) {
                 height={800}
                 className="max-w-full max-h-full object-contain"
                 style={{ maxWidth: '70vw', maxHeight: '70vh' }}
+                unoptimized
               />
             </div>
 

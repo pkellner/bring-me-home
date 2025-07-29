@@ -46,6 +46,7 @@ export default function PersonDetentionInfo({
                     width={80}
                     height={60}
                     className="rounded object-cover"
+                    unoptimized
                   />
                 )}
                 <div className="flex-grow">

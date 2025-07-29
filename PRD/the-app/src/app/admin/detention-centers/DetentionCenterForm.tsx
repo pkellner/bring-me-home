@@ -221,6 +221,7 @@ export default function DetentionCenterForm({
                           alt="Facility preview"
                           fill
                           className="rounded object-cover"
+                          unoptimized
                         />
                       ) : detentionCenter?.imageId ? (
                         <Image
@@ -228,6 +229,7 @@ export default function DetentionCenterForm({
                           alt="Facility preview"
                           fill
                           className="rounded object-cover"
+                          unoptimized
                         />
                       ) : null}
                     </div>

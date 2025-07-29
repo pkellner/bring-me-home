@@ -223,6 +223,7 @@ export function PersonImageTab({
                   alt="Person image"
                   fill
                   className="object-cover rounded-lg"
+                  unoptimized
                 />
               </div>
             ) : (

@@ -262,6 +262,7 @@ export default function DetentionCenterSelector({
                                             width={60}
                                             height={45}
                                             className="rounded object-cover"
+                                            unoptimized
                                           />
                                         ) : (
                                           <div className="w-[60px] h-[45px] bg-gray-200 rounded flex items-center justify-center">

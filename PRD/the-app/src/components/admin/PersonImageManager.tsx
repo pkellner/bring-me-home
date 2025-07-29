@@ -36,6 +36,7 @@ export default function PersonImageManager({
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover rounded-lg"
+                  unoptimized
                 />
               </div>
               <p className="text-center text-sm text-gray-500">
@@ -84,6 +85,7 @@ export default function PersonImageManager({
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                     className="object-cover rounded-lg"
+                    unoptimized
                   />
                 </div>
                 {image.caption && (

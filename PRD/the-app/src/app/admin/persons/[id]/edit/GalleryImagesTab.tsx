@@ -364,6 +364,7 @@ export function GalleryImagesTab({
                   alt={image.caption || 'Gallery image'}
                   fill
                   className="object-cover rounded-md"
+                  unoptimized
                 />
                 <Button
                   type="button"
