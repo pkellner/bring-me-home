@@ -4,11 +4,15 @@ import { useState, useTransition } from 'react';
 import {
   MagnifyingGlassIcon,
   TrashIcon,
-  PlusIcon,
-  ExclamationTriangleIcon,
+  CheckIcon,
+  XMarkIcon,
+  FunnelIcon,
+  UserPlusIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
-import { SUPPRESSION_REASONS, type SuppressionReason } from '@/lib/email-suppression';
+import { SUPPRESSION_REASONS, SUPPRESSION_SOURCES } from '@/lib/email-suppression-constants';
 import { removeFromSuppressionList, addToSuppressionList } from '@/app/actions/email-suppression-actions';
+// Removed AddSuppressionModal import - using inline form instead
 
 interface EmailSuppression {
   id: string;
@@ -37,12 +41,19 @@ const reasonLabels: Record<string, string> = {
   [SUPPRESSION_REASONS.UNSUBSCRIBE_LINK]: 'Unsubscribe Link',
 };
 
+const sourceLabels: Record<string, string> = {
+  [SUPPRESSION_SOURCES.SES_WEBHOOK]: 'SES Webhook',
+  [SUPPRESSION_SOURCES.ADMIN_ACTION]: 'Admin Action',
+  [SUPPRESSION_SOURCES.USER_ACTION]: 'User Action',
+  [SUPPRESSION_SOURCES.SYSTEM]: 'System',
+};
+
 const reasonColors: Record<string, string> = {
-  [SUPPRESSION_REASONS.BOUNCE_PERMANENT]: 'bg-red-100 text-red-800',
-  [SUPPRESSION_REASONS.BOUNCE_TRANSIENT]: 'bg-yellow-100 text-yellow-800',
-  [SUPPRESSION_REASONS.SPAM_COMPLAINT]: 'bg-red-200 text-red-900',
-  [SUPPRESSION_REASONS.MANUAL]: 'bg-gray-100 text-gray-800',
-  [SUPPRESSION_REASONS.UNSUBSCRIBE_LINK]: 'bg-blue-100 text-blue-800',
+  [SUPPRESSION_REASONS.BOUNCE_PERMANENT]: 'bg-red-100 text-red-800 border-red-200',
+  [SUPPRESSION_REASONS.BOUNCE_TRANSIENT]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  [SUPPRESSION_REASONS.SPAM_COMPLAINT]: 'bg-red-200 text-red-900 border-red-300',
+  [SUPPRESSION_REASONS.MANUAL]: 'bg-gray-100 text-gray-800 border-gray-200',
+  [SUPPRESSION_REASONS.UNSUBSCRIBE_LINK]: 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
 export default function SuppressionGrid({
@@ -51,11 +62,10 @@ export default function SuppressionGrid({
   const [isPending, startTransition] = useTransition();
   const [suppressions, setSuppressions] = useState(initialSuppressions);
   const [searchTerm, setSearchTerm] = useState('');
-  const [reasonFilter, setReasonFilter] = useState<string>('ALL');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set());
+  const [showInlineForm, setShowInlineForm] = useState(false);
   const [newEmail, setNewEmail] = useState('');
-  const [newReason, setNewReason] = useState<SuppressionReason>(SUPPRESSION_REASONS.MANUAL);
-  const [newReasonDetails, setNewReasonDetails] = useState('');
+  const [newDetails, setNewDetails] = useState('');
 
   // Filter suppressions
   const filteredSuppressions = suppressions.filter(suppression => {
@@ -63,10 +73,20 @@ export default function SuppressionGrid({
       suppression.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (suppression.reasonDetails?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     
-    const matchesReason = reasonFilter === 'ALL' || suppression.reason === reasonFilter;
+    const matchesReason = selectedReasons.size === 0 || selectedReasons.has(suppression.reason);
     
     return matchesSearch && matchesReason;
   });
+
+  const handleReasonToggle = (reason: string) => {
+    const newReasons = new Set(selectedReasons);
+    if (newReasons.has(reason)) {
+      newReasons.delete(reason);
+    } else {
+      newReasons.add(reason);
+    }
+    setSelectedReasons(newReasons);
+  };
 
   const handleRemove = async (email: string) => {
     if (!confirm(`Remove ${email} from suppression list? They will be able to receive emails again.`)) {
@@ -92,90 +112,195 @@ export default function SuppressionGrid({
     startTransition(async () => {
       const result = await addToSuppressionList({
         email: newEmail,
-        reason: newReason,
-        reasonDetails: newReasonDetails || undefined,
+        reason: SUPPRESSION_REASONS.MANUAL,
+        reasonDetails: newDetails || undefined,
       });
       
       if (result.success && result.suppression) {
-        setSuppressions([{
+        const newSuppression = {
           ...result.suppression,
           createdAt: result.suppression.createdAt.toISOString(),
           updatedAt: result.suppression.updatedAt.toISOString(),
-        }, ...suppressions]);
-        setShowAddModal(false);
+        };
+        
+        // Add the new suppression to the top of the list
+        setSuppressions([newSuppression, ...suppressions]);
+        
+        // Reset form
         setNewEmail('');
-        setNewReasonDetails('');
+        setNewDetails('');
+        setShowInlineForm(false);
       } else {
         alert(`Failed to add suppression: ${result.error}`);
       }
     });
   };
 
+  const handleCancel = () => {
+    setNewEmail('');
+    setNewDetails('');
+    setShowInlineForm(false);
+  };
+
   return (
     <>
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Header */}
+      <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
+        <div className="flex items-center justify-between">
           <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700">
-              Search
-            </label>
-            <div className="mt-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900">Email Suppression Management</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Emails in this list will not receive any communications from the system
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              Total: <span className="font-semibold text-gray-900">{suppressions.length}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
+        <div className="space-y-4">
+          {/* Search and Add Button */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+                Search
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Search email or details..."
+                />
               </div>
-              <input
-                type="text"
-                id="search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Search email or details..."
-              />
+            </div>
+            
+            <div className="flex items-end">
+              <button
+                onClick={() => setShowInlineForm(!showInlineForm)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                <UserPlusIcon className="h-4 w-4 mr-2" />
+                Add Suppression
+              </button>
             </div>
           </div>
+
+          {/* Inline Add Form */}
+          {showInlineForm && (
+            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="inline-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="inline-email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="user@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="inline-details" className="block text-sm font-medium text-gray-700 mb-1">
+                    Details
+                  </label>
+                  <input
+                    type="text"
+                    id="inline-details"
+                    value={newDetails}
+                    onChange={(e) => setNewDetails(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Short reason for suppression"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={isPending || !newEmail}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Type: Admin Action, Reason: Manual
+              </p>
+            </div>
+          )}
           
+          {/* Reason Filters */}
           <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
-              Reason
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <FunnelIcon className="h-4 w-4 inline mr-1" />
+              Filter by Reason
             </label>
-            <select
-              id="reason"
-              value={reasonFilter}
-              onChange={(e) => setReasonFilter(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-            >
-              <option value="ALL">All Reasons</option>
-              {Object.entries(reasonLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Suppression
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(reasonLabels).map(([value, label]) => {
+                const isSelected = selectedReasons.has(value);
+                return (
+                  <button
+                    key={value}
+                    onClick={() => handleReasonToggle(value)}
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                      isSelected
+                        ? reasonColors[value] + ' ring-2 ring-offset-1'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {isSelected && <CheckIcon className="h-3 w-3 mr-1" />}
+                    {label}
+                  </button>
+                );
+              })}
+              {selectedReasons.size > 0 && (
+                <button
+                  onClick={() => setSelectedReasons(new Set())}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200"
+                >
+                  <XMarkIcon className="h-3 w-3 mr-1" />
+                  Clear Filters
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Results count */}
-      <div className="bg-white shadow rounded-lg px-6 py-3">
+      <div className="bg-white shadow-sm rounded-lg px-6 py-3 mb-4">
         <div className="text-sm text-gray-700">
           Showing <span className="font-medium">{filteredSuppressions.length}</span> of{' '}
           <span className="font-medium">{suppressions.length}</span> suppressions
+          {searchTerm && <span className="text-gray-500 ml-2">(filtered by search)</span>}
+          {selectedReasons.size > 0 && <span className="text-gray-500 ml-2">(filtered by {selectedReasons.size} reason{selectedReasons.size > 1 ? 's' : ''})</span>}
         </div>
       </div>
 
       {/* Suppression Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -202,9 +327,12 @@ export default function SuppressionGrid({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSuppressions.map((suppression) => (
-                <tr key={suppression.id}>
+                <tr key={suppression.id} className="hover:bg-gray-50 transition-colors duration-150">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{suppression.email}</div>
+                    <div className="flex items-center">
+                      <EnvelopeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                      <div className="text-sm font-medium text-gray-900">{suppression.email}</div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -226,19 +354,28 @@ export default function SuppressionGrid({
                           {suppression.reasonDetails}
                         </div>
                       )}
+                      {!suppression.bounceType && !suppression.reasonDetails && (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {suppression.source}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                      {sourceLabels[suppression.source] || suppression.source}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(suppression.createdAt).toLocaleDateString()}
+                    {new Date(suppression.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => handleRemove(suppression.email)}
                       disabled={isPending}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                      className="text-red-600 hover:text-red-900 disabled:opacity-50 transition-colors duration-200"
                       title="Remove from suppression list"
                     >
                       <TrashIcon className="h-4 w-4" />
@@ -248,8 +385,14 @@ export default function SuppressionGrid({
               ))}
               {filteredSuppressions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No suppressed emails found
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="text-gray-500">
+                      <EnvelopeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-sm font-medium">No suppressed emails found</p>
+                      {(searchTerm || selectedReasons.size > 0) && (
+                        <p className="text-xs mt-1">Try adjusting your filters</p>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -258,93 +401,6 @@ export default function SuppressionGrid({
         </div>
       </div>
 
-      {/* Add Suppression Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowAddModal(false)} />
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">
-                      Add Email to Suppression List
-                    </h3>
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          placeholder="user@example.com"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
-                          Reason
-                        </label>
-                        <select
-                          id="reason"
-                          value={newReason}
-                          onChange={(e) => setNewReason(e.target.value as SuppressionReason)}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                          {Object.entries(reasonLabels).map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="details" className="block text-sm font-medium text-gray-700">
-                          Details (Optional)
-                        </label>
-                        <textarea
-                          id="details"
-                          value={newReasonDetails}
-                          onChange={(e) => setNewReasonDetails(e.target.value)}
-                          rows={3}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                          placeholder="Additional information about why this email is suppressed..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={handleAdd}
-                  disabled={isPending || !newEmail}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                >
-                  Add to Suppression List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -12,6 +12,10 @@ interface EmailRecipient {
   status: string;
   sentAt: string | null;
   openedAt: string | null;
+  errorMessage: string | null;
+  errorDate: string | null;
+  bounceType: string | null;
+  bounceSubType: string | null;
 }
 
 interface EmailStatusDrawerProps {
@@ -119,7 +123,8 @@ export function EmailStatusDrawerContent({
         text: formatTimeAgo(recipient.openedAt),
         tooltip: `Opened: ${formatDateTime(recipient.openedAt)}`
       };
-    } else if ((recipient.status === 'SENT' || recipient.status === 'DELIVERED') && recipient.sentAt) {
+    } else if (recipient.sentAt) {
+      // Show time since sent for all statuses (including FAILED, BOUNCED)
       return {
         text: formatTimeAgo(recipient.sentAt),
         tooltip: `Sent: ${formatDateTime(recipient.sentAt)}`
@@ -162,7 +167,7 @@ export function EmailStatusDrawerContent({
                   onChange={(e) => setShowOthers(e.target.checked)}
                   className="h-4 w-4 text-gray-600 rounded mr-2"
                 />
-                Others
+                Others (Failed/Bounced)
               </label>
             </div>
             <button
@@ -218,25 +223,44 @@ export function EmailStatusDrawerContent({
                           </td>
                           <td className="px-4 py-3">
                             <div>
-                              <span
-                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  recipient.status === 'OPENED'
-                                    ? 'bg-green-100 text-green-800'
-                                    : recipient.status === 'SENT' || recipient.status === 'DELIVERED'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : recipient.status === 'FAILED'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {recipient.status}
-                              </span>
+                              <div className="inline-block group relative">
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-help ${
+                                    recipient.status === 'OPENED'
+                                      ? 'bg-green-100 text-green-800'
+                                      : recipient.status === 'SENT' || recipient.status === 'DELIVERED'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : recipient.status === 'FAILED'
+                                      ? 'bg-red-100 text-red-800'
+                                      : recipient.status === 'BOUNCED'
+                                      ? 'bg-orange-100 text-orange-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {recipient.status}
+                                </span>
+                                {/* Tooltip for error states */}
+                                {(recipient.errorMessage || (recipient.status === 'BOUNCED' && recipient.bounceType)) && (
+                                  <div className="absolute z-10 invisible group-hover:visible bg-gray-900 text-white text-xs rounded py-2 px-3 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max max-w-xs">
+                                    {recipient.errorMessage
+                                      ? `${recipient.errorMessage}${recipient.errorDate ? ` (${formatDateTime(recipient.errorDate)})` : ''}`
+                                      : `Bounce Type: ${recipient.bounceType}/${recipient.bounceSubType || 'Unknown'}`
+                                    }
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-gray-900"></div>
+                                  </div>
+                                )}
+                              </div>
                               {timeDisplay && (
                                 <div 
                                   className="text-xs text-gray-500 mt-1 cursor-help"
                                   title={timeDisplay.tooltip}
                                 >
                                   {timeDisplay.text}
+                                </div>
+                              )}
+                              {recipient.errorMessage && ['FAILED', 'BOUNCED'].includes(recipient.status) && (
+                                <div className="text-xs text-red-600 mt-1 max-w-xs truncate" title={recipient.errorMessage}>
+                                  {recipient.errorMessage}
                                 </div>
                               )}
                             </div>

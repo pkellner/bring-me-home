@@ -228,6 +228,11 @@ export default function LayoutRenderer({
   };
 
   const recentNote = getRecentHistoryNote();
+  
+  // Check if history section will be shown (either has history or user can manage)
+  const hasHistory = person.personHistory && person.personHistory.length > 0;
+  const canManageHistory = isPersonAdmin || isTownAdmin || isSiteAdmin;
+  const willShowHistorySection = hasHistory || canManageHistory;
 
 
 
@@ -304,8 +309,8 @@ export default function LayoutRenderer({
                   </button>
                 </div>
 
-                {/* Recent Updates Notification */}
-                {recentNote && (
+                {/* Recent Updates Notification - Show when history section is visible */}
+                {recentNote && willShowHistorySection && (
                   <div className="mt-4 w-full">
                     <button
                       onClick={() => {

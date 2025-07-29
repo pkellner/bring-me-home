@@ -59,7 +59,7 @@ The family of {{personName}} has posted a new update.
 {{updateDescription}}
 
 Show Your Support
-Your messages of support mean a lot to {{personName}}'s family during this difficult time. Would you like to send them a message of encouragement?
+Your messages of support mean a lot to {{personName}}'s family during this difficult time. Would you like to comment on this update (publicly or privately)?
 
 Leave a Support Message: {{commentLink}}
 
@@ -507,8 +507,8 @@ This will immediately hide any messages using your email and prevent future ones
 
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         <p style="font-size: 12px; color: #666;">
-          Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
-          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+          Don't want to receive emails about {{personName}}? <a href="{{personOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
         </p>
       </div>
     `,
@@ -530,8 +530,8 @@ Someone may have used your email address by mistake. Take action now:
 - Manage all my messages: {{manageUrl}}
 
 ---
-Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
-Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personOptOutUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allOptOutUrl}}`,
     variables: {
       firstName: 'Sender first name',
       personName: 'Person being supported',
@@ -584,8 +584,8 @@ Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
 
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         <p style="font-size: 12px; color: #666;">
-          Don't want to receive emails about {{personName}}? <a href="{{personUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
-          Don't want to receive any emails from this site? <a href="{{allUnsubscribeUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
+          Don't want to receive emails about {{personName}}? <a href="{{personOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from this person</a><br>
+          Don't want to receive any emails from this site? <a href="{{allOptOutUrl}}" style="color: #4F46E5;">Unsubscribe from all emails</a>
         </p>
       </div>
     `,
@@ -610,8 +610,8 @@ Privacy Options - manage without logging in:
 - Keep all my messages private: {{hideUrl}}
 
 ---
-Don't want to receive emails about {{personName}}? Unsubscribe: {{personUnsubscribeUrl}}
-Don't want to receive any emails? Unsubscribe from all: {{allUnsubscribeUrl}}`,
+Don't want to receive emails about {{personName}}? Unsubscribe: {{personOptOutUrl}}
+Don't want to receive any emails? Unsubscribe from all: {{allOptOutUrl}}`,
     variables: {
       firstName: 'Sender first name',
       personName: 'Person being supported',

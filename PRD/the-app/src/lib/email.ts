@@ -234,6 +234,16 @@ async function sendSingleEmail(options: SendEmailOptions, provider: EmailProvide
               },
             },
           },
+          // Add Configuration Set to enable event notifications
+          ConfigurationSetName: process.env.AWS_SES_CONFIGURATION_SET,
+          // Add custom headers for correlation
+          ReplyToAddresses: [fromAddress],
+          Tags: emailId ? [
+            {
+              Name: 'EmailId',
+              Value: emailId,
+            },
+          ] : undefined,
         });
         
         const response = await sesClient.send(command);

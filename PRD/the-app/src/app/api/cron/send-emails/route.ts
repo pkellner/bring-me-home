@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
           subject: emailNotification.subject,
           html: htmlContent,
           text: emailNotification.textContent || undefined,
+          emailId: emailNotification.id,
         });
 
         // Type guard to ensure we're dealing with single email result

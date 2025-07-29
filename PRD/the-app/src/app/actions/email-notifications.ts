@@ -9,6 +9,7 @@ import { EmailStatus } from '@prisma/client';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 import crypto from 'crypto';
 import { replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
+import { isEmailSuppressed } from '@/lib/email-suppression';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -271,7 +272,18 @@ export async function getPersonFollowers(personId: string, includeHistoryComment
     },
   });
 
-  return followers;
+  // Filter out suppressed emails
+  const nonSuppressedFollowers = [];
+  for (const follower of followers) {
+    if (follower.email) {
+      const isSuppressed = await isEmailSuppressed(follower.email);
+      if (!isSuppressed) {
+        nonSuppressedFollowers.push(follower);
+      }
+    }
+  }
+
+  return nonSuppressedFollowers;
 }
 
 // Send email update to followers
@@ -437,6 +449,7 @@ export async function sendUpdateEmail(
           trackingEnabled: true,
           status: EmailStatus.QUEUED,
           templateId: templateId || customContent?.templateId,
+          sentTo: follower.email || undefined,
         };
       })
     );

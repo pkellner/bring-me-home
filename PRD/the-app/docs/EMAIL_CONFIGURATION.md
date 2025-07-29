@@ -312,6 +312,7 @@ AWS_ACCESS_KEY_ID="AKIAXXXXXXXX"  # Can be shared with S3 config
 AWS_SECRET_ACCESS_KEY="xxxxxxxxxxxx"  # Can be shared with S3 config
 AWS_SES_REGION="us-east-1"  # Your SES region
 AWS_SES_FROM_EMAIL="noreply@yourdomain.com"  # Must be verified in SES
+AWS_SES_CONFIGURATION_SET="your-config-set-name"  # Required for bounce/complaint notifications
 ```
 
 ## Batch Email Processing
@@ -801,16 +802,38 @@ When using AWS SES as your email provider, the system automatically:
 2. SNS will send a confirmation request to your endpoint
 3. The webhook will automatically confirm the subscription
 
-#### Step 3: Configure SES Notifications
+#### Step 3: Configure SES Configuration Set
 
-1. Go to AWS SES Console
-2. Under Configuration → Configuration Sets, create or select a set
-3. Add event destinations:
-   - **Event types**: Bounce, Complaint, Delivery (optional)
-   - **Destination**: SNS
-   - **Topic**: Select your SNS topic
+1. **Create a Configuration Set** in AWS SES:
+   - Go to AWS SES Console → Configuration → Configuration Sets
+   - Click "Create Configuration Set"
+   - Name it (e.g., "bring-me-home-notifications")
+   - Save the Configuration Set
 
-4. Update your email sending configuration to use this configuration set
+2. **Add Event Destination** to the Configuration Set:
+   - Click on your Configuration Set
+   - Go to "Event destinations" tab
+   - Click "Add destination"
+   - Configuration:
+     - **Event types to publish**: Check all:
+       - ✅ Bounce
+       - ✅ Complaint  
+       - ✅ Delivery (optional but recommended)
+       - ✅ Send
+       - ✅ Reject
+       - ✅ Open (if needed)
+       - ✅ Click (if needed)
+     - **Destination type**: Amazon SNS
+     - **SNS topic**: Select your SNS topic created in Step 1
+     - **Name**: "ses-webhook-events"
+   - Click "Next" and "Add destination"
+
+3. **Important**: Add the Configuration Set name to your `.env`:
+   ```env
+   AWS_SES_CONFIGURATION_SET="bring-me-home-notifications"
+   ```
+
+4. Your emails will now automatically use this Configuration Set and send notifications to your webhook
 
 #### Step 4: Environment Variables
 
@@ -873,11 +896,32 @@ The SES webhook endpoint includes:
 #### Using SES Simulator (Sandbox Mode)
 
 AWS SES provides simulator addresses for testing:
-```
-bounce@simulator.amazonses.com      # Generates hard bounce
-complaint@simulator.amazonses.com   # Generates complaint  
+# AWS SES Simulator Email Addresses
+
+# Success
 success@simulator.amazonses.com     # Successful delivery
-```
+
+# Bounces
+bounce@simulator.amazonses.com      # Generates hard bounce
+ooto@simulator.amazonses.com        # Generates out-of-office bounce
+fullmailbox@simulator.amazonses.com # Mailbox full bounce
+noreply@simulator.amazonses.com     # No-reply address bounce
+
+# Complaints
+complaint@simulator.amazonses.com   # Generates complaint
+
+# Suppression List
+suppressionlist@simulator.amazonses.com # Address on the suppression list
+
+# Invalid/Errors
+invalid@simulator.amazonses.com     # Invalid email address format
+disposable@simulator.amazonses.com  # Disposable email address domain
+
+# Rate Limiting
+rate-limit@simulator.amazonses.com  # Triggers rate limiting response
+
+# Other
+greylist@simulator.amazonses.com   # Generates greylist response
 
 #### Testing Webhooks Locally
 

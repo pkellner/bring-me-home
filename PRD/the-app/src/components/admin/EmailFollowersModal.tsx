@@ -265,15 +265,22 @@ export default function EmailFollowersModal({
                       ) : followers.length === 0 ? (
                         <div className="mt-4 text-center py-8">
                           <ExclamationTriangleIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-gray-600">No followers found for this person.</p>
+                          <p className="text-gray-600">No eligible followers found for this person.</p>
                           <p className="text-sm text-gray-500 mt-1">
                             Followers are users who have commented on this person&apos;s page.
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Note: Opted-out and suppressed emails are automatically excluded.
                           </p>
                         </div>
                       ) : (
                         <div className="mt-4">
                           <p className="text-sm text-gray-600 mb-3">
-                            Selected: <span className="font-semibold text-gray-900">{selectedFollowers.size}</span> of {followers.length} followers
+                            Selected: <span className="font-semibold text-gray-900">{selectedFollowers.size}</span> of {followers.length} eligible followers
+                          </p>
+                          <p className="text-xs text-gray-500 mb-3">
+                            <ExclamationTriangleIcon className="h-3 w-3 inline mr-1" />
+                            Opted-out and suppressed emails have been automatically excluded
                           </p>
                           
                           <div className="border rounded-lg p-3">

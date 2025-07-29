@@ -28,6 +28,7 @@ interface PersonHistoryItemProps {
 export default function PersonHistoryItem({
   historyItem,
   personId,
+  personName: _personName, // eslint-disable-line @typescript-eslint/no-unused-vars
   commentCount,
   isLoadingComments,
   showAnimation = false,
@@ -103,45 +104,49 @@ export default function PersonHistoryItem({
         })
       }}
     >
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        {/* Main update content */}
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-3">
-            <div className="text-sm font-medium text-gray-700">
-              {format(new Date(historyItem.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+        <div className="p-8">
+          {/* Update header */}
+          <div className="mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="text-sm font-medium text-gray-600">
+                {format(new Date(historyItem.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
+              </div>
+              <div className="text-xs text-gray-500">
+                {canModerateComments && unapprovedCount > 0 && townSlug && personSlug ? (
+                  <Link
+                    href={`/admin/comments/${townSlug}/${personSlug}#${historyItem.id}`}
+                    className="text-red-600 hover:text-red-700 font-medium"
+                  >
+                    {unapprovedCount} comment{unapprovedCount !== 1 ? 's' : ''} unapproved
+                  </Link>
+                ) : (
+                  <>Posted by {historyItem.createdByUsername}</>
+                )}
+              </div>
             </div>
-            <div className="text-xs text-gray-500">
-              {canModerateComments && unapprovedCount > 0 && townSlug && personSlug ? (
-                <Link
-                  href={`/admin/comments/${townSlug}/${personSlug}#${historyItem.id}`}
-                  className="text-red-600 hover:text-red-700 font-medium"
-                >
-                  {unapprovedCount} comment{unapprovedCount !== 1 ? 's' : ''} unapproved
-                </Link>
-              ) : (
-                <>Posted by {historyItem.createdByUsername}</>
+            
+            {/* Update title */}
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              {historyItem.title}
+              {!historyItem.visible && (
+                <span className="ml-2 text-base font-extrabold text-red-600">
+                  (Not Visible to Public)
+                </span>
               )}
-            </div>
+            </h3>
           </div>
-          {/* Update title */}
-          <h3 className="text-lg font-bold text-gray-900 mb-3">
-            {historyItem.title}
-            {!historyItem.visible && (
-              <span className="ml-2 font-extrabold  text-red-600">
-                (Not Visible to Public)
-              </span>
-            )}
-          </h3>
-          {/* Update description with light border */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
+
+          {/* Update description - Full content */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200">
             <div
-              className="text-gray-800 leading-relaxed prose prose-sm max-w-none"
+              className="text-gray-800 leading-relaxed prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline prose-ul:list-disc prose-ol:list-decimal"
               dangerouslySetInnerHTML={{ __html: historyItem.description }}
             />
           </div>
 
-          {/* Comment actions */}
-          <div className="flex items-center gap-4 text-sm">
+          {/* Comment stats bar */}
+          <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
             <button
               onClick={() => {
                 if (onExpandedChange && localCommentCount > 0) {
@@ -149,13 +154,13 @@ export default function PersonHistoryItem({
                 }
               }}
               disabled={isLoadingComments || localCommentCount === 0}
-              className={`flex items-center gap-1 transition-colors ${
+              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
                 localCommentCount > 0 
-                  ? 'text-gray-600 hover:text-indigo-600 cursor-pointer' 
+                  ? 'text-gray-700 hover:text-indigo-600 cursor-pointer' 
                   : 'text-gray-400 cursor-default'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
@@ -167,7 +172,7 @@ export default function PersonHistoryItem({
               )}
               {localCommentCount > 0 && (
                 <svg
-                  className={`w-3 h-3 ml-1 transition-transform duration-300 ${
+                  className={`w-4 h-4 ml-1 transition-transform duration-300 ${
                     isExpanded ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -187,9 +192,9 @@ export default function PersonHistoryItem({
                   onExpandedChange(true);
                 }
               }}
-              className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 4v16m8-8H4"
                 />
@@ -199,90 +204,44 @@ export default function PersonHistoryItem({
           </div>
         </div>
 
-        {/* Expandable comment section */}
-        <div
-          className="overflow-hidden transition-all duration-500 ease-in-out"
-          style={{
-            maxHeight: (isExpanded || showCommentForm) ? '2000px' : '0px',
-            opacity: (isExpanded || showCommentForm) ? 1 : 0,
-            transform: (isExpanded || showCommentForm) ? 'translateY(0)' : 'translateY(-10px)',
-          }}
-        >
+        {/* Comments section (expanded) */}
+        {isExpanded && (
           <div className="border-t border-gray-200 bg-gray-50">
-            {showCommentForm && (
-              <div className="p-6 border-b border-gray-200 bg-white">
-                <PersonHistoryCommentForm
-                  personId={personId}
-                  personHistoryId={historyItem.id}
-                  updateTitle={historyItem.title}
-                  onSuccess={handleCommentAdded}
-                  onCancel={() => setShowCommentForm(false)}
-                  magicToken={magicToken}
-                />
-              </div>
-            )}
+            <div className="p-6">
+              {/* Show comment form if active */}
+              {showCommentForm && (
+                <div className="mb-6" id={`comment-form-${historyItem.id}`}>
+                  <PersonHistoryCommentForm
+                    personHistoryId={historyItem.id}
+                    personId={personId}
+                    updateTitle={historyItem.title}
+                    onSuccess={handleCommentAdded}
+                    onCancel={() => setShowCommentForm(false)}
+                    magicToken={magicToken}
+                  />
+                </div>
+              )}
 
-            {isExpanded && (
-              <div className="relative">
-                <PersonHistoryComments
-                  personHistoryId={historyItem.id}
-                  onCommentAdded={() => {
-                    // Don't update count for new comments since they're unapproved
-                    setRefreshTrigger(prev => prev + 1);
-                  }}
-                  refreshTrigger={refreshTrigger}
-                />
-                <button
-                  onClick={() => {
-                    if (onExpandedChange) {
-                      onExpandedChange(false);
-                    }
-                  }}
-                  className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Collapse comments"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
+              {/* Show existing comments */}
+              <PersonHistoryComments
+                personHistoryId={historyItem.id}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Animation styles */}
       <style jsx>{`
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(16px);
+            transform: translateY(1rem);
           }
           to {
             opacity: 1;
             transform: translateY(0);
-          }
-        }
-      `}</style>
-      <style jsx global>{`
-        .highlight-update {
-          animation: highlightPulse 2s ease-in-out;
-        }
-        
-        @keyframes highlightPulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
-          }
-          25% {
-            box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.2);
-          }
-          50% {
-            box-shadow: 0 0 0 20px rgba(79, 70, 229, 0.1);
-          }
-          75% {
-            box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.05);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
           }
         }
       `}</style>

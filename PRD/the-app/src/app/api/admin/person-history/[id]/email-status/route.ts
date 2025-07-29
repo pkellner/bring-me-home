@@ -57,6 +57,10 @@ export async function GET(
         },
         sentTo: true,
         createdAt: true,
+        lastMailServerMessage: true,
+        lastMailServerMessageDate: true,
+        bounceType: true,
+        bounceSubType: true,
       },
       orderBy: {
         createdAt: 'desc'
@@ -98,6 +102,10 @@ export async function GET(
       status: notification.status,
       sentAt: notification.sentAt?.toISOString() || null,
       openedAt: notification.openedAt?.toISOString() || null,
+      errorMessage: notification.lastMailServerMessage || null,
+      errorDate: notification.lastMailServerMessageDate?.toISOString() || null,
+      bounceType: notification.bounceType || null,
+      bounceSubType: notification.bounceSubType || null,
     }));
 
     return NextResponse.json({ stats, recipients });
