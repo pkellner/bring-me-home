@@ -157,7 +157,7 @@ describe('CacheManager', () => {
       process.env.REDIS_HOST = 'invalid-host';
       
       // Mock Redis to throw connection error
-      (Redis as any).mockImplementationOnce(() => {
+      (Redis as jest.MockedClass<typeof Redis>).mockImplementationOnce(() => {
         throw new Error('Connection failed');
       });
       
@@ -195,7 +195,7 @@ describe('CacheManager', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn().mockResolvedValue(undefined),
       };
-      (Redis as any).mockReturnValue(mockRedis);
+      (Redis as jest.MockedClass<typeof Redis>).mockReturnValue(mockRedis);
       
       const cache = await getRedisCache();
       expect(cache).not.toBeNull();
@@ -232,7 +232,7 @@ describe('CacheManager', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn().mockResolvedValue(undefined),
       };
-      (Redis as any).mockReturnValue(mockRedis);
+      (Redis as jest.MockedClass<typeof Redis>).mockReturnValue(mockRedis);
       
       const cache = await getRedisCache();
       if (cache) {
