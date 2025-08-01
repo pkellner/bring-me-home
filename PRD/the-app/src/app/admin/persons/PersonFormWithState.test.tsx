@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PersonFormWithState from './PersonFormWithState';
 import { showSuccessAlert, showErrorAlert } from '@/lib/alertBox';
+import { createPerson, updatePerson } from '@/app/actions/persons';
 
 // Mock the router
 const mockPush = jest.fn();
@@ -488,7 +489,6 @@ describe('PersonFormWithState', () => {
 
   describe('Form submission and validation', () => {
     test('submits form with valid data for new person', async () => {
-      const { createPerson } = await import('@/app/actions/persons');
       (createPerson as jest.Mock).mockResolvedValue({
         success: true,
         person: { id: 'new-person-id', slug: 'john-doe', townSlug: 'town-one' }
@@ -515,7 +515,6 @@ describe('PersonFormWithState', () => {
     });
 
     test('handles validation errors correctly', async () => {
-      const { updatePerson } = await import('@/app/actions/persons');
       (updatePerson as jest.Mock).mockResolvedValue({
         errors: {
           firstName: ['First name is required'],
@@ -533,7 +532,6 @@ describe('PersonFormWithState', () => {
     });
 
     test('shows success message on successful update', async () => {
-      const { updatePerson } = await import('@/app/actions/persons');
       (updatePerson as jest.Mock).mockResolvedValue({
         success: true
       });

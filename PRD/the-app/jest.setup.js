@@ -29,8 +29,10 @@ jest.mock('next/navigation', () => ({
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props) => {
+    // Filter out Next.js specific props that shouldn't be passed to img element
+    const { unoptimized, ...imgProps } = props
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img {...props} />
+    return <img {...imgProps} />
   },
 }))
 
@@ -136,6 +138,12 @@ jest.mock('@/lib/prisma', () => ({
       fields: {
         maxRetries: 3,
       },
+    },
+    emailSuppression: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }))

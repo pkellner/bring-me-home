@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import { generateVerificationToken, hashToken, generateVerificationUrls } from '@/lib/comment-verification';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
+import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 
 const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
@@ -372,11 +373,6 @@ export async function submitComment(
           const profileUrl = `${baseUrl}/profile`;
           const personUrl = `${baseUrl}/${personData.town.slug}/${personData.slug}`;
           
-          // Import required functions
-          const { replaceTemplateVariables } = await import('@/lib/email-template-variables');
-          const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
-          const { generateVerificationToken, hashToken } = await import('@/lib/comment-verification');
-          
           // Determine which template to use based on user status
           let templateName: string;
           let needsVerification = false;
@@ -649,7 +645,6 @@ export async function submitComment(
             }) + ' UTC';
             
             // Generate opt-out tokens for this admin
-            const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
             const personOptOutToken = await generateOptOutToken(admin.id, data.personId);
             const allOptOutToken = await generateOptOutToken(admin.id);
             
@@ -1103,7 +1098,6 @@ export async function approveBulkComments(commentIds: string[]) {
             let allUnsubscribeUrl = urls.manageUrl; // Default to manage URL
             
             if (emailUser) {
-              const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
               const personOptOutToken = await generateOptOutToken(emailUser.id, personData.id);
               const allOptOutToken = await generateOptOutToken(emailUser.id);
               personUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${personOptOutToken}`;

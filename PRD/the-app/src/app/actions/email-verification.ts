@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
 import { EmailStatus } from '@prisma/client';
+import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
+import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 
 const VERIFICATION_TOKEN_EXPIRY_HOURS = 24;
 
@@ -38,7 +40,6 @@ export async function sendVerificationEmail(userId: string, isNewRegistration: b
     });
 
     // Generate opt-out token for unsubscribe link
-    const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
     const optOutToken = await generateOptOutToken(userId);
     
     // Queue verification email
@@ -54,8 +55,6 @@ export async function sendVerificationEmail(userId: string, isNewRegistration: b
 
     if (template && template.isActive) {
       // Use template
-      const { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } = await import('@/lib/email-template-variables');
-      
       const templateData = {
         firstName: user.firstName || user.username || 'there',
         verificationUrl,
@@ -343,14 +342,11 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     });
     
     if (emailUser) {
-      const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
       const personOptOutToken = await generateOptOutToken(emailUser.id, comment.personId);
       const allOptOutToken = await generateOptOutToken(emailUser.id);
       personUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${personOptOutToken}`;
       allUnsubscribeUrl = `${baseUrl}/unsubscribe?token=${allOptOutToken}`;
     }
-    
-    const { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } = await import('@/lib/email-template-variables');
     
     const templateData = {
       firstName: firstName || 'there',

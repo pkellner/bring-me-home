@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { getMemoryCache, getRedisCache } from '../cache-manager';
+import Redis from 'ioredis';
 
 // Mock environment variables
 const originalEnv = process.env;
@@ -156,8 +157,7 @@ describe('CacheManager', () => {
       process.env.REDIS_HOST = 'invalid-host';
       
       // Mock Redis to throw connection error
-      const Redis = (await import('ioredis')).default;
-      Redis.mockImplementationOnce(() => {
+      (Redis as any).mockImplementationOnce(() => {
         throw new Error('Connection failed');
       });
       
@@ -186,7 +186,6 @@ describe('CacheManager', () => {
     it('should handle Redis operations correctly', async () => {
       process.env.CACHE_REDIS_ENABLE = 'true';
       
-      const Redis = (await import('ioredis')).default;
       const mockRedis = {
         get: jest.fn().mockResolvedValue('{"data":"test"}'),
         set: jest.fn().mockResolvedValue('OK'),
@@ -196,7 +195,7 @@ describe('CacheManager', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn().mockResolvedValue(undefined),
       };
-      Redis.mockReturnValue(mockRedis);
+      (Redis as any).mockReturnValue(mockRedis);
       
       const cache = await getRedisCache();
       expect(cache).not.toBeNull();
@@ -224,7 +223,6 @@ describe('CacheManager', () => {
     it('should handle serialization errors gracefully', async () => {
       process.env.CACHE_REDIS_ENABLE = 'true';
       
-      const Redis = (await import('ioredis')).default;
       const mockRedis = {
         get: jest.fn().mockResolvedValue('invalid json'),
         set: jest.fn().mockResolvedValue('OK'),
@@ -234,7 +232,7 @@ describe('CacheManager', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn().mockResolvedValue(undefined),
       };
-      Redis.mockReturnValue(mockRedis);
+      (Redis as any).mockReturnValue(mockRedis);
       
       const cache = await getRedisCache();
       if (cache) {

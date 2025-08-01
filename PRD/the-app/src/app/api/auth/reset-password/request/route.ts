@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
+import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 
 export async function POST(request: Request) {
   try {
@@ -94,7 +95,6 @@ export async function POST(request: Request) {
       }
 
       // Generate opt-out token for unsubscribe link
-      const { generateOptOutToken } = await import('@/lib/email-opt-out-tokens');
       const optOutToken = await generateOptOutToken(user.id);
       
       // Prepare template variables

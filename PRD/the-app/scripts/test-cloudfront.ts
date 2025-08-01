@@ -8,6 +8,7 @@
 // Load environment variables
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 // Load .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -58,8 +59,6 @@ async function testUrl(url: string, description: string) {
 
 async function main() {
   // Test a known static file path from the build
-  const fs = await import('fs');
-  const path = await import('path');
   
   // Check if we're testing against production or local
   const isLocalhost = ORIGIN_URL.includes('localhost');

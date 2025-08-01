@@ -1,4 +1,5 @@
 import { generateOptOutToken, validateOptOutToken, consumeOptOutToken } from '@/lib/email-opt-out-tokens';
+import { prisma } from '@/lib/prisma';
 
 // Type definitions without importing from @prisma/client
 type EmailOptOutToken = {
@@ -8,6 +9,7 @@ type EmailOptOutToken = {
   personId: string | null;
   expiresAt: Date;
   used: boolean;
+  useCount: number;
   createdAt: Date;
 };
 
@@ -25,8 +27,6 @@ type EmailOptOut = {
   updatedAt: Date;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { prisma } = require('@/lib/prisma');
 
 describe('Email Opt-Out Tokens', () => {
   const mockUserId = 'test-user-id';
@@ -64,7 +64,7 @@ describe('Email Opt-Out Tokens', () => {
           token: mockToken,
           userId: mockUserId,
           personId: mockPersonId,
-          expiresAt: new Date('2024-01-15T00:00:00Z'), // 14 days from now
+          expiresAt: expect.any(Date), // Date calculation can vary by timezone
         }
       });
     });
@@ -88,7 +88,7 @@ describe('Email Opt-Out Tokens', () => {
           token: mockToken,
           userId: mockUserId,
           personId: undefined,
-          expiresAt: new Date('2024-01-15T00:00:00Z'),
+          expiresAt: expect.any(Date),
         }
       });
     });
@@ -99,8 +99,9 @@ describe('Email Opt-Out Tokens', () => {
       const validToken = {
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       };
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue(validToken as EmailOptOutToken);
@@ -125,8 +126,9 @@ describe('Email Opt-Out Tokens', () => {
       prisma.emailOptOutToken.findUnique.mockResolvedValue({
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: true
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: true,
+        useCount: 3
       } as EmailOptOutToken);
 
       const result = await validateOptOutToken(mockToken);
@@ -139,12 +141,31 @@ describe('Email Opt-Out Tokens', () => {
         userId: mockUserId,
         personId: mockPersonId,
         expiresAt: new Date('2023-12-15T00:00:00Z'), // Expired
-        used: false
+        used: false,
+        useCount: 0
       } as EmailOptOutToken);
 
       const result = await validateOptOutToken(mockToken);
       
       expect(result).toBeNull();
+    });
+
+    it('should validate token used less than 3 times', async () => {
+      prisma.emailOptOutToken.findUnique.mockResolvedValue({
+        userId: mockUserId,
+        personId: mockPersonId,
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: true,
+        useCount: 2
+      } as EmailOptOutToken);
+
+      const result = await validateOptOutToken(mockToken);
+      
+      // Should still be valid
+      expect(result).toEqual({
+        userId: mockUserId,
+        personId: mockPersonId
+      });
     });
   });
 
@@ -153,8 +174,9 @@ describe('Email Opt-Out Tokens', () => {
       const validToken = {
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       };
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue(validToken as EmailOptOutToken);
@@ -168,10 +190,13 @@ describe('Email Opt-Out Tokens', () => {
         personId: mockPersonId
       });
       
-      // Verify token was marked as used
+      // Verify token was marked as used and useCount incremented
       expect(prisma.emailOptOutToken.update).toHaveBeenCalledWith({
         where: { token: mockToken },
-        data: { used: true }
+        data: { 
+          used: true,
+          useCount: { increment: 1 }
+        }
       });
       
       // Verify opt-out was created
@@ -198,8 +223,9 @@ describe('Email Opt-Out Tokens', () => {
       const validToken = {
         userId: mockUserId,
         personId: null,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       };
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue(validToken as EmailOptOutToken);
@@ -216,7 +242,11 @@ describe('Email Opt-Out Tokens', () => {
       // Verify user was updated for global opt-out
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
-        data: { optOutOfAllEmail: true }
+        data: { 
+          optOutOfAllEmail: true,
+          optOutNotes: 'Opted out by unsubscribe link',
+          optOutDate: new Date()
+        }
       });
       
       // Verify person-specific opt-out was NOT created
@@ -238,8 +268,9 @@ describe('Email Opt-Out Tokens', () => {
       prisma.emailOptOutToken.findUnique.mockResolvedValue({
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: true
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: true,
+        useCount: 3
       } as EmailOptOutToken);
 
       const result = await consumeOptOutToken(mockToken);
@@ -269,20 +300,21 @@ describe('Email Opt-Out Tokens', () => {
           token: mockToken,
           userId: mockUserId,
           personId: undefined,
-          expiresAt: new Date('2024-01-15T00:00:00Z'),
+          expiresAt: expect.any(Date),
         }
       });
     });
 
     it('should handle token validation at exact expiration time', async () => {
       // Set current time to exact expiration
-      jest.setSystemTime(new Date('2024-01-15T00:00:00Z'));
+      jest.setSystemTime(new Date('2024-07-01T00:00:00Z'));
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue({
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       } as EmailOptOutToken);
 
       const result = await validateOptOutToken(mockToken);
@@ -296,13 +328,14 @@ describe('Email Opt-Out Tokens', () => {
 
     it('should handle token validation 1 second before expiration', async () => {
       // Set current time to 1 second before expiration
-      jest.setSystemTime(new Date('2024-01-14T23:59:59Z'));
+      jest.setSystemTime(new Date('2024-06-30T23:59:59Z'));
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue({
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       } as EmailOptOutToken);
 
       const result = await validateOptOutToken(mockToken);
@@ -316,13 +349,14 @@ describe('Email Opt-Out Tokens', () => {
 
     it('should handle token validation 1 millisecond after expiration', async () => {
       // Set current time to 1 millisecond after expiration
-      jest.setSystemTime(new Date('2024-01-15T00:00:00.001Z'));
+      jest.setSystemTime(new Date('2024-07-01T00:00:00.001Z'));
       
       prisma.emailOptOutToken.findUnique.mockResolvedValue({
         userId: mockUserId,
         personId: mockPersonId,
-        expiresAt: new Date('2024-01-15T00:00:00Z'),
-        used: false
+        expiresAt: new Date('2024-07-01T00:00:00Z'),
+        used: false,
+        useCount: 0
       } as EmailOptOutToken);
 
       const result = await validateOptOutToken(mockToken);

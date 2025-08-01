@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 async function main() {
   try {
@@ -45,7 +46,6 @@ async function main() {
       console.log('   - Found existing user, linking to comment');
     } else {
       // Create a new user
-      const bcrypt = await import('bcryptjs');
       const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
       const newUser = await prisma.user.create({
         data: {

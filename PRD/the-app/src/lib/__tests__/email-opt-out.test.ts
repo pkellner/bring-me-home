@@ -1,4 +1,5 @@
 import { getPersonFollowers } from '@/app/actions/email-notifications';
+import { prisma } from '@/lib/prisma';
 
 // Type definitions without importing from @prisma/client
 type User = {
@@ -27,11 +28,17 @@ jest.mock('@/lib/auth', () => ({
 
 // Mock permissions
 jest.mock('@/lib/permissions', () => ({
-  isSiteAdmin: jest.fn(() => true)
+  isSiteAdmin: jest.fn(() => true),
+  isTownAdmin: jest.fn(() => false),
+  isPersonAdmin: jest.fn(() => false),
+  hasPersonAccess: jest.fn(() => true)
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { prisma } = require('@/lib/prisma');
+// Mock email suppression
+jest.mock('@/lib/email-suppression', () => ({
+  isEmailSuppressed: jest.fn(() => false)
+}));
+
 
 describe('Email Opt-Out Logic', () => {
   const mockPersonId = 'test-person-id';

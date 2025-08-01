@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import * as sections from './sections';
 import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter, SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
+import { getCommentCountsByPersonHistoryIds } from '@/app/actions/comments';
 
 // Extended types for LayoutRenderer specific needs
 type SerializedComment = SanitizedComment & {
@@ -175,7 +176,6 @@ export default function LayoutRenderer({
       if (!person.personHistory || person.personHistory.length === 0) return;
 
       try {
-        const { getCommentCountsByPersonHistoryIds } = await import('@/app/actions/comments');
         const historyIds = person.personHistory.map(h => h.id);
         const counts = await getCommentCountsByPersonHistoryIds(historyIds);
         setHistoryCommentCounts(counts);
