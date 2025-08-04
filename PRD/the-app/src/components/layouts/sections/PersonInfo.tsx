@@ -20,7 +20,7 @@ interface PersonInfoProps {
 
 export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
   const { generateUrl } = useImageUrl();
-  
+
   return (
     <div className="info-section space-y-4 text-theme-primary">
       <h1 className="text-3xl font-bold text-theme-primary">
@@ -123,7 +123,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
             <div className="flex-shrink-0">
               {(() => {
                 const imageId = getDetentionCenterImageId(person);
-                
+
                 if (imageId) {
                   return (
                     <div className="relative w-[120px] h-[120px]">
@@ -133,6 +133,7 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
                         fill
                         sizes="120px"
                         className="rounded-lg object-cover shadow-sm"
+                        unoptimized
                       />
                     </div>
                   );

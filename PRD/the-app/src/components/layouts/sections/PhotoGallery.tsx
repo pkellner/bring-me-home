@@ -19,9 +19,9 @@ type GalleryImage = {
 
 export default function PhotoGallery({ person }: PhotoGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
-  
+
   // Use useMemo to avoid dependency issues
-  const galleryImages = useMemo(() => 
+  const galleryImages = useMemo(() =>
     person.images?.filter(img => img.imageType === 'gallery') || [],
     [person.images]
   );
@@ -53,6 +53,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-200"
                   sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  unoptimized
                 />
                 {/* Caption overlay that appears on hover */}
                 {image.caption && (
@@ -106,6 +107,7 @@ export default function PhotoGallery({ person }: PhotoGalleryProps) {
                 height={800}
                 className="max-w-full max-h-full object-contain"
                 style={{ maxWidth: '70vw', maxHeight: '70vh' }}
+                unoptimized
               />
             </div>
 

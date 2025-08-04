@@ -32,6 +32,9 @@ export function getImageUrl(
 ): string | null {
   if (!image) return null;
 
+
+
+
   // If we have a server-generated imageUrl and no transformations requested, use it
   if (image.imageUrl && !options?.width && !options?.height && !options?.format) {
     return image.imageUrl;
@@ -40,14 +43,14 @@ export function getImageUrl(
   // Check if the server-provided imageUrl contains a CDN URL
   let cdnUrl: string | undefined;
   let isAdminRoute = false;
-  
+
   if (image.imageUrl) {
     // Extract CDN URL if the imageUrl starts with http/https
     const urlMatch = image.imageUrl.match(/^(https?:\/\/[^\/]+)/);
     if (urlMatch) {
       cdnUrl = urlMatch[1];
     }
-    
+
     // Check if we're in an admin context based on current path
     if (typeof window !== 'undefined') {
       isAdminRoute = window.location.pathname.startsWith('/admin');
