@@ -7,9 +7,14 @@ import { authOptions } from '@/lib/auth';
 import { hasPersonAccess, isSiteAdmin, isTownAdmin, isPersonAdmin } from '@/lib/permissions';
 import { z } from 'zod';
 
+// Get character limits from environment variables
+const CHAR_LIMIT = parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_CHAR_LIMIT || '5000', 10);
+const HTML_MULTIPLIER = parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_HTML_MULTIPLIER || '3', 10);
+const HTML_LIMIT = CHAR_LIMIT * HTML_MULTIPLIER;
+
 const personHistorySchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters'),
-  description: z.string().min(1, 'Description is required').max(2048, 'Description must be less than 2048 characters'),
+  description: z.string().min(1, 'Description is required').max(HTML_LIMIT, `Description HTML content exceeds maximum size. Your content has too much formatting. Please simplify the formatting or shorten the text.`),
   date: z.string().optional().refine((val) => {
     if (!val) return true; // Optional field
     const date = new Date(val);
@@ -20,6 +25,7 @@ const personHistorySchema = z.object({
 });
 
 export async function createPersonHistory(personId: string, formData: FormData) {
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     throw new Error('Unauthorized');
@@ -34,13 +40,15 @@ export async function createPersonHistory(personId: string, formData: FormData) 
     throw new Error('Unauthorized');
   }
 
-  const validatedFields = personHistorySchema.safeParse({
+  const parseData = {
     title: formData.get('title'),
     description: formData.get('description'),
-    date: formData.get('date'), // Optional - will use current time if not provided
+    date: formData.get('date'),
     visible: formData.get('visible') === 'true',
     sendNotifications: formData.get('sendNotifications') === 'true',
-  });
+  };
+
+  const validatedFields = personHistorySchema.safeParse(parseData);
 
   if (!validatedFields.success) {
     return {
@@ -75,7 +83,7 @@ export async function createPersonHistory(personId: string, formData: FormData) 
 
     return { success: true, data: history };
   } catch (error) {
-    console.error('Error creating person history:', error);
+    console.error('[createPersonHistory] Error creating person history:', error);
     return { 
       error: 'Failed to create history note',
       errors: {},

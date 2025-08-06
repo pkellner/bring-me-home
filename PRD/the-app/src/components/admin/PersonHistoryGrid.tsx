@@ -38,11 +38,16 @@ interface EmailStats {
   opened: number;
 }
 
+// Get character limits from environment variables (use defaults if not set)
+const CHAR_LIMIT = parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_CHAR_LIMIT || '5000', 10);
+const HTML_MULTIPLIER = parseInt(process.env.NEXT_PUBLIC_PERSON_HISTORY_HTML_MULTIPLIER || '3', 10);
+const HTML_LIMIT = CHAR_LIMIT * HTML_MULTIPLIER;
+
 export default function PersonHistoryGrid({ 
   personId, 
   initialHistory, 
   isSiteAdmin, 
-  isTownAdmin: _isTownAdmin, // eslint-disable-line @typescript-eslint/no-unused-vars
+  isTownAdmin,
   townSlug, 
   personSlug, 
   personName = '', 
@@ -61,6 +66,7 @@ export default function PersonHistoryGrid({
   });
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [emailModalState, setEmailModalState] = useState<{
     isOpen: boolean;
     personHistoryId: string;
@@ -125,6 +131,7 @@ export default function PersonHistoryGrid({
       sendNotifications: record.sendNotifications,
     });
     setError(null);
+    setDescriptionError(null);
   }, []);
 
   const handleCancelEdit = useCallback(() => {
@@ -138,6 +145,7 @@ export default function PersonHistoryGrid({
     });
     setShowAddForm(false);
     setError(null);
+    setDescriptionError(null);
   }, []);
 
   const handleAddClick = useCallback(() => {
@@ -150,6 +158,7 @@ export default function PersonHistoryGrid({
       visible: true,
       sendNotifications: false,
     });
+    setDescriptionError(null);
   }, []);
 
   // Remove animation class after a delay
@@ -163,6 +172,12 @@ export default function PersonHistoryGrid({
   }, [newItemIds]);
 
   const handleSave = useCallback(async () => {
+    // Validate title is provided
+    if (!editingState.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+
     const dateValue = editingState.date.includes('T') 
       ? new Date(editingState.date)
       : new Date(editingState.date + 'T12:00:00');
@@ -233,7 +248,8 @@ export default function PersonHistoryGrid({
         }
         handleCancelEdit();
         router.refresh();
-      } catch {
+      } catch (error) {
+        console.error('Unexpected error:', error);
         setError('An unexpected error occurred');
       }
     });
@@ -375,9 +391,17 @@ export default function PersonHistoryGrid({
               <RichTextEditor
                 value={editingState.description}
                 onChange={(value) => {
-                  const textContent = value.replace(/<[^>]*>/g, '');
-                  if (textContent.length <= 2048) {
-                    setEditingState({ ...editingState, description: value });
+                  setEditingState({ ...editingState, description: value });
+                  const plainTextLength = value.replace(/<[^>]*>/g, '').length;
+                  const htmlLength = value.length;
+                  
+                  // Check if HTML exceeds the multiplier limit
+                  if (htmlLength > HTML_LIMIT) {
+                    setDescriptionError(`Your content has too much formatting. The HTML size (${htmlLength} characters) exceeds the maximum allowed (${HTML_LIMIT} characters). Please simplify the formatting or shorten the text.`);
+                  } else if (plainTextLength > CHAR_LIMIT) {
+                    setDescriptionError(`Description is too long (${plainTextLength}/${CHAR_LIMIT} characters). Please shorten it.`);
+                  } else {
+                    setDescriptionError(null);
                   }
                 }}
                 placeholder="Enter update details here..."
@@ -387,19 +411,32 @@ export default function PersonHistoryGrid({
                 <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                   <div 
                     className={`h-full transition-all duration-300 ${
-                      editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.9 
+                      editingState.description.replace(/<[^>]*>/g, '').length / CHAR_LIMIT > 1 
                         ? 'bg-red-500' 
-                        : editingState.description.replace(/<[^>]*>/g, '').length / 2048 > 0.7 
-                          ? 'bg-yellow-500' 
-                          : 'bg-green-500'
+                        : editingState.description.replace(/<[^>]*>/g, '').length / CHAR_LIMIT > 0.9 
+                          ? 'bg-orange-500' 
+                          : editingState.description.replace(/<[^>]*>/g, '').length / CHAR_LIMIT > 0.7 
+                            ? 'bg-yellow-500' 
+                            : 'bg-green-500'
                     }`}
-                    style={{ width: `${(editingState.description.replace(/<[^>]*>/g, '').length / 2048) * 100}%` }}
+                    style={{ width: `${Math.min((editingState.description.replace(/<[^>]*>/g, '').length / CHAR_LIMIT) * 100, 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>{editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters (text only)</span>
-                  <span className="text-xs text-gray-500">HTML formatting preserved</span>
+                <div className="flex justify-between text-sm">
+                  <span className={`${descriptionError ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                    {editingState.description.replace(/<[^>]*>/g, '').length}/{CHAR_LIMIT} characters
+                  </span>
+                  {(isSiteAdmin || isTownAdmin) && editingState.description.length > editingState.description.replace(/<[^>]*>/g, '').length && (
+                    <span className="text-xs text-gray-500">
+                      (HTML: {editingState.description.length} chars)
+                    </span>
+                  )}
                 </div>
+                {descriptionError && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                    ⚠️ {descriptionError}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -407,8 +444,9 @@ export default function PersonHistoryGrid({
             <div className="flex gap-3 pt-4">
               <button
                 onClick={handleSave}
-                disabled={!editingState.title.trim() || !editingState.description.trim() || isPending}
+                disabled={!editingState.title.trim() || !editingState.description.trim() || isPending || !!descriptionError}
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={descriptionError ? descriptionError : undefined}
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isPending ? 'Saving...' : 'Save Update'}
@@ -596,16 +634,36 @@ export default function PersonHistoryGrid({
                             <RichTextEditor
                               value={editingState.description}
                               onChange={(value) => {
-                                const textContent = value.replace(/<[^>]*>/g, '');
-                                if (textContent.length <= 2048) {
-                                  setEditingState({ ...editingState, description: value });
+                                setEditingState({ ...editingState, description: value });
+                                const plainTextLength = value.replace(/<[^>]*>/g, '').length;
+                                const htmlLength = value.length;
+                                
+                                // Check if HTML exceeds the multiplier limit
+                                if (htmlLength > HTML_LIMIT) {
+                                  setDescriptionError(`Your content has too much formatting. The HTML size (${htmlLength} characters) exceeds the maximum allowed (${HTML_LIMIT} characters). Please simplify the formatting or shorten the text.`);
+                                } else if (plainTextLength > CHAR_LIMIT) {
+                                  setDescriptionError(`Description is too long (${plainTextLength}/${CHAR_LIMIT} characters). Please shorten it.`);
+                                } else {
+                                  setDescriptionError(null);
                                 }
                               }}
                               placeholder="Enter update description..."
                               height={200}
                             />
-                            <div className="text-xs text-gray-500 mt-2">
-                              {editingState.description.replace(/<[^>]*>/g, '').length}/2048 characters
+                            <div className="mt-2">
+                              <div className={`text-xs ${descriptionError ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                {editingState.description.replace(/<[^>]*>/g, '').length}/{CHAR_LIMIT} characters
+                                {(isSiteAdmin || isTownAdmin) && editingState.description.length > editingState.description.replace(/<[^>]*>/g, '').length && (
+                                  <span className="text-gray-400 ml-2">
+                                    (HTML: {editingState.description.length})
+                                  </span>
+                                )}
+                              </div>
+                              {descriptionError && (
+                                <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200 mt-2">
+                                  ⚠️ {descriptionError}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -614,8 +672,9 @@ export default function PersonHistoryGrid({
                         <div className="flex gap-3 pt-2 border-t border-gray-200">
                           <button
                             onClick={handleSave}
-                            disabled={!editingState.title.trim() || !editingState.description.trim() || isPending}
+                            disabled={!editingState.title.trim() || !editingState.description.trim() || isPending || !!descriptionError}
                             className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={descriptionError ? descriptionError : undefined}
                           >
                             <Save className="h-4 w-4 mr-2" />
                             {isPending ? 'Saving...' : 'Save Changes'}
