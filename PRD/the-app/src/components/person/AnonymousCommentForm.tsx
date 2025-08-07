@@ -14,6 +14,7 @@ const DEBUG_RECAPTCHA = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 export interface AnonymousCommentFormProps {
   personId: string;
+  personHistoryId?: string; // New optional field for history comments
   onSubmit: (formData: FormData) => void;
   isPending: boolean;
   state?: {
@@ -61,6 +62,7 @@ export interface AnonymousCommentFormProps {
 
 export default function AnonymousCommentForm({
   personId,
+  personHistoryId,
   onSubmit,
   isPending,
   state,
@@ -355,6 +357,7 @@ export default function AnonymousCommentForm({
         className="space-y-6"
       >
         <input type="hidden" name="personId" value={personId} />
+        {personHistoryId && <input type="hidden" name="personHistoryId" value={personHistoryId} />}
         <input type="hidden" name="requiresFamilyApproval" value="true" />
 
         {/* Your Info */}

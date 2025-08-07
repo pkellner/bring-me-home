@@ -18,6 +18,12 @@ const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
+  personHistoryId: z.union([
+    z.string().min(1), // Valid non-empty string
+    z.literal(''),     // Empty string (will be treated as null)
+    z.null(),          // Explicit null
+    z.undefined()      // Undefined
+  ]).optional().transform(val => (!val || val === '') ? null : val), // Transform empty/falsy to null
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email().optional().or(z.literal('')),
@@ -204,6 +210,7 @@ export async function submitComment(
 
     const rawData = {
       personId: getFieldValue('personId') as string,
+      personHistoryId: getFieldValue('personHistoryId') || null, // Handle missing field
       firstName: getFieldValue('firstName') as string,
       lastName: getFieldValue('lastName') as string,
       email: getFieldValue('email') as string,
@@ -221,6 +228,7 @@ export async function submitComment(
       requiresFamilyApproval: getFieldValue('requiresFamilyApproval') === 'true',
       showOccupation: getFieldValue('showOccupation') === 'true',
       showBirthdate: getFieldValue('showBirthdate') === 'true',
+      showComment: getFieldValue('showComment') === 'true', // Added missing field
       showCityState: getFieldValue('showCityState') === 'true',
       privacyRequiredDoNotShowPublicly: getFieldValue('privacyRequiredDoNotShowPublicly') === 'true',
       keepMeUpdated: getFieldValue('keepMeUpdated') === 'on', // checkboxes send 'on' when checked
@@ -325,6 +333,7 @@ export async function submitComment(
     await prisma.comment.create({
       data: {
         personId: data.personId,
+        personHistoryId: data.personHistoryId, // Already transformed to null if empty
         userId,
         firstName: data.firstName,
         lastName: data.lastName,

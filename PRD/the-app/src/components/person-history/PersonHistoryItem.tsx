@@ -213,6 +213,7 @@ export default function PersonHistoryItem({
                 <div className="mb-6" id={`comment-form-${historyItem.id}`}>
                   <PersonHistoryCommentForm
                     personId={personId}
+                    personHistoryId={historyItem.id} // Pass the history item ID
                     updateTitle={historyItem.title}
                     onSuccess={handleCommentAdded}
                     onCancel={() => setShowCommentForm(false)}
