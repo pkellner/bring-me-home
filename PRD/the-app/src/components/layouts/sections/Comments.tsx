@@ -12,9 +12,10 @@ interface CommentsProps {
     supportLocationCount: number;
   };
   searchParams?: { [key: string]: string | string[] | undefined };
+  hasPersonHistory?: boolean;
 }
 
-export default function Comments({ person, isAdmin, isSiteAdmin = false, supportMapMetadata, searchParams }: CommentsProps) {
+export default function Comments({ person, isAdmin, isSiteAdmin = false, supportMapMetadata, searchParams, hasPersonHistory = false }: CommentsProps) {
   return (
     <div className="comments-section">
       <div className="flex items-center justify-between mb-4">
@@ -28,7 +29,7 @@ export default function Comments({ person, isAdmin, isSiteAdmin = false, support
           </Link>
         )}
       </div>
-      <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} searchParams={searchParams} />
+      <CommentSection personId={person.id} comments={person.comments} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} searchParams={searchParams} hasPersonHistory={hasPersonHistory} />
     </div>
   );
 }

@@ -35,6 +35,7 @@ interface CommentSectionProps {
     supportLocationCount: number;
   };
   searchParams?: { [key: string]: string | string[] | undefined };
+  hasPersonHistory?: boolean;
 }
 
 interface CommentFormState {
@@ -71,6 +72,7 @@ export default function CommentSection({
   isSiteAdmin = false,
   supportMapMetadata,
   searchParams,
+  hasPersonHistory = false,
 }: CommentSectionProps) {
   const [state, formAction, isPending] = useActionState<
     CommentFormState,
@@ -88,11 +90,13 @@ export default function CommentSection({
   const shouldAddComment = searchParams?.addComment === 'true';
   const magicUid = searchParams?.uid ? String(searchParams.uid) : null;
   
-  // Get initial show count from environment variable or default to 50
+  // Get initial show count - if there's person history, show only 2 comments initially
+  // Otherwise use environment variable or default to 50
   const parsedCount = process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT 
     ? parseInt(process.env.NEXT_PUBLIC_COMMENTS_INITIAL_SHOW_COUNT, 10) 
     : NaN;
-  const initialShowCount = isNaN(parsedCount) ? 50 : parsedCount;
+  const defaultCount = isNaN(parsedCount) ? 50 : parsedCount;
+  const initialShowCount = hasPersonHistory ? 2 : defaultCount;
   
   // Check for cookie only on client side
   useEffect(() => {

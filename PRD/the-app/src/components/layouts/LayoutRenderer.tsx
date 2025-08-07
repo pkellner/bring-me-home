@@ -249,7 +249,7 @@ export default function LayoutRenderer({
   const components = {
     'image': () => <sections.PersonImage person={person} />,
     'info': () => <sections.PersonInfo person={person} isAdmin={isAdmin} />,
-    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} searchParams={searchParams} />,
+    'comments': () => <sections.Comments person={person} isAdmin={isAdmin} isSiteAdmin={isSiteAdmin} supportMapMetadata={supportMapMetadata} searchParams={searchParams} hasPersonHistory={hasHistory} />,
     'gallery-grid': () => <sections.GalleryGrid person={person} />,
     'history': () => <sections.History person={person} isPersonAdmin={isPersonAdmin} isTownAdmin={isTownAdmin} isSiteAdmin={isSiteAdmin} searchParams={searchParams} />,
   };
@@ -378,11 +378,6 @@ export default function LayoutRenderer({
             <sections.StoryWithLanguageToggle person={person} />
           </div>
 
-          {/* History section - full width */}
-          <div className="layout-section w-full" id="history-section">
-            {components['history']()}
-          </div>
-
           {/* Community Support - modern comment section */}
           {person.showCommunitySupport && (
             <div className="layout-section w-full">
@@ -393,6 +388,11 @@ export default function LayoutRenderer({
               </div>
             </div>
           )}
+
+          {/* History section - full width */}
+          <div className="layout-section w-full" id="history-section">
+            {components['history']()}
+          </div>
 
           {/* Photo Gallery - elegant grid layout */}
           <div className="layout-section w-full">
