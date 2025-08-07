@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import * as sections from './sections';
 import type { SanitizedTown, SanitizedComment, SanitizedDetentionCenter, SanitizedPersonHistory } from '@/types/sanitized';
 import { format } from 'date-fns';
@@ -144,7 +143,6 @@ export default function LayoutRenderer({
   supportMapMetadata,
   searchParams,
 }: LayoutRendererProps) {
-  const router = useRouter();
   
   // Check for update parameter to scroll to specific update
   const targetUpdateId = searchParams?.update ? String(searchParams.update) : null;
@@ -318,21 +316,11 @@ export default function LayoutRenderer({
                   <div className="mt-4 w-full">
                     <button
                       onClick={() => {
-                        // Navigate to the history section with the update expanded and comment form open
-                        const currentUrl = new URL(window.location.href);
-                        currentUrl.searchParams.set('update', recentNote.id);
-                        currentUrl.searchParams.set('addComment', 'true');
-                        
-                        // Use router.push to navigate without full page reload
-                        router.push(currentUrl.pathname + currentUrl.search);
-                        
-                        // Scroll to the specific update after a short delay
-                        setTimeout(() => {
-                          const element = document.getElementById(`history-item-${recentNote.id}`);
-                          if (element) {
-                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }
-                        }, 100);
+                        // Simply scroll to the history item so user can see the Add comment button
+                        const element = document.getElementById(`history-item-${recentNote.id}`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
                       }}
                       className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 text-left transition-all duration-300 hover:shadow-md hover:border-amber-300"
                     >
