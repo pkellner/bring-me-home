@@ -31,6 +31,9 @@ export default function RecaptchaProvider({ children }: RecaptchaProviderProps) 
         appendTo: 'head',
         nonce: undefined,
       }}
+      useEnterprise={false}
+      useRecaptchaNet={false}
+      language="en"
     >
       {children}
     </GoogleReCaptchaProvider>

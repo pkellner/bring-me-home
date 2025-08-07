@@ -44,6 +44,7 @@ export default function PersonHistoryItem({
   const [localCommentCount, setLocalCommentCount] = useState(commentCount);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [unapprovedCount, setUnapprovedCount] = useState(0);
+  const [formKey, setFormKey] = useState(0); // Use counter instead of timestamp
   const { data: session } = useSession();
 
   // Check if user has permission to moderate comments
@@ -84,6 +85,7 @@ export default function PersonHistoryItem({
     // The count should only show approved comments
     setShowCommentForm(false);
     setRefreshTrigger(prev => prev + 1);
+    setFormKey(prev => prev + 1); // Increment key to reset form
     // For admins, refresh the unapproved count
     if (canModerateComments) {
       setUnapprovedCount(prev => prev + 1);
@@ -92,6 +94,7 @@ export default function PersonHistoryItem({
 
   const handleCommentCancel = () => {
     setShowCommentForm(false);
+    setFormKey(prev => prev + 1); // Increment key to reset form
   };
 
   return (
@@ -225,7 +228,7 @@ export default function PersonHistoryItem({
                     showCommentForm ? 'translate-y-0 scale-100' : '-translate-y-4 scale-95'
                   }`} id={`comment-form-${historyItem.id}`}>
                     <PersonHistoryCommentForm
-                      key={`comment-form-${historyItem.id}-${Date.now()}`} // Add key to force remount
+                      key={`comment-form-${historyItem.id}-${formKey}`} // Use stable counter key
                       personId={personId}
                       personHistoryId={historyItem.id} // Pass the history item ID
                       updateTitle={historyItem.title}
