@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useActionState } from 'react';
+import { useState, useEffect, useActionState, useRef } from 'react';
 import { submitComment } from '@/app/actions/comments';
 import AnonymousCommentFormWithRecaptcha from '@/components/person/AnonymousCommentFormWithRecaptcha';
 
@@ -48,11 +48,18 @@ export default function PersonHistoryCommentForm({
     firstName: string;
     lastName: string;
   } | null>(null);
+  
+  const hasCalledSuccess = useRef(false);
 
   // Check if submission was successful
   useEffect(() => {
-    if (state?.success) {
+    if (state?.success && !hasCalledSuccess.current) {
+      hasCalledSuccess.current = true;
       onSuccess();
+    }
+    // Reset the flag when state changes to not successful
+    if (!state?.success) {
+      hasCalledSuccess.current = false;
     }
   }, [state?.success, onSuccess]);
 

@@ -90,6 +90,10 @@ export default function PersonHistoryItem({
     }
   };
 
+  const handleCommentCancel = () => {
+    setShowCommentForm(false);
+  };
+
   return (
     <div
       id={`update-${historyItem.id}`}
@@ -184,23 +188,25 @@ export default function PersonHistoryItem({
               )}
             </button>
 
-            <button
-              onClick={() => {
-                setShowCommentForm(!showCommentForm);
-                // Expand the section when adding a comment
-                if (!showCommentForm && onExpandedChange) {
-                  onExpandedChange(true);
-                }
-              }}
-              className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Add comment
-            </button>
+            {!showCommentForm && (
+              <button
+                onClick={() => {
+                  setShowCommentForm(true);
+                  // Expand the section when adding a comment
+                  if (onExpandedChange) {
+                    onExpandedChange(true);
+                  }
+                }}
+                className="group flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-md"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                  />
+                </svg>
+                <span>Write a comment</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -208,19 +214,28 @@ export default function PersonHistoryItem({
         {isExpanded && (
           <div className="border-t border-gray-200 bg-gray-50">
             <div className="p-6">
-              {/* Show comment form if active */}
-              {showCommentForm && (
-                <div className="mb-6" id={`comment-form-${historyItem.id}`}>
-                  <PersonHistoryCommentForm
-                    personId={personId}
-                    personHistoryId={historyItem.id} // Pass the history item ID
-                    updateTitle={historyItem.title}
-                    onSuccess={handleCommentAdded}
-                    onCancel={() => setShowCommentForm(false)}
-                    magicToken={magicToken}
-                  />
-                </div>
-              )}
+              {/* Show comment form with smooth animation */}
+              <div
+                className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                  showCommentForm ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                {showCommentForm && (
+                  <div className={`mb-6 transform transition-all duration-500 ease-in-out ${
+                    showCommentForm ? 'translate-y-0 scale-100' : '-translate-y-4 scale-95'
+                  }`} id={`comment-form-${historyItem.id}`}>
+                    <PersonHistoryCommentForm
+                      key={`comment-form-${historyItem.id}-${Date.now()}`} // Add key to force remount
+                      personId={personId}
+                      personHistoryId={historyItem.id} // Pass the history item ID
+                      updateTitle={historyItem.title}
+                      onSuccess={handleCommentAdded}
+                      onCancel={handleCommentCancel}
+                      magicToken={magicToken}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Show existing comments */}
               <PersonHistoryComments
