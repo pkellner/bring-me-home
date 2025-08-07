@@ -74,6 +74,9 @@ export default function AnonymousCommentForm({
   magicLinkData,
   magicToken,
 }: AnonymousCommentFormProps) {
+  // Generate a unique form ID to avoid conflicts when multiple forms exist
+  const formId = personHistoryId ? `comment-form-${personHistoryId}` : `support-form-${personId}`;
+  
   // ---- Visual tokens (kept simple & consistent) -----------------------------
   const sectionCard =
     'rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900';
@@ -234,35 +237,10 @@ export default function AnonymousCommentForm({
   // ---- View -----------------------------------------------------------------
   return (
     <div className="mb-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
           {title}
         </h3>
-        <div className="flex items-center gap-2">
-          {isDirty && (
-            <button
-              type="submit"
-              form="support-form"
-              disabled={isPending || isExecutingRecaptcha}
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isExecutingRecaptcha
-                ? 'Verifying…'
-                : isPending
-                ? 'Submitting…'
-                : submitButtonText}
-            </button>
-          )}
-          {onCancel && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-md px-3 py-1.5 text-sm text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Error summary */}
@@ -288,9 +266,11 @@ export default function AnonymousCommentForm({
 
       <form
         ref={formRef}
-        id="support-form"
+        id={formId}
         onChange={handleFormChange}
-        action={async formData => {
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
           setRecaptchaError(null);
           setRecaptchaSuccess(null);
           if (!isReady) {
