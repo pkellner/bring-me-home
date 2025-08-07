@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import { submitComment } from '@/app/actions/comments';
 import AnonymousCommentFormWithRecaptcha from '@/components/person/AnonymousCommentFormWithRecaptcha';
 
@@ -13,6 +13,22 @@ interface PersonHistoryCommentFormProps {
   magicToken?: string | null;
 }
 
+interface CommentFormState {
+  success?: boolean;
+  error?: string;
+  errors?: Record<string, string[]>;
+  warning?: string;
+  recaptchaScore?: number;
+  recaptchaDetails?: {
+    success: boolean;
+    score: number;
+    action: string;
+    hostname: string;
+    challenge_ts: string;
+    'error-codes'?: string[];
+  };
+}
+
 export default function PersonHistoryCommentForm({
   personId,
   personHistoryId,
@@ -21,27 +37,24 @@ export default function PersonHistoryCommentForm({
   onCancel,
   magicToken,
 }: PersonHistoryCommentFormProps) {
-  const [isPending, startTransition] = useTransition();
-  const [state, setState] = useState<{
-    success?: boolean;
-    error?: string;
-    errors?: Record<string, string[]>;
-    warning?: string;
-    recaptchaScore?: number;
-    recaptchaDetails?: {
-      success: boolean;
-      score: number;
-      action: string;
-      hostname: string;
-      challenge_ts: string;
-      'error-codes'?: string[];
-    };
-  }>({});
+  // Use useActionState to properly handle server action
+  const [state, formAction, isPending] = useActionState<
+    CommentFormState,
+    FormData
+  >(submitComment, { success: false });
+  
   const [currentUserData, setCurrentUserData] = useState<{
     email: string;
     firstName: string;
     lastName: string;
   } | null>(null);
+
+  // Check if submission was successful
+  useEffect(() => {
+    if (state?.success) {
+      onSuccess();
+    }
+  }, [state?.success, onSuccess]);
 
   // Fetch current user data
   useEffect(() => {
@@ -67,17 +80,6 @@ export default function PersonHistoryCommentForm({
     }
   }, [magicToken]);
 
-  const handleSubmit = (formData: FormData) => {
-    startTransition(async () => {
-      const result = await submitComment(state, formData);
-      setState(result);
-      
-      if (result.success) {
-        onSuccess();
-      }
-    });
-  };
-
   return (
     <div>
       <div className="mb-4">
@@ -88,7 +90,7 @@ export default function PersonHistoryCommentForm({
       <AnonymousCommentFormWithRecaptcha
         personId={personId}
         personHistoryId={personHistoryId} // Pass personHistoryId
-        onSubmit={handleSubmit}
+        onSubmit={formAction} // Use formAction from useActionState
         isPending={isPending}
         state={state}
         onCancel={onCancel}

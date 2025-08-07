@@ -623,7 +623,7 @@ export default function AnonymousCommentForm({
             id="message"
             className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100"
           >
-            Your Message of Support (Optional)
+            {personHistoryId ? 'Your Comment (Optional)' : 'Your Message of Support (Optional)'}
           </h4>
           <p className={helpClass}>
             This may be shown publicly on the site if you choose below.
@@ -631,7 +631,7 @@ export default function AnonymousCommentForm({
 
           <div className="mt-4">
             <label htmlFor="content" className={labelClass}>
-              Message
+              {personHistoryId ? 'Comment' : 'Message'}
             </label>
             <textarea
               id="content"
@@ -640,7 +640,9 @@ export default function AnonymousCommentForm({
               maxLength={500}
               onChange={e => setCommentLength(e.target.value.length)}
               className={inputBase + ' min-h-[120px]'}
-              placeholder="Share why you support this person, your relationship to them, or any message of encouragement…"
+              placeholder={personHistoryId 
+                ? "Share your thoughts on this update..."
+                : "Share why you support this person, your relationship to them, or any message of encouragement…"}
               aria-invalid={Boolean(getFieldError('content'))}
               aria-describedby={
                 getFieldError('content') ? 'content-error' : undefined
@@ -958,14 +960,17 @@ export default function AnonymousCommentForm({
         </div>
       </form>
 
-      {/* Confirmation Modal (unchanged) */}
+      {/* Confirmation Modal - different text based on comment type */}
       <CommentConfirmationModal
         isOpen={showConfirmModal}
         isSubmitting={isPending}
-        title='Review Your Support Message'
-        description='Your message is being reviewed by the family to make sure it is OK with them.'
-        confirmButtonText='OK, Post My Support'
+        title={personHistoryId ? 'Review Your Comment' : 'Review Your Support Message'}
+        description={personHistoryId 
+          ? 'Your comment on this update will be reviewed by the family before being displayed.'
+          : 'Your message is being reviewed by the family to make sure it is OK with them.'}
+        confirmButtonText={personHistoryId ? 'OK, Post My Comment' : 'OK, Post My Support'}
         warningMessage={emailBlockWarning}
+        isHistoryComment={!!personHistoryId}
         onConfirm={() => {
           if (pendingFormData) {
             startTransition(() => {

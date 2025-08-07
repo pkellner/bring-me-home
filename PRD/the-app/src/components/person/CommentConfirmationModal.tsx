@@ -35,6 +35,7 @@ interface CommentConfirmationModalProps {
   description?: string;
   confirmButtonText?: string;
   warningMessage?: string | null;
+  isHistoryComment?: boolean; // Add flag to indicate if it's a history comment
 }
 
 export default function CommentConfirmationModal({
@@ -47,6 +48,7 @@ export default function CommentConfirmationModal({
   description = "Your message is being reviewed by the family to make sure it is OK with them.",
   confirmButtonText = "OK, Post My Support",
   warningMessage,
+  isHistoryComment = false,
 }: CommentConfirmationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -158,7 +160,7 @@ export default function CommentConfirmationModal({
             {/* Summary of submission */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h4 className="text-sm font-medium text-gray-900 mb-3">
-                Your Submission:
+                {isHistoryComment ? 'Your Comment:' : 'Your Submission:'}
               </h4>
 
               <div className="space-y-2 text-sm">
@@ -207,7 +209,7 @@ export default function CommentConfirmationModal({
 
                 {commentData.content && (
                   <div>
-                    <span className="font-medium text-gray-700">Message:</span>
+                    <span className="font-medium text-gray-700">{isHistoryComment ? 'Comment:' : 'Message:'}</span>
                     <p className="text-gray-900 mt-1">{commentData.content}</p>
                   </div>
                 )}
