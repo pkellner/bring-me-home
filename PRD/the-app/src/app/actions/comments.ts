@@ -18,7 +18,6 @@ const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 const commentSchema = z.object({
   personId: z.string().min(1, 'Person ID is required'),
-  personHistoryId: z.string().optional(),
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email().optional().or(z.literal('')),
@@ -154,8 +153,9 @@ export async function submitComment(
   formData: FormData
 ) {
   try {
-    // Verify reCAPTCHA token
-    const recaptchaToken = formData.get('recaptchaToken') as string;
+    // Handle both prefixed (1_recaptchaToken) and non-prefixed field names
+    // Next.js adds a prefix when using useActionState
+    const recaptchaToken = (formData.get('1_recaptchaToken') || formData.get('recaptchaToken')) as string;
 
     if (debugCaptcha) {
       console.log('[submitComment] Starting comment submission');
@@ -194,29 +194,36 @@ export async function submitComment(
       console.log('[submitComment] reCAPTCHA verification passed, proceeding with comment submission');
     }
 
+    // Handle both prefixed (1_fieldName) and non-prefixed field names
+    // Next.js adds a prefix when using useActionState
+    const getFieldValue = (fieldName: string): string | null => {
+      const prefixedValue = formData.get(`1_${fieldName}`);
+      if (prefixedValue !== null) return prefixedValue as string;
+      return formData.get(fieldName) as string;
+    };
+
     const rawData = {
-      personId: formData.get('personId') as string,
-      personHistoryId: formData.get('personHistoryId') as string || undefined,
-      firstName: formData.get('firstName') as string,
-      lastName: formData.get('lastName') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      occupation: formData.get('occupation') as string,
-      birthdate: formData.get('birthdate') as string,
-      streetAddress: formData.get('streetAddress') as string,
-      city: formData.get('city') as string,
-      state: formData.get('state') as string,
-      zipCode: formData.get('zipCode') as string,
-      content: formData.get('content') as string,
-      privateNoteToFamily: formData.get('privateNoteToFamily') as string,
-      wantsToHelpMore: formData.get('wantsToHelpMore') === 'true',
-      displayNameOnly: formData.get('displayNameOnly') === 'true',
-      requiresFamilyApproval: formData.get('requiresFamilyApproval') === 'true',
-      showOccupation: formData.get('showOccupation') === 'true',
-      showBirthdate: formData.get('showBirthdate') === 'true',
-      showCityState: formData.get('showCityState') === 'true',
-      privacyRequiredDoNotShowPublicly: formData.get('privacyRequiredDoNotShowPublicly') === 'true',
-      keepMeUpdated: formData.get('keepMeUpdated') === 'on', // checkboxes send 'on' when checked
+      personId: getFieldValue('personId') as string,
+      firstName: getFieldValue('firstName') as string,
+      lastName: getFieldValue('lastName') as string,
+      email: getFieldValue('email') as string,
+      phone: getFieldValue('phone') as string,
+      occupation: getFieldValue('occupation') as string,
+      birthdate: getFieldValue('birthdate') as string,
+      streetAddress: getFieldValue('streetAddress') as string,
+      city: getFieldValue('city') as string,
+      state: getFieldValue('state') as string,
+      zipCode: getFieldValue('zipCode') as string,
+      content: getFieldValue('content') as string,
+      privateNoteToFamily: getFieldValue('privateNoteToFamily') as string,
+      wantsToHelpMore: getFieldValue('wantsToHelpMore') === 'true',
+      displayNameOnly: getFieldValue('displayNameOnly') === 'true',
+      requiresFamilyApproval: getFieldValue('requiresFamilyApproval') === 'true',
+      showOccupation: getFieldValue('showOccupation') === 'true',
+      showBirthdate: getFieldValue('showBirthdate') === 'true',
+      showCityState: getFieldValue('showCityState') === 'true',
+      privacyRequiredDoNotShowPublicly: getFieldValue('privacyRequiredDoNotShowPublicly') === 'true',
+      keepMeUpdated: getFieldValue('keepMeUpdated') === 'on', // checkboxes send 'on' when checked
     };
 
     const validatedData = commentSchema.safeParse(rawData);
@@ -318,7 +325,6 @@ export async function submitComment(
     await prisma.comment.create({
       data: {
         personId: data.personId,
-        personHistoryId: data.personHistoryId || null,
         userId,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -600,9 +606,7 @@ export async function submitComment(
 
         // Generate comment link
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        const commentLink = data.personHistoryId 
-          ? `${baseUrl}/${personData.town.slug}/${personData.slug}?update=${data.personHistoryId}#comments`
-          : `${baseUrl}/${personData.town.slug}/${personData.slug}#comments`;
+        const commentLink = `${baseUrl}/${personData.town.slug}/${personData.slug}#comments`;
 
         // Send notification to each admin
         for (const admin of uniqueAdmins) {

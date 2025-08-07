@@ -84,9 +84,8 @@ export default function CommentSection({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showButton, setShowButton] = useState(true);
   
-  // Check for magic link parameters - only use them if there's no updateId
-  const updateId = searchParams?.update ? String(searchParams.update) : null;
-  const shouldAddComment = searchParams?.addComment === 'true' && !updateId;
+  // Check for magic link parameters
+  const shouldAddComment = searchParams?.addComment === 'true';
   const magicUid = searchParams?.uid ? String(searchParams.uid) : null;
   
   // Get initial show count from environment variable or default to 50
@@ -217,7 +216,6 @@ export default function CommentSection({
           supportMapMetadata={supportMapMetadata}
           localSupportIncrement={localSupportIncrement}
           onLocalSupportIncrement={() => setLocalSupportIncrement(prev => prev + 1)}
-          updateId={updateId}
           shouldAddComment={shouldAddComment}
           magicUid={magicUid}
         />

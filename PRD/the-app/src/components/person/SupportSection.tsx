@@ -39,7 +39,6 @@ interface SupportSectionProps {
   };
   localSupportIncrement?: number;
   onLocalSupportIncrement?: () => void;
-  updateId?: string | null;
   shouldAddComment?: boolean;
   magicUid?: string | null;
 }
@@ -54,7 +53,6 @@ export default function SupportSection({
   supportMapMetadata,
   localSupportIncrement = 0,
   onLocalSupportIncrement,
-  updateId,
   shouldAddComment,
   magicUid,
 }: SupportSectionProps) {
@@ -589,7 +587,6 @@ export default function SupportSection({
           <div className="border-t pt-6">
             <AnonymousCommentFormWithRecaptcha
               personId={personId}
-              personHistoryId={updateId || undefined}
               onSubmit={onSubmit}
               isPending={isPending}
               state={state}

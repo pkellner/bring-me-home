@@ -2177,7 +2177,7 @@ async function main() {
   // Add comments associated with each PersonHistory record
   console.log('Adding comments to PersonHistory records...');
   
-  // Comments for the first history (hearing scheduled)
+  // Comments for the first history (hearing scheduled) - 30+ comments total
   const hearingComments = [
     {
       firstName: 'Sarah',
@@ -2193,6 +2193,239 @@ async function main() {
       email: 'tom.anderson@email.com',
       content: 'Praying for a positive outcome. Joe fixed our pipes last winter and refused payment because he knew we were struggling.',
       city: 'San Diego',
+      state: 'CA',
+    },
+    // Additional 30 comments for testing
+    {
+      firstName: 'Emily',
+      lastName: 'Rodriguez',
+      email: 'emily.rodriguez.seed@example.com',
+      content: 'Joe has been a pillar of our community for years. His children attend our school and they miss their father terribly. This is heartbreaking.',
+      city: 'Austin',
+      state: 'TX',
+    },
+    {
+      firstName: 'James',
+      lastName: 'Williams',
+      email: 'james.williams.seed@example.com',
+      content: 'Our congregation is praying for Joe and his family every day. We have faith that justice will prevail and he will be reunited with his loved ones.',
+      city: 'Houston',
+      state: 'TX',
+    },
+    {
+      firstName: 'Angela',
+      lastName: 'Chang',
+      email: 'angela.chang.seed@example.com',
+      content: 'Joe helped us with our plumbing when we first opened our restaurant. He refused payment, saying he wanted to support local businesses. Now it\'s our turn to support him.',
+      city: 'San Antonio',
+      state: 'TX',
+    },
+    {
+      firstName: null,
+      lastName: null,
+      email: 'anonymous3.seed@example.com',
+      content: 'Standing with Joe',
+      city: null,
+      state: null,
+    },
+    {
+      firstName: 'Marcus',
+      lastName: 'Jones',
+      email: 'marcus.jones.seed@example.com',
+      content: 'Joe served our country with honor. He deserves better than this. We veterans stand together - bring Joe home!',
+      city: 'El Paso',
+      state: 'TX',
+    },
+    {
+      firstName: 'Patricia',
+      lastName: 'White',
+      email: 'patricia.white.seed@example.com',
+      content: 'I taught Joe\'s children. They are wonderful kids who need their father. This family has been through enough. Please bring Joe home.',
+      city: 'Fort Worth',
+      state: 'TX',
+    },
+    {
+      firstName: 'Thomas',
+      lastName: 'Nguyen',
+      email: 'thomas.nguyen.seed@example.com',
+      content: 'My family knows what it\'s like to be separated. Joe helped us when we needed it most. Now we must help him. #BringJoeHome',
+      city: 'Dallas',
+      state: 'TX',
+    },
+    {
+      firstName: null,
+      lastName: null,
+      email: 'anonymous4.seed@example.com',
+      content: 'Praying for Joe and his family',
+      city: null,
+      state: null,
+    },
+    {
+      firstName: 'Sandra',
+      lastName: 'Garcia',
+      email: 'sandra.garcia.seed@example.com',
+      content: 'We are organizing a fundraiser for Joe\'s family. No one should have to go through this. The community stands united behind Joe.',
+      city: 'Austin',
+      state: 'TX',
+    },
+    {
+      firstName: 'William',
+      lastName: 'Brown',
+      email: 'william.brown.seed@example.com',
+      content: 'Joe fixed our office plumbing multiple times. Always professional, always fair. This is an injustice that needs to be corrected immediately.',
+      city: 'San Antonio',
+      state: 'TX',
+    },
+    {
+      firstName: 'Rachel',
+      lastName: 'Anderson',
+      email: 'rachel.anderson.seed@example.com',
+      content: 'Joe\'s wife brought him to our clinic when he was sick. They are a loving family that deserves to be together. This breaks my heart.',
+      city: 'Houston',
+      state: 'TX',
+    },
+    {
+      firstName: 'Kevin',
+      lastName: 'Davis',
+      email: 'kevin.davis.seed@example.com',
+      content: 'Joe is a law-abiding citizen who has contributed so much to our community. This situation is wrong on every level.',
+      city: 'Dallas',
+      state: 'TX',
+    },
+    {
+      firstName: null,
+      lastName: null,
+      email: 'anonymous5.seed@example.com',
+      content: 'Supporting Joe',
+      city: null,
+      state: null,
+    },
+    {
+      firstName: 'Diana',
+      lastName: 'Miller',
+      email: 'diana.miller.seed@example.com',
+      content: 'The legal system has failed Joe. We must continue to fight for justice and for the reunification of this family.',
+      city: 'Austin',
+      state: 'TX',
+    },
+    {
+      firstName: 'Christopher',
+      lastName: 'Lee',
+      email: 'christopher.lee.seed@example.com',
+      content: 'Joe volunteered at our community events. He\'s a good man who always puts others first. We need him back in our community.',
+      city: 'El Paso',
+      state: 'TX',
+    },
+    {
+      firstName: 'Nancy',
+      lastName: 'Taylor',
+      email: 'nancy.taylor.seed@example.com',
+      content: 'I\'ve been working with Joe\'s children. They need their father. The psychological impact of this separation is devastating.',
+      city: 'Fort Worth',
+      state: 'TX',
+    },
+    {
+      firstName: null,
+      lastName: null,
+      email: 'anonymous6.seed@example.com',
+      content: 'We are with you, Joe',
+      city: null,
+      state: null,
+    },
+    {
+      firstName: 'Steven',
+      lastName: 'Moore',
+      email: 'steven.moore.seed@example.com',
+      content: 'Joe is a proud member of our plumbers union. We stand in solidarity with him and demand his immediate release and return to his family.',
+      city: 'Houston',
+      state: 'TX',
+    },
+    {
+      firstName: 'Laura',
+      lastName: 'Jackson',
+      email: 'laura.jackson.seed@example.com',
+      content: 'Joe and his family are active members of our church. We are all praying for his safe return. Faith will see us through.',
+      city: 'San Antonio',
+      state: 'TX',
+    },
+    {
+      firstName: null,
+      lastName: null,
+      email: 'anonymous7.seed@example.com',
+      content: 'Bring Joe home now!',
+      city: null,
+      state: null,
+    },
+    {
+      firstName: 'Robert',
+      lastName: 'Martinez',
+      email: 'robert.martinez.seed@example.com',
+      content: 'As a fellow plumber, I know how hard Joe works to provide for his family. This is so unfair. We stand with you, brother.',
+      city: 'San Antonio',
+      state: 'TX',
+    },
+    {
+      firstName: 'Lisa',
+      lastName: 'Johnson',
+      email: 'lisa.johnson.seed@example.com',
+      content: 'The system has failed Joe and so many others. We must continue to fight for justice and reunification. Stay strong, Joe!',
+      city: 'El Paso',
+      state: 'TX',
+    },
+    {
+      firstName: 'Carlos',
+      lastName: 'Rivera',
+      email: 'carlos.rivera.seed@example.com',
+      content: 'Joe fixed our pipes when we couldn\'t afford a big company. He never asked for extra, just wanted to help. Now we want to help him. #BringJoeHome',
+      city: 'Fort Worth',
+      state: 'TX',
+    },
+    {
+      firstName: 'David',
+      lastName: 'Thompson',
+      email: 'david.thompson.seed@example.com',
+      content: 'Joe worked on my house last year. He\'s an honest, hardworking man who deserves to be with his family. This situation is heartbreaking.',
+      city: 'Houston',
+      state: 'TX',
+    },
+    {
+      firstName: 'Jennifer',
+      lastName: 'Adams',
+      email: 'jennifer.adams.seed@example.com',
+      content: 'Joe was a regular at our restaurant. Always kind, always smiling. We miss him and hope he comes home soon.',
+      city: 'Dallas',
+      state: 'TX',
+    },
+    {
+      firstName: 'Michael',
+      lastName: 'Chen',
+      email: 'michael.chen.seed@example.com',
+      content: 'Joe helped my family when we first arrived. Now it\'s our turn to support him. Stay strong!',
+      city: 'San Francisco',
+      state: 'CA',
+    },
+    {
+      firstName: 'Maria',
+      lastName: 'Gonzalez',
+      email: 'maria.gonzalez.seed@example.com',
+      content: 'The whole community is behind you, Joe. We won\'t forget your kindness and we\'re working to bring you home.',
+      city: 'Phoenix',
+      state: 'AZ',
+    },
+    {
+      firstName: 'Sarah',
+      lastName: 'Wilson',
+      email: 'sarah.wilson.seed@example.com',
+      content: 'Sending prayers and support to Joe and his family. We are all thinking of you during this difficult time.',
+      city: 'Austin',
+      state: 'TX',
+    },
+    {
+      firstName: 'John',
+      lastName: 'Peterson',
+      email: 'john.peterson.seed@example.com',
+      content: 'Joe helped build our community center. He\'s given so much to this town. It\'s time we gave back and brought him home.',
+      city: 'Borrego Springs',
       state: 'CA',
     },
   ];
@@ -2313,6 +2546,54 @@ async function main() {
         },
       });
     }
+  }
+
+  // Add anonymous support for Joe Plumber's PersonHistory updates
+  console.log('Adding anonymous support for Joe Plumber updates...');
+  
+  // Add 15 anonymous supports for the Immigration Hearing update (most recent)
+  const hearingUpdate = createdHistories[0]; // Immigration Hearing Scheduled
+  for (let i = 0; i < 15; i++) {
+    const ipAddresses = ['98.234.56.78', '67.189.234.12', '74.125.224.72', '192.168.1.1', '10.0.0.1'];
+    await prisma.anonymousSupport.create({
+      data: {
+        personId: joePlumberId,
+        personHistoryId: hearingUpdate.id,
+        ipAddress: ipAddresses[i % ipAddresses.length],
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random time in last week
+      },
+    });
+  }
+  
+  // Add 8 anonymous supports for the Transfer update
+  const transferUpdate = createdHistories[1]; // Transfer to Otay Mesa
+  for (let i = 0; i < 8; i++) {
+    const ipAddresses = ['98.234.56.78', '67.189.234.12', '74.125.224.72'];
+    await prisma.anonymousSupport.create({
+      data: {
+        personId: joePlumberId,
+        personHistoryId: transferUpdate.id,
+        ipAddress: ipAddresses[i % ipAddresses.length],
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        createdAt: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000), // Random time in last 2 weeks
+      },
+    });
+  }
+  
+  // Add 5 anonymous supports for the Fundraiser update
+  const fundraiserUpdate = createdHistories[2]; // Community Fundraiser Success
+  for (let i = 0; i < 5; i++) {
+    const ipAddresses = ['98.234.56.78', '67.189.234.12'];
+    await prisma.anonymousSupport.create({
+      data: {
+        personId: joePlumberId,
+        personHistoryId: fundraiserUpdate.id,
+        ipAddress: ipAddresses[i % ipAddresses.length],
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15',
+        createdAt: new Date(Date.now() - Math.random() * 21 * 24 * 60 * 60 * 1000), // Random time in last 3 weeks
+      },
+    });
   }
 
   // Create system config

@@ -278,20 +278,23 @@ model Comment {
 }
 
 model AnonymousSupport {
-  id                 String   @id @default(cuid())
+  id                 String         @id @default(cuid())
   personId           String
+  personHistoryId    String?        // Optional - for support on specific updates
   ipAddress          String?
-  userAgent          String?  @db.Text
-  createdAt          DateTime @default(now())
+  userAgent          String?        @db.Text
+  createdAt          DateTime       @default(now())
   latitude           Float?
   longitude          Float?
   geoCity            String?
   region             String?
   country            String?
-  processedForLatLon Boolean  @default(false)
-  person             Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  processedForLatLon Boolean        @default(false)
+  person             Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personHistory      PersonHistory? @relation(fields: [personHistoryId], references: [id], onDelete: Cascade)
 
   @@index([personId])
+  @@index([personHistoryId])
   @@index([createdAt])
   @@index([processedForLatLon])
   @@map("anonymous_support")
@@ -528,6 +531,7 @@ model PersonHistory {
   person            Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   createdBy         User     @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
   comments          Comment[]
+  anonymousSupport  AnonymousSupport[]
   emailNotifications EmailNotification[]
   magicLinkTokens   MagicLinkToken[]
 

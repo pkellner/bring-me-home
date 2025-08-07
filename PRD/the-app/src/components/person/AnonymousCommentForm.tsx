@@ -14,7 +14,6 @@ const DEBUG_RECAPTCHA = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
 export interface AnonymousCommentFormProps {
   personId: string;
-  personHistoryId?: string;
   onSubmit: (formData: FormData) => void;
   isPending: boolean;
   state?: {
@@ -62,7 +61,6 @@ export interface AnonymousCommentFormProps {
 
 export default function AnonymousCommentForm({
   personId,
-  personHistoryId,
   onSubmit,
   isPending,
   state,
@@ -357,9 +355,6 @@ export default function AnonymousCommentForm({
         className="space-y-6"
       >
         <input type="hidden" name="personId" value={personId} />
-        {personHistoryId && (
-          <input type="hidden" name="personHistoryId" value={personHistoryId} />
-        )}
         <input type="hidden" name="requiresFamilyApproval" value="true" />
 
         {/* Your Info */}
@@ -964,19 +959,9 @@ export default function AnonymousCommentForm({
       <CommentConfirmationModal
         isOpen={showConfirmModal}
         isSubmitting={isPending}
-        title={
-          personHistoryId
-            ? 'Review Your Comment'
-            : 'Review Your Support Message'
-        }
-        description={
-          personHistoryId
-            ? 'Your comment is being reviewed by the family to make sure it is OK with them.'
-            : 'Your message is being reviewed by the family to make sure it is OK with them.'
-        }
-        confirmButtonText={
-          personHistoryId ? 'OK, Post My Comment' : 'OK, Post My Support'
-        }
+        title='Review Your Support Message'
+        description='Your message is being reviewed by the family to make sure it is OK with them.'
+        confirmButtonText='OK, Post My Support'
         warningMessage={emailBlockWarning}
         onConfirm={() => {
           if (pendingFormData) {

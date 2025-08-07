@@ -6,7 +6,6 @@ import AnonymousCommentFormWithRecaptcha from '@/components/person/AnonymousComm
 
 interface PersonHistoryCommentFormProps {
   personId: string;
-  personHistoryId: string;
   updateTitle: string;
   onSuccess: () => void;
   onCancel: () => void;
@@ -15,7 +14,6 @@ interface PersonHistoryCommentFormProps {
 
 export default function PersonHistoryCommentForm({
   personId,
-  personHistoryId,
   updateTitle,
   onSuccess,
   onCancel,
@@ -87,7 +85,6 @@ export default function PersonHistoryCommentForm({
       </div>
       <AnonymousCommentFormWithRecaptcha
         personId={personId}
-        personHistoryId={personHistoryId}
         onSubmit={handleSubmit}
         isPending={isPending}
         state={state}
