@@ -123,7 +123,23 @@ model Person {
   courtLocation        String?
   detentionCenterId    String?
   detentionDate        DateTime?
-  detentionStatus      String?                @default("detained")
+  detentionStatus      String?                @default("currently_detained")
+  statusDetails        Json?
+  statusUpdatedAt      DateTime?
+  statusUpdatedBy      String?
+  hearingDate          DateTime?
+  hearingLocation      String?                @db.Text
+  hearingNotes         String?                @db.Text
+  bailPostedDate       DateTime?
+  bailPostedBy         String?
+  bailConditions       String?                @db.Text
+  finalOutcome         String?
+  finalOutcomeDate     DateTime?
+  finalOutcomeNotes    String?                @db.Text
+  deportationDate      DateTime?
+  deportationDestination String?
+  visaGrantedType      String?
+  visaGrantedDate      DateTime?
   internationalAddress String?                @db.Text
   legalRepEmail        String?
   legalRepFirm         String?
@@ -163,6 +179,8 @@ model Person {
   @@index([slug])
   @@index([status])
   @@index([detentionCenterId])
+  @@index([detentionStatus])
+  @@index([finalOutcome])
   @@index([themeId], map: "persons_themeId_fkey")
   @@map("persons")
 }

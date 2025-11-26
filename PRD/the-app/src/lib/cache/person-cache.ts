@@ -189,6 +189,22 @@ async function getPersonDataFromDatabase(
       courtLocation: true,
       internationalAddress: true,
       countryOfOrigin: true,
+      statusDetails: true,
+      statusUpdatedAt: true,
+      statusUpdatedBy: true,
+      hearingDate: true,
+      hearingLocation: true,
+      hearingNotes: true,
+      bailPostedDate: true,
+      bailPostedBy: true,
+      bailConditions: true,
+      finalOutcome: true,
+      finalOutcomeDate: true,
+      finalOutcomeNotes: true,
+      deportationDate: true,
+      deportationDestination: true,
+      visaGrantedType: true,
+      visaGrantedDate: true,
       themeId: true,
       townId: true,
       slug: true,
@@ -360,6 +376,22 @@ interface SerializedPersonData {
   notesFromLastContact: string | null;
   releaseDate: string | null;
   detentionStatus: string | null;
+  statusDetails: Record<string, unknown> | null;
+  statusUpdatedAt: string | null;
+  statusUpdatedBy: string | null;
+  hearingDate: string | null;
+  hearingLocation: string | null;
+  hearingNotes: string | null;
+  bailPostedDate: string | null;
+  bailPostedBy: string | null;
+  bailConditions: string | null;
+  finalOutcome: string | null;
+  finalOutcomeDate: string | null;
+  finalOutcomeNotes: string | null;
+  deportationDate: string | null;
+  deportationDestination: string | null;
+  visaGrantedType: string | null;
+  visaGrantedDate: string | null;
   caseNumber: string | null;
   bondAmount: string | null;
   bondStatus: string | null;
@@ -561,6 +593,22 @@ async function serializePersonData(person: PersonWithRelations, townSlug: string
     dateOfBirth: person.dateOfBirth ? person.dateOfBirth.toISOString() : null,
     releaseDate: person.releaseDate ? person.releaseDate.toISOString() : null,
     nextCourtDate: person.nextCourtDate ? person.nextCourtDate.toISOString() : null,
+    statusDetails: person.statusDetails as Record<string, unknown> | null,
+    statusUpdatedAt: person.statusUpdatedAt ? person.statusUpdatedAt.toISOString() : null,
+    statusUpdatedBy: person.statusUpdatedBy,
+    hearingDate: person.hearingDate ? person.hearingDate.toISOString() : null,
+    hearingLocation: person.hearingLocation,
+    hearingNotes: person.hearingNotes,
+    bailPostedDate: person.bailPostedDate ? person.bailPostedDate.toISOString() : null,
+    bailPostedBy: person.bailPostedBy,
+    bailConditions: person.bailConditions,
+    finalOutcome: person.finalOutcome,
+    finalOutcomeDate: person.finalOutcomeDate ? person.finalOutcomeDate.toISOString() : null,
+    finalOutcomeNotes: person.finalOutcomeNotes,
+    deportationDate: person.deportationDate ? person.deportationDate.toISOString() : null,
+    deportationDestination: person.deportationDestination,
+    visaGrantedType: person.visaGrantedType,
+    visaGrantedDate: person.visaGrantedDate ? person.visaGrantedDate.toISOString() : null,
     createdAt: person.createdAt.toISOString(),
     updatedAt: person.updatedAt.toISOString(),
   } as SerializedPersonData;

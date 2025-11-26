@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
 import { useImageUrl } from '@/hooks/useImageUrl';
+import { getStatusDisplayInfo, shouldShowDetentionCenter } from '@/types/detention-status';
 
 // Helper function to get detention center image ID
 function getDetentionCenterImageId(person: SerializedPerson): string | null | undefined {
@@ -67,85 +68,190 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
         </div>
       </div>
 
-      {person.detentionCenter && person.showDetentionInfo && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="flex-grow">
-              <h3 className="text-sm font-bold text-red-800 mb-2">
-                Detention Information
-              </h3>
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="font-semibold text-red-700">
-                    Detention Center:
-                  </span>{' '}
-                  <span className="text-red-800">
-                    {person.detentionCenter.name}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold text-red-700">Location:</span>{' '}
-                  <span className="text-red-800">
-                    {person.detentionCenter.address},{' '}
-                    {person.detentionCenter.city},{' '}
-                    {person.detentionCenter.state}{' '}
-                    {person.detentionCenter.zipCode}
-                  </span>
-                </div>
-                {person.detentionCenter.phoneNumber && (
-                  <div>
-                    <span className="font-semibold text-red-700">Phone:</span>{' '}
-                    <span className="text-red-800">
-                      {person.detentionCenter.phoneNumber}
-                    </span>
-                  </div>
-                )}
-                {person.detentionDate && person.showDetentionDate && (
-                  <div>
-                    <span className="font-semibold text-red-700">
-                      Detained Since:
-                    </span>{' '}
-                    <span className="text-red-800">
-                      {formatDate(person.detentionDate)}
-                    </span>
-                  </div>
-                )}
-              {person.bondAmount && (
-                <div>
-                  <span className="font-semibold text-red-700">
-                    Bond Amount:
-                  </span>{' '}
-                  <span className="text-red-800">${person.bondAmount}</span>
-                </div>
-              )}
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              {(() => {
-                const imageId = getDetentionCenterImageId(person);
+      {/* Current Status Section */}
+      {person.showDetentionInfo && (
+        <div className="mt-4">
+          {(() => {
+            const statusInfo = getStatusDisplayInfo(person.detentionStatus);
+            const showDetentionInfo = shouldShowDetentionCenter(person.detentionStatus);
 
-                if (imageId) {
-                  return (
-                    <div className="relative w-[120px] h-[120px]">
-                      <Image
-                        src={generateUrl(imageId, { width: 300, height: 300, quality: 90 })}
-                        alt={person.detentionCenter.name}
-                        fill
-                        sizes="120px"
-                        className="rounded-lg object-cover shadow-sm"
-                        unoptimized
-                      />
+            return (
+              <div className={`p-3 ${statusInfo.bgColor} border ${statusInfo.borderColor} rounded-lg`}>
+                {/* Status Header */}
+                <div className="flex items-center gap-2 mb-3">
+                  {statusInfo.icon && <span className="text-xl">{statusInfo.icon}</span>}
+                  <h3 className={`text-sm font-bold text-${statusInfo.color}-800`}>
+                    Current Status: {statusInfo.label}
+                  </h3>
+                  {statusInfo.isFinal && (
+                    <span className="ml-auto text-xs bg-gray-600 text-white px-2 py-0.5 rounded">
+                      Final Status
+                    </span>
+                  )}
+                </div>
+
+                {/* Status Details */}
+                <div className="space-y-2 text-sm">
+                  {/* Status-specific information */}
+                  {person.detentionStatus === 'bail_posted' && person.bailPostedDate && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Bail Posted:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {formatDate(person.bailPostedDate)}
+                        {person.bailPostedBy && ` by ${person.bailPostedBy}`}
+                      </span>
                     </div>
-                  );
-                }
-                return (
-                  <div className="w-[120px] h-[120px] bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-4xl text-theme-muted">🏢</span>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
+                  )}
+
+                  {person.detentionStatus === 'bail_posted' && person.bailConditions && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Bail Conditions:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>{person.bailConditions}</span>
+                    </div>
+                  )}
+
+                  {(person.detentionStatus === 'awaiting_hearing' || person.detentionStatus === 'in_proceedings') && person.hearingDate && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Next Hearing:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {formatDate(person.hearingDate)}
+                        {person.hearingLocation && ` at ${person.hearingLocation}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {person.nextCourtDate && ['currently_detained', 'bail_posted', 'awaiting_hearing', 'in_proceedings'].includes(person.detentionStatus || '') && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Court Date:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {formatDate(person.nextCourtDate)}
+                        {person.courtLocation && ` at ${person.courtLocation}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {person.detentionStatus === 'deported' && person.deportationDate && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Deportation Date:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {formatDate(person.deportationDate)}
+                        {person.deportationDestination && ` to ${person.deportationDestination}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {person.detentionStatus === 'visa_granted' && person.visaGrantedDate && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Visa Granted:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {formatDate(person.visaGrantedDate)}
+                        {person.visaGrantedType && ` (${person.visaGrantedType})`}
+                      </span>
+                    </div>
+                  )}
+
+                  {person.finalOutcome && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Final Outcome:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        {person.finalOutcome}
+                        {person.finalOutcomeDate && ` on ${formatDate(person.finalOutcomeDate)}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {person.releaseDate && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Release Date:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>{formatDate(person.releaseDate)}</span>
+                    </div>
+                  )}
+
+                  {person.bondAmount && ['currently_detained', 'awaiting_hearing'].includes(person.detentionStatus || '') && (
+                    <div>
+                      <span className={`font-semibold text-${statusInfo.color}-700`}>Bond Amount:</span>{' '}
+                      <span className={`text-${statusInfo.color}-800`}>
+                        ${person.bondAmount}
+                        {person.bondStatus && ` (${person.bondStatus})`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Detention Center Information (only shown for relevant statuses) */}
+                  {showDetentionInfo && person.detentionCenter && (
+                    <>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-grow">
+                            <h4 className={`text-xs font-bold text-${statusInfo.color}-800 mb-1`}>
+                              Detention Facility
+                            </h4>
+                            <div className="space-y-1 text-xs">
+                              <div>
+                                <span className={`font-semibold text-${statusInfo.color}-700`}>Facility:</span>{' '}
+                                <span className={`text-${statusInfo.color}-800`}>
+                                  {person.detentionCenter.name}
+                                </span>
+                              </div>
+                              <div>
+                                <span className={`font-semibold text-${statusInfo.color}-700`}>Location:</span>{' '}
+                                <span className={`text-${statusInfo.color}-800`}>
+                                  {person.detentionCenter.address}, {person.detentionCenter.city},{' '}
+                                  {person.detentionCenter.state} {person.detentionCenter.zipCode}
+                                </span>
+                              </div>
+                              {person.detentionCenter.phoneNumber && (
+                                <div>
+                                  <span className={`font-semibold text-${statusInfo.color}-700`}>Phone:</span>{' '}
+                                  <span className={`text-${statusInfo.color}-800`}>
+                                    {person.detentionCenter.phoneNumber}
+                                  </span>
+                                </div>
+                              )}
+                              {person.detentionDate && person.showDetentionDate && (
+                                <div>
+                                  <span className={`font-semibold text-${statusInfo.color}-700`}>
+                                    Initial Detention:
+                                  </span>{' '}
+                                  <span className={`text-${statusInfo.color}-800`}>
+                                    {formatDate(person.detentionDate)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0">
+                            {(() => {
+                              const imageId = getDetentionCenterImageId(person);
+                              if (imageId) {
+                                return (
+                                  <div className="relative w-[100px] h-[100px]">
+                                    <Image
+                                      src={generateUrl(imageId, { width: 200, height: 200, quality: 85 })}
+                                      alt={person.detentionCenter?.name || 'Detention Center'}
+                                      fill
+                                      sizes="100px"
+                                      className="rounded-lg object-cover shadow-sm"
+                                      unoptimized
+                                    />
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="w-[100px] h-[100px] bg-gray-200 rounded-lg flex items-center justify-center">
+                                  <span className="text-3xl text-theme-muted">🏢</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

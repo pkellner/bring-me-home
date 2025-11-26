@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import type { SanitizedDetentionCenter } from '@/types/sanitized';
+import { DETENTION_STATUSES, STATUS_DISPLAY_INFO, shouldShowDetentionCenter } from '@/types/detention-status';
 
 interface PersonDetentionInfoProps {
   person?: {
@@ -25,6 +27,12 @@ export default function PersonDetentionInfo({
   selectedDetentionCenterId,
   onOpenModal,
 }: PersonDetentionInfoProps) {
+  const [currentStatus, setCurrentStatus] = useState(
+    person?.detentionStatus || DETENTION_STATUSES.CURRENTLY_DETAINED
+  );
+
+  const showDetentionCenterField = shouldShowDetentionCenter(currentStatus);
+
   return (
     <div className="border-t pt-6">
       <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -32,11 +40,21 @@ export default function PersonDetentionInfo({
       </h3>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Detention Center
-          </label>
-          {selectedDetentionCenter ? (
+        {/* Show status info message */}
+        <div className={`p-3 ${STATUS_DISPLAY_INFO[currentStatus as keyof typeof STATUS_DISPLAY_INFO]?.bgColor || 'bg-gray-50'} ${STATUS_DISPLAY_INFO[currentStatus as keyof typeof STATUS_DISPLAY_INFO]?.borderColor || 'border-gray-200'} border rounded-lg`}>
+          <p className="text-sm text-gray-700">
+            <strong>Current Status:</strong> {STATUS_DISPLAY_INFO[currentStatus as keyof typeof STATUS_DISPLAY_INFO]?.label || 'Unknown'} -
+            {' '}{STATUS_DISPLAY_INFO[currentStatus as keyof typeof STATUS_DISPLAY_INFO]?.description || ''}
+          </p>
+        </div>
+
+        {/* Detention Center - Only show for relevant statuses */}
+        {showDetentionCenterField && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Detention Center
+            </label>
+            {selectedDetentionCenter ? (
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-start space-x-4">
                 {selectedDetentionCenter.imageId && (
@@ -76,7 +94,8 @@ export default function PersonDetentionInfo({
               Select detention center
             </button>
           )}
-        </div>
+          </div>
+        )}
 
         {selectedDetentionCenterId && (
           <>
@@ -113,13 +132,15 @@ export default function PersonDetentionInfo({
                 <select
                   id="detentionStatus"
                   name="detentionStatus"
-                  defaultValue={person?.detentionStatus || 'detained'}
+                  value={currentStatus}
+                  onChange={(e) => setCurrentStatus(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 >
-                  <option value="detained">Detained</option>
-                  <option value="released">Released</option>
-                  <option value="deported">Deported</option>
-                  <option value="in-proceedings">In Proceedings</option>
+                  {Object.entries(STATUS_DISPLAY_INFO).map(([value, info]) => (
+                    <option key={value} value={value}>
+                      {info.label} {info.isFinal ? '(Final)' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -156,6 +177,188 @@ export default function PersonDetentionInfo({
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 />
               </div>
+
+              {/* Status-specific fields */}
+              {currentStatus === DETENTION_STATUSES.BAIL_POSTED && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="bailPostedDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Bail Posted Date
+                    </label>
+                    <input
+                      type="date"
+                      id="bailPostedDate"
+                      name="bailPostedDate"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="bailPostedBy"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Bail Posted By
+                    </label>
+                    <input
+                      type="text"
+                      id="bailPostedBy"
+                      name="bailPostedBy"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="bailConditions"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Bail Conditions
+                    </label>
+                    <textarea
+                      id="bailConditions"
+                      name="bailConditions"
+                      rows={2}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {(currentStatus === DETENTION_STATUSES.AWAITING_HEARING ||
+                currentStatus === DETENTION_STATUSES.IN_PROCEEDINGS) && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="hearingDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Next Hearing Date
+                    </label>
+                    <input
+                      type="date"
+                      id="hearingDate"
+                      name="hearingDate"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="hearingLocation"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Hearing Location
+                    </label>
+                    <input
+                      type="text"
+                      id="hearingLocation"
+                      name="hearingLocation"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {currentStatus === DETENTION_STATUSES.DEPORTED && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="deportationDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Deportation Date
+                    </label>
+                    <input
+                      type="date"
+                      id="deportationDate"
+                      name="deportationDate"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="deportationDestination"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Deportation Destination
+                    </label>
+                    <input
+                      type="text"
+                      id="deportationDestination"
+                      name="deportationDestination"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {currentStatus === DETENTION_STATUSES.VISA_GRANTED && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="visaGrantedDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Visa Granted Date
+                    </label>
+                    <input
+                      type="date"
+                      id="visaGrantedDate"
+                      name="visaGrantedDate"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="visaGrantedType"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Visa Type
+                    </label>
+                    <input
+                      type="text"
+                      id="visaGrantedType"
+                      name="visaGrantedType"
+                      placeholder="e.g., H-1B, Green Card, etc."
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {STATUS_DISPLAY_INFO[currentStatus as keyof typeof STATUS_DISPLAY_INFO]?.isFinal && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="finalOutcomeDate"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Final Outcome Date
+                    </label>
+                    <input
+                      type="date"
+                      id="finalOutcomeDate"
+                      name="finalOutcomeDate"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="finalOutcomeNotes"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Final Outcome Notes
+                    </label>
+                    <textarea
+                      id="finalOutcomeNotes"
+                      name="finalOutcomeNotes"
+                      rows={2}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <label
