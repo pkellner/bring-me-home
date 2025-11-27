@@ -29,6 +29,10 @@ const personSchema = z.object({
   detentionStatus: z.string().nullable().optional(),
   caseNumber: z.string().nullable().optional(),
   bondAmount: z.coerce.number().optional(),
+  bondStatus: z.string().nullable().optional(),
+  nextCourtDate: z.string().nullable().optional(),
+  courtLocation: z.string().nullable().optional(),
+  releaseDate: z.string().nullable().optional(),
   lastHeardFromDate: z.string().nullable().optional(),
   notesFromLastContact: z.string().nullable().optional(),
   representedByLawyer: z.boolean().optional(),
@@ -37,6 +41,20 @@ const personSchema = z.object({
   showLastHeardFrom: z.boolean().optional(),
   showDetentionDate: z.boolean().optional(),
   showCommunitySupport: z.boolean().optional(),
+  // New status-related fields
+  hearingDate: z.string().nullable().optional(),
+  hearingLocation: z.string().nullable().optional(),
+  hearingNotes: z.string().nullable().optional(),
+  bailPostedDate: z.string().nullable().optional(),
+  bailPostedBy: z.string().nullable().optional(),
+  bailConditions: z.string().nullable().optional(),
+  finalOutcome: z.string().nullable().optional(),
+  finalOutcomeDate: z.string().nullable().optional(),
+  finalOutcomeNotes: z.string().nullable().optional(),
+  deportationDate: z.string().nullable().optional(),
+  deportationDestination: z.string().nullable().optional(),
+  visaGrantedType: z.string().nullable().optional(),
+  visaGrantedDate: z.string().nullable().optional(),
 });
 
 export async function createPerson(formData: FormData) {
@@ -261,7 +279,7 @@ export async function updatePerson(id: string, formData: FormData) {
       lastKnownAddress: formData.get('lastKnownAddress'),
       status: formData.get('status') || 'detained',
       stories: formData.get('stories') || null,
-        themeId: formData.get('themeId') || null,
+      themeId: formData.get('themeId') || null,
       isActive: formData.get('isActive') === 'on',
       detentionCenterId: formData.get('detentionCenterId') || null,
       detentionDate: formData.get('detentionDate') || null,
@@ -270,6 +288,10 @@ export async function updatePerson(id: string, formData: FormData) {
       bondAmount: formData.get('bondAmount')
         ? Number(formData.get('bondAmount'))
         : undefined,
+      bondStatus: formData.get('bondStatus') || null,
+      nextCourtDate: formData.get('nextCourtDate') || null,
+      courtLocation: formData.get('courtLocation') || null,
+      releaseDate: formData.get('releaseDate') || null,
       lastHeardFromDate: formData.get('lastHeardFromDate') || null,
       notesFromLastContact: formData.get('notesFromLastContact') || null,
       representedByLawyer: formData.get('representedByLawyer') === 'on',
@@ -278,6 +300,20 @@ export async function updatePerson(id: string, formData: FormData) {
       showLastHeardFrom: formData.get('showLastHeardFrom') === 'on',
       showDetentionDate: formData.get('showDetentionDate') === 'on',
       showCommunitySupport: formData.get('showCommunitySupport') === 'on',
+      // New status-related fields
+      hearingDate: formData.get('hearingDate') || null,
+      hearingLocation: formData.get('hearingLocation') || null,
+      hearingNotes: formData.get('hearingNotes') || null,
+      bailPostedDate: formData.get('bailPostedDate') || null,
+      bailPostedBy: formData.get('bailPostedBy') || null,
+      bailConditions: formData.get('bailConditions') || null,
+      finalOutcome: formData.get('finalOutcome') || null,
+      finalOutcomeDate: formData.get('finalOutcomeDate') || null,
+      finalOutcomeNotes: formData.get('finalOutcomeNotes') || null,
+      deportationDate: formData.get('deportationDate') || null,
+      deportationDestination: formData.get('deportationDestination') || null,
+      visaGrantedType: formData.get('visaGrantedType') || null,
+      visaGrantedDate: formData.get('visaGrantedDate') || null,
     });
 
     if (!validatedFields.success) {
@@ -291,7 +327,7 @@ export async function updatePerson(id: string, formData: FormData) {
     // Get existing person for validation
     const existingPerson = await prisma.person.findUnique({
       where: { id },
-      select: { firstName: true, middleName: true, lastName: true, slug: true },
+      select: { firstName: true, middleName: true, lastName: true, slug: true, detentionStatus: true },
     });
 
     if (!existingPerson) {
@@ -313,6 +349,10 @@ export async function updatePerson(id: string, formData: FormData) {
       detentionStatus?: string | null;
       caseNumber?: string | null;
       bondAmount?: number;
+      bondStatus?: string | null;
+      nextCourtDate: Date | null;
+      courtLocation?: string | null;
+      releaseDate: Date | null;
       lastHeardFromDate: Date | null;
       notesFromLastContact?: string | null;
       representedByLawyer?: boolean;
@@ -321,6 +361,20 @@ export async function updatePerson(id: string, formData: FormData) {
       showLastHeardFrom?: boolean;
       showDetentionDate?: boolean;
       showCommunitySupport?: boolean;
+      // New status-related fields
+      hearingDate: Date | null;
+      hearingLocation?: string | null;
+      hearingNotes?: string | null;
+      bailPostedDate: Date | null;
+      bailPostedBy?: string | null;
+      bailConditions?: string | null;
+      finalOutcome?: string | null;
+      finalOutcomeDate: Date | null;
+      finalOutcomeNotes?: string | null;
+      deportationDate: Date | null;
+      deportationDestination?: string | null;
+      visaGrantedType?: string | null;
+      visaGrantedDate: Date | null;
       slug: string;
     }> = {};
     let slug = existingPerson.slug;
@@ -368,6 +422,7 @@ export async function updatePerson(id: string, formData: FormData) {
       // Process data for database (exclude stories)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { stories, ...dataWithoutStories } = validatedFields.data;
+
       updateData = {
         ...dataWithoutStories,
         slug,
@@ -379,6 +434,28 @@ export async function updatePerson(id: string, formData: FormData) {
           : null,
         lastHeardFromDate: validatedFields.data.lastHeardFromDate
           ? new Date(validatedFields.data.lastHeardFromDate)
+          : null,
+        nextCourtDate: validatedFields.data.nextCourtDate
+          ? new Date(validatedFields.data.nextCourtDate)
+          : null,
+        releaseDate: validatedFields.data.releaseDate
+          ? new Date(validatedFields.data.releaseDate)
+          : null,
+        // New date fields
+        hearingDate: validatedFields.data.hearingDate
+          ? new Date(validatedFields.data.hearingDate)
+          : null,
+        bailPostedDate: validatedFields.data.bailPostedDate
+          ? new Date(validatedFields.data.bailPostedDate)
+          : null,
+        finalOutcomeDate: validatedFields.data.finalOutcomeDate
+          ? new Date(validatedFields.data.finalOutcomeDate)
+          : null,
+        deportationDate: validatedFields.data.deportationDate
+          ? new Date(validatedFields.data.deportationDate)
+          : null,
+        visaGrantedDate: validatedFields.data.visaGrantedDate
+          ? new Date(validatedFields.data.visaGrantedDate)
           : null,
       };
 

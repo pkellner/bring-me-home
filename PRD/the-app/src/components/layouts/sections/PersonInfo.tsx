@@ -5,7 +5,13 @@ import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { SerializedPerson } from '../LayoutRenderer';
 import { useImageUrl } from '@/hooks/useImageUrl';
-import { getStatusDisplayInfo, shouldShowDetentionCenter } from '@/types/detention-status';
+import {
+  getStatusDisplayInfo,
+  shouldShowDetentionCenter,
+  getStatusDateField,
+  shouldShowSimpleStatusLine,
+  formatDetentionInfo
+} from '@/types/detention-status';
 
 // Helper function to get detention center image ID
 function getDetentionCenterImageId(person: SerializedPerson): string | null | undefined {
@@ -41,13 +47,65 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
         {person.town.state}
       </div>
 
+      {/* Simple Status Line - shown for non-detained statuses */}
+      {person.detentionStatus &&
+       shouldShowSimpleStatusLine(person.detentionStatus) &&
+       person.showDetentionInfo && (
+        <div className="mt-2">
+          {(() => {
+            const statusInfo = getStatusDisplayInfo(person.detentionStatus);
+            const statusDate = getStatusDateField(person.detentionStatus, person);
+            const textColorClass = `text-${statusInfo.color}-700`;
+
+            return (
+              <div className="flex items-center gap-2">
+                {statusInfo.icon && (
+                  <span className="text-lg" aria-hidden="true">
+                    {statusInfo.icon}
+                  </span>
+                )}
+                <span className={`font-semibold ${textColorClass}`}>
+                  {statusInfo.label}
+                  {statusDate && (
+                    <span className="font-normal text-theme-secondary ml-1">
+                      ({formatDate(statusDate)})
+                    </span>
+                  )}
+                </span>
+                {statusInfo.isFinal && (
+                  <span className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded">
+                    Final Status
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-3 mt-4">
-        {person.detentionDate && person.showDetentionDate && (
-          <div>
-            <span className="font-semibold">Detention Date:</span>{' '}
-            {formatDate(person.detentionDate)}
-          </div>
-        )}
+        {person.detentionDate && person.showDetentionDate && (() => {
+          const detentionInfo = formatDetentionInfo({
+            detentionStatus: person.detentionStatus,
+            detentionDate: person.detentionDate,
+            detentionCenter: person.detentionCenter
+          });
+
+          if (!detentionInfo.label) return null;
+
+          return (
+            <div>
+              <span className="font-semibold">{detentionInfo.label}:</span>{' '}
+              {detentionInfo.text && (
+                <>
+                  {detentionInfo.text}{' '}
+                  <span className="font-semibold">on</span>{' '}
+                </>
+              )}
+              {formatDate(person.detentionDate)}
+            </div>
+          );
+        })()}
         {person.lastHeardFromDate && person.showLastHeardFrom && (
           <div>
             <span className="font-semibold">Last Heard From:</span>{' '}
@@ -68,8 +126,9 @@ export default function PersonInfo({ person, isAdmin }: PersonInfoProps) {
         </div>
       </div>
 
-      {/* Current Status Section */}
-      {person.showDetentionInfo && (
+      {/* Detailed Status Box */}
+      {person.showDetentionInfo &&
+       !shouldShowSimpleStatusLine(person.detentionStatus) && (
         <div className="mt-4">
           {(() => {
             const statusInfo = getStatusDisplayInfo(person.detentionStatus);
