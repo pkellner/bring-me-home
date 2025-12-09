@@ -151,50 +151,6 @@ const createPrismaClient = () => {
     });
   }
 
-  // Add comprehensive query tracking middleware (always enabled for debugging)
-  client.$use(async (params, next) => {
-    const queryStart = Date.now();
-    const queryId = `${params.model}.${params.action}-${queryStart}`;
-
-    activeQueries++;
-    totalQueries++;
-
-    // Log query start
-    if (process.env.QUERY_TRACKING === 'true') {
-      console.log(`\n[QUERY START #${totalQueries}] ${new Date().toISOString()}`);
-      console.log(`  Active Queries: ${activeQueries}`);
-      console.log(`  Model: ${params.model}`);
-      console.log(`  Action: ${params.action}`);
-      console.log(`  Query ID: ${queryId}`);
-    }
-
-    queryStack.push({
-      query: `${params.model}.${params.action}`,
-      timestamp: queryStart,
-    });
-
-    try {
-      const result = await next(params);
-      const queryEnd = Date.now();
-      const duration = queryEnd - queryStart;
-
-      // Update query with duration
-      const stackEntry = queryStack.find(q => q.timestamp === queryStart);
-      if (stackEntry) {
-        stackEntry.duration = duration;
-      }
-
-      if (process.env.QUERY_TRACKING === 'true') {
-        console.log(`[QUERY END #${totalQueries}] Duration: ${duration}ms`);
-        console.log(`  Active Queries: ${activeQueries - 1}`);
-      }
-
-      return result;
-    } finally {
-      activeQueries--;
-    }
-  });
-
   // For level 5, also enable additional debugging (but not during build)
   if (isPrismaLogEnabled &&
       logLevel === '5' &&
