@@ -17,7 +17,7 @@ export class PrismaStorageAdapter implements ImageStorageAdapter {
   ): Promise<StoredImage> {
     const image = await this.prisma.imageStorage.create({
       data: {
-        data: buffer,
+        data: new Uint8Array(buffer),
         mimeType: metadata.mimeType,
         size: metadata.size,
         width: metadata.width,
