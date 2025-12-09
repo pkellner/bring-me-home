@@ -104,7 +104,7 @@
     "@aws-sdk/s3-request-presigner": "^3.844.0",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
-    "@prisma/client": "^6.11.1",
+    "@prisma/client": "^6.19.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@sendgrid/mail": "^8.1.5",
     "@types/bcryptjs": "^2.4.6",
