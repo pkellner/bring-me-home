@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **⚠️ Never use JavaScript class, always functions
 
+**⚠️ NEVER drop, truncate, delete or overwrite the MySQL/MariaDB databases, under any circumstances.**
+The operator, 2026-11-11, while planning the move to Postgres: "under no circumstances are you to drop the mysql databases. we will eventually stop mysql but we will keep the data forever".
+- The MySQL/MariaDB side is read-only for the migration: no `DROP`, `TRUNCATE`, `DELETE`, `prisma migrate reset`, `prisma db push` or `migrate deploy` against a `mysql://` URL.
+- Stopping the MySQL server one day is the operator's call. The data, and its dumps, are kept forever.
+
 ## Project Overview
 
 "Bring Me Home" is a Next.js 15 application that helps families connect with missing persons in detention centers. It features multi-tenant support for different towns, role-based access control, and community engagement through comments and support messages.
