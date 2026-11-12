@@ -18,7 +18,10 @@ own working notes. Read "Branches and environments" below before any git, PR or 
 ## Rules for this repo
 
 - Never drop, truncate, delete from or overwrite the MySQL/MariaDB databases (rule and the op's
-  words at the top of `PRD/the-app/CLAUDE.md`). They are read only, by a read-only user.
-- Live systems: `mariadb-database-production` and `postgres-database-production` on Coolify, the
+  words at the top of `PRD/the-app/CLAUDE.md`). Production runs on MySQL 8.0 (found 2026-11-11
+  from a dump's header; `mariadb-database-production` on Coolify is a different server). Agents do
+  not log in to production databases: the op takes dumps, and the work reads the dump files.
+- Live systems: the production MySQL server, `mariadb-database-production` and
+  `postgres-database-production` on Coolify, the
   Coolify apps above, AWS S3/CloudFront/SES/SNS, SendGrid, Redis on the host. Tests mock all of
   them; local Postgres (Postgres.app, `localhost:5432`) is not live.
