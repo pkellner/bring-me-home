@@ -125,3 +125,51 @@ UNLOCK TABLES;
     FIXTURE_TRAILER,
   );
 }
+
+/** A value for `dumpFromTables`: text (quoted), a number or `{ raw }` (written as is), bytes, NULL. */
+export type FixtureValue = string | number | Buffer | null | { raw: string };
+
+export interface FixtureTable {
+  name: string;
+  /** `type` is the MySQL type as mysqldump writes it, e.g. `tinyint(1)`, `datetime(3)`, `json`. */
+  columns: { name: string; type: string; nullable: boolean }[];
+  primaryKey: string[];
+  rows: FixtureValue[][];
+}
+
+/** One value of an INSERT tuple, written the way mysqldump writes it. */
+export function literalForDump(value: FixtureValue): Buffer {
+  if (value === null) return Buffer.from('NULL');
+  if (typeof value === 'number') return Buffer.from(String(value));
+  if (Buffer.isBuffer(value)) return Buffer.concat([Buffer.from('_binary '), quoteForDump(value)]);
+  if (typeof value === 'object') return Buffer.from(value.raw);
+  return quoteForDump(value);
+}
+
+/** A complete dump (header, CREATE TABLE and one INSERT per table, trailer) built from `tables`. */
+export function dumpFromTables(tables: FixtureTable[]): Buffer {
+  const parts: (string | Buffer)[] = [FIXTURE_HEADER];
+  for (const table of tables) {
+    const columns = table.columns.map(
+      (column) => `  \`${column.name}\` ${column.type}${column.nullable ? ' DEFAULT NULL' : ' NOT NULL'}`,
+    );
+    const key = `  PRIMARY KEY (${table.primaryKey.map((name) => `\`${name}\``).join(',')})`;
+    parts.push(
+      `\nDROP TABLE IF EXISTS \`${table.name}\`;\nCREATE TABLE \`${table.name}\` (\n${[...columns, key].join(',\n')}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n`,
+    );
+    if (table.rows.length === 0) continue;
+    parts.push(`LOCK TABLES \`${table.name}\` WRITE;\nINSERT INTO \`${table.name}\` VALUES `);
+    table.rows.forEach((row, r) => {
+      if (r > 0) parts.push(',');
+      parts.push('(');
+      row.forEach((value, c) => {
+        if (c > 0) parts.push(',');
+        parts.push(literalForDump(value));
+      });
+      parts.push(')');
+    });
+    parts.push(';\nUNLOCK TABLES;\n');
+  }
+  parts.push(FIXTURE_TRAILER);
+  return dumpBytes(...parts);
+}
