@@ -9,6 +9,7 @@ import {
   BuildingLibraryIcon,
   BuildingOfficeIcon,
   ChatBubbleLeftRightIcon,
+  CircleStackIcon,
   CogIcon,
   HomeIcon,
   ShieldCheckIcon,
@@ -29,6 +30,7 @@ const iconMap = {
   themes: SwatchIcon,
   detentionCenters: BuildingLibraryIcon,
   email: EnvelopeIcon,
+  database: CircleStackIcon,
 };
 
 interface AdminNavigationProps {
@@ -115,6 +117,13 @@ export default function AdminNavigation({ session }: AdminNavigationProps) {
       href: '/admin/system',
       icon: 'cog' as keyof typeof iconMap,
       show: isSiteAdminUser, // Only site admins should access system config
+      disabled: false,
+    },
+    {
+      name: 'Postgres',
+      href: '/admin/postgres',
+      icon: 'database' as keyof typeof iconMap,
+      show: isSiteAdminUser,
       disabled: false,
     },
   ];
