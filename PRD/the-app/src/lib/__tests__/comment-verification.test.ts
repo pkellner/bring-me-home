@@ -1,4 +1,4 @@
-import { generateVerificationToken, hashToken, verifyToken, generateVerificationUrls } from '../comment-verification';
+import { generateVerificationToken, hashToken, verifyToken, generateVerificationUrls, issueVerificationToken } from '../comment-verification';
 import { prisma } from '../prisma';
 
 // Mock Prisma
@@ -8,6 +8,7 @@ jest.mock('../prisma', () => ({
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      upsert: jest.fn(),
     },
   },
 }));
@@ -106,6 +107,30 @@ describe('Comment Verification', () => {
       const result = await verifyToken(token);
       
       expect(result).toBeNull();
+    });
+  });
+
+  describe('issueVerificationToken', () => {
+    it('stores only the hash of the token it returns, keyed by email', async () => {
+      (prisma.commentVerificationToken.upsert as jest.Mock).mockResolvedValue({});
+
+      const token = await issueVerificationToken('owner@example.com');
+
+      expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(prisma.commentVerificationToken.upsert).toHaveBeenCalledWith({
+        where: { email: 'owner@example.com' },
+        update: { tokenHash: hashToken(token), lastUsedAt: expect.any(Date), isActive: true },
+        create: { email: 'owner@example.com', tokenHash: hashToken(token) },
+      });
+    });
+
+    it('issues a different token on each call', async () => {
+      (prisma.commentVerificationToken.upsert as jest.Mock).mockResolvedValue({});
+
+      const first = await issueVerificationToken('owner@example.com');
+      const second = await issueVerificationToken('owner@example.com');
+
+      expect(first).not.toBe(second);
     });
   });
 

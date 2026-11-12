@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { authorizeCommentEmail } from '@/lib/comment-email-access';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,10 +11,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const ownerEmail = await authorizeCommentEmail(
+      email,
+      request.headers.get('x-verification-token')
+    );
+
+    if (!ownerEmail) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Get comment statistics for this email
     const stats = await prisma.comment.groupBy({
       by: ['hideRequested'],
-      where: { email },
+      where: { email: ownerEmail },
       _count: true,
     });
 
@@ -21,7 +31,7 @@ export async function GET(request: NextRequest) {
     const visibleCount = stats.find(s => !s.hideRequested)?._count || 0;
     const totalCount = hiddenCount + visibleCount;
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       total: totalCount,
       hidden: hiddenCount,
       visible: visibleCount

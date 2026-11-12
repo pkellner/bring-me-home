@@ -14,40 +14,26 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-// Create or get existing verification token for an email
-export async function getOrCreateVerificationToken(email: string): Promise<{
-  token: string;
-  isNew: boolean;
-}> {
-  // Check for existing active token
-  const existing = await prisma.commentVerificationToken.findFirst({
-    where: {
-      email,
-      isActive: true,
-    },
-  });
-
-  if (existing) {
-    // Token exists but we don't have the plain token
-    // For existing tokens, we'll need to regenerate
-    // In practice, we'd store encrypted tokens, but for this implementation
-    // we'll generate a new one
-    return { token: '', isNew: false };
-  }
-
-  // Generate new token
+// Issues a fresh token for an email. There is one token per email, so this
+// replaces the previous one: links in earlier emails to this address stop working.
+export async function issueVerificationToken(email: string): Promise<string> {
   const token = generateVerificationToken();
   const tokenHash = hashToken(token);
 
-  // Store token
-  await prisma.commentVerificationToken.create({
-    data: {
+  await prisma.commentVerificationToken.upsert({
+    where: { email },
+    update: {
+      tokenHash,
+      lastUsedAt: new Date(),
+      isActive: true,
+    },
+    create: {
       email,
       tokenHash,
     },
   });
 
-  return { token, isNew: true };
+  return token;
 }
 
 // Verify a token
