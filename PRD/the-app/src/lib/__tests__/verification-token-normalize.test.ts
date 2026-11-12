@@ -2,7 +2,7 @@
  * comment_verification_tokens.email is unique and compared by bytes on Postgres, so every lookup
  * and write of it uses the normalised email (issue #1 step 1).
  */
-import { getOrCreateVerificationToken, findTokensWithoutUser } from '../comment-verification';
+import { issueVerificationToken, findTokensWithoutUser, hashToken } from '../comment-verification';
 import { sendAnonymousVerificationEmail } from '@/app/actions/email-verification';
 import { prisma } from '../prisma';
 
@@ -11,7 +11,7 @@ jest.mock('@/lib/auth', () => ({ authOptions: {} }));
 jest.mock('@/lib/email-opt-out-tokens', () => ({ generateOptOutToken: jest.fn(async () => 'opt-out') }));
 jest.mock('../prisma', () => ({
   prisma: {
-    commentVerificationToken: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    commentVerificationToken: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), upsert: jest.fn() },
     emailTemplate: { findUnique: jest.fn() },
     comment: { findUnique: jest.fn() },
     user: { findUnique: jest.fn() },
@@ -28,19 +28,24 @@ beforeEach(() => {
 
 afterEach(() => jest.restoreAllMocks());
 
-describe('getOrCreateVerificationToken', () => {
-  it('finds the active token by the normalised email', async () => {
-    (token.findFirst as jest.Mock).mockResolvedValue({ id: 't1' });
-    expect(await getOrCreateVerificationToken(' Joe@Example.com ')).toEqual({ token: '', isNew: false });
-    expect(token.findFirst).toHaveBeenCalledWith({ where: { email: 'joe@example.com', isActive: true } });
-    expect(token.create).not.toHaveBeenCalled();
+// PR #3 replaced getOrCreateVerificationToken (unused) with issueVerificationToken; these two tests
+// carried the same normalisation contract over to the function that replaced it.
+describe('issueVerificationToken', () => {
+  it('matches the existing token by the normalised email', async () => {
+    (token.upsert as jest.Mock).mockResolvedValue({ id: 't1' });
+    const issued = await issueVerificationToken(' Joe@Example.com ');
+    expect(token.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { email: 'joe@example.com' } }));
+    expect(token.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ tokenHash: hashToken(issued) }),
+    }));
   });
 
   it('creates the token under the normalised email', async () => {
-    (token.findFirst as jest.Mock).mockResolvedValue(null);
-    const result = await getOrCreateVerificationToken('JOE@example.com');
-    expect(result.isNew).toBe(true);
-    expect(token.create).toHaveBeenCalledWith({ data: { email: 'joe@example.com', tokenHash: expect.any(String) } });
+    (token.upsert as jest.Mock).mockResolvedValue({ id: 't2' });
+    const issued = await issueVerificationToken('JOE@example.com');
+    expect(token.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: { email: 'joe@example.com', tokenHash: hashToken(issued) },
+    }));
   });
 });
 
