@@ -1733,7 +1733,7 @@ export async function getFullConfig(userId: string) {
     ...await getPublicConfig(),
     database: {
       url: process.env.DATABASE_URL ? 'Configured' : 'Not configured',
-      provider: 'mysql',
+      provider: 'postgresql',
     },
     redis: {
       url: process.env.REDIS_URL ? 'Configured' : 'Not configured',

@@ -35,7 +35,7 @@ This document outlines the implementation plan for building the "Bring Them Home
 
 ### Goals
 - Project setup with Next.js 15, TypeScript, TailwindCSS
-- Database infrastructure with Prisma and MySQL
+- Database infrastructure with Prisma and PostgreSQL
 - Authentication system with NextAuth
 - Role-based access control
 - Basic CRUD operations
@@ -43,7 +43,7 @@ This document outlines the implementation plan for building the "Bring Them Home
 ### Implementation Details
 All core infrastructure has been successfully implemented including:
 - Next.js 15 project with TypeScript
-- Prisma ORM with MySQL database
+- Prisma ORM with PostgreSQL database
 - NextAuth with bcrypt password hashing
 - Role-based permissions (site-admin, town-admin, person-admin)
 - Complete CRUD operations for all models
