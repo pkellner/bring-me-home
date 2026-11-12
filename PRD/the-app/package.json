@@ -51,6 +51,7 @@
     "test:verbose": "jest --verbose",
     "//test-type": "Test filtering by type - run specific test categories",
     "test:unit": "jest --testPathPattern='.test.(ts|tsx)$'",
+    "test:db": "jest -c jest.db.config.mjs --runInBand",
     "test:integration": "jest --testPathPattern='.integration.test.(ts|tsx)$'",
     "test:e2e": "playwright test",
     "//test-location": "Test filtering by location - target specific areas",

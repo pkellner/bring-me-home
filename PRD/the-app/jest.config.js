@@ -68,6 +68,8 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/out/',
     '<rootDir>/coverage/',
+    // db tests run against the local Postgres with their own config: npm run test:db (jest.db.config.mjs).
+    '\\.db\\.test\\.ts$',
   ],
   
   // Transform ignore patterns - handle ESM modules
