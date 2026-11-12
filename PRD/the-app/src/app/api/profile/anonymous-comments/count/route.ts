@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Get comment statistics for this email
     const stats = await prisma.comment.groupBy({
       by: ['hideRequested'],
-      where: { email },
+      where: { email: normalizeEmail(email) },
       _count: true,
     });
 

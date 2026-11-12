@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail } from '../src/lib/normalize-identity';
 
 async function main() {
   console.log('Starting cleanup of orphaned data...\n');
@@ -12,14 +13,15 @@ async function main() {
   try {
     // 1. Find comment verification tokens for emails that don't belong to any user
     console.log('1. Checking for orphaned comment verification tokens...');
+    const userEmails = (await prisma.user.findMany({
+      where: { email: { not: null } },
+      select: { email: true }
+    })).map(u => u.email!);
     const orphanedTokens = await prisma.commentVerificationToken.findMany({
       where: {
         NOT: {
           email: {
-            in: await prisma.user.findMany({
-              where: { email: { not: null } },
-              select: { email: true }
-            }).then(users => users.map(u => u.email!))
+            in: userEmails.map(normalizeEmail)
           }
         }
       }

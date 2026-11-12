@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 // Generate a secure token
 export function generateVerificationToken(): string {
@@ -22,7 +23,7 @@ export async function getOrCreateVerificationToken(email: string): Promise<{
   // Check for existing active token
   const existing = await prisma.commentVerificationToken.findFirst({
     where: {
-      email,
+      email: normalizeEmail(email),
       isActive: true,
     },
   });
@@ -42,7 +43,7 @@ export async function getOrCreateVerificationToken(email: string): Promise<{
   // Store token
   await prisma.commentVerificationToken.create({
     data: {
-      email,
+      email: normalizeEmail(email),
       tokenHash,
     },
   });

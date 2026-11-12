@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { EmailSuppression } from '@prisma/client';
 import { SUPPRESSION_REASONS, type SuppressionReason, type SuppressionSource } from './email-suppression-constants';
+import { normalizeEmail } from './normalize-identity';
 
 // Re-export constants from the separate file
 export { 
@@ -31,7 +32,7 @@ export async function isEmailSuppressed(email: string): Promise<boolean> {
   if (!email) return false;
   
   const suppression = await prisma.emailSuppression.findUnique({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizeEmail(email) },
   });
   
   return !!suppression;
@@ -46,7 +47,7 @@ export async function getSuppressionInfo(email: string): Promise<SuppressionInfo
   }
   
   const suppression = await prisma.emailSuppression.findUnique({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizeEmail(email) },
   });
   
   return {
@@ -63,7 +64,7 @@ export async function addToSuppressionList(options: AddSuppressionOptions): Prom
   
   // Upsert to handle duplicate entries gracefully
   const suppression = await prisma.emailSuppression.upsert({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizeEmail(email) },
     update: {
       reason,
       reasonDetails,
@@ -73,7 +74,7 @@ export async function addToSuppressionList(options: AddSuppressionOptions): Prom
       updatedAt: new Date(),
     },
     create: {
-      email: email.toLowerCase(),
+      email: normalizeEmail(email),
       reason,
       reasonDetails,
       source,
@@ -98,7 +99,7 @@ export async function removeFromSuppressionList(email: string): Promise<boolean>
   
   try {
     await prisma.emailSuppression.delete({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizeEmail(email) },
     });
     return true;
   } catch {
@@ -112,7 +113,7 @@ export async function removeFromSuppressionList(email: string): Promise<boolean>
  */
 async function updateUserOptOut(email: string, reason: SuppressionReason, reasonDetails?: string): Promise<void> {
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizeEmail(email) },
   });
   
   if (!user) return;
@@ -193,10 +194,9 @@ export async function getSuppressionList(options: {
 export async function areEmailsSuppressed(emails: string[]): Promise<Map<string, boolean>> {
   if (!emails.length) return new Map();
   
-  const normalizedEmails = emails.map(e => e.toLowerCase());
   const suppressions = await prisma.emailSuppression.findMany({
     where: {
-      email: { in: normalizedEmails },
+      email: { in: emails.map(normalizeEmail) },
     },
     select: { email: true },
   });
@@ -205,7 +205,7 @@ export async function areEmailsSuppressed(emails: string[]): Promise<Map<string,
   const result = new Map<string, boolean>();
   
   for (const email of emails) {
-    result.set(email, suppressedSet.has(email.toLowerCase()));
+    result.set(email, suppressedSet.has(normalizeEmail(email)));
   }
   
   return result;

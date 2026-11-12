@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { normalizeOptionalEmail } from '@/lib/normalize-identity';
 
 export async function verifyMagicLink(token: string) {
   try {
@@ -32,7 +33,7 @@ export async function verifyMagicLink(token: string) {
       // Regular support message (personHistoryId is null)
       prisma.comment.findFirst({
         where: {
-          email: magicToken.user.email,
+          email: normalizeOptionalEmail(magicToken.user.email),
           isApproved: true,
           personHistoryId: null,
         },
@@ -61,7 +62,7 @@ export async function verifyMagicLink(token: string) {
       // Person history update comment (personHistoryId is NOT null)
       prisma.comment.findFirst({
         where: {
-          email: magicToken.user.email,
+          email: normalizeOptionalEmail(magicToken.user.email),
           isApproved: true,
           personHistoryId: { not: null },
         },

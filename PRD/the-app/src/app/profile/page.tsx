@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/normalize-identity';
 import ProfileClient from './ProfileClient';
 import { getUserComments } from '@/app/actions/user-comments';
 import { isSiteAdmin } from '@/lib/permissions';
@@ -90,7 +91,7 @@ export default async function ProfilePage({
     where: {
       comments: {
         some: {
-          email: user.email,
+          email: normalizeEmail(user.email),
         },
       },
     },
@@ -148,7 +149,7 @@ export default async function ProfilePage({
   if (isAdmin && !isViewingOwnProfile && user.email) {
     commentTokens = await prisma.commentVerificationToken.findMany({
       where: { 
-        email: user.email,
+        email: normalizeEmail(user.email),
         isActive: true,
       },
       orderBy: { createdAt: 'desc' },

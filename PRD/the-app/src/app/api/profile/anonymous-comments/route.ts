@@ -3,15 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/comment-verification';
+import { normalizeEmail, normalizeOptionalEmail } from '@/lib/normalize-identity';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const email = searchParams.get('email');
+  const submittedEmail = searchParams.get('email');
   const action = searchParams.get('action');
 
-  if (!email) {
+  if (!submittedEmail) {
     return NextResponse.json({ error: 'Email parameter is required' }, { status: 400 });
   }
+  const email = normalizeEmail(submittedEmail);
 
   try {
     // Handle action parameter for magic links
@@ -434,11 +436,12 @@ export async function PUT(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { allowAnonymousComments, email } = body;
+    const { allowAnonymousComments, email: submittedEmail } = body;
 
-    if (typeof allowAnonymousComments !== 'boolean' || !email) {
+    if (typeof allowAnonymousComments !== 'boolean' || !submittedEmail || typeof submittedEmail !== 'string') {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
+    const email = normalizeEmail(submittedEmail);
 
     // Check authorization: either session or valid token
     const session = await getServerSession(authOptions);
@@ -447,14 +450,14 @@ export async function POST(request: NextRequest) {
     let authorized = false;
     
     // Check if user is logged in and owns this email
-    if (session?.user?.email === email) {
+    if (normalizeOptionalEmail(session?.user?.email) === email) {
       authorized = true;
     }
     
     // Check if valid token for this email
     if (token && !authorized) {
       const verificationToken = await verifyToken(token);
-      if (verificationToken && verificationToken.email === email) {
+      if (verificationToken && normalizeEmail(verificationToken.email) === email) {
         authorized = true;
       }
     }

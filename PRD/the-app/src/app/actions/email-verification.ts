@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { EmailStatus } from '@prisma/client';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 const VERIFICATION_TOKEN_EXPIRY_HOURS = 24;
 
@@ -237,7 +238,7 @@ export async function verifyAnonymousEmail(token: string) {
     // Get the most recent comment for this email to get person info
     const recentComment = await prisma.comment.findFirst({
       where: { 
-        email: verificationToken.email,
+        email: normalizeEmail(verificationToken.email),
         isActive: true
       },
       orderBy: { createdAt: 'desc' },
@@ -273,7 +274,7 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     
     let verificationToken = await prisma.commentVerificationToken.findUnique({
-      where: { email },
+      where: { email: normalizeEmail(email) },
     });
 
     if (verificationToken) {
@@ -290,7 +291,7 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
       // Create new token
       verificationToken = await prisma.commentVerificationToken.create({
         data: {
-          email,
+          email: normalizeEmail(email),
           tokenHash,
         }
       });
@@ -337,7 +338,7 @@ export async function sendAnonymousVerificationEmail(commentId: string, email: s
     let allUnsubscribeUrl = manageUrl; // Default to manage URL
     
     const emailUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizeEmail(email) },
       select: { id: true },
     });
     

@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail } from '../src/lib/normalize-identity';
 
 async function cleanupOrphanedTokens() {
   try {
@@ -14,7 +15,7 @@ async function cleanupOrphanedTokens() {
     const result = await prisma.commentVerificationToken.deleteMany({
       where: {
         email: {
-          notIn: Array.from(userEmails)
+          notIn: Array.from(userEmails).map(normalizeEmail)
         }
       }
     });

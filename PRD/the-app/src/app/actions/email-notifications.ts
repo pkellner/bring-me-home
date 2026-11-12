@@ -10,6 +10,7 @@ import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
 import crypto from 'crypto';
 import { replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import { isEmailSuppressed } from '@/lib/email-suppression';
+import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '@/lib/normalize-identity';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -130,9 +131,11 @@ export async function createUsersFromCommentEmails() {
 
     const uniqueEmails = new Map<string, { firstName?: string; lastName?: string }>();
     
+    // Keyed by the normalised email, so "Joe@x.com" and "joe@x.com " make one user.
     for (const comment of comments) {
-      if (comment.email && !uniqueEmails.has(comment.email)) {
-        uniqueEmails.set(comment.email, {
+      const email = normalizeOptionalEmail(comment.email);
+      if (email && !uniqueEmails.has(email)) {
+        uniqueEmails.set(email, {
           firstName: comment.firstName || undefined,
           lastName: comment.lastName || undefined,
         });
@@ -143,7 +146,7 @@ export async function createUsersFromCommentEmails() {
     const existingUsers = await prisma.user.findMany({
       where: {
         email: {
-          in: Array.from(uniqueEmails.keys()),
+          in: Array.from(uniqueEmails.keys()).map(normalizeEmail),
         },
       },
       select: {
@@ -151,7 +154,7 @@ export async function createUsersFromCommentEmails() {
       },
     });
 
-    const existingEmails = new Set(existingUsers.map(u => u.email).filter(Boolean));
+    const existingEmails = new Set(existingUsers.map(u => normalizeOptionalEmail(u.email)).filter(Boolean));
     
     // Create users for emails that don't have accounts
     const newUsers = [];
@@ -161,19 +164,24 @@ export async function createUsersFromCommentEmails() {
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
         
         newUsers.push({
-          username: email,
           email,
           password: tempPassword,
           firstName: info.firstName,
           lastName: info.lastName,
-          isActive: true,
         });
       }
     }
 
     // Create all new users
     const created = await prisma.user.createMany({
-      data: newUsers,
+      data: newUsers.map(user => ({
+        username: normalizeUsername(user.email),
+        email: normalizeEmail(user.email),
+        password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: true,
+      })),
       skipDuplicates: true,
     });
 
@@ -253,7 +261,7 @@ export async function getPersonFollowers(personId: string, includeHistoryComment
   const followers = await prisma.user.findMany({
     where: {
       email: {
-        in: emails,
+        in: emails.map(normalizeEmail),
       },
       optOutOfAllEmail: false,
       NOT: {

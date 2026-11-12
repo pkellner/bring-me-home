@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { isSiteAdmin, isTownAdmin } from '@/lib/permissions';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 interface PersonGroup {
   person: {
@@ -44,7 +45,7 @@ export async function getUserComments(userId: string) {
   }
 
   const comments = await prisma.comment.findMany({
-    where: { email: user.email },
+    where: { email: normalizeEmail(user.email) },
     include: {
       person: {
         include: {
@@ -122,7 +123,7 @@ export async function toggleCommentVisibility(commentId: string, userId: string)
   const comment = await prisma.comment.findFirst({
     where: {
       id: commentId,
-      email: user.email,
+      email: normalizeEmail(user.email),
     },
     include: {
       person: {
@@ -172,7 +173,7 @@ export async function deleteUserComment(commentId: string, userId: string) {
   const comment = await prisma.comment.findFirst({
     where: {
       id: commentId,
-      email: user.email,
+      email: normalizeEmail(user.email),
     },
     include: {
       person: {
@@ -225,7 +226,7 @@ export async function bulkUpdateComments(
   switch (action) {
     case 'hide':
       await prisma.comment.updateMany({
-        where: { email: user.email },
+        where: { email: normalizeEmail(user.email) },
         data: {
           hideRequested: true,
           hideRequestedAt: new Date(),
@@ -234,7 +235,7 @@ export async function bulkUpdateComments(
       break;
     case 'show':
       await prisma.comment.updateMany({
-        where: { email: user.email },
+        where: { email: normalizeEmail(user.email) },
         data: {
           hideRequested: false,
           hideRequestedAt: null,
@@ -243,7 +244,7 @@ export async function bulkUpdateComments(
       break;
     case 'delete':
       await prisma.comment.updateMany({
-        where: { email: user.email },
+        where: { email: normalizeEmail(user.email) },
         data: {
           isActive: false,
         },

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { CreateUserSchema } from '@/schemas/user';
 import { revalidatePath } from 'next/cache';
 import { sendVerificationEmail } from './email-verification';
+import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '@/lib/normalize-identity';
 
 export async function registerUser(formData: FormData) {
   const rawData = {
@@ -32,7 +33,7 @@ export async function registerUser(formData: FormData) {
   try {
     // Check if username already exists
     const existingUser = await prisma.user.findUnique({
-      where: { username },
+      where: { username: normalizeUsername(username) },
     });
 
     if (existingUser) {
@@ -42,7 +43,7 @@ export async function registerUser(formData: FormData) {
     // Check if email already exists (if provided)
     if (email) {
       const existingEmail = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizeEmail(email) },
       });
 
       if (existingEmail) {
@@ -56,8 +57,8 @@ export async function registerUser(formData: FormData) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        username,
-        email: email || null,
+        username: normalizeUsername(username),
+        email: normalizeOptionalEmail(email),
         password: hashedPassword,
         firstName: firstName || null,
         lastName: lastName || null,
