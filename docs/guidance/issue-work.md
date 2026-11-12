@@ -28,7 +28,8 @@ Another machine asks the op for its prefix and adds its row here.
   `bring_me_home` (generated password). Its URL is `LOCAL_POSTGRES_URL` in the primary checkout's
   `PRD/the-app/.env`. Read the name, never print the value. Tests, the rehearsal and the preview
   all use it, one at a time; each starts by resetting it.
-- Production MariaDB is read only through `MARIADB_READONLY_URL` (a SELECT-only user the op made).
+- Production data reaches this Mac only as a dump the op takes (op, 2026-11-11). Dumps are kept
+  gzipped with SHA-256 files in `~/backups/bring-me-home` (mode 600), never in a repo.
   Hosted credentials (Coolify's `DATABASE_URL` for each app) stay in Coolify, never in a local file.
 
 ## Test ports
