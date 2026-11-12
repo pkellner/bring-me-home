@@ -1,6 +1,13 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import {
+  getConnectionCounts,
+  getDatabaseSessions,
+  getDatabaseVersion,
+  poolSettingsFromUrl,
+  runConcurrentSleeps,
+} from '@/lib/database-health';
 import * as redisService from '@/lib/redis/redis-service';
 
 export async function testRedisConnection() {
@@ -33,10 +40,7 @@ export async function testDatabaseConnection() {
   };
 
   try {
-    // Get database info
-    const dbInfo = await prisma.$queryRaw`SELECT VERSION() as version`;
-    metrics.databaseInfo =
-      (dbInfo as Array<{ version: string }>)[0]?.version || 'Unknown';
+    metrics.databaseInfo = await getDatabaseVersion();
 
     // Test create operation
     const createStart = Date.now();
@@ -99,83 +103,36 @@ export async function testDatabaseConnection() {
 export async function testDatabaseConnectionPool() {
   try {
     const startTime = Date.now();
-    
-    // Get current connection count
-    const connectionsResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(*) as count 
-      FROM information_schema.processlist 
-      WHERE db = DATABASE()
-    `;
-    const connectionCount = Number(connectionsResult[0]?.count || 0);
-    
-    // Get max connections setting
-    const [maxConnections] = await prisma.$queryRaw<[{ Variable_name: string; Value: string }]>`
-      SHOW VARIABLES LIKE 'max_connections'
-    `;
-    
-    // Get active processes
-    const processes = await prisma.$queryRaw<Array<{
-      id: number;
-      user: string;
-      host: string;
-      db: string;
-      command: string;
-      time: number;
-      state: string | null;
-    }>>`
-      SELECT id, user, host, db, command, time, state
-      FROM information_schema.processlist
-      WHERE db = DATABASE()
-      ORDER BY time DESC
-      LIMIT 20
-    `;
-    
-    // Test concurrent connections
-    const concurrentTests = 20;
-    const promises = [];
-    
-    for (let i = 0; i < concurrentTests; i++) {
-      promises.push(
-        prisma.$queryRaw`SELECT SLEEP(0.1)`.then(() => true).catch(() => false)
-      );
-    }
-    
-    const results = await Promise.all(promises);
-    const successful = results.filter(r => r).length;
-    
+
+    const { activeConnections, maxConnections } = await getConnectionCounts();
+    const sessions = await getDatabaseSessions(5);
+    const concurrentTest = await runConcurrentSleeps(20, 0.1);
+    const { connectionLimit, poolTimeout } = poolSettingsFromUrl(process.env.DATABASE_URL);
+
     const queryTime = Date.now() - startTime;
-    
+
     return {
       success: true,
       data: {
         connectionPoolStatus: {
-          activeConnections: connectionCount,
-          maxConnections: parseInt(maxConnections.Value),
-          utilizationPercent: Math.round((connectionCount / parseInt(maxConnections.Value)) * 100),
-          connectionLimit: process.env.DATABASE_URL?.includes('connection_limit=') 
-            ? parseInt(process.env.DATABASE_URL.match(/connection_limit=(\d+)/)?.[1] || '0')
-            : 'Default (33)',
-          poolTimeout: process.env.DATABASE_URL?.includes('pool_timeout=')
-            ? parseInt(process.env.DATABASE_URL.match(/pool_timeout=(\d+)/)?.[1] || '0')
-            : 'Default (10s)',
+          activeConnections,
+          maxConnections,
+          utilizationPercent: Math.round((activeConnections / maxConnections) * 100),
+          // Prisma's defaults for PostgreSQL when the URL sets neither.
+          connectionLimit: connectionLimit ?? 'Default (2 × CPU cores + 1)',
+          poolTimeout: poolTimeout ?? 'Default (10s)',
         },
         concurrentTest: {
-          attempted: concurrentTests,
-          successful: successful,
-          failed: concurrentTests - successful,
-          successRate: Math.round((successful / concurrentTests) * 100),
+          ...concurrentTest,
+          successRate: Math.round((concurrentTest.successful / concurrentTest.attempted) * 100),
         },
-        topProcesses: processes.slice(0, 5).map((proc) => ({
-          id: proc.id,
-          command: proc.command,
-          state: proc.state || 'Sleep',
-          duration: proc.time,
-        })),
+        topProcesses: sessions,
         queryTime: queryTime,
       },
       error: null,
     };
   } catch (error) {
+    console.error('Connection pool test failed:', error);
     return {
       success: false,
       data: null,
