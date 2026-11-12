@@ -18,19 +18,16 @@ Another machine asks the op for its prefix and adds its row here.
   beside it: `~/repos/bring-me-home-wt/<prefix>-issue-<N>-<part>-<slug>`.
 - Setup of a new worktree, from its root:
   1. `cp ../bring-me-home/PRD/the-app/.env PRD/the-app/.env` (untracked; never committed).
-  2. Its own Postgres database, owned by the local role: `createdb -h /tmp -O bring_me_home
-     bring_me_home_<slug>` (Postgres.app's `createdb`), and in that worktree's `.env` set
-     `DATABASE_URL` to `POSTGRES_DEV_URL` with the database name replaced. Databases are named by
-     purpose or by worktree, never by branch.
-  3. `cd PRD/the-app && npm ci && npx prisma generate`.
-  4. Its own port base (below).
+  2. `cd PRD/the-app && npm ci && npx prisma generate`.
+  3. Its own port base (below).
 
-## Local databases
+## Local database
 
-- Postgres.app on `localhost:5432`. Role `bring_me_home` (generated password, `CREATEDB`) owns
-  `bring_me_home_dev`, `bring_me_home_test`, `bring_me_home_rehearsal`, `bring_me_home_preview`
-  and the per-worktree ones. Their URLs are in the primary checkout's `PRD/the-app/.env` as
-  `LOCAL_POSTGRES_URL` and `POSTGRES_<PURPOSE>_URL`. Read the names, never print the values.
+- One local database (op, 2026-11-11: "this is a rarely used site. I want to keep it simple ...
+  one local db is enough"): `bring_me_home` on Postgres.app, `localhost:5432`, owned by role
+  `bring_me_home` (generated password). Its URL is `LOCAL_POSTGRES_URL` in the primary checkout's
+  `PRD/the-app/.env`. Read the name, never print the value. Tests, the rehearsal and the preview
+  all use it, one at a time; each starts by resetting it.
 - Production MariaDB is read only through `MARIADB_READONLY_URL` (a SELECT-only user the op made).
   Hosted credentials (Coolify's `DATABASE_URL` for each app) stay in Coolify, never in a local file.
 
@@ -44,7 +41,7 @@ The primary checkout uses 3000; worktree number *n* (in creation order on this m
 ## Tests
 
 Kinds: **unit** and **component** (Jest, `*.test.ts(x)`, jsdom, Prisma mocked), **db** (Jest
-against the real local Postgres in `TEST_DATABASE_URL`, `*.db.test.ts`, added by issue #1),
+against the local Postgres in `LOCAL_POSTGRES_URL`, `*.db.test.ts`, added by issue #1),
 **browser** (Playwright, `e2e/`, desktop and phone projects).
 
 - Targeted run: `npx jest <files>` for the touched test files, then `npm run build` (the app's
@@ -59,7 +56,7 @@ against the real local Postgres in `TEST_DATABASE_URL`, `*.db.test.ts`, added by
 ## Preview
 
 The base branch's future, on sample data, beside the live app: in the merge-test worktree,
-`DATABASE_URL=$POSTGRES_PREVIEW_URL`, `npx prisma migrate deploy`, `npm run db:seed`, `npm run build`,
+`DATABASE_URL=$LOCAL_POSTGRES_URL`, `npx prisma migrate reset --force` (local Postgres only), `npm run db:seed`, `npm run build`,
 `PORT=3900 npm run start`, email worker not started, `EMAIL_PROVIDER=log` and
 `EMAIL_CHECK_INTERVAL=0`. Address: http://localhost:3900. It never points at a hosted database.
 
