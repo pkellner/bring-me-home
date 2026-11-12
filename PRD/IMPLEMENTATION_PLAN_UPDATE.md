@@ -9,7 +9,7 @@ This document provides a comprehensive update on the implementation status of th
 1. **Project Setup**
    - Next.js 15 with TypeScript
    - TailwindCSS for styling
-   - Prisma ORM with MySQL
+   - Prisma ORM with PostgreSQL
    - Environment configuration
 
 2. **Authentication System**
@@ -248,7 +248,7 @@ This document provides a comprehensive update on the implementation status of th
 5. **Styling**: TailwindCSS utility classes
 6. **Forms**: React Server Actions over API routes
 7. **Validation**: Zod schemas for type safety
-8. **Database**: MySQL with Prisma ORM
+8. **Database**: PostgreSQL with Prisma ORM
 
 ## Security Considerations
 

@@ -1,3 +1,4 @@
+-- Note: these notes describe the old MySQL setup, kept for history. The app now runs on PostgreSQL (see POSTGRES.md).
 
 ``` sql
 /* ---------- change-me section ---------- */

@@ -56,7 +56,7 @@ This is the foundational setup for the Bring Me Home application, a platform des
 
 ### Database Setup Instructions
 
-1. **Set up MySQL database** and update the `DATABASE_URL` in `.env`
+1. **Set up the PostgreSQL database** (see `docs/POSTGRES.md`) and update the `DATABASE_URL` in `.env`
 2. **Generate Prisma client**: `npm run db:generate`
 3. **Push schema to database**: `npm run db:push`
 4. **Seed the database**: `npm run db:seed`
@@ -114,7 +114,7 @@ The next phase will implement:
 Copy and modify the `.env` file with your database credentials:
 
 ```bash
-DATABASE_URL="mysql://username:password@localhost:3306/bring_me_home"
+DATABASE_URL="postgresql://username:password@localhost:5432/bring_me_home"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
 NEXT_PUBLIC_ENABLE_COOKIE_BANNER="false"  # Set to "true" to enable GDPR cookie consent

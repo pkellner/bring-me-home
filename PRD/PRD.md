@@ -293,7 +293,7 @@ The application supports simple image management for detained persons with a pri
 - **Frontend**: Next.js 15 with TypeScript
 - **Component Architecture**: Client-side components only
 - **Styling**: TailwindCSS for responsive design
-- **Database**: MySQL with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Validation**: Zod schemas for client and server
 - **File Storage**: Image and video upload support
 
@@ -909,7 +909,7 @@ The application includes built-in health check functionality accessible through 
 - Error details if connection fails
 
 ### Database Health Check
-**Purpose**: Verify Prisma/MySQL connectivity and performance
+**Purpose**: Verify Prisma/PostgreSQL connectivity and performance
 
 **Test Operations**:
 1. Create a record in HealthCheck table
