@@ -32,7 +32,7 @@ This is the foundational setup for the Bring Me Home application, a platform des
 
 1. **Next.js 15 Project Setup** with TypeScript and TailwindCSS
 2. **ESLint and Prettier** configuration for code quality
-3. **Prisma ORM** with MySQL database schema
+3. **Prisma ORM** with PostgreSQL database schema
 4. **Complete Database Schema** with all required models:
    - Users, Roles, UserRoles (authentication & authorization)
    - Towns, Persons (core entities)
