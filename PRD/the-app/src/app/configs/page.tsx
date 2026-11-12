@@ -8,6 +8,10 @@ import HealthCheckSection from '@/components/configs/HealthCheckSection';
 import ImageServingDemo from '@/components/configs/ImageServingDemo';
 import CacheStatsSection from '@/components/configs/CacheStatsSection';
 import ImageHitStatsSection from '@/components/configs/ImageHitStatsSection';
+import { getDatabaseVersion } from '@/lib/database-health';
+
+// Reads the live database version, so it is rendered per request, never at build time.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'System Configuration | Bring Me Home',
@@ -39,8 +43,16 @@ function getTimeSinceLastBuild(buildDateISO: string): string {
 }
 
 export default async function ConfigsPage() {
-  const config = await getPublicConfig();
-  const session = await getServerSession(authOptions);
+  const [config, session, databaseVersion] = await Promise.all([
+    getPublicConfig(),
+    getServerSession(authOptions),
+    // A public page: product and version only, without the build note server_version may carry
+    // ("18.6 (Debian 18.6-1.pgdg13+1)").
+    getDatabaseVersion().then(version => version.replace(/ \(.*\)$/, '')).catch((error: unknown) => {
+      console.error('Configs page: could not read the database version:', error);
+      return 'PostgreSQL (version unavailable)';
+    }),
+  ]);
 
   // Check if user is admin
   const isAdmin = session?.user?.roles?.some(role => {
@@ -201,6 +213,14 @@ export default async function ConfigsPage() {
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {config.environment.timezone}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Database
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">
+                      {databaseVersion}
                     </dd>
                   </div>
                 </dl>
