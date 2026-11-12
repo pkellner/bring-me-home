@@ -417,9 +417,9 @@ export async function searchDetentionCenters(query: string) {
     const centers = await prisma.detentionCenter.findMany({
       where: {
         OR: [
-          { name: { contains: query } },
-          { city: { contains: query } },
-          { state: { contains: query } },
+          { name: { contains: query, mode: 'insensitive' } },
+          { city: { contains: query, mode: 'insensitive' } },
+          { state: { contains: query, mode: 'insensitive' } },
         ],
         isActive: true,
       },
