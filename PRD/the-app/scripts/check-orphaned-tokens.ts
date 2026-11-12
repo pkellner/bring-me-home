@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { findTokensWithoutUser } from '../src/lib/comment-verification';
 
 async function checkOrphanedTokens() {
   try {
@@ -13,10 +14,8 @@ async function checkOrphanedTokens() {
       select: { email: true }
     });
     
-    const userEmails = new Set(users.map(u => u.email).filter(Boolean));
-    
-    // Find tokens for non-existent users
-    const orphanedTokens = tokens.filter(t => !userEmails.has(t.email));
+    // Find tokens for non-existent users (emails compared in normal form)
+    const orphanedTokens = findTokensWithoutUser(tokens, users.map(u => u.email));
     
     console.log(`Total tokens: ${tokens.length}`);
     console.log(`Total users: ${users.length}`);

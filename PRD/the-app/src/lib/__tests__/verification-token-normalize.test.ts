@@ -2,7 +2,7 @@
  * comment_verification_tokens.email is unique and compared by bytes on Postgres, so every lookup
  * and write of it uses the normalised email (issue #1 step 1).
  */
-import { getOrCreateVerificationToken } from '../comment-verification';
+import { getOrCreateVerificationToken, findTokensWithoutUser } from '../comment-verification';
 import { sendAnonymousVerificationEmail } from '@/app/actions/email-verification';
 import { prisma } from '../prisma';
 
@@ -69,5 +69,26 @@ describe('sendAnonymousVerificationEmail', () => {
 
     await sendAnonymousVerificationEmail('c1', 'NEW@Example.com', 'Ana Lopez');
     expect(token.create).toHaveBeenCalledWith({ data: { email: 'new@example.com', tokenHash: expect.any(String) } });
+  });
+});
+
+describe('findTokensWithoutUser (used by the orphaned-token scripts)', () => {
+  const tokens = [
+    { id: 't1', email: 'joe@example.com' },
+    { id: 't2', email: 'Ann@Example.com ' },
+    { id: 't3', email: 'gone@example.com' },
+  ];
+
+  it('keeps a token whose user is stored in another case or with spaces', () => {
+    const orphans = findTokensWithoutUser(tokens, ['JOE@example.com', 'ann@example.com', null]);
+    expect(orphans.map(t => t.id)).toEqual(['t3']);
+  });
+
+  it('returns every token when no user has an email', () => {
+    expect(findTokensWithoutUser(tokens, [null, null]).map(t => t.id)).toEqual(['t1', 't2', 't3']);
+  });
+
+  it('returns nothing when every token has a user', () => {
+    expect(findTokensWithoutUser(tokens, ['joe@example.com', 'ann@example.com', 'Gone@Example.com'])).toEqual([]);
   });
 });

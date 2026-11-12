@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
-import { normalizeEmail } from '../src/lib/normalize-identity';
+import { findTokensWithoutUser } from '../src/lib/comment-verification';
 
 async function cleanupOrphanedTokens() {
   try {
@@ -9,15 +9,16 @@ async function cleanupOrphanedTokens() {
       select: { email: true }
     });
     
-    const userEmails = new Set(users.map(u => u.email).filter(Boolean) as string[]);
-    
-    // Delete tokens for non-existent users
+    const tokens = await prisma.commentVerificationToken.findMany({
+      select: { id: true, email: true }
+    });
+
+    // Delete tokens for non-existent users. The orphans are found in code with both sides in
+    // normal form and deleted by id: a `notIn` of normalised emails would delete the tokens of
+    // users whose stored email differs in case.
+    const orphans = findTokensWithoutUser(tokens, users.map(u => u.email));
     const result = await prisma.commentVerificationToken.deleteMany({
-      where: {
-        email: {
-          notIn: Array.from(userEmails).map(normalizeEmail)
-        }
-      }
+      where: { id: { in: orphans.map(t => t.id) } }
     });
     
     console.log(`Deleted ${result.count} orphaned comment verification tokens`);

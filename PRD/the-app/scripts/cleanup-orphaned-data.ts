@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '../src/lib/prisma';
-import { normalizeEmail } from '../src/lib/normalize-identity';
+import { findTokensWithoutUser } from '../src/lib/comment-verification';
 
 async function main() {
   console.log('Starting cleanup of orphaned data...\n');
@@ -17,15 +17,8 @@ async function main() {
       where: { email: { not: null } },
       select: { email: true }
     })).map(u => u.email!);
-    const orphanedTokens = await prisma.commentVerificationToken.findMany({
-      where: {
-        NOT: {
-          email: {
-            in: userEmails.map(normalizeEmail)
-          }
-        }
-      }
-    });
+    // Found in code with both sides in normal form, then deleted by id below.
+    const orphanedTokens = findTokensWithoutUser(await prisma.commentVerificationToken.findMany(), userEmails);
     
     console.log(`   Found ${orphanedTokens.length} orphaned tokens`);
     
