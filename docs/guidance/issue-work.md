@@ -68,7 +68,9 @@ against the local Postgres in `LOCAL_POSTGRES_URL`, `*.db.test.ts`, added by iss
 ## Preview
 
 The base branch's future, on sample data, beside the live app: in the merge-test worktree,
-`DATABASE_URL=$LOCAL_POSTGRES_URL`, `npx prisma migrate reset --force` (local Postgres only), `npm run db:seed`, `npm run build`,
+`DATABASE_URL=$LOCAL_POSTGRES_URL`; empty the local database (Prisma refuses `migrate reset` from an AI agent:
+drop and recreate `bring_me_home` over the local socket with the statement in `PRD/the-app/docs/POSTGRES.md`),
+`npx prisma migrate deploy`, `npm run db:seed`, `npm run build`,
 `PORT=3900 npm run start`, email worker not started, `EMAIL_PROVIDER=log` and
 `EMAIL_CHECK_INTERVAL=0`. Address: http://localhost:3900. It never points at a hosted database.
 
