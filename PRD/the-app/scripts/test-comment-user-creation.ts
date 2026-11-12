@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
-import { normalizeEmail } from '../src/lib/normalize-identity';
+import { normalizeEmail, normalizeUsername } from '../src/lib/normalize-identity';
 import bcrypt from 'bcryptjs';
 
 async function main() {
@@ -50,7 +50,7 @@ async function main() {
       const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
       const newUser = await prisma.user.create({
         data: {
-          username: testEmail,
+          username: normalizeUsername(testEmail),
           email: testEmail,
           password: tempPassword,
           firstName: 'Test',

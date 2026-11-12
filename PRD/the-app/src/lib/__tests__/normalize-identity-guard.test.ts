@@ -1,13 +1,16 @@
 /**
  * Guard for issue #1 step 1: every Prisma call that writes or matches an email or username goes
- * through the helpers in src/lib/normalize-identity.ts, so the app behaves the same on MariaDB
- * (case- and trailing-space-insensitive) and Postgres (byte-exact).
+ * through the helpers in src/lib/normalize-identity.ts, so the app behaves the same on MySQL
+ * (utf8mb4_unicode_ci: case- and trailing-space-insensitive) and Postgres (byte-exact).
  *
  * It parses every source file under src/ (tests excluded), scripts/ and prisma/seed.ts, finds
  * calls such as `prisma.user.findUnique({...})` on the models below, and checks the value of each
- * `email` / `username` key inside the argument. A value passes when it is a helper call, null, or
- * an operator object whose values pass. Anything else must be in ALLOWED with a reason; an
- * ALLOWED entry that no longer matches anything fails too, so the list stays true.
+ * `email` / `username` key inside the argument. A value passes when it is that key's helper, or an
+ * operator object whose values pass; under `data` it may also be null or normalizeOptionalEmail,
+ * which under `where` would match every row without an email. It also fails on a `$transaction`
+ * callback whose client is not named `tx` and on a PrismaClient not bound to `prisma`, because the
+ * scan recognises Prisma calls by those two names. Anything else must be in ALLOWED with a reason;
+ * an ALLOWED entry that no longer matches anything fails too, so the list stays true.
  */
 import fs from 'fs';
 import path from 'path';
@@ -24,14 +27,22 @@ const PRISMA_METHODS = new Set([
   'create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany',
   'findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'findMany', 'count', 'aggregate', 'groupBy',
 ]);
-const IDENTITY_KEYS = new Set(['email', 'username']);
+type IdentityKey = 'email' | 'username';
+// The helpers each key may go through: `email: normalizeUsernameForLookup(x)` is a bypass.
+const KEY_HELPERS: Record<IdentityKey, Set<string>> = {
+  email: new Set(['normalizeEmail', 'normalizeOptionalEmail']),
+  username: new Set(['normalizeUsername', 'normalizeUsernameForLookup']),
+};
+const isIdentityKey = (name: string | undefined): name is IdentityKey => name === 'email' || name === 'username';
+// Values that only make sense when writing: under `where` they match rows that have no email.
+const WRITE_ONLY_HELPERS = new Set(['normalizeOptionalEmail']);
+// Keys whose value is a filter (`where`, a nested `connect`) or a write (`data`, `create`, `update`).
+const FILTER_KEYS = new Set(['where', 'connect']);
+const WRITE_KEYS = new Set(['data', 'create', 'update']);
 // Keys whose object holds field names, not values: `select: { email: true }`.
 const SHAPE_KEYS = new Set(['select', 'include', 'omit', 'orderBy', 'distinct', '_count', 'by']);
 // Keys whose value holds email/username keys; built elsewhere (`{ where }`), the scan cannot see them.
 const ARGUMENT_KEYS = new Set(['where', 'data', 'create', 'update']);
-const HELPERS = new Set([
-  'normalizeEmail', 'normalizeOptionalEmail', 'normalizeUsername', 'normalizeUsernameForLookup',
-]);
 
 /** `<file relative to PRD/the-app>|<key>: <value source text>` → why it is safe without a helper. */
 const ALLOWED: Record<string, string> = {
@@ -49,6 +60,11 @@ const ALLOWED: Record<string, string> = {
     'generateComments() rows hold no email or username',
   'prisma/seed.ts|...supporterData':
     'its email is overridden right after the spread with normalizeOptionalEmail',
+  'src/app/actions/magic-links.ts|email: normalizeOptionalEmail(magicToken.user.email)':
+    'KNOWN DEFECT, left as is on the op\'s instruction (2026-11-11: no more security fixes in this ' +
+    'branch): for a user with no email it matches any approved comment without an email',
+  'src/lib/prisma.ts|new PrismaClient bound to: client':
+    'the singleton factory; its result is exported as `prisma`',
 };
 
 type Finding = { key: string; location: string };
@@ -89,7 +105,7 @@ function bindsName(name: ts.BindingName, text: string): boolean {
  * parameter, destructured binding, `let` or loop variable of that name in a nearer scope shadows
  * it and makes the answer false.
  */
-function resolvesToNormalizedConst(id: ts.Identifier): boolean {
+function resolvesToNormalizedConst(id: ts.Identifier, key: IdentityKey, inFilter: boolean): boolean {
   for (let node: ts.Node | undefined = id.parent; node; node = node.parent) {
     if (ts.isFunctionLike(node) && node.parameters.some(p => bindsName(p.name, id.text))) return false;
     if ((ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isForStatement(node)) &&
@@ -104,7 +120,7 @@ function resolvesToNormalizedConst(id: ts.Identifier): boolean {
         const isConst = (statement.declarationList.flags & ts.NodeFlags.Const) !== 0;
         for (const decl of statement.declarationList.declarations) {
           if (!bindsName(decl.name, id.text)) continue;
-          return isConst && ts.isIdentifier(decl.name) && !!decl.initializer && isNormalized(decl.initializer);
+          return isConst && ts.isIdentifier(decl.name) && !!decl.initializer && isNormalized(decl.initializer, key, inFilter);
         }
       }
     }
@@ -112,32 +128,37 @@ function resolvesToNormalizedConst(id: ts.Identifier): boolean {
   return false;
 }
 
-function isNormalized(value: ts.Expression): boolean {
+function isNormalized(value: ts.Expression, key: IdentityKey, inFilter: boolean): boolean {
+  const allowedHelper = (name: string) => KEY_HELPERS[key].has(name) && !(inFilter && WRITE_ONLY_HELPERS.has(name));
   if (ts.isParenthesizedExpression(value) || ts.isAsExpression(value) || ts.isNonNullExpression(value)) {
-    return isNormalized(value.expression);
+    return isNormalized(value.expression, key, inFilter);
   }
-  if (value.kind === ts.SyntaxKind.NullKeyword) return true;
-  if (ts.isIdentifier(value)) return value.text === 'undefined' || resolvesToNormalizedConst(value);
+  if (value.kind === ts.SyntaxKind.NullKeyword) return !inFilter;
+  if (ts.isIdentifier(value)) return value.text === 'undefined' || resolvesToNormalizedConst(value, key, inFilter);
   if (ts.isAwaitExpression(value)) return false;
   // A literal already in normal form: 'admin', 'admin@example.com'.
   if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
     return value.text === value.text.trim().toLowerCase();
   }
-  if (ts.isCallExpression(value) && ts.isIdentifier(value.expression) && HELPERS.has(value.expression.text)) return true;
-  // `email: { in: [...] }`, `email: { not: null }`: every operator value must pass.
+  if (ts.isCallExpression(value) && ts.isIdentifier(value.expression)) return allowedHelper(value.expression.text);
+  // `email: { in: [...] }`: every operator value must pass; `{ not: null }` is "has an email".
   if (ts.isObjectLiteralExpression(value)) {
-    return value.properties.every(prop => ts.isPropertyAssignment(prop) && isNormalized(prop.initializer));
+    return value.properties.every(prop => ts.isPropertyAssignment(prop) && (
+      (ts.isIdentifier(prop.name) && prop.name.text === 'not' && prop.initializer.kind === ts.SyntaxKind.NullKeyword) ||
+      isNormalized(prop.initializer, key, inFilter)));
   }
-  if (ts.isArrayLiteralExpression(value)) return value.elements.every(el => isNormalized(el as ts.Expression));
+  if (ts.isArrayLiteralExpression(value)) return value.elements.every(el => isNormalized(el as ts.Expression, key, inFilter));
   // `list.map(normalizeEmail)`
   if (
     ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression) &&
     value.expression.name.text === 'map' && value.arguments.length === 1 &&
-    ts.isIdentifier(value.arguments[0]) && HELPERS.has(value.arguments[0].text)
+    ts.isIdentifier(value.arguments[0])
   ) {
-    return true;
+    return allowedHelper(value.arguments[0].text);
   }
-  if (ts.isConditionalExpression(value)) return isNormalized(value.whenTrue) && isNormalized(value.whenFalse);
+  if (ts.isConditionalExpression(value)) {
+    return isNormalized(value.whenTrue, key, inFilter) && isNormalized(value.whenFalse, key, inFilter);
+  }
   return false;
 }
 
@@ -157,7 +178,7 @@ function spreadObjectLiterals(expr: ts.Expression): ts.ObjectLiteralExpression[]
 }
 
 function collectIdentityValues(
-  node: ts.Node, sourceFile: ts.SourceFile, rel: string, out: Finding[], inlineClauses: boolean,
+  node: ts.Node, sourceFile: ts.SourceFile, rel: string, out: Finding[], inlineClauses: boolean, inFilter: boolean,
 ): void {
   if (ts.isObjectLiteralExpression(node)) {
     for (const prop of node.properties) {
@@ -165,8 +186,8 @@ function collectIdentityValues(
       if (name && SHAPE_KEYS.has(name)) continue;
       const line = sourceFile.getLineAndCharacterOfPosition(prop.getStart(sourceFile)).line + 1;
       const location = `${rel}:${line}`;
-      if (ts.isShorthandPropertyAssignment(prop) && IDENTITY_KEYS.has(prop.name.text)) {
-        if (resolvesToNormalizedConst(prop.name)) continue;
+      if (ts.isShorthandPropertyAssignment(prop) && isIdentityKey(prop.name.text)) {
+        if (resolvesToNormalizedConst(prop.name, prop.name.text, inFilter)) continue;
         out.push({ key: `${rel}|${prop.name.text}: ${prop.name.text} (shorthand)`, location });
         continue;
       }
@@ -181,23 +202,26 @@ function collectIdentityValues(
       if (ts.isSpreadAssignment(prop)) {
         // `...(cond && { a: 1 })` is scanned like the object it spreads; `...someObject` cannot be seen.
         const spread = spreadObjectLiterals(prop.expression);
-        if (spread) spread.forEach(obj => collectIdentityValues(obj, sourceFile, rel, out, inlineClauses));
+        if (spread) spread.forEach(obj => collectIdentityValues(obj, sourceFile, rel, out, inlineClauses, inFilter));
         else if (inlineClauses) out.push({ key: `${rel}|...${prop.expression.getText(sourceFile)}`, location });
         continue;
       }
-      if (ts.isPropertyAssignment(prop) && name && IDENTITY_KEYS.has(name)) {
-        if (!isNormalized(prop.initializer)) {
+      if (ts.isPropertyAssignment(prop) && isIdentityKey(name)) {
+        if (!isNormalized(prop.initializer, name, inFilter)) {
           out.push({ key: `${rel}|${name}: ${prop.initializer.getText(sourceFile).replace(/\s+/g, ' ')}`, location });
         }
         continue;
       }
-      if (ts.isPropertyAssignment(prop)) collectIdentityValues(prop.initializer, sourceFile, rel, out, inlineClauses);
+      if (ts.isPropertyAssignment(prop)) {
+        const childInFilter = name && FILTER_KEYS.has(name) ? true : name && WRITE_KEYS.has(name) ? false : inFilter;
+        collectIdentityValues(prop.initializer, sourceFile, rel, out, inlineClauses, childInFilter);
+      }
     }
     return;
   }
   // `newValues: JSON.stringify({ username, email })` is an audit-log string, not a match.
   if (ts.isCallExpression(node) && node.expression.getText(sourceFile) === 'JSON.stringify') return;
-  ts.forEachChild(node, child => collectIdentityValues(child, sourceFile, rel, out, inlineClauses));
+  ts.forEachChild(node, child => collectIdentityValues(child, sourceFile, rel, out, inlineClauses, inFilter));
 }
 
 /** Every email/username value in a Prisma call that does not go through a helper. */
@@ -206,7 +230,30 @@ function findBypasses(fileName: string, source: string): Finding[] {
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true,
     fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const out: Finding[] = [];
+  const lineOf = (n: ts.Node) => sourceFile.getLineAndCharacterOfPosition(n.getStart(sourceFile)).line + 1;
   const visit = (node: ts.Node) => {
+    // `prisma.$transaction(async (t) => t.user.create(...))` would hide `t.user` from the scan.
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.text === '$transaction') {
+      const callback = node.arguments[0];
+      if (callback && (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) {
+        const param = callback.parameters[0];
+        const paramName = param ? param.name.getText(sourceFile) : '(none)';
+        if (paramName !== 'tx') {
+          out.push({ key: `${rel}|$transaction callback parameter: ${paramName}`, location: `${rel}:${lineOf(callback)}` });
+        }
+      }
+    }
+    // `const db = new PrismaClient()` would hide `db.user` from the scan.
+    if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'PrismaClient') {
+      const parent = node.parent;
+      const boundTo = ts.isVariableDeclaration(parent) && parent.initializer === node
+        ? parent.name.getText(sourceFile)
+        : parent.getText(sourceFile).replace(/\s+/g, ' ').slice(0, 60);
+      if (boundTo !== 'prisma') {
+        out.push({ key: `${rel}|new PrismaClient bound to: ${boundTo}`, location: `${rel}:${lineOf(node)}` });
+      }
+    }
     const model = ts.isCallExpression(node) ? prismaModelOf(node) : null;
     if (model && ts.isCallExpression(node)) {
       const inlineClauses = MODELS_WITH_IDENTITY.has(model);
@@ -216,7 +263,7 @@ function findBypasses(fileName: string, source: string): Finding[] {
         const line = sourceFile.getLineAndCharacterOfPosition(arg.getStart(sourceFile)).line + 1;
         out.push({ key: `${rel}|argument: ${arg.getText(sourceFile)}`, location: `${rel}:${line}` });
       } else if (arg) {
-        collectIdentityValues(arg, sourceFile, rel, out, inlineClauses);
+        collectIdentityValues(arg, sourceFile, rel, out, inlineClauses, false);
       }
     }
     ts.forEachChild(node, visit);
@@ -297,6 +344,57 @@ describe('email and username normalisation guard (issue #1 step 1)', () => {
         'email: email (shorthand)',
         'email: email (shorthand)',
       ]);
+    });
+
+    it('rejects null and normalizeOptionalEmail under where, and accepts them under data and create', () => {
+      expect(scan(`
+        prisma.comment.findFirst({ where: { email: null, isApproved: true } });
+        prisma.comment.findFirst({ where: { email: normalizeOptionalEmail(user.email) } });
+        prisma.person.findMany({ where: { comments: { some: { email: normalizeOptionalEmail(x) } } } });
+        prisma.comment.findMany({ where: { email: { in: [null] } } });
+        function f(raw: string | null) { const email = normalizeOptionalEmail(raw); return prisma.user.findFirst({ where: { email } }); }
+        prisma.comment.create({ data: { email: normalizeOptionalEmail(x) } });
+        prisma.user.update({ where: { id }, data: { email: null } });
+        prisma.commentVerificationToken.upsert({ where: { email: normalizeEmail(x) }, update: {}, create: { email: normalizeOptionalEmail(x) } });
+        prisma.comment.findMany({ where: { email: { not: null } } });
+      `)).toEqual([
+        'email: null',
+        'email: normalizeOptionalEmail(user.email)',
+        'email: normalizeOptionalEmail(x)',
+        'email: { in: [null] }',
+        'email: email (shorthand)',
+      ]);
+    });
+
+    it('accepts only the key\'s own helpers', () => {
+      expect(scan(`
+        prisma.user.findUnique({ where: { email: normalizeUsernameForLookup(x) } });
+        prisma.user.create({ data: { username: normalizeEmail(x), email: normalizeUsername(x) } });
+        prisma.user.findMany({ where: { email: { in: list.map(normalizeUsername) } } });
+        prisma.user.create({ data: { username: normalizeUsername(x), email: normalizeOptionalEmail(x) } });
+      `)).toEqual([
+        'email: normalizeUsernameForLookup(x)',
+        'username: normalizeEmail(x)',
+        'email: normalizeUsername(x)',
+        'email: { in: list.map(normalizeUsername) }',
+      ]);
+    });
+
+    it('flags a $transaction callback whose client is not named tx', () => {
+      expect(scan(`
+        prisma.$transaction(async (t) => { await t.user.create({ data: { email: raw } }); });
+        prisma.$transaction(async function (db) { return db; });
+        prisma.$transaction(async (tx) => { await tx.user.create({ data: { email: normalizeEmail(raw) } }); });
+        prisma.$transaction([prisma.user.count()]);
+      `)).toEqual(['$transaction callback parameter: t', '$transaction callback parameter: db']);
+    });
+
+    it('flags a PrismaClient not bound to prisma', () => {
+      expect(scan(`
+        const prisma = new PrismaClient();
+        const db = new PrismaClient({ log: [] });
+        export const client = globalThis.cached ?? new PrismaClient();
+      `)).toEqual(['new PrismaClient bound to: db', 'new PrismaClient bound to: globalThis.cached ?? new PrismaClient()']);
     });
 
     it('flags a relation filter on email from another model', () => {
