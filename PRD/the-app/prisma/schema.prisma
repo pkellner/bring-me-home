@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -62,7 +62,7 @@ model UserRole {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
-  @@index([roleId], map: "user_roles_roleId_fkey")
+  @@index([roleId])
   @@map("user_roles")
 }
 
@@ -85,7 +85,7 @@ model Town {
   townAccess      TownAccess[]
   theme           Theme?       @relation(fields: [defaultThemeId], references: [id])
 
-  @@index([defaultThemeId], map: "towns_defaultThemeId_fkey")
+  @@index([defaultThemeId])
   @@map("towns")
 }
 
@@ -181,7 +181,7 @@ model Person {
   @@index([detentionCenterId])
   @@index([detentionStatus])
   @@index([finalOutcome])
-  @@index([themeId], map: "persons_themeId_fkey")
+  @@index([themeId])
   @@map("persons")
 }
 
@@ -229,7 +229,7 @@ model Supporter {
 
   @@index([personId])
   @@index([email])
-  @@index([userId], map: "supporters_userId_fkey")
+  @@index([userId])
   @@map("supporters")
 }
 
@@ -330,7 +330,7 @@ model TownAccess {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, townId])
-  @@index([townId], map: "town_access_townId_fkey")
+  @@index([townId])
   @@map("town_access")
 }
 
@@ -346,7 +346,7 @@ model PersonAccess {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, personId])
-  @@index([personId], map: "person_access_personId_fkey")
+  @@index([personId])
   @@map("person_access")
 }
 
