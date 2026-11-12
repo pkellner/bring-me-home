@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
 import { verifyToken } from '@/lib/comment-verification';
+import { normalizeEmail, normalizeOptionalEmail } from '@/lib/normalize-identity';
 
 interface ContextProps {
   params: Promise<{ id: string }>;
@@ -30,22 +31,24 @@ export async function POST(
       );
     }
 
-    // Check authorization: either admin or has valid token for this email
+    // Check authorization: either admin or has valid token for this email.
+    // Emails are compared in their normal form; a comment without an email matches no one.
     const isAdmin = session && hasPermission(session, 'comments', 'update');
+    const commentEmail = normalizeOptionalEmail(comment.email);
     
     // Check if user has a valid token for this email
     let hasValidToken = false;
     const token = request.headers.get('x-verification-token');
     if (token) {
       const verificationToken = await verifyToken(token);
-      if (verificationToken && verificationToken.email === comment.email) {
+      if (verificationToken && commentEmail !== null && normalizeEmail(verificationToken.email) === commentEmail) {
         hasValidToken = true;
       }
     }
 
     if (!isAdmin && !hasValidToken) {
       // Check if the logged-in user owns this email
-      if (!session || session.user.email !== comment.email) {
+      if (!session || commentEmail === null || normalizeOptionalEmail(session.user.email) !== commentEmail) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }

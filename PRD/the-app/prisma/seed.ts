@@ -5,6 +5,7 @@ import { join } from 'path';
 import { ImageStorageService } from '../src/lib/image-storage';
 import { createTownSlug, createPersonSlug } from '../src/lib/slug-utils';
 import { generateSecurePassword } from '../src/lib/password-generator';
+import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '../src/lib/normalize-identity';
 import { emailTemplates } from '../src/config/email-templates';
 
 const { Decimal } = Prisma;
@@ -1164,7 +1165,7 @@ async function cleanDatabase() {
 
     console.log('Database cleaned.');
   } catch (error) {
-    console.log('Database appears to be empty, skipping cleanup');
+    console.log('Database appears to be empty, skipping cleanup:', error instanceof Error ? error.message : error);
   }
 }
 
@@ -1668,6 +1669,7 @@ async function main() {
     await prisma.supporter.create({
       data: {
         ...supporterData,
+        email: normalizeOptionalEmail(supporterData.email),
         personId,
       },
     });
@@ -1831,7 +1833,7 @@ async function main() {
         ipAddress: randomElement(californiaIps),
         userAgent: randomElement(SEED_VALUES.userAgents),
         processedForLatLon: false, // Not processed yet!
-        email: supporterEmails[i].email,
+        email: normalizeEmail(supporterEmails[i].email),
         firstName: supporterEmails[i].firstName,
         lastName: supporterEmails[i].lastName,
         showComment: true,
@@ -1977,7 +1979,10 @@ async function main() {
     const hashedDemoPassword = await bcrypt.hash(demoPassword, 12);
     const user = await prisma.user.create({
       data: {
-        ...demoUser,
+        username: normalizeUsername(demoUser.username),
+        email: normalizeEmail(demoUser.email),
+        firstName: demoUser.firstName,
+        lastName: demoUser.lastName,
         password: hashedDemoPassword,
         isActive: true,
       },
@@ -2007,8 +2012,8 @@ async function main() {
     const hashedPassword = await bcrypt.hash(townAdminPassword, 12);
     const townAdmin = await prisma.user.create({
       data: {
-        username: `town_admin_${i + 1}`,
-        email: `town${i + 1}@bring-me-home.com`,
+        username: normalizeUsername(`town_admin_${i + 1}`),
+        email: normalizeEmail(`town${i + 1}@bring-me-home.com`),
         password: hashedPassword,
         firstName: `${town.name}`,
         lastName: 'Admin',
@@ -2499,15 +2504,15 @@ async function main() {
       
       // Create or find user for the comment
       let user = await prisma.user.findUnique({
-        where: { email: commentData.email },
+        where: { email: normalizeEmail(commentData.email) },
       });
 
       if (!user) {
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
         user = await prisma.user.create({
           data: {
-            username: commentData.email,
-            email: commentData.email,
+            username: normalizeUsername(commentData.email),
+            email: normalizeEmail(commentData.email),
             password: tempPassword,
             firstName: commentData.firstName,
             lastName: commentData.lastName,
@@ -2525,7 +2530,7 @@ async function main() {
           userId: user.id,
           firstName: commentData.firstName,
           lastName: commentData.lastName,
-          email: commentData.email,
+          email: normalizeEmail(commentData.email),
           city: commentData.city,
           state: commentData.state,
           content: commentData.content,

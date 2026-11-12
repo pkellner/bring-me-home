@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { normalizeEmail, normalizeOptionalEmail } from '@/lib/normalize-identity';
 
 // Generate a secure token
 export function generateVerificationToken(): string {
@@ -14,6 +15,15 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * The verification tokens whose email belongs to no user. Both sides are compared in normal form,
+ * so a token for "joe@x.com" still belongs to a user stored as "Joe@X.com ".
+ */
+export function findTokensWithoutUser<T extends { email: string }>(tokens: T[], userEmails: Array<string | null>): T[] {
+  const owners = new Set(userEmails.map(email => normalizeOptionalEmail(email)).filter((email): email is string => email !== null));
+  return tokens.filter(token => !owners.has(normalizeEmail(token.email)));
+}
+
 // Create or get existing verification token for an email
 export async function getOrCreateVerificationToken(email: string): Promise<{
   token: string;
@@ -22,7 +32,7 @@ export async function getOrCreateVerificationToken(email: string): Promise<{
   // Check for existing active token
   const existing = await prisma.commentVerificationToken.findFirst({
     where: {
-      email,
+      email: normalizeEmail(email),
       isActive: true,
     },
   });
@@ -42,7 +52,7 @@ export async function getOrCreateVerificationToken(email: string): Promise<{
   // Store token
   await prisma.commentVerificationToken.create({
     data: {
-      email,
+      email: normalizeEmail(email),
       tokenHash,
     },
   });

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isSiteAdmin } from '@/lib/permissions';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 /**
  * Cleanup orphaned data when a user is deleted
@@ -34,13 +35,13 @@ export async function cleanupDeletedUserData(userEmail: string | null) {
     const result = await prisma.$transaction(async (tx) => {
       // 1. Delete comment verification tokens for this email
       const deletedTokens = await tx.commentVerificationToken.deleteMany({
-        where: { email: userEmail }
+        where: { email: normalizeEmail(userEmail) }
       });
 
       // 2. Clear email from comments (keep the comments but remove PII)
       const updatedComments = await tx.comment.updateMany({
         where: { 
-          email: userEmail,
+          email: normalizeEmail(userEmail),
           userId: null // Only update orphaned comments
         },
         data: { 
@@ -103,13 +104,13 @@ export async function getCleanupSummary(userEmail: string | null) {
   const [commentTokens, orphanedComments, orphanedSupport] = await Promise.all([
     // Count comment verification tokens
     prisma.commentVerificationToken.count({
-      where: { email: userEmail }
+      where: { email: normalizeEmail(userEmail) }
     }),
     
     // Count orphaned comments (comments without userId)
     prisma.comment.count({
       where: { 
-        email: userEmail,
+        email: normalizeEmail(userEmail),
         userId: null
       }
     }),

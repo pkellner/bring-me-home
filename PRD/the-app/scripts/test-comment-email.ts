@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail } from '../src/lib/normalize-identity';
 import { generateVerificationToken, hashToken, generateVerificationUrls } from '../src/lib/comment-verification';
 import { sendEmail } from '../src/lib/email';
 import { replaceTemplateVariables } from '../src/lib/email-template-variables';
@@ -41,7 +42,7 @@ async function main() {
     let token = '';
     const existingToken = await prisma.commentVerificationToken.findFirst({
       where: {
-        email: comment.email!,
+        email: normalizeEmail(comment.email!),
         isActive: true,
       },
     });
@@ -53,7 +54,7 @@ async function main() {
 
       const newToken = await prisma.commentVerificationToken.create({
         data: {
-          email: comment.email!,
+          email: normalizeEmail(comment.email!),
           tokenHash,
         },
       });

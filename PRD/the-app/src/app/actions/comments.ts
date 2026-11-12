@@ -13,6 +13,7 @@ import { generateVerificationToken, hashToken, generateVerificationUrls } from '
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
+import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '@/lib/normalize-identity';
 
 const debugCaptcha = process.env.NEXT_PUBLIC_DEBUG_RECAPTCHA === 'true';
 
@@ -26,7 +27,10 @@ const commentSchema = z.object({
   ]).optional().transform(val => (!val || val === '') ? null : val), // Transform empty/falsy to null
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
-  email: z.string().email().optional().or(z.literal('')),
+  // Normalised before the format check, so " Joe@Example.com " is accepted and stored as joe@example.com.
+  // The parsed output is already normalised; the Prisma call sites pass it through the helper again
+  // on purpose (idempotent), so the guard test can see every write and lookup.
+  email: z.string().overwrite(normalizeEmail).email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   occupation: z.string().optional().or(z.literal('')),
   birthdate: z.string().optional().or(z.literal('')),
@@ -275,7 +279,7 @@ export async function submitComment(
     
     if (data.email) {
       existingUser = await prisma.user.findUnique({
-        where: { email: data.email },
+        where: { email: normalizeEmail(data.email) },
         select: { id: true, allowAnonymousComments: true, emailVerified: true, optOutOfAllEmail: true },
       });
 
@@ -314,8 +318,8 @@ export async function submitComment(
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
         const newUser = await prisma.user.create({
           data: {
-            username: data.email,
-            email: data.email,
+            username: normalizeUsername(data.email),
+            email: normalizeEmail(data.email),
             password: tempPassword,
             firstName: data.firstName,
             lastName: data.lastName,
@@ -337,7 +341,7 @@ export async function submitComment(
         userId,
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email || null,
+        email: normalizeOptionalEmail(data.email),
         phone: data.phone || null,
         occupation: data.occupation || null,
         birthdate: data.birthdate ? new Date(data.birthdate) : null,
@@ -441,14 +445,14 @@ export async function submitComment(
             
             // Create or update comment verification token
             await prisma.commentVerificationToken.upsert({
-              where: { email: data.email },
+              where: { email: normalizeEmail(data.email) },
               update: {
                 tokenHash,
                 lastUsedAt: new Date(),
                 isActive: true
               },
               create: {
-                email: data.email,
+                email: normalizeEmail(data.email),
                 tokenHash,
               }
             });
@@ -757,7 +761,7 @@ export async function approveComment(
   let userId = comment.userId;
   if (!userId && comment.email) {
     const existingUser = await prisma.user.findUnique({
-      where: { email: comment.email },
+      where: { email: normalizeEmail(comment.email) },
       select: { id: true },
     });
 
@@ -768,8 +772,8 @@ export async function approveComment(
       const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
       const newUser = await prisma.user.create({
         data: {
-          username: comment.email,
-          email: comment.email,
+          username: normalizeUsername(comment.email),
+          email: normalizeEmail(comment.email),
           password: tempPassword,
           firstName: comment.firstName || undefined,
           lastName: comment.lastName || undefined,
@@ -875,7 +879,7 @@ export async function updateCommentAndApprove(
   let userId = comment.userId;
   if (!userId && comment.email) {
     const existingUser = await prisma.user.findUnique({
-      where: { email: comment.email },
+      where: { email: normalizeEmail(comment.email) },
       select: { id: true },
     });
 
@@ -886,8 +890,8 @@ export async function updateCommentAndApprove(
       const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
       const newUser = await prisma.user.create({
         data: {
-          username: comment.email,
-          email: comment.email,
+          username: normalizeUsername(comment.email),
+          email: normalizeEmail(comment.email),
           password: tempPassword,
           firstName: comment.firstName || undefined,
           lastName: comment.lastName || undefined,
@@ -985,7 +989,7 @@ export async function approveBulkComments(commentIds: string[]) {
       // If comment has email but no userId, try to link or create user
       if (!userId && comment.email) {
         const existingUser = await prisma.user.findUnique({
-          where: { email: comment.email },
+          where: { email: normalizeEmail(comment.email) },
           select: { id: true },
         });
 
@@ -996,8 +1000,8 @@ export async function approveBulkComments(commentIds: string[]) {
           const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
           const newUser = await prisma.user.create({
             data: {
-              username: comment.email,
-              email: comment.email,
+              username: normalizeUsername(comment.email),
+              email: normalizeEmail(comment.email),
               password: tempPassword,
               firstName: comment.firstName || undefined,
               lastName: comment.lastName || undefined,
@@ -1028,7 +1032,7 @@ export async function approveBulkComments(commentIds: string[]) {
           let token = '';
           const existingToken = await prisma.commentVerificationToken.findFirst({
             where: {
-              email: comment.email,
+              email: normalizeEmail(comment.email),
               isActive: true,
             },
           });
@@ -1042,7 +1046,7 @@ export async function approveBulkComments(commentIds: string[]) {
 
             await prisma.commentVerificationToken.create({
               data: {
-                email: comment.email,
+                email: normalizeEmail(comment.email),
                 tokenHash,
               },
             });
@@ -1102,7 +1106,7 @@ export async function approveBulkComments(commentIds: string[]) {
 
             // Find if there's a user with this email to generate opt-out tokens
             const emailUser = await prisma.user.findUnique({
-              where: { email: comment.email },
+              where: { email: normalizeEmail(comment.email) },
               select: { id: true },
             });
             

@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { revalidatePath } from 'next/cache';
 import { cleanupDeletedUserData } from './user-cleanup';
+import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '@/lib/normalize-identity';
 
 export async function createUser(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -51,7 +52,7 @@ export async function createUser(formData: FormData) {
   try {
     // Check if username already exists
     const existingUser = await prisma.user.findUnique({
-      where: { username },
+      where: { username: normalizeUsername(username) },
     });
 
     if (existingUser) {
@@ -64,7 +65,7 @@ export async function createUser(formData: FormData) {
     // Check if email already exists (if provided)
     if (email) {
       const existingEmail = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizeEmail(email) },
       });
 
       if (existingEmail) {
@@ -81,8 +82,8 @@ export async function createUser(formData: FormData) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        username,
-        email: email || null,
+        username: normalizeUsername(username),
+        email: normalizeOptionalEmail(email),
         password: hashedPassword,
         firstName: firstName || null,
         lastName: lastName || null,
@@ -160,27 +161,24 @@ export async function updateUser(userId: string, formData: FormData) {
       return { error: 'User not found' };
     }
 
-    // Check if username already exists (if changing)
-    if (
-      validation.data.username &&
-      validation.data.username !== currentUser.username
-    ) {
+    // Check if another user already has this username or email. The stored value may differ from
+    // the normalised input only in case or spaces, so the user's own row is excluded by id.
+    if (validation.data.username) {
       const existingUser = await prisma.user.findUnique({
-        where: { username: validation.data.username },
+        where: { username: normalizeUsername(validation.data.username) },
       });
 
-      if (existingUser) {
+      if (existingUser && existingUser.id !== userId) {
         return { error: 'Username already exists' };
       }
     }
 
-    // Check if email already exists (if changing)
-    if (validation.data.email && validation.data.email !== currentUser.email) {
+    if (validation.data.email) {
       const existingEmail = await prisma.user.findUnique({
-        where: { email: validation.data.email },
+        where: { email: normalizeEmail(validation.data.email) },
       });
 
-      if (existingEmail) {
+      if (existingEmail && existingEmail.id !== userId) {
         return { error: 'Email already exists' };
       }
     }
@@ -213,11 +211,16 @@ export async function updateUser(userId: string, formData: FormData) {
     // Update user in a transaction
     const updatedUser = await prisma.$transaction(async (tx) => {
       // Update basic user info
+      const { username, email, firstName, lastName, isActive, allowAnonymousComments } = validation.data;
       const user = await tx.user.update({
         where: { id: userId },
         data: {
-          ...validation.data,
-          email: validation.data.email || null,
+          username: username === undefined ? undefined : normalizeUsername(username),
+          email: normalizeOptionalEmail(email),
+          firstName,
+          lastName,
+          isActive,
+          allowAnonymousComments,
         },
       });
 
@@ -512,7 +515,7 @@ export async function revokeUserCommentToken(userEmail: string) {
   try {
     // Find and revoke the comment verification token for this email
     const token = await prisma.commentVerificationToken.findUnique({
-      where: { email: userEmail },
+      where: { email: normalizeEmail(userEmail) },
     });
 
     if (!token) {
@@ -524,7 +527,7 @@ export async function revokeUserCommentToken(userEmail: string) {
 
     // Update the token to mark it as revoked
     await prisma.commentVerificationToken.update({
-      where: { email: userEmail },
+      where: { email: normalizeEmail(userEmail) },
       data: {
         isActive: false,
         revokedAt: new Date(),

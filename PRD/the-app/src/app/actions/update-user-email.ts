@@ -5,10 +5,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isSiteAdmin } from '@/lib/permissions';
 import { z } from 'zod';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
+// The parsed output is already normalised; the Prisma call sites pass it through the helper again
+// on purpose (idempotent), so the guard test can see every write and lookup.
 const updateEmailSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
-  newEmail: z.string().email('Invalid email format'),
+  newEmail: z.string().overwrite(normalizeEmail).email('Invalid email format'),
 });
 
 export async function updateUserEmail(userId: string, newEmail: string) {
@@ -32,7 +35,7 @@ export async function updateUserEmail(userId: string, newEmail: string) {
 
     // Check if email is already in use
     const existingUser = await prisma.user.findUnique({
-      where: { email: validated.newEmail.toLowerCase() },
+      where: { email: normalizeEmail(validated.newEmail) },
     });
 
     if (existingUser && existingUser.id !== userId) {
@@ -42,7 +45,7 @@ export async function updateUserEmail(userId: string, newEmail: string) {
     // Update the user's email
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { email: validated.newEmail.toLowerCase() },
+      data: { email: normalizeEmail(validated.newEmail) },
       select: {
         id: true,
         email: true,

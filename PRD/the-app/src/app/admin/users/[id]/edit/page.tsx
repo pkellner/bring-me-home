@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission, isSiteAdmin, isTownAdmin } from '@/lib/permissions';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/normalize-identity';
 import UserForm from '../../UserForm';
 
 interface EditUserPageProps {
@@ -80,7 +81,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
   if (user.email && canManageTokens) {
     const tokens = await prisma.commentVerificationToken.findMany({
       where: { 
-        email: user.email,
+        email: normalizeEmail(user.email),
         isActive: true,
       },
       take: 1,

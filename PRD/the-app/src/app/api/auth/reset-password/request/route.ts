@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import { EmailStatus } from '@prisma/client';
 import { replaceTemplateVariables, replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import { generateOptOutToken } from '@/lib/email-opt-out-tokens';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizeEmail(email) },
     });
 
     // Always return success to prevent email enumeration

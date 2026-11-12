@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail, normalizeUsername } from '../src/lib/normalize-identity';
 import bcrypt from 'bcryptjs';
 
 async function main() {
@@ -7,7 +8,7 @@ async function main() {
     console.log('Testing comment user creation functionality...\n');
 
     // Test email that shouldn't exist yet
-    const testEmail = `test-comment-${Date.now()}@example.com`;
+    const testEmail = normalizeEmail(`test-comment-${Date.now()}@example.com`);
     
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -49,7 +50,7 @@ async function main() {
       const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
       const newUser = await prisma.user.create({
         data: {
-          username: testEmail,
+          username: normalizeUsername(testEmail),
           email: testEmail,
           password: tempPassword,
           firstName: 'Test',

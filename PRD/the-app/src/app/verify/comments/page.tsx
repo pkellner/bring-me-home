@@ -6,6 +6,7 @@ import CommentVerificationClient from './CommentVerificationClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 interface PageProps {
   searchParams: Promise<{ token?: string; action?: string }>;
@@ -35,7 +36,6 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
 
   // Verify the token if provided
   let verificationToken = null;
-  let email = '';
   
   if (token) {
     verificationToken = await verifyToken(token);
@@ -49,10 +49,8 @@ async function CommentVerification({ searchParams }: { searchParams: { token?: s
         </div>
       );
     }
-    if (verificationToken) {
-      email = verificationToken.email;
-    }
   }
+  const email = verificationToken ? normalizeEmail(verificationToken.email) : '';
   
   // For admins without token, they need to specify an email
   if (isAdmin && !email) {
