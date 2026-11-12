@@ -59,14 +59,13 @@ function safeMessage(error: unknown): string {
 async function main(): Promise<number> {
   const { dumpPath, urlEnv, verifyOnly } = parseArgs(process.argv.slice(2));
   loadEnv({ path: path.join(APP_ROOT, '.env'), quiet: true });
-  const url = requirePostgresUrl(process.env[urlEnv], urlEnv);
 
   let started = Date.now();
   const dump = readDump(readFileSync(dumpPath));
   const dumpRows = [...dump.tables.values()].reduce((sum, t) => sum + t.rows.length, 0);
   console.log(`Read the dump: ${statSync(dumpPath).size} bytes, ${dump.tables.size} tables, ${dumpRows} rows (${seconds(started)})`);
 
-  const prisma = new PrismaClient({ datasources: { db: { url } } });
+  const prisma = new PrismaClient({ datasources: { db: { url: requirePostgresUrl(process.env[urlEnv], urlEnv) } } });
   try {
     if (!verifyOnly) {
       started = Date.now();
