@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 async function addSpanishStories() {
   // Find Miguel Ramirez in Borrego Springs

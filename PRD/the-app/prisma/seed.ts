@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import bcrypt from 'bcryptjs';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -10,7 +11,7 @@ import { emailTemplates } from '../src/config/email-templates';
 
 const { Decimal } = Prisma;
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 // Track passwords for final display
 const passwordInfo: { user: string; password: string; source: string }[] = [];

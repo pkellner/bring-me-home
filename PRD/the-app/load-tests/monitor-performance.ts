@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
@@ -7,7 +8,8 @@ import { writeFileSync } from 'fs';
 import { join } from 'path';
 
 const prisma = new PrismaClient({
-  log: ['query']
+  log: ['query'],
+  datasources: { db: { url: databaseUrl() } },
 });
 
 interface PerformanceMetric {

@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { ImageStorageService } from '../src/lib/image-storage';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 const imageStorageService = new ImageStorageService(prisma);
 
 // We'll use the person placeholder images temporarily for detention centers
