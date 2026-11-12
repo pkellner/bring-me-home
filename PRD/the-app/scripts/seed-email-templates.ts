@@ -5,9 +5,10 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { emailTemplates } from '../src/config/email-templates';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 async function seedEmailTemplates() {
   console.log('🚀 Starting email template seeding...');

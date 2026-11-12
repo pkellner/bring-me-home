@@ -56,7 +56,7 @@ async function testPrismaLogging() {
     console.log(`Person with relations: ${personWithRelations?.firstName || 'None'}\n`);
 
     console.log('5. Testing raw query...');
-    const rawResult = await prisma.$queryRaw`SELECT COUNT(*) as count FROM Person WHERE isActive = 1`;
+    const rawResult = await prisma.$queryRaw`SELECT COUNT(*)::int AS count FROM persons WHERE "isActive" = true`;
     console.log(`Raw query result: ${JSON.stringify(rawResult)}\n`);
 
   } catch (error) {

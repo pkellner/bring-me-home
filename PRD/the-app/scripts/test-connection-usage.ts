@@ -1,28 +1,22 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { getConnectionCounts, poolSettingsFromUrl } from '../src/lib/database-health';
 
 async function monitorConnectionUsage() {
+  const { connectionLimit, poolTimeout } = poolSettingsFromUrl(process.env.DATABASE_URL);
   console.log('=== Connection Usage Test ===\n');
   console.log('Starting test at:', new Date().toISOString());
   console.log('DATABASE_URL connection settings:');
-  console.log(`  connection_limit: ${process.env.DATABASE_URL?.match(/connection_limit=(\d+)/)?.[1] || 'default'}`);
-  console.log(`  pool_timeout: ${process.env.DATABASE_URL?.match(/pool_timeout=(\d+)/)?.[1] || 'default'}`);
+  console.log(`  connection_limit: ${connectionLimit ?? 'default'}`);
+  console.log(`  pool_timeout: ${poolTimeout ?? 'default'}`);
   console.log('\n');
 
   // Test 1: Check initial database connections
   console.log('Test 1: Initial Database Connection Count');
   try {
-    const result = await prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(*) as count 
-      FROM information_schema.processlist 
-      WHERE db = DATABASE()
-    `;
-    console.log(`Active connections: ${result[0]?.count || 0}`);
-    
-    const maxConnResult = await prisma.$queryRaw<Array<{ value: string }>>`
-      SHOW VARIABLES LIKE 'max_connections'
-    `;
-    console.log(`Max connections allowed: ${maxConnResult[0]?.value || 'unknown'}`);
+    const { activeConnections, maxConnections } = await getConnectionCounts();
+    console.log(`Active connections: ${activeConnections}`);
+    console.log(`Max connections allowed (whole server): ${maxConnections}`);
   } catch (error) {
     console.error('Error checking connections:', error);
   }

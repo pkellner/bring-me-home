@@ -1,12 +1,13 @@
 #!/usr/bin/env tsx
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 interface LoadTestConfig {
   baseUrl: string;

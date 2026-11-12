@@ -38,12 +38,13 @@ interface ConnectionPoolResult {
       successful: number;
       failed: number;
       successRate: number;
+      firstError: string | null;
     };
     topProcesses: {
-      id: number;
-      command: string;
-      state: string;
-      duration: number;
+      pid: number;
+      state: string | null;
+      waitEvent: string | null;
+      secondsInState: number | null;
     }[];
     queryTime: number;
   } | null;
@@ -296,7 +297,10 @@ export default function HealthCheckSection() {
                     <dd className="text-gray-900">{poolResult.data.connectionPoolStatus.connectionLimit}</dd>
 
                     <dt className="font-medium text-gray-600">Pool Timeout:</dt>
-                    <dd className="text-gray-900">{poolResult.data.connectionPoolStatus.poolTimeout}s</dd>
+                    <dd className="text-gray-900">
+                      {poolResult.data.connectionPoolStatus.poolTimeout}
+                      {typeof poolResult.data.connectionPoolStatus.poolTimeout === 'number' && 's'}
+                    </dd>
                   </dl>
                 </div>
 
@@ -324,6 +328,13 @@ export default function HealthCheckSection() {
                     <dt className="font-medium text-gray-600">Failed:</dt>
                     <dd className="text-gray-900">{poolResult.data.concurrentTest.failed}</dd>
 
+                    {poolResult.data.concurrentTest.firstError && (
+                      <>
+                        <dt className="font-medium text-gray-600">First Error:</dt>
+                        <dd className="text-red-700 break-words">{poolResult.data.concurrentTest.firstError}</dd>
+                      </>
+                    )}
+
                     <dt className="font-medium text-gray-600">Query Time:</dt>
                     <dd className="text-gray-900">{poolResult.data.queryTime}ms</dd>
                   </dl>
@@ -332,24 +343,26 @@ export default function HealthCheckSection() {
                 {/* Top Processes */}
                 {poolResult.data.topProcesses.length > 0 && (
                   <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Active Database Processes</h4>
+                    <h4 className="font-medium text-gray-700 mb-2">Database Sessions (longest in their state first)</h4>
                     <div className="bg-white rounded overflow-hidden">
                       <table className="min-w-full divide-y divide-gray-200 text-sm">
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PID</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Command</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waiting On</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time in State</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {poolResult.data.topProcesses.map((process) => (
-                            <tr key={process.id}>
-                              <td className="px-3 py-2 text-gray-900">{process.id}</td>
-                              <td className="px-3 py-2 text-gray-900">{process.command}</td>
-                              <td className="px-3 py-2 text-gray-900">{process.state}</td>
-                              <td className="px-3 py-2 text-gray-900">{process.duration}s</td>
+                          {poolResult.data.topProcesses.map((session) => (
+                            <tr key={session.pid}>
+                              <td className="px-3 py-2 text-gray-900">{session.pid}</td>
+                              <td className="px-3 py-2 text-gray-900">{session.state ?? 'unknown'}</td>
+                              <td className="px-3 py-2 text-gray-900">{session.waitEvent ?? '-'}</td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {session.secondsInState === null ? '-' : `${session.secondsInState}s`}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

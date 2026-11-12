@@ -47,7 +47,7 @@ const ARGUMENT_KEYS = new Set(['where', 'data', 'create', 'update']);
 /** `<file relative to PRD/the-app>|<key>: <value source text>` → why it is safe without a helper. */
 const ALLOWED: Record<string, string> = {
   'src/lib/email-suppression.ts|where: where (built elsewhere)':
-    'admin search: `contains` on email and reasonDetails; case-insensitive search is issue #1 step 2a',
+    'admin search: case-insensitive `contains` on email and reasonDetails (issue #1 step 2a)',
   'src/app/actions/email-notifications.ts|data: updateData (built elsewhere)':
     'typed just above as the opt-out fields only; it holds no email or username',
   'src/app/actions/email-notifications.ts|where: whereClause (built elsewhere)':

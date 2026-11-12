@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { databaseUrl } from './database-url';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -136,7 +137,7 @@ const createPrismaClient = () => {
     log: logConfig,
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: databaseUrl(),
       },
     },
   });

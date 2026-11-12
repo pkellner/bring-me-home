@@ -1,10 +1,11 @@
 #!/usr/bin/env tsx
 
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { normalizeUsernameForLookup } from '../src/lib/normalize-identity';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 async function verifyUserPassword(username: string, testPassword: string) {
   try {

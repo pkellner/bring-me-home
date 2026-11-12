@@ -1,12 +1,13 @@
 #!/usr/bin/env tsx
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import https from 'https';
 import http from 'http';
 import { URL } from 'url';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 interface TestResult {
   url: string;

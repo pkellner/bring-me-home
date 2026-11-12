@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { EmailSuppression } from '@prisma/client';
+import { EmailSuppression, Prisma } from '@prisma/client';
 import { SUPPRESSION_REASONS, type SuppressionReason, type SuppressionSource } from './email-suppression-constants';
 import { normalizeEmail } from './normalize-identity';
 
@@ -159,12 +159,12 @@ export async function getSuppressionList(options: {
   const { page = 1, limit = 50, reason, searchTerm } = options;
   const skip = (page - 1) * limit;
   
-  const where = {
+  const where: Prisma.EmailSuppressionWhereInput = {
     ...(reason && { reason }),
     ...(searchTerm && {
       OR: [
-        { email: { contains: searchTerm } },
-        { reasonDetails: { contains: searchTerm } },
+        { email: { contains: searchTerm, mode: 'insensitive' } },
+        { reasonDetails: { contains: searchTerm, mode: 'insensitive' } },
       ],
     }),
   };

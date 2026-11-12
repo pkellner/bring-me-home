@@ -47,6 +47,17 @@ against the local Postgres in `LOCAL_POSTGRES_URL`, `*.db.test.ts`, added by iss
 
 - Targeted run: `npx jest <files>` for the touched test files, then `npm run build` (the app's
   rule: zero warnings) and `npx tsc --noEmit` when types changed.
+- db tests: `npm run test:db` (all `*.db.test.ts`), or
+  `npx jest -c jest.db.config.mjs --runInBand <files>` for the touched ones. Own config
+  (`jest.db.config.mjs`): node environment, no Prisma mock, one file at a time. They refuse any URL
+  but `bring_me_home` on localhost, apply the migrations with `prisma migrate deploy` and empty
+  the tables before each test; Prisma refuses `migrate reset` from an AI agent, so a drifted local
+  database is reset by hand (`PRD/the-app/docs/POSTGRES.md`). Under the lock like any test run;
+  they hold the one local database, so the trial copy and the preview wait for them. Duration on
+  MacBookM4 (2026-11-11, 28 tests in 4 files): ~3 s.
+- Build: `DATABASE_URL` must be a `postgresql://` URL (the app refuses any other at start-up, and
+  `.env` may still hold the MySQL one): `DATABASE_URL=postgresql://build:build@127.0.0.1:1/build npm run build`
+  or the local one. Never a MySQL URL.
 - Fast suite: `npm run test:unit` plus `npm run build`. Duration on MacBookM4: not measured yet;
   record it here after its first run.
 - Smoke set: `npm run build`.
