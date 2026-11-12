@@ -28,6 +28,8 @@ const commentSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
   // Normalised before the format check, so " Joe@Example.com " is accepted and stored as joe@example.com.
+  // The parsed output is already normalised; the Prisma call sites pass it through the helper again
+  // on purpose (idempotent), so the guard test can see every write and lookup.
   email: z.string().overwrite(normalizeEmail).email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   occupation: z.string().optional().or(z.literal('')),

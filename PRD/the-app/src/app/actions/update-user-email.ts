@@ -7,6 +7,8 @@ import { isSiteAdmin } from '@/lib/permissions';
 import { z } from 'zod';
 import { normalizeEmail } from '@/lib/normalize-identity';
 
+// The parsed output is already normalised; the Prisma call sites pass it through the helper again
+// on purpose (idempotent), so the guard test can see every write and lookup.
 const updateEmailSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   newEmail: z.string().overwrite(normalizeEmail).email('Invalid email format'),

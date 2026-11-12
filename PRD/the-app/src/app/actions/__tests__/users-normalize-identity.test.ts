@@ -139,7 +139,7 @@ describe('updateUser (admin)', () => {
   });
 
   it('does not report the user\'s own username or email as taken when only case differs', async () => {
-    // A stored value that predates normalisation; MariaDB finds it for "joe", so the lookup returns the user itself.
+    // A stored value that predates normalisation; MySQL finds it for "joe", so the lookup returns the user itself.
     const self = withRelations({ id: 'user-1', username: 'Joe', email: 'Joe@Example.com' });
     findUnique.mockImplementation(async ({ where }: { where: Partial<StoredUser> }) =>
       where.id === 'user-1' || where.username === 'joe' || where.email === 'joe@example.com' ? self : null);

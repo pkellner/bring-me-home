@@ -1,14 +1,14 @@
 /**
  * The one form an email or username takes before it is stored or looked up.
  *
- * MariaDB compares text ignoring case and trailing spaces; Postgres compares bytes. Storing and
- * matching every email and username in this form makes both databases give the same answer
- * (issue #1, step 1). `src/lib/__tests__/normalize-identity-guard.test.ts` fails when a Prisma
+ * MySQL (utf8mb4_unicode_ci) compares text ignoring case and trailing spaces; Postgres compares
+ * bytes. Storing and matching every email and username in this form makes both databases give
+ * the same answer (issue #1, step 1). `src/lib/__tests__/normalize-identity-guard.test.ts` fails when a Prisma
  * call writes or matches an email or username without going through these functions.
  *
  * `trim()` removes every Unicode whitespace character at either end (spaces, tabs, newlines,
  * no-break spaces); `toLowerCase()` is locale-independent ("É" becomes "é"). Accents are kept:
- * "josé" and "jose" stay different, although MariaDB's `utf8mb4_unicode_ci` treats them as equal.
+ * "josé" and "jose" stay different, although MySQL's `utf8mb4_unicode_ci` treats them as equal.
  */
 
 function requireString(value: unknown, functionName: string): string {

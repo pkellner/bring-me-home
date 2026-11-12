@@ -3,6 +3,8 @@ import { normalizeEmail, normalizeUsername } from '@/lib/normalize-identity';
 
 // Usernames and emails are normalised before the checks run, so the length and format rules
 // apply to the value that is stored (" ab " is too short; " Joe@Example.com " is valid).
+// The parsed output is already normalised; the Prisma call sites pass it through the helper again
+// on purpose (idempotent), so the guard test can see every write and lookup.
 export const CreateUserSchema = z.object({
   username: z.string().overwrite(normalizeUsername).min(3, 'Username must be at least 3 characters').max(50),
   email: z.union([
