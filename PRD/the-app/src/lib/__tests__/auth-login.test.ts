@@ -52,10 +52,12 @@ describe('login looks up the username in lowercase (issue #1 step 1)', () => {
     expect((await authorize({ username: 'PETER', password: 'secret-pass' }))?.id).toBe('user-1');
   });
 
-  it('does not trim the typed username until step 0 confirms no stored username has surrounding spaces', async () => {
+  // Contract changed in issue #1 step 2 (was "does not trim"): step 0 found no stored username with
+  // surrounding spaces, so login trims as well as lowercasing.
+  it('logs in " Peter " as the stored "peter"', async () => {
     const user = await authorize({ username: ' Peter ', password: 'secret-pass' });
-    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { username: ' peter ' } }));
-    expect(user).toBeNull();
+    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { username: 'peter' } }));
+    expect(user?.id).toBe('user-1');
   });
 
   it('still rejects a wrong password', async () => {

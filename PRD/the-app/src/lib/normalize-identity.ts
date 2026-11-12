@@ -41,10 +41,10 @@ export function normalizeUsername(username: string): string {
 }
 
 /**
- * For looking up an existing user by a typed username (login, the admin scripts): lowercase only.
- * Trimming waits until issue #1 step 0 shows that no stored username has surrounding spaces;
- * then this function's body becomes `normalizeUsername(username)`.
+ * For looking up an existing user by a typed username (login, the admin scripts): the same form
+ * as a stored username, so " Peter " finds "peter" on Postgres. Trimming here is safe because
+ * issue #1 step 0 found no stored username with surrounding spaces in the production dump.
  */
 export function normalizeUsernameForLookup(username: string): string {
-  return requireString(username, 'normalizeUsernameForLookup').toLowerCase();
+  return normalizeUsername(requireString(username, 'normalizeUsernameForLookup'));
 }

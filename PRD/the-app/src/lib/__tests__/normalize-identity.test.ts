@@ -89,8 +89,17 @@ describe('normalizeUsernameForLookup', () => {
     expect(normalizeUsernameForLookup('PeTeR')).toBe('peter');
   });
 
-  it('does not trim yet: issue #1 step 0 must first show no stored username has surrounding spaces', () => {
-    expect(normalizeUsernameForLookup(' Peter ')).toBe(' peter ');
+  // Contract changed in issue #1 step 2 (was "does not trim yet"): step 0 found no stored username
+  // with surrounding spaces, and Postgres compares bytes, so the lookup must trim to find the user.
+  it('trims, so a padded login finds the stored username on Postgres', () => {
+    expect(normalizeUsernameForLookup(' Peter ')).toBe('peter');
+    expect(normalizeUsernameForLookup('\tPETER\n')).toBe('peter');
+  });
+
+  it('gives the same form as a stored username', () => {
+    for (const typed of ['peter', ' Peter', 'PETER ', ' peter ', 'Ana María ']) {
+      expect(normalizeUsernameForLookup(typed)).toBe(normalizeUsername(typed));
+    }
   });
 
   it('throws on a non-string', () => {
