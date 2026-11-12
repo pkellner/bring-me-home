@@ -8,7 +8,7 @@ const createJestConfig = nextJest({ dir: './' })
 
 export default createJestConfig({
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/src/**/*.db.test.ts'],
+  testMatch: ['<rootDir>/src/**/*.db.test.ts', '<rootDir>/scripts/postgres-move/**/*.db.test.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
