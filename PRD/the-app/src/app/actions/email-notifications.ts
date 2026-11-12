@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { replaceTemplateVariablesWithUnsubscribe } from '@/lib/email-template-variables';
 import { isEmailSuppressed } from '@/lib/email-suppression';
 import { normalizeEmail, normalizeOptionalEmail, normalizeUsername } from '@/lib/normalize-identity';
+import { issueVerificationToken } from '@/lib/comment-verification';
 
 // Toggle email opt-out for a specific person
 export async function toggleEmailOptOut(personId: string, optOut: boolean) {
@@ -359,6 +360,15 @@ export async function sendUpdateEmail(
 
         // Generate a magic link token for this follower
         const magicToken = await generateMagicLinkToken(follower.id, update.personId, update.id);
+
+        // getPersonFollowers returns only followers with an email
+        if (!follower.email) {
+          throw new Error(`Follower ${follower.id} has no email address`);
+        }
+        const followerEmail = follower.email;
+        const commentToken = await issueVerificationToken(followerEmail);
+        const commentLinkParams = (action: 'hide' | 'manage') =>
+          new URLSearchParams({ email: followerEmail, action, token: commentToken }).toString();
         
         // Generate the comment link with magic token
         const commentLink = `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}?update=${update.id}&addComment=true&uid=${magicToken}`;
@@ -426,8 +436,8 @@ export async function sendUpdateEmail(
           updateId: update.id,
           commentLink,
           profileUrl: `${process.env.NEXTAUTH_URL}/${update.person.town.slug}/${update.person.slug}`,
-          hideUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?action=hide&email=${encodeURIComponent(follower.email || '')}`,
-          manageUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?email=${encodeURIComponent(follower.email || '')}`,
+          hideUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?${commentLinkParams('hide')}`,
+          manageUrl: `${process.env.NEXTAUTH_URL}/api/profile/anonymous-comments?${commentLinkParams('manage')}`,
           personOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${personOptOutToken}&action=person`,
           allOptOutUrl: `${process.env.NEXTAUTH_URL}/unsubscribe?token=${allOptOutToken}&action=all`,
         };
