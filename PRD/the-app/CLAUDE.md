@@ -129,7 +129,7 @@ main();
 
 ### Tech Stack
 - **Framework**: Next.js 15 with App Router
-- **Database**: MySQL with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Auth**: NextAuth.js with JWT sessions
 - **Storage**: Flexible image storage (database or S3)
 - **CDN**: CloudFront integration for images
@@ -232,7 +232,7 @@ main();
 Critical environment variables:
 ```
 # Database
-DATABASE_URL="mysql://user:pass@localhost:3306/bring_me_home"
+DATABASE_URL="postgresql://user:pass@localhost:5432/bring_me_home"
 
 # Authentication
 NEXTAUTH_URL="http://localhost:3000"
