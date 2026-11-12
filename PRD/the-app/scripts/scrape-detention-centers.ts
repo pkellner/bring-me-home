@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { ImageStorageService } from '../src/lib/image-storage';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 const imageStorageService = new ImageStorageService(prisma);
 
 interface DetentionCenterData {

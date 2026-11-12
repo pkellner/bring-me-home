@@ -49,6 +49,8 @@ const customJestConfig = {
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+    // Issue #1: the mysqldump reader and the data-copy scripts for the move to Postgres.
+    '<rootDir>/scripts/postgres-move/**/*.test.ts',
   ],
   
   // Transform files
@@ -66,6 +68,8 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/out/',
     '<rootDir>/coverage/',
+    // db tests run against the local Postgres with their own config: npm run test:db (jest.db.config.mjs).
+    '\\.db\\.test\\.ts$',
   ],
   
   // Transform ignore patterns - handle ESM modules

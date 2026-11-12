@@ -5,9 +5,10 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
 import { emailTemplates } from '../src/config/email-templates';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 async function verifyEmailTemplates() {
   console.log('🔍 Verifying email templates...\n');

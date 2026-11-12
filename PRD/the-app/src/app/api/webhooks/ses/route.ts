@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { EmailStatus } from '@prisma/client';
 import crypto from 'crypto';
+import { normalizeEmail } from '@/lib/normalize-identity';
 import {
   SNSMessage,
   SESNotification,
@@ -228,11 +229,13 @@ export async function POST(request: NextRequest) {
 
           const emailByRecipient = await prisma.emailNotification.findFirst({
             where: {
+              // SES reports the recipient exactly as it was sent, which is the stored sentTo;
+              // the user's address is matched in its normal form.
               OR: [
                 { sentTo: recipientEmail },
                 {
                   user: {
-                    email: recipientEmail
+                    email: normalizeEmail(recipientEmail)
                   }
                 }
               ],

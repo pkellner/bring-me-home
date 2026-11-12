@@ -11,10 +11,28 @@ interface PersonDetentionInfoProps {
     detentionStatus?: string | null;
     caseNumber?: string | null;
     bondAmount?: string | null;
+    bondStatus?: string | null;
+    nextCourtDate?: Date | null;
+    courtLocation?: string | null;
+    releaseDate?: Date | null;
     lastHeardFromDate?: Date | null;
     notesFromLastContact?: string | null;
     representedByLawyer?: boolean | null;
     representedByNotes?: string | null;
+    // New status-related fields
+    hearingDate?: Date | null;
+    hearingLocation?: string | null;
+    hearingNotes?: string | null;
+    bailPostedDate?: Date | null;
+    bailPostedBy?: string | null;
+    bailConditions?: string | null;
+    finalOutcome?: string | null;
+    finalOutcomeDate?: Date | null;
+    finalOutcomeNotes?: string | null;
+    deportationDate?: Date | null;
+    deportationDestination?: string | null;
+    visaGrantedType?: string | null;
+    visaGrantedDate?: Date | null;
   };
   selectedDetentionCenter: SanitizedDetentionCenter | null;
   selectedDetentionCenterId: string | null;
@@ -178,6 +196,79 @@ export default function PersonDetentionInfo({
                 />
               </div>
 
+              <div>
+                <label
+                  htmlFor="bondStatus"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Bond Status
+                </label>
+                <input
+                  type="text"
+                  id="bondStatus"
+                  name="bondStatus"
+                  defaultValue={person?.bondStatus || ''}
+                  placeholder="e.g., Pending, Approved, Denied"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="nextCourtDate"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Next Court Date
+                </label>
+                <input
+                  type="date"
+                  id="nextCourtDate"
+                  name="nextCourtDate"
+                  defaultValue={
+                    person?.nextCourtDate
+                      ? new Date(person.nextCourtDate).toISOString().split('T')[0]
+                      : ''
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="courtLocation"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Court Location
+                </label>
+                <input
+                  type="text"
+                  id="courtLocation"
+                  name="courtLocation"
+                  defaultValue={person?.courtLocation || ''}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="releaseDate"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Release Date
+                </label>
+                <input
+                  type="date"
+                  id="releaseDate"
+                  name="releaseDate"
+                  defaultValue={
+                    person?.releaseDate
+                      ? new Date(person.releaseDate).toISOString().split('T')[0]
+                      : ''
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+
               {/* Status-specific fields */}
               {currentStatus === DETENTION_STATUSES.BAIL_POSTED && (
                 <>
@@ -192,6 +283,11 @@ export default function PersonDetentionInfo({
                       type="date"
                       id="bailPostedDate"
                       name="bailPostedDate"
+                      defaultValue={
+                        person?.bailPostedDate
+                          ? new Date(person.bailPostedDate).toISOString().split('T')[0]
+                          : ''
+                      }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -206,6 +302,7 @@ export default function PersonDetentionInfo({
                       type="text"
                       id="bailPostedBy"
                       name="bailPostedBy"
+                      defaultValue={person?.bailPostedBy || ''}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -220,6 +317,7 @@ export default function PersonDetentionInfo({
                       id="bailConditions"
                       name="bailConditions"
                       rows={2}
+                      defaultValue={person?.bailConditions || ''}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -240,6 +338,11 @@ export default function PersonDetentionInfo({
                       type="date"
                       id="hearingDate"
                       name="hearingDate"
+                      defaultValue={
+                        person?.hearingDate
+                          ? new Date(person.hearingDate).toISOString().split('T')[0]
+                          : ''
+                      }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -254,6 +357,22 @@ export default function PersonDetentionInfo({
                       type="text"
                       id="hearingLocation"
                       name="hearingLocation"
+                      defaultValue={person?.hearingLocation || ''}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="hearingNotes"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Hearing Notes
+                    </label>
+                    <textarea
+                      id="hearingNotes"
+                      name="hearingNotes"
+                      rows={2}
+                      defaultValue={person?.hearingNotes || ''}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -273,6 +392,11 @@ export default function PersonDetentionInfo({
                       type="date"
                       id="deportationDate"
                       name="deportationDate"
+                      defaultValue={
+                        person?.deportationDate
+                          ? new Date(person.deportationDate).toISOString().split('T')[0]
+                          : ''
+                      }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -287,6 +411,7 @@ export default function PersonDetentionInfo({
                       type="text"
                       id="deportationDestination"
                       name="deportationDestination"
+                      defaultValue={person?.deportationDestination || ''}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -306,6 +431,11 @@ export default function PersonDetentionInfo({
                       type="date"
                       id="visaGrantedDate"
                       name="visaGrantedDate"
+                      defaultValue={
+                        person?.visaGrantedDate
+                          ? new Date(person.visaGrantedDate).toISOString().split('T')[0]
+                          : ''
+                      }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -320,6 +450,7 @@ export default function PersonDetentionInfo({
                       type="text"
                       id="visaGrantedType"
                       name="visaGrantedType"
+                      defaultValue={person?.visaGrantedType || ''}
                       placeholder="e.g., H-1B, Green Card, etc."
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
@@ -340,6 +471,11 @@ export default function PersonDetentionInfo({
                       type="date"
                       id="finalOutcomeDate"
                       name="finalOutcomeDate"
+                      defaultValue={
+                        person?.finalOutcomeDate
+                          ? new Date(person.finalOutcomeDate).toISOString().split('T')[0]
+                          : ''
+                      }
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -354,6 +490,7 @@ export default function PersonDetentionInfo({
                       id="finalOutcomeNotes"
                       name="finalOutcomeNotes"
                       rows={2}
+                      defaultValue={person?.finalOutcomeNotes || ''}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>

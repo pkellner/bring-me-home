@@ -54,9 +54,11 @@ describe('PrismaStorageAdapter', () => {
 
       const result = await adapter.store(buffer, metadata, options);
 
+      // The adapter hands Prisma a Uint8Array copy of the bytes: Prisma 6.19 types `Bytes` as
+      // Uint8Array (src/lib/image-storage/prisma/adapter.ts). Same bytes, different wrapper.
       expect(prisma.imageStorage.create).toHaveBeenCalledWith({
         data: {
-          data: buffer,
+          data: new Uint8Array(buffer),
           mimeType: metadata.mimeType,
           size: metadata.size,
           width: metadata.width,

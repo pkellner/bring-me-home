@@ -1,3 +1,5 @@
+> Note: this describes the old MySQL setup, kept for history. The app now runs on PostgreSQL (see `docs/POSTGRES.md`).
+
 # Production Migration Fix Guide
 
 ## Issue Summary

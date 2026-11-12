@@ -46,9 +46,11 @@ interface SystemStats {
 
 interface SystemDashboardProps {
   systemStats: SystemStats;
+  /** From the connected server, e.g. "PostgreSQL 18.6". */
+  databaseVersion: string;
 }
 
-export default function SystemDashboard({ systemStats }: SystemDashboardProps) {
+export default function SystemDashboard({ systemStats, databaseVersion }: SystemDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'performance' | 'settings'
   >('overview');
@@ -348,7 +350,7 @@ export default function SystemDashboard({ systemStats }: SystemDashboardProps) {
                       <dt className="text-sm font-medium text-gray-500">
                         Database Version
                       </dt>
-                      <dd className="mt-1 text-sm text-gray-900">MySQL 8.0</dd>
+                      <dd className="mt-1 text-sm text-gray-900">{databaseVersion}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">

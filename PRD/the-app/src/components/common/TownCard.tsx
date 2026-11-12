@@ -8,6 +8,12 @@ export interface TownCardData {
   _count: {
     persons: number;
   };
+  statusCounts: {
+    detained: number;
+    released: number;
+    deported: number;
+    other: number;
+  };
 }
 
 interface TownCardProps {
@@ -25,10 +31,30 @@ export default function TownCard({ town, className = '' }: TownCardProps) {
         {town.name}
       </h4>
       <p className="text-sm text-gray-600">{town.state}</p>
-      <p className="text-sm text-indigo-600 mt-2">
-        {town._count.persons} detained person
-        {town._count.persons !== 1 ? 's' : ''}
-      </p>
+      {(() => {
+        const parts: string[] = [];
+
+        if (town.statusCounts.detained > 0) {
+          parts.push(`${town.statusCounts.detained} detained`);
+        }
+        if (town.statusCounts.released > 0) {
+          parts.push(`${town.statusCounts.released} released`);
+        }
+        if (town.statusCounts.deported > 0) {
+          parts.push(`${town.statusCounts.deported} deported`);
+        }
+        if (town.statusCounts.other > 0) {
+          parts.push(`${town.statusCounts.other} other`);
+        }
+
+        const statusText = parts.join(', ');
+
+        return (
+          <p className="text-sm text-indigo-600 mt-2">
+            {statusText || 'No persons listed'}
+          </p>
+        );
+      })()}
     </Link>
   );
 }

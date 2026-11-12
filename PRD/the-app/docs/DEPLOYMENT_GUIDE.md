@@ -8,7 +8,7 @@ If deploying to a new production database:
 
 ```bash
 # 1. Set production DATABASE_URL in environment
-export DATABASE_URL="mysql://user:password@host:port/database"
+export DATABASE_URL="postgresql://user:password@host:5432/bring_me_home"
 
 # 2. Deploy all migrations
 npx prisma migrate deploy
@@ -23,7 +23,7 @@ If you already have data in production:
 
 ```bash
 # 1. Create a backup first!
-mysqldump -u user -p database_name > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -Fc -U user database_name > backup.dump
 
 # 2. Check what migrations need to be applied
 npx prisma migrate status
@@ -42,18 +42,18 @@ The following changes were made:
 
 ### 1. Always Backup First
 ```bash
-# MySQL backup
-mysqldump -u root -p bring_me_home > backup_before_migration.sql
+# Postgres backup
+pg_dump -Fc -U postgres bring_me_home > backup_before_migration.dump
 ```
 
 ### 2. Test Migrations Locally
 ```bash
 # Create a test database with production-like data
-mysql -u root -p -e "CREATE DATABASE bring_me_home_test"
-mysql -u root -p bring_me_home_test < production_backup.sql
+createdb -U postgres bring_me_home_test
+pg_restore -U postgres -d bring_me_home_test production_backup.dump
 
 # Test migrations
-DATABASE_URL="mysql://root:password@localhost:3306/bring_me_home_test" npx prisma migrate deploy
+DATABASE_URL="postgresql://postgres:password@localhost:5432/bring_me_home_test" npx prisma migrate deploy
 ```
 
 ### 3. Use Prisma Migrate in Production
@@ -102,7 +102,7 @@ If issues occur:
 ## Common Issues
 
 ### TEXT Column Default Values
-MySQL doesn't support default values for TEXT columns. Use nullable columns instead:
+Keep optional text columns nullable rather than relying on an empty-string default:
 ```prisma
 // ❌ Wrong
 privateNoteToFamily String @default("") @db.Text

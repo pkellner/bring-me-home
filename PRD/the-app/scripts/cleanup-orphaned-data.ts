@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../src/lib/prisma';
+import { findTokensWithoutUser } from '../src/lib/comment-verification';
 
 async function main() {
   console.log('Starting cleanup of orphaned data...\n');
@@ -12,18 +13,12 @@ async function main() {
   try {
     // 1. Find comment verification tokens for emails that don't belong to any user
     console.log('1. Checking for orphaned comment verification tokens...');
-    const orphanedTokens = await prisma.commentVerificationToken.findMany({
-      where: {
-        NOT: {
-          email: {
-            in: await prisma.user.findMany({
-              where: { email: { not: null } },
-              select: { email: true }
-            }).then(users => users.map(u => u.email!))
-          }
-        }
-      }
-    });
+    const userEmails = (await prisma.user.findMany({
+      where: { email: { not: null } },
+      select: { email: true }
+    })).map(u => u.email!);
+    // Found in code with both sides in normal form, then deleted by id below.
+    const orphanedTokens = findTokensWithoutUser(await prisma.commentVerificationToken.findMany(), userEmails);
     
     console.log(`   Found ${orphanedTokens.length} orphaned tokens`);
     

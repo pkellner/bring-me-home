@@ -23,7 +23,6 @@ type TownWithRelations = Prisma.TownGetPayload<{
     persons: {
       where: {
         isActive: true;
-        status: 'detained';
       };
       select: {
         id: true;
@@ -47,6 +46,14 @@ type TownWithRelations = Prisma.TownGetPayload<{
           take: 1;
         };
         lastSeenDate: true;
+        detentionDate: true;
+        detentionStatus: true;
+        bailPostedDate: true;
+        releaseDate: true;
+        deportationDate: true;
+        visaGrantedDate: true;
+        finalOutcomeDate: true;
+        statusUpdatedAt: true;
         dateOfBirth: true;
         story: true;
         createdAt: true;
@@ -92,7 +99,6 @@ async function getTownDataFromDatabase(townSlug: string): Promise<TownWithRelati
       persons: {
         where: {
           isActive: true,
-          status: 'detained',
         },
         select: {
           id: true,
@@ -116,6 +122,14 @@ async function getTownDataFromDatabase(townSlug: string): Promise<TownWithRelati
             take: 1,
           },
           lastSeenDate: true,
+          detentionDate: true,
+          detentionStatus: true,
+          bailPostedDate: true,
+          releaseDate: true,
+          deportationDate: true,
+          visaGrantedDate: true,
+          finalOutcomeDate: true,
+          statusUpdatedAt: true,
           dateOfBirth: true,
           story: true,
           createdAt: true,
@@ -154,6 +168,14 @@ export interface TownPagePerson {
   lastName: string;
   slug: string;
   lastSeenDate: Date | null;
+  detentionDate: Date | null;
+  detentionStatus: string | null;
+  bailPostedDate: Date | null;
+  releaseDate: Date | null;
+  deportationDate: Date | null;
+  visaGrantedDate: Date | null;
+  finalOutcomeDate: Date | null;
+  statusUpdatedAt: Date | null;
   dateOfBirth: Date | null;
   story: string | null;
   createdAt: Date;
@@ -207,6 +229,14 @@ async function serializeTownData(town: TownWithRelations, townSlug: string): Pro
         lastName: person.lastName,
         slug: person.slug,
         lastSeenDate: person.lastSeenDate,
+        detentionDate: person.detentionDate,
+        detentionStatus: person.detentionStatus,
+        bailPostedDate: person.bailPostedDate,
+        releaseDate: person.releaseDate,
+        deportationDate: person.deportationDate,
+        visaGrantedDate: person.visaGrantedDate,
+        finalOutcomeDate: person.finalOutcomeDate,
+        statusUpdatedAt: person.statusUpdatedAt,
         dateOfBirth: person.dateOfBirth,
         story: person.story,
         createdAt: person.createdAt,

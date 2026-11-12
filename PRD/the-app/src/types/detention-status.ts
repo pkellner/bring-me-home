@@ -214,6 +214,85 @@ export function shouldShowDetentionCenter(status: string | null | undefined): bo
   return !(nonDetentionStatuses as readonly string[]).includes(status);
 }
 
+/**
+ * Get the most relevant date field for a given detention status
+ * Falls back to statusUpdatedAt if primary date field is null
+ */
+export function getStatusDateField(
+  status: string | null | undefined,
+  person: {
+    bailPostedDate?: Date | string | null;
+    hearingDate?: Date | string | null;
+    releaseDate?: Date | string | null;
+    visaGrantedDate?: Date | string | null;
+    finalOutcomeDate?: Date | string | null;
+    deportationDate?: Date | string | null;
+    statusUpdatedAt?: Date | string | null;
+  }
+): Date | string | null {
+  if (!status) return null;
+
+  const statusDateMap: Record<string, Date | string | null | undefined> = {
+    [DETENTION_STATUSES.BAIL_POSTED]: person.bailPostedDate,
+    [DETENTION_STATUSES.RELEASED_MONITORING]: person.releaseDate,
+    [DETENTION_STATUSES.ASYLUM_GRANTED]: person.visaGrantedDate || person.finalOutcomeDate,
+    [DETENTION_STATUSES.VISA_GRANTED]: person.visaGrantedDate,
+    [DETENTION_STATUSES.STATUS_ADJUSTED]: person.finalOutcomeDate,
+    [DETENTION_STATUSES.CASE_DISMISSED]: person.finalOutcomeDate,
+    [DETENTION_STATUSES.VOLUNTARY_DEPARTURE]: person.finalOutcomeDate,
+    [DETENTION_STATUSES.DEPORTED]: person.deportationDate,
+    [DETENTION_STATUSES.REMOVAL_ORDER]: person.finalOutcomeDate,
+    [DETENTION_STATUSES.TRANSFERRED]: person.statusUpdatedAt,
+    [DETENTION_STATUSES.ABSCONDED]: person.statusUpdatedAt,
+    [DETENTION_STATUSES.DECEASED]: person.finalOutcomeDate,
+    [DETENTION_STATUSES.UNKNOWN]: person.statusUpdatedAt,
+    [DETENTION_STATUSES.AWAITING_HEARING]: person.hearingDate || person.statusUpdatedAt,
+    [DETENTION_STATUSES.IN_PROCEEDINGS]: person.hearingDate || person.statusUpdatedAt,
+  };
+
+  return statusDateMap[status] || null;
+}
+
+/**
+ * Determine if we should show the simple status line (vs detailed box)
+ * Returns true for all statuses except "currently_detained"
+ */
+export function shouldShowSimpleStatusLine(status: string | null | undefined): boolean {
+  if (!status) return false;
+  return status !== DETENTION_STATUSES.CURRENTLY_DETAINED;
+}
+
+/**
+ * Categorize a detention status into a display category
+ * Used for aggregating status counts in town summaries
+ */
+export function categorizeStatus(
+  status: string | null | undefined
+): 'detained' | 'released' | 'deported' | 'other' {
+  if (!status || status === DETENTION_STATUSES.CURRENTLY_DETAINED) {
+    return 'detained';
+  }
+
+  const releasedStatuses = [
+    DETENTION_STATUSES.BAIL_POSTED,
+    DETENTION_STATUSES.RELEASED_MONITORING,
+    DETENTION_STATUSES.ASYLUM_GRANTED,
+    DETENTION_STATUSES.VISA_GRANTED,
+    DETENTION_STATUSES.STATUS_ADJUSTED,
+    DETENTION_STATUSES.CASE_DISMISSED,
+  ] as const;
+
+  if ((releasedStatuses as readonly string[]).includes(status)) {
+    return 'released';
+  }
+
+  if (status === DETENTION_STATUSES.DEPORTED) {
+    return 'deported';
+  }
+
+  return 'other';
+}
+
 // Type for status details JSON field
 export interface StatusDetailsJson {
   previousStatus?: string;
@@ -221,4 +300,65 @@ export interface StatusDetailsJson {
   statusChangedAt?: string;
   notes?: string;
   [key: string]: unknown; // Allow for future expansion
+}
+
+/**
+ * Format detention information text based on status and detention center
+ * Returns an object with text parts for flexible rendering
+ */
+export function formatDetentionInfo(params: {
+  detentionStatus: string | null | undefined;
+  detentionDate: Date | string | null | undefined;
+  detentionCenter?: {
+    name: string;
+    city: string;
+    state: string;
+  } | null;
+  detainedLabel?: string; // e.g., "Detained since" or "Detention Date"
+  originalLabel?: string; // e.g., "Original detention date"
+}): {
+  type: 'currently_detained' | 'originally_detained_at_center' | 'original_date_only';
+  label: string;
+  text: string;
+} {
+  const {
+    detentionStatus,
+    detentionDate,
+    detentionCenter,
+    detainedLabel = 'Detention Date',
+    originalLabel = 'Detention Date'
+  } = params;
+
+  if (!detentionDate) {
+    return {
+      type: 'original_date_only',
+      label: '',
+      text: ''
+    };
+  }
+
+  // Currently detained
+  if (detentionStatus === DETENTION_STATUSES.CURRENTLY_DETAINED) {
+    return {
+      type: 'currently_detained',
+      label: detainedLabel,
+      text: ''
+    };
+  }
+
+  // Non-detained with detention center info
+  if (detentionCenter) {
+    return {
+      type: 'originally_detained_at_center',
+      label: 'Originally detained at',
+      text: `${detentionCenter.name} (${detentionCenter.city}, ${detentionCenter.state})`
+    };
+  }
+
+  // Non-detained without detention center info
+  return {
+    type: 'original_date_only',
+    label: originalLabel,
+    text: ''
+  };
 }

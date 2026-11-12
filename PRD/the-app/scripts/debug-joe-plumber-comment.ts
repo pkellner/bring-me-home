@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail } from '../src/lib/normalize-identity';
 
 async function main() {
   try {
@@ -63,7 +64,7 @@ async function main() {
     for (const email of emails) {
       const token = await prisma.commentVerificationToken.findFirst({
         where: {
-          email: email!,
+          email: normalizeEmail(email!),
         },
         orderBy: {
           createdAt: 'desc',
@@ -105,7 +106,7 @@ async function main() {
         where: {
           OR: [
           { sentTo: { in: emails.filter(e => e) as string[] } },
-          { user: { email: { in: emails.filter(e => e) as string[] } } }
+          { user: { email: { in: (emails.filter(e => e) as string[]).map(normalizeEmail) } } }
         ],
         },
         orderBy: {
@@ -128,7 +129,7 @@ async function main() {
         console.log('No emails found in queue for these addresses');
       }
     } catch (error) {
-      console.log('Email queue table might not exist');
+      console.log('Email queue table might not exist:', error instanceof Error ? error.message : error);
     }
 
     // Check environment

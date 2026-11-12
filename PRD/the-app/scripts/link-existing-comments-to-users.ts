@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { prisma } from '../src/lib/prisma';
+import { normalizeEmail, normalizeUsername } from '../src/lib/normalize-identity';
 import bcrypt from 'bcryptjs';
 
 async function main() {
@@ -32,7 +33,7 @@ async function main() {
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({
-        where: { email: comment.email },
+        where: { email: normalizeEmail(comment.email) },
         select: { id: true },
       });
 
@@ -47,8 +48,8 @@ async function main() {
         const tempPassword = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
         const newUser = await prisma.user.create({
           data: {
-            username: comment.email,
-            email: comment.email,
+            username: normalizeUsername(comment.email),
+            email: normalizeEmail(comment.email),
             password: tempPassword,
             firstName: comment.firstName || undefined,
             lastName: comment.lastName || undefined,

@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getDatabaseVersion } from '@/lib/database-health';
 import SystemDashboard from './SystemDashboard';
 
 export default async function SystemPage() {
@@ -27,6 +28,7 @@ export default async function SystemPage() {
     approvedComments,
     recentUsers,
     recentComments,
+    databaseVersion,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isActive: true } }),
@@ -63,6 +65,7 @@ export default async function SystemPage() {
         },
       },
     }),
+    getDatabaseVersion(),
   ]);
 
   const systemStats = {
@@ -77,5 +80,5 @@ export default async function SystemPage() {
     recentComments,
   };
 
-  return <SystemDashboard systemStats={systemStats} />;
+  return <SystemDashboard systemStats={systemStats} databaseVersion={databaseVersion} />;
 }

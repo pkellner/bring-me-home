@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 import { serializePrismaObject } from './serialize-prisma';
+import { normalizeUsernameForLookup } from './normalize-identity';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -43,7 +44,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
+          where: { username: normalizeUsernameForLookup(credentials.username) },
           include: {
             userRoles: {
               include: {

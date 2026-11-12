@@ -1,14 +1,16 @@
 #!/usr/bin/env tsx
 
 import { PrismaClient } from '@prisma/client';
+import { databaseUrl } from '../src/lib/database-url';
+import { normalizeUsernameForLookup } from '../src/lib/normalize-identity';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl() } } });
 
 async function findPassword(username: string) {
   try {
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: { username: normalizeUsernameForLookup(username) },
       select: { id: true, username: true, password: true }
     });
     

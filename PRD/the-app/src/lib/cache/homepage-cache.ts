@@ -4,6 +4,7 @@ import { cacheStats } from './cache-stats';
 import { getMemoryCache, getRedisCache } from './cache-manager';
 import { RedisKeys } from '@/lib/redis/redis-keys';
 import type { CacheResult, CacheOptions } from '@/types/cache';
+import { categorizeStatus } from '@/types/detention-status';
 
 const CACHE_VERSION = 'v1';
 
@@ -19,6 +20,12 @@ interface HomepageTown {
   _count: {
     persons: number;
   };
+  statusCounts: {
+    detained: number;
+    released: number;
+    deported: number;
+    other: number;
+  };
 }
 
 interface HomepagePerson {
@@ -27,6 +34,8 @@ interface HomepagePerson {
   lastName: string;
   slug: string;
   lastSeenDate: Date | null;
+  detentionDate: Date | null;
+  detentionStatus: string | null;
   town: {
     name: string;
     slug: string;
@@ -42,7 +51,15 @@ export interface HomepageData {
 }
 
 async function getHomepageDataFromDatabase(): Promise<{
-  towns: HomepageTown[];
+  towns: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    state: string;
+    persons: Array<{
+      detentionStatus: string | null;
+    }>;
+  }>;
   recentPersons: Array<{
     id: string;
     firstName: string;
@@ -57,6 +74,8 @@ async function getHomepageDataFromDatabase(): Promise<{
       };
     }>;
     lastSeenDate: Date | null;
+    detentionDate: Date | null;
+    detentionStatus: string | null;
     town: {
       name: string;
       slug: string;
@@ -75,14 +94,12 @@ async function getHomepageDataFromDatabase(): Promise<{
         name: true,
         slug: true,
         state: true,
-        _count: {
+        persons: {
+          where: {
+            isActive: true,
+          },
           select: {
-            persons: {
-              where: {
-                isActive: true,
-                status: 'detained',
-              },
-            },
+            detentionStatus: true,
           },
         },
       },
@@ -93,7 +110,6 @@ async function getHomepageDataFromDatabase(): Promise<{
     prisma.person.findMany({
       where: {
         isActive: true,
-        status: 'detained',
         town: {
           isActive: true,
         },
@@ -120,6 +136,8 @@ async function getHomepageDataFromDatabase(): Promise<{
           take: 1,
         },
         lastSeenDate: true,
+        detentionDate: true,
+        detentionStatus: true,
         town: {
           select: {
             name: true,
@@ -148,7 +166,15 @@ async function getHomepageDataFromDatabase(): Promise<{
 }
 
 async function serializeHomepageData(data: {
-  towns: HomepageTown[];
+  towns: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    state: string;
+    persons: Array<{
+      detentionStatus: string | null;
+    }>;
+  }>;
   recentPersons: Array<{
     id: string;
     firstName: string;
@@ -163,6 +189,8 @@ async function serializeHomepageData(data: {
       };
     }>;
     lastSeenDate: Date | null;
+    detentionDate: Date | null;
+    detentionStatus: string | null;
     town: {
       name: string;
       slug: string;
@@ -171,6 +199,32 @@ async function serializeHomepageData(data: {
   }>;
   totalDetained: number;
 }): Promise<HomepageData> {
+  // Calculate status counts for each town
+  const serializedTowns: HomepageTown[] = data.towns.map(town => {
+    const statusCounts = {
+      detained: 0,
+      released: 0,
+      deported: 0,
+      other: 0,
+    };
+
+    town.persons.forEach(person => {
+      const category = categorizeStatus(person.detentionStatus);
+      statusCounts[category]++;
+    });
+
+    return {
+      id: town.id,
+      name: town.name,
+      slug: town.slug,
+      state: town.state,
+      _count: {
+        persons: town.persons.length,
+      },
+      statusCounts,
+    };
+  });
+
   // Pre-generate image URLs for recent persons
   const recentPersonsWithUrls = await Promise.all(
     data.recentPersons.map(async (person) => {
@@ -195,6 +249,8 @@ async function serializeHomepageData(data: {
         lastName: person.lastName,
         slug: person.slug,
         lastSeenDate: person.lastSeenDate,
+        detentionDate: person.detentionDate,
+        detentionStatus: person.detentionStatus,
         town: person.town,
         imageUrl,
       };
@@ -202,7 +258,7 @@ async function serializeHomepageData(data: {
   );
 
   return {
-    towns: data.towns,
+    towns: serializedTowns,
     recentPersons: recentPersonsWithUrls,
     totalDetained: data.totalDetained,
   };

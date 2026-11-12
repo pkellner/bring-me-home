@@ -3,6 +3,13 @@ import Image from 'next/image';
 import { Building2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { stripHtml } from '@/lib/stripHtml';
+import {
+  getStatusDisplayInfo,
+  getStatusDateField,
+  formatDetentionInfo,
+  shouldShowDetentionCenter,
+  DETENTION_STATUSES
+} from '@/types/detention-status';
 
 export interface PersonCardData {
   id: string;
@@ -11,6 +18,14 @@ export interface PersonCardData {
   slug: string;
   imageUrl: string | null;
   lastSeenDate: Date | null;
+  detentionDate: Date | null;
+  detentionStatus: string | null;
+  bailPostedDate?: Date | null;
+  releaseDate?: Date | null;
+  deportationDate?: Date | null;
+  visaGrantedDate?: Date | null;
+  finalOutcomeDate?: Date | null;
+  statusUpdatedAt?: Date | null;
   dateOfBirth: Date | null;
   story: string | null;
   detentionCenter: {
@@ -88,7 +103,37 @@ export default function PersonCard({
             <h3 className="text-xl font-bold text-gray-900">
               {person.firstName} {person.lastName}
             </h3>
-            {person.detentionCenter && (
+
+            {/* Compact variant: Show detention date right below name */}
+            {variant === 'compact' && person.detentionDate && (
+              <p className="text-xs text-gray-600 mt-1">
+                {formatDate(person.detentionDate)}
+              </p>
+            )}
+
+            {/* Compact variant: Show status badge if not detained */}
+            {variant === 'compact' && person.detentionStatus &&
+             person.detentionStatus !== DETENTION_STATUSES.CURRENTLY_DETAINED && (
+              <div className="mt-2">
+                {(() => {
+                  const statusInfo = getStatusDisplayInfo(person.detentionStatus);
+                  const statusDate = getStatusDateField(person.detentionStatus, person);
+                  return (
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${statusInfo.bgColor} border ${statusInfo.borderColor}`}>
+                      {statusInfo.icon && <span>{statusInfo.icon}</span>}
+                      <span className={`font-medium text-${statusInfo.color}-800`}>
+                        {statusInfo.label}
+                        {statusDate && ` (${formatDate(statusDate)})`}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Full variant: Show detention center if currently detained */}
+            {variant === 'full' && person.detentionCenter &&
+             person.detentionStatus === DETENTION_STATUSES.CURRENTLY_DETAINED && (
               <div className="flex items-start gap-1 mt-1">
                 <Building2 className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" strokeWidth={2.5} />
                 <p className="text-sm font-bold text-red-600">
@@ -107,7 +152,54 @@ export default function PersonCard({
           )}
         </div>
 
-        {person.lastSeenDate && (
+        {/* Full variant: Status badge for non-detained */}
+        {variant === 'full' && person.detentionStatus &&
+         person.detentionStatus !== DETENTION_STATUSES.CURRENTLY_DETAINED && (
+          <div className="mb-3">
+            {(() => {
+              const statusInfo = getStatusDisplayInfo(person.detentionStatus);
+              const statusDate = getStatusDateField(person.detentionStatus, person);
+              return (
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded ${statusInfo.bgColor} border ${statusInfo.borderColor}`}>
+                  {statusInfo.icon && <span className="text-base">{statusInfo.icon}</span>}
+                  <span className={`text-sm font-semibold text-${statusInfo.color}-800`}>
+                    {statusInfo.label}
+                    {statusDate && ` (${formatDate(statusDate)})`}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Full variant: Detention Date */}
+        {variant === 'full' && person.detentionDate && (() => {
+          const detentionInfo = formatDetentionInfo({
+            detentionStatus: person.detentionStatus,
+            detentionDate: person.detentionDate,
+            detentionCenter: person.detentionCenter,
+            detainedLabel: 'Detained since',
+            originalLabel: 'Original detention date'
+          });
+
+          if (!detentionInfo.label) return null;
+
+          return (
+            <p className="text-sm text-gray-600 mb-3">
+              <span className="font-semibold">{detentionInfo.label}:</span>{' '}
+              {detentionInfo.text && (
+                <>
+                  {detentionInfo.text}{' '}
+                  <span className="font-semibold">on</span>{' '}
+                </>
+              )}
+              {formatDate(person.detentionDate)}
+            </p>
+          );
+        })()}
+
+        {/* Fallback to lastSeenDate if detentionDate not available */}
+        {variant === 'full' && !person.detentionDate && person.lastSeenDate && (
           <p className="text-sm text-gray-600 mb-3">
             <span className="font-medium">
               {config.last_seen_label || 'Detained since'}:

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isSiteAdmin } from '@/lib/permissions';
+import { normalizeEmail } from '@/lib/normalize-identity';
 
 export async function PUT(request: Request) {
   try {
@@ -15,9 +16,9 @@ export async function PUT(request: Request) {
       );
     }
     
-    const { email, userId } = await request.json();
+    const { email: submittedEmail, userId } = await request.json();
     
-    if (!email) {
+    if (!submittedEmail) {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
@@ -38,7 +39,8 @@ export async function PUT(request: Request) {
       targetUserId = userId;
     }
     
-    // Validate email format
+    // Validate the form that is checked for uniqueness and stored
+    const email = typeof submittedEmail === 'string' ? normalizeEmail(submittedEmail) : '';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(

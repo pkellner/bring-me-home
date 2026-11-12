@@ -7,6 +7,14 @@ export interface TownPagePerson {
   lastName: string;
   slug: string;
   lastSeenDate: Date | null;
+  detentionDate: Date | null;
+  detentionStatus: string | null;
+  bailPostedDate: Date | null;
+  releaseDate: Date | null;
+  deportationDate: Date | null;
+  visaGrantedDate: Date | null;
+  finalOutcomeDate: Date | null;
+  statusUpdatedAt: Date | null;
   dateOfBirth: Date | null;
   story: string | null;
   createdAt: Date;
@@ -47,6 +55,12 @@ export interface HomepageTown {
   _count: {
     persons: number;
   };
+  statusCounts: {
+    detained: number;
+    released: number;
+    deported: number;
+    other: number;
+  };
 }
 
 export interface HomepagePerson {
@@ -55,6 +69,8 @@ export interface HomepagePerson {
   lastName: string;
   slug: string;
   lastSeenDate: Date | null;
+  detentionDate: Date | null;
+  detentionStatus: string | null;
   town: {
     name: string;
     slug: string;
